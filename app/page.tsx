@@ -1,4 +1,5 @@
 import Link from "next/link"
+import type { CSSProperties } from "react"
 
 const accesos = [
   {
@@ -170,23 +171,7 @@ export default function HomePage() {
 
         <div style={styles.cardsGrid}>
           {accesos.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={styles.card}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-8px)"
-                e.currentTarget.style.border = "1px solid rgba(0,255,247,0.35)"
-                e.currentTarget.style.boxShadow =
-                  "0 20px 50px rgba(0,255,247,0.12)"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)"
-                e.currentTarget.style.border = "1px solid rgba(255,255,255,0.08)"
-                e.currentTarget.style.boxShadow =
-                  "0 12px 30px rgba(0,0,0,0.30)"
-              }}
-            >
+            <Link key={item.href} href={item.href} style={styles.card}>
               <div style={styles.cardLine} />
               <div style={styles.cardIcon}>◆</div>
               <h3 style={styles.cardTitle}>{item.titulo}</h3>
@@ -223,7 +208,7 @@ export default function HomePage() {
   )
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
     position: "relative",
@@ -583,6 +568,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 12px 30px rgba(0,0,0,0.30)",
     transition: "all 0.25s ease",
     backdropFilter: "blur(10px)",
+    display: "block",
   },
 
   cardLine: {
