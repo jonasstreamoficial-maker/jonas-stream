@@ -24,6 +24,7 @@ export default function HomePage() {
           boxShadow: "0 0 24px rgba(0,229,255,0.08)",
         }}
       >
+        {/* Marca */}
         <p
           style={{
             color: "#00e5ff",
@@ -35,14 +36,17 @@ export default function HomePage() {
           JONAS STREAM
         </p>
 
+        {/* Título */}
         <h1 style={{ fontSize: "48px", marginBottom: "12px" }}>
           Plataforma profesional
         </h1>
 
+        {/* Subtexto */}
         <p style={{ color: "#c7d7e2", marginBottom: "24px", fontSize: "18px" }}>
           Admin, tienda, carrito, pedidos, favoritos y más.
         </p>
 
+        {/* Botones */}
         <div
           style={{
             display: "grid",
