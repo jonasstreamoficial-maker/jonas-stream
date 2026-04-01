@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>
+      <body className="body-root">
         {children}
 
         <Toaster
@@ -23,20 +23,22 @@ export default function RootLayout({
           toastOptions={{
             style: {
               background: "#081018",
-              color: "#00e5ff",
-              border: "1px solid rgba(0,229,255,0.3)",
+              color: "#00fff7",
+              border: "1px solid rgba(0,255,247,0.3)",
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 0 15px rgba(0,255,247,0.25)",
             },
             success: {
               style: {
                 background: "#081018",
-                color: "#00e5ff",
-                border: "1px solid rgba(0,229,255,0.3)",
+                color: "#00fff7",
+                border: "1px solid rgba(0,255,247,0.3)",
               },
             },
             error: {
               style: {
                 background: "#081018",
-                color: "#ff9a9a",
+                color: "#ff8a8a",
                 border: "1px solid rgba(255,120,120,0.3)",
               },
             },

@@ -1,26 +1,190 @@
 @import "tailwindcss";
 
+/* ===== VARIABLES ===== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-main: #020406;
+  --bg-card: rgba(10, 18, 28, 0.85);
+  --neon: #00fff7;
+  --neon-soft: #00c2ff;
+  --text-main: #e6fbff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ===== RESET ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ===== BODY GLOBAL ===== */
+body,
+.body-root {
+  background: radial-gradient(circle at top, #06121a, #020406);
+  color: var(--text-main);
+  font-family: "Inter", Arial, sans-serif;
+  min-height: 100vh;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ===== GLOW BACKGROUND ===== */
+.bg-glow {
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: 0;
+}
+
+.top-left {
+  top: -120px;
+  left: -120px;
+  background: rgba(0, 255, 247, 0.15);
+}
+
+.bottom-right {
+  bottom: -120px;
+  right: -120px;
+  background: rgba(0, 140, 255, 0.15);
+}
+
+/* ===== MAIN ===== */
+.home-main {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+}
+
+/* ===== CONTAINER ===== */
+.home-container {
+  width: 100%;
+  max-width: 950px;
+  padding: 45px;
+  border-radius: 24px;
+  background: var(--bg-card);
+  border: 1px solid rgba(0, 255, 247, 0.15);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 0 30px rgba(0,255,247,0.08),
+    0 30px 80px rgba(0,0,0,0.6);
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== TEXTOS ===== */
+.brand {
+  letter-spacing: 4px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.title-neon {
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1.2;
+  margin-bottom: 12px;
+  text-shadow:
+    0 0 8px rgba(0,255,247,0.5),
+    0 0 25px rgba(0,255,247,0.3);
+}
+
+.subtitle {
+  color: #b7c9d6;
+  font-size: 18px;
+  margin-bottom: 24px;
+}
+
+.glow-text {
+  color: var(--neon);
+  text-shadow:
+    0 0 10px rgba(0,255,247,0.7),
+    0 0 25px rgba(0,255,247,0.4);
+}
+
+/* ===== BOTONES ===== */
+.btn-primary {
+  background: linear-gradient(135deg, var(--neon), var(--neon-soft));
+  color: #031018;
+  font-weight: 800;
+  padding: 14px 24px;
+  border-radius: 14px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-block;
+  box-shadow: 0 0 15px rgba(0,255,247,0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow:
+    0 0 25px rgba(0,255,247,0.8),
+    0 10px 40px rgba(0,255,247,0.3);
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(0,255,247,0.3);
+  color: var(--text-main);
+  padding: 14px 24px;
+  border-radius: 14px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 15px rgba(0,255,247,0.3);
+}
+
+/* ===== GRID ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 18px;
+}
+
+/* ===== CARDS ===== */
+.card-hover {
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-6px) scale(1.02);
+  border: 1px solid var(--neon);
+  box-shadow:
+    0 0 20px rgba(0,255,247,0.2),
+    0 10px 40px rgba(0,255,247,0.1);
+}
+
+.grid p {
+  color: #9fb3c8;
+  font-size: 14px;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020406;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--neon), var(--neon-soft));
+  border-radius: 10px;
+}
+
+/* ===== SMOOTH ===== */
+* {
+  scroll-behavior: smooth;
 }
