@@ -21,25 +21,27 @@ export default function RootLayout({
         <Toaster
           position="top-right"
           toastOptions={{
+            duration: 3000,
             style: {
-              background: "#081018",
+              background: "rgba(8, 16, 24, 0.96)",
               color: "#00fff7",
-              border: "1px solid rgba(0,255,247,0.3)",
+              border: "1px solid rgba(0,255,247,0.25)",
               backdropFilter: "blur(10px)",
-              boxShadow: "0 0 15px rgba(0,255,247,0.25)",
+              boxShadow: "0 0 20px rgba(0,255,247,0.12)",
+              borderRadius: "16px",
             },
             success: {
               style: {
-                background: "#081018",
+                background: "rgba(8, 16, 24, 0.96)",
                 color: "#00fff7",
-                border: "1px solid rgba(0,255,247,0.3)",
+                border: "1px solid rgba(0,255,247,0.25)",
               },
             },
             error: {
               style: {
-                background: "#081018",
-                color: "#ff8a8a",
-                border: "1px solid rgba(255,120,120,0.3)",
+                background: "rgba(8, 16, 24, 0.96)",
+                color: "#ff9d9d",
+                border: "1px solid rgba(255,120,120,0.25)",
               },
             },
           }}
