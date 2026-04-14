@@ -5,37 +5,43 @@ const modules = [
     href: "/admin",
     icon: "⚙️",
     title: "Admin",
-    description: "Gestiona usuarios, productos, pedidos y el control total del sistema.",
+    description:
+      "Gestiona usuarios, productos, pedidos, configuraciones y el control total del sistema.",
   },
   {
     href: "/cliente",
     icon: "👤",
     title: "Cliente",
-    description: "Consulta compras, perfil, historial y experiencia personalizada.",
+    description:
+      "Consulta compras, perfil, historial, favoritos y una experiencia personalizada.",
   },
   {
     href: "/proveedor",
     icon: "📦",
     title: "Proveedor",
-    description: "Visualiza información asignada, stock, catálogo y movimientos.",
+    description:
+      "Visualiza productos asignados, stock, movimientos y gestión operativa.",
   },
   {
     href: "/tienda",
     icon: "🛒",
     title: "Tienda",
-    description: "Explora productos disponibles dentro de una interfaz moderna.",
+    description:
+      "Explora productos disponibles dentro de una interfaz moderna, atractiva y escalable.",
   },
   {
     href: "/carrito",
     icon: "💳",
     title: "Carrito",
-    description: "Revisa la compra, cantidades, totales y flujo de checkout.",
+    description:
+      "Revisa cantidades, subtotales, totales y todo el flujo de compra.",
   },
   {
     href: "/favoritos",
     icon: "⭐",
     title: "Favoritos",
-    description: "Guarda productos importantes para volver rápido cuando quieras.",
+    description:
+      "Guarda productos destacados para acceder rápidamente cuando quieras.",
   },
 ]
 
@@ -48,28 +54,31 @@ export default function HomePage() {
 
       <main className="home-main">
         <section className="home-container">
-          <div className="home-topbar">
+          <header className="home-topbar">
             <div className="brand-wrap">
               <span className="brand-dot" />
               <p className="brand">JONAS STREAM</p>
             </div>
 
-            <div className="status-pill">Sistema online y listo para operar</div>
-          </div>
+            <div className="status-pill">
+              <span className="status-dot" />
+              Sistema online y listo para operar
+            </div>
+          </header>
 
-          <div className="hero-grid">
+          <section className="hero-grid">
             <div className="hero-copy">
-              <span className="eyebrow">Panel premium de gestión digital</span>
+              <span className="eyebrow">Plataforma premium de gestión digital</span>
 
               <h1 className="title-neon">
-                Plataforma <span className="accent">profesional</span> de ventas
-                digitales
+                Controla tu <span className="accent">ecosistema digital</span> con
+                una experiencia moderna y profesional
               </h1>
 
               <p className="subtitle">
-                Administra usuarios, productos, pedidos, carrito, favoritos y más
-                dentro de una experiencia visual moderna, potente y escalable,
-                diseñada para verse como un producto premium real.
+                Administra usuarios, productos, pedidos, carrito, favoritos y
+                operaciones clave desde una interfaz futurista, sólida y pensada
+                para crecer como una plataforma real de alto nivel.
               </p>
 
               <div className="hero-actions">
@@ -78,68 +87,76 @@ export default function HomePage() {
                 </Link>
 
                 <Link href="/tienda" className="btn-secondary">
-                  Ver tienda
+                  Explorar tienda
                 </Link>
               </div>
 
               <div className="hero-stats">
                 <div className="stat-card">
                   <h3>24/7</h3>
-                  <p>Operación disponible y lista para crecer.</p>
+                  <p>Disponibilidad operativa para tu negocio digital.</p>
                 </div>
 
                 <div className="stat-card">
-                  <h3>+6</h3>
-                  <p>Módulos principales integrados en la plataforma.</p>
+                  <h3>+{modules.length}</h3>
+                  <p>Módulos estratégicos integrados en la plataforma.</p>
                 </div>
 
                 <div className="stat-card">
                   <h3>PRO</h3>
-                  <p>Interfaz sólida con look premium futurista.</p>
+                  <p>Diseño premium con identidad visual moderna.</p>
                 </div>
               </div>
             </div>
 
             <aside className="hero-panel">
-              <p className="panel-label">Vista rápida</p>
+              <p className="panel-label">Resumen ejecutivo</p>
 
               <div className="mini-dashboard">
                 <div className="mini-card">
                   <div className="mini-highlight">
                     <div>
-                      <p>Rendimiento visual</p>
+                      <p>Experiencia visual</p>
                       <div className="mini-number">98%</div>
                     </div>
-                    <span className="mini-badge">Neon UI</span>
+                    <span className="mini-badge">Premium UI</span>
                   </div>
                 </div>
 
                 <div className="mini-card">
-                  <h4>Diseño premium</h4>
+                  <h4>Escalabilidad real</h4>
                   <p>
-                    Base ideal para evolucionar hacia dashboard admin, auth,
-                    analytics y paneles avanzados.
+                    Base ideal para evolucionar hacia autenticación avanzada,
+                    dashboards, reportes, analytics y más módulos comerciales.
                   </p>
                 </div>
 
                 <div className="mini-card">
-                  <h4>Arquitectura limpia</h4>
+                  <h4>Estructura organizada</h4>
                   <p>
-                    Separación correcta entre layout, estilos globales y página
-                    principal para escalar como proyecto real.
+                    Separación clara entre rutas, componentes y estilos para
+                    construir un proyecto robusto, limpio y mantenible.
+                  </p>
+                </div>
+
+                <div className="mini-card">
+                  <h4>Enfoque comercial</h4>
+                  <p>
+                    Pensado para plataformas de venta digital con imagen fuerte,
+                    navegación clara y presencia visual profesional.
                   </p>
                 </div>
               </div>
             </aside>
-          </div>
+          </section>
 
-          <div className="routes-section">
+          <section className="routes-section">
             <div className="section-head">
               <div>
                 <h2>Módulos principales</h2>
                 <p>
-                  Accesos rápidos a las secciones más importantes del sistema,
-                  con una interfaz más fuerte, elegante y profesional.
+                  Accede rápidamente a las áreas más importantes del sistema desde
+                  una interfaz elegante, potente y preparada para producción.
                 </p>
               </div>
             </div>
@@ -147,13 +164,17 @@ export default function HomePage() {
             <div className="grid">
               {modules.map((item) => (
                 <Link key={item.href} href={item.href} className="card-hover">
-                  <div className="card-icon">{item.icon}</div>
+                  <div className="card-top">
+                    <div className="card-icon">{item.icon}</div>
+                    <span className="card-link">Entrar</span>
+                  </div>
+
                   <h3>{item.title}</h3>
                   <p>{item.description}</p>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         </section>
       </main>
     </div>
