@@ -1,182 +1,213 @@
 import Link from "next/link"
 
-const modules = [
-  {
-    href: "/admin",
-    icon: "⚙️",
-    title: "Admin",
-    description:
-      "Gestiona usuarios, productos, pedidos, configuraciones y el control total del sistema.",
-  },
-  {
-    href: "/cliente",
-    icon: "👤",
-    title: "Cliente",
-    description:
-      "Consulta compras, perfil, historial, favoritos y una experiencia personalizada.",
-  },
-  {
-    href: "/proveedor",
-    icon: "📦",
-    title: "Proveedor",
-    description:
-      "Visualiza productos asignados, stock, movimientos y gestión operativa.",
-  },
-  {
-    href: "/tienda",
-    icon: "🛒",
-    title: "Tienda",
-    description:
-      "Explora productos disponibles dentro de una interfaz moderna, atractiva y escalable.",
-  },
-  {
-    href: "/carrito",
-    icon: "💳",
-    title: "Carrito",
-    description:
-      "Revisa cantidades, subtotales, totales y todo el flujo de compra.",
-  },
-  {
-    href: "/favoritos",
-    icon: "⭐",
-    title: "Favoritos",
-    description:
-      "Guarda productos destacados para acceder rápidamente cuando quieras.",
-  },
-]
-
 export default function HomePage() {
   return (
-    <div className="page-shell">
-      <div className="bg-glow glow-a" />
-      <div className="bg-glow glow-b" />
-      <div className="bg-glow glow-c" />
+    <main
+      style={{
+        minHeight: "100vh",
+        background:
+          "radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 20%), #030507",
+        color: "white",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "24px",
+      }}
+    >
+      <section
+        style={{
+          width: "100%",
+          maxWidth: "1200px",
+          background: "rgba(11, 17, 24, 0.88)",
+          border: "1px solid rgba(0,229,255,0.18)",
+          borderRadius: "28px",
+          overflow: "hidden",
+          boxShadow: "0 0 30px rgba(0,229,255,0.08)",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            minHeight: "520px",
+            display: "grid",
+            gridTemplateColumns: "1.1fr 0.9fr",
+            gap: "20px",
+            padding: "50px",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(90deg, rgba(3,5,7,0.9) 0%, rgba(3,5,7,0.72) 45%, rgba(3,5,7,0.4) 100%)",
+            }}
+          />
 
-      <main className="home-main">
-        <section className="home-container">
-          <header className="home-topbar">
-            <div className="brand-wrap">
-              <span className="brand-dot" />
-              <p className="brand">JONAS STREAM</p>
+          <div style={{ position: "relative", zIndex: 2 }}>
+            <p
+              style={{
+                color: "#00e5ff",
+                letterSpacing: "4px",
+                textTransform: "uppercase",
+                marginBottom: "14px",
+                fontWeight: "bold",
+              }}
+            >
+              JONAS STREAM
+            </p>
+
+            <h1
+              style={{
+                fontSize: "56px",
+                lineHeight: 1.05,
+                marginBottom: "16px",
+                textShadow: "0 0 18px rgba(0,229,255,0.12)",
+              }}
+            >
+              Accesos premium
+              <br />
+              en un solo lugar
+            </h1>
+
+            <p
+              style={{
+                color: "#d4e3ee",
+                fontSize: "20px",
+                lineHeight: 1.6,
+                marginBottom: "26px",
+                maxWidth: "620px",
+              }}
+            >
+              Streaming, música, VPN, apps y cuentas digitales con una
+              experiencia moderna, rápida y profesional.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "14px",
+                flexWrap: "wrap",
+                marginBottom: "26px",
+              }}
+            >
+              <Link href="/tienda" style={botonPrincipal}>
+                Explorar tienda
+              </Link>
+
+              <Link href="/login" style={botonSecundario}>
+                Ingresar
+              </Link>
             </div>
 
-            <div className="status-pill">
-              <span className="status-dot" />
-              Sistema online y listo para operar
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={chip}>Netflix</span>
+              <span style={chip}>Disney+</span>
+              <span style={chip}>Spotify</span>
+              <span style={chip}>Prime Video</span>
+              <span style={chip}>IPTV</span>
             </div>
-          </header>
+          </div>
 
-          <section className="hero-grid">
-            <div className="hero-copy">
-              <span className="eyebrow">Plataforma premium de gestión digital</span>
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                width: "420px",
+                height: "420px",
+                borderRadius: "50%",
+                background: "rgba(0,229,255,0.14)",
+                filter: "blur(70px)",
+              }}
+            />
 
-              <h1 className="title-neon">
-                Controla tu <span className="accent">ecosistema digital</span> con
-                una experiencia moderna y profesional
-              </h1>
+            <img
+              src="/logo-jonas.png"
+              alt="JONAS STREAM"
+              style={{
+                width: "100%",
+                maxWidth: "460px",
+                objectFit: "contain",
+                filter: "drop-shadow(0 0 26px rgba(0,229,255,0.35))",
+              }}
+            />
+          </div>
+        </div>
 
-              <p className="subtitle">
-                Administra usuarios, productos, pedidos, carrito, favoritos y
-                operaciones clave desde una interfaz futurista, sólida y pensada
-                para crecer como una plataforma real de alto nivel.
-              </p>
-
-              <div className="hero-actions">
-                <Link href="/login" className="btn-primary">
-                  Iniciar sesión
-                </Link>
-
-                <Link href="/tienda" className="btn-secondary">
-                  Explorar tienda
-                </Link>
-              </div>
-
-              <div className="hero-stats">
-                <div className="stat-card">
-                  <h3>24/7</h3>
-                  <p>Disponibilidad operativa para tu negocio digital.</p>
-                </div>
-
-                <div className="stat-card">
-                  <h3>+{modules.length}</h3>
-                  <p>Módulos estratégicos integrados en la plataforma.</p>
-                </div>
-
-                <div className="stat-card">
-                  <h3>PRO</h3>
-                  <p>Diseño premium con identidad visual moderna.</p>
-                </div>
-              </div>
-            </div>
-
-            <aside className="hero-panel">
-              <p className="panel-label">Resumen ejecutivo</p>
-
-              <div className="mini-dashboard">
-                <div className="mini-card">
-                  <div className="mini-highlight">
-                    <div>
-                      <p>Experiencia visual</p>
-                      <div className="mini-number">98%</div>
-                    </div>
-                    <span className="mini-badge">Premium UI</span>
-                  </div>
-                </div>
-
-                <div className="mini-card">
-                  <h4>Escalabilidad real</h4>
-                  <p>
-                    Base ideal para evolucionar hacia autenticación avanzada,
-                    dashboards, reportes, analytics y más módulos comerciales.
-                  </p>
-                </div>
-
-                <div className="mini-card">
-                  <h4>Estructura organizada</h4>
-                  <p>
-                    Separación clara entre rutas, componentes y estilos para
-                    construir un proyecto robusto, limpio y mantenible.
-                  </p>
-                </div>
-
-                <div className="mini-card">
-                  <h4>Enfoque comercial</h4>
-                  <p>
-                    Pensado para plataformas de venta digital con imagen fuerte,
-                    navegación clara y presencia visual profesional.
-                  </p>
-                </div>
-              </div>
-            </aside>
-          </section>
-
-          <section className="routes-section">
-            <div className="section-head">
-              <div>
-                <h2>Módulos principales</h2>
-                <p>
-                  Accede rápidamente a las áreas más importantes del sistema desde
-                  una interfaz elegante, potente y preparada para producción.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid">
-              {modules.map((item) => (
-                <Link key={item.href} href={item.href} className="card-hover">
-                  <div className="card-top">
-                    <div className="card-icon">{item.icon}</div>
-                    <span className="card-link">Entrar</span>
-                  </div>
-
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                </Link>
-              ))}
-            </div>
-          </section>
-        </section>
-      </main>
-    </div>
+        <div
+          style={{
+            padding: "24px 50px 40px 50px",
+            borderTop: "1px solid rgba(0,229,255,0.12)",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "14px",
+          }}
+        >
+          <Link href="/admin" style={cardLink}>Admin</Link>
+          <Link href="/cliente" style={cardLink}>Cliente</Link>
+          <Link href="/proveedor" style={cardLink}>Proveedor</Link>
+          <Link href="/carrito" style={cardLink}>Carrito</Link>
+          <Link href="/favoritos" style={cardLink}>Favoritos</Link>
+        </div>
+      </section>
+    </main>
   )
+}
+
+const botonPrincipal = {
+  display: "inline-block",
+  textDecoration: "none",
+  background: "linear-gradient(135deg, #00e5ff, #00bcd4)",
+  color: "#001018",
+  borderRadius: "14px",
+  padding: "14px 22px",
+  fontWeight: "bold",
+  boxShadow: "0 0 20px rgba(0,229,255,0.25)",
+}
+
+const botonSecundario = {
+  display: "inline-block",
+  textDecoration: "none",
+  background: "transparent",
+  color: "#00e5ff",
+  border: "1px solid rgba(0,229,255,0.28)",
+  borderRadius: "14px",
+  padding: "14px 22px",
+  fontWeight: "bold",
+}
+
+const chip = {
+  background: "rgba(0,229,255,0.08)",
+  color: "#dffcff",
+  border: "1px solid rgba(0,229,255,0.16)",
+  borderRadius: "999px",
+  padding: "8px 14px",
+  fontSize: "13px",
+}
+
+const cardLink = {
+  display: "block",
+  textAlign: "center" as const,
+  textDecoration: "none",
+  background: "rgba(0,229,255,0.06)",
+  color: "#00e5ff",
+  border: "1px solid rgba(0,229,255,0.16)",
+  borderRadius: "14px",
+  padding: "14px 18px",
+  fontWeight: "bold",
 }
