@@ -6,145 +6,165 @@ const modules = [
     icon: "⚙️",
     title: "Admin",
     description:
-      "Gestiona usuarios, productos, pedidos, configuraciones y el control total del sistema.",
+      "Gestiona usuarios, productos, pedidos, configuraciones y el control central de la plataforma.",
   },
   {
     href: "/cliente",
     icon: "👤",
     title: "Cliente",
     description:
-      "Consulta compras, perfil, historial, favoritos y una experiencia personalizada.",
+      "Consulta historial, compras, favoritos y una experiencia personalizada dentro del sistema.",
   },
   {
     href: "/proveedor",
     icon: "📦",
     title: "Proveedor",
     description:
-      "Visualiza productos asignados, stock, movimientos y gestión operativa.",
+      "Visualiza stock, productos asignados, operaciones y flujo interno de trabajo.",
   },
   {
     href: "/tienda",
     icon: "🛒",
     title: "Tienda",
     description:
-      "Explora productos disponibles dentro de una interfaz moderna, atractiva y escalable.",
+      "Explora una vitrina moderna con productos digitales, filtros, ofertas y presentación premium.",
   },
   {
     href: "/carrito",
     icon: "💳",
     title: "Carrito",
     description:
-      "Revisa cantidades, subtotales, totales y todo el flujo de compra.",
+      "Controla cantidades, subtotales, cupones, resumen y avance de compra en tiempo real.",
   },
   {
     href: "/favoritos",
     icon: "⭐",
     title: "Favoritos",
     description:
-      "Guarda productos destacados para acceder rápidamente cuando quieras.",
+      "Guarda accesos importantes y vuelve a encontrarlos rápidamente cuando quieras.",
   },
+]
+
+const pillars = [
+  "Experiencia premium",
+  "Control total del negocio",
+  "Escalable y profesional",
 ]
 
 export default function HomePage() {
   return (
     <div className="page-shell">
-      <div className="bg-glow glow-a" />
-      <div className="bg-glow glow-b" />
-      <div className="bg-glow glow-c" />
+      <div className="bg-orb orb-a" />
+      <div className="bg-orb orb-b" />
+      <div className="bg-orb orb-c" />
+      <div className="grid-overlay" />
 
-      <main className="home-main">
-        <section className="home-container">
-          
-          {/* TOP BAR */}
-          <header className="home-topbar">
-            <div className="brand-wrap">
-              <span className="brand-dot" />
-              <p className="brand">JONAS STREAM</p>
+      <main className="landing-main">
+        <section className="landing-wrap">
+          <header className="landing-topbar">
+            <div className="brand-line">
+              <span className="brand-core" />
+              <p className="brand-name">JONAS STREAM</p>
             </div>
 
-            <div className="status-pill">
-              <span className="status-dot" />
-              Sistema online y listo para operar
+            <div className="live-pill">
+              <span className="live-dot" />
+              Plataforma activa y lista para operar
             </div>
           </header>
 
-          {/* HERO */}
-          <section className="hero-grid">
-            
-            {/* TEXTO */}
+          <section className="hero-block">
             <div className="hero-copy">
-              <span className="eyebrow">Plataforma premium digital</span>
+              <span className="eyebrow-pill">Plataforma digital premium</span>
 
-              <h1 className="title-neon">
-                Accesos <span className="accent">premium</span> en un solo lugar
+              <h1 className="hero-title">
+                Una portada elegante para un
+                <span className="hero-accent"> negocio serio</span>
               </h1>
 
-              <p className="subtitle">
-                Streaming, cuentas digitales, apps y servicios en una plataforma
-                moderna, rápida y pensada para escalar como negocio real.
+              <p className="hero-text">
+                Centraliza tienda, pedidos, clientes, favoritos, carrito y
+                administración en una experiencia visual moderna, sólida y lista
+                para crecer como producto real.
               </p>
 
               <div className="hero-actions">
-                <Link href="/login" className="btn-primary">
-                  Iniciar sesión
+                <Link href="/tienda" className="btn-primary">
+                  Explorar tienda
                 </Link>
 
-                <Link href="/tienda" className="btn-secondary">
-                  Explorar tienda
+                <Link href="/login" className="btn-secondary">
+                  Iniciar sesión
                 </Link>
               </div>
 
-              <div className="hero-stats">
-                <div className="stat-card">
-                  <h3>24/7</h3>
-                  <p>Disponibilidad total del sistema.</p>
+              <div className="hero-points">
+                {pillars.map((item) => (
+                  <span key={item} className="hero-chip">
+                    {item}
+                  </span>
+                ))}
+              </div>
+
+              <div className="hero-metrics">
+                <div className="metric-card">
+                  <strong>24/7</strong>
+                  <span>Disponibilidad para operar sin pausas.</span>
                 </div>
 
-                <div className="stat-card">
-                  <h3>+{modules.length}</h3>
-                  <p>Módulos integrados listos para operar.</p>
+                <div className="metric-card">
+                  <strong>+{modules.length}</strong>
+                  <span>Módulos principales integrados.</span>
                 </div>
 
-                <div className="stat-card">
-                  <h3>PRO</h3>
-                  <p>Diseño premium enfocado en ventas.</p>
+                <div className="metric-card">
+                  <strong>PRO</strong>
+                  <span>Diseño premium enfocado en conversión.</span>
                 </div>
               </div>
             </div>
 
-            {/* LOGO (NUEVO 🔥) */}
-            <aside className="hero-panel">
-              <img
-                src="/logo-jonas.png"
-                alt="JONAS STREAM"
-                style={{
-                  width: "100%",
-                  maxWidth: "420px",
-                  margin: "0 auto",
-                  display: "block",
-                  filter: "drop-shadow(0 0 25px rgba(0,229,255,0.35))",
-                }}
-              />
+            <aside className="hero-showcase">
+              <div className="showcase-frame">
+                <div className="showcase-ring ring-1" />
+                <div className="showcase-ring ring-2" />
+                <div className="showcase-ring ring-3" />
+
+                <div className="showcase-core">
+                  <span className="core-kicker">JONAS STREAM</span>
+                  <h2>Control. Diseño. Presencia.</h2>
+                  <p>
+                    Un sistema con identidad visual fuerte, estructura limpia y
+                    una interfaz preparada para vender mejor.
+                  </p>
+
+                  <div className="core-badges">
+                    <span>Admin</span>
+                    <span>Tienda</span>
+                    <span>Pedidos</span>
+                    <span>Favoritos</span>
+                  </div>
+                </div>
+              </div>
             </aside>
           </section>
 
-          {/* MODULOS */}
-          <section className="routes-section">
-            <div className="section-head">
-              <div>
-                <h2>Módulos principales</h2>
-                <p>
-                  Accede rápidamente a las secciones más importantes del sistema.
-                </p>
-              </div>
+          <section className="modules-section">
+            <div className="section-copy">
+              <span className="section-kicker">Navegación principal</span>
+              <h2>Módulos estratégicos del sistema</h2>
+              <p>
+                Accede a las áreas más importantes desde una portada más limpia,
+                elegante y profesional, pensada para una plataforma moderna.
+              </p>
             </div>
 
-            <div className="grid">
+            <div className="modules-grid">
               {modules.map((item) => (
-                <Link key={item.href} href={item.href} className="card-hover">
-                  <div className="card-top">
-                    <div className="card-icon">{item.icon}</div>
-                    <span className="card-link">Entrar</span>
+                <Link key={item.href} href={item.href} className="module-card">
+                  <div className="module-top">
+                    <div className="module-icon">{item.icon}</div>
+                    <span className="module-link">Entrar</span>
                   </div>
 
                   <h3>{item.title}</h3>
@@ -153,7 +173,6 @@ export default function HomePage() {
               ))}
             </div>
           </section>
-
         </section>
       </main>
     </div>

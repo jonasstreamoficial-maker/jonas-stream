@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast"
 
 export const metadata: Metadata = {
   title: "JONAS STREAM",
-  description: "Panel profesional con Next.js y Supabase",
+  description: "Plataforma premium de gestión digital",
 }
 
 export default function RootLayout({
@@ -15,33 +15,29 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="body-root">
+      <body>
         {children}
 
         <Toaster
           position="top-right"
           toastOptions={{
-            duration: 3000,
             style: {
-              background: "rgba(8, 16, 24, 0.96)",
-              color: "#00fff7",
-              border: "1px solid rgba(0,255,247,0.25)",
-              backdropFilter: "blur(10px)",
-              boxShadow: "0 0 20px rgba(0,255,247,0.12)",
-              borderRadius: "16px",
+              background: "#081018",
+              color: "#00e5ff",
+              border: "1px solid rgba(0,229,255,0.3)",
             },
             success: {
               style: {
-                background: "rgba(8, 16, 24, 0.96)",
-                color: "#00fff7",
-                border: "1px solid rgba(0,255,247,0.25)",
+                background: "#081018",
+                color: "#00e5ff",
+                border: "1px solid rgba(0,229,255,0.3)",
               },
             },
             error: {
               style: {
-                background: "rgba(8, 16, 24, 0.96)",
-                color: "#ff9d9d",
-                border: "1px solid rgba(255,120,120,0.25)",
+                background: "#081018",
+                color: "#ff9a9a",
+                border: "1px solid rgba(255,120,120,0.3)",
               },
             },
           }}
