@@ -5,100 +5,71 @@ const modules = [
     href: "/admin",
     icon: "⚙️",
     title: "Admin",
-    description:
-      "Gestiona usuarios, productos, pedidos, configuraciones y el control central de la plataforma.",
+    description: "Gestiona usuarios, productos, pedidos y el control total del sistema.",
   },
   {
     href: "/cliente",
     icon: "👤",
     title: "Cliente",
-    description:
-      "Consulta historial, compras, favoritos y una experiencia personalizada dentro del sistema.",
+    description: "Consulta compras, perfil, historial y experiencia personalizada.",
   },
   {
     href: "/proveedor",
     icon: "📦",
     title: "Proveedor",
-    description:
-      "Visualiza stock, productos asignados, operaciones y flujo interno de trabajo.",
+    description: "Visualiza información asignada, stock, catálogo y movimientos.",
   },
   {
     href: "/tienda",
     icon: "🛒",
     title: "Tienda",
-    description:
-      "Explora una vitrina moderna con productos digitales, filtros, ofertas y presentación premium.",
+    description: "Explora productos disponibles dentro de una interfaz moderna.",
   },
   {
     href: "/carrito",
     icon: "💳",
     title: "Carrito",
-    description:
-      "Controla cantidades, subtotales, cupones, resumen y avance de compra en tiempo real.",
+    description: "Revisa la compra, cantidades, totales y flujo de checkout.",
   },
   {
     href: "/favoritos",
     icon: "⭐",
     title: "Favoritos",
-    description:
-      "Guarda accesos importantes y vuelve a encontrarlos rápidamente cuando quieras.",
+    description: "Guarda productos importantes para volver rápido cuando quieras.",
   },
-]
-
-const stats = [
-  { value: "24/7", label: "Operatividad continua" },
-  { value: "+6", label: "Módulos conectados" },
-  { value: "PRO", label: "Imagen premium" },
 ]
 
 export default function HomePage() {
   return (
     <div className="page-shell">
-      <div className="bg-orb orb-a" />
-      <div className="bg-orb orb-b" />
-      <div className="bg-orb orb-c" />
-      <div className="grid-overlay" />
-      <div className="noise-layer" />
+      <div className="bg-glow glow-a" />
+      <div className="bg-glow glow-b" />
+      <div className="bg-glow glow-c" />
 
-      <main className="landing-main">
-        <section className="landing-wrap">
-          <header className="landing-topbar">
-            <div className="brand-line">
-              <span className="brand-core" />
-              <div>
-                <p className="brand-name">JONAS STREAM</p>
-                <span className="brand-subtitle">PLATAFORMA DIGITAL PREMIUM</span>
-              </div>
+      <main className="home-main">
+        <section className="home-container">
+          <div className="home-topbar">
+            <div className="brand-wrap">
+              <span className="brand-dot" />
+              <p className="brand">JONAS STREAM</p>
             </div>
 
-            <div className="topbar-actions">
-              <Link href="/tienda" className="mini-nav-link">
-                Tienda
-              </Link>
-              <Link href="/login" className="mini-nav-link">
-                Login
-              </Link>
+            <div className="status-pill">Sistema online y listo para operar</div>
+          </div>
 
-              <div className="live-pill">
-                <span className="live-dot" />
-                Sistema online
-              </div>
-            </div>
-          </header>
-
-          <section className="hero-block">
+          <div className="hero-grid">
             <div className="hero-copy">
-              <span className="eyebrow-pill">ECOSISTEMA DIGITAL DE ALTO NIVEL</span>
+              <span className="eyebrow">Panel premium de gestión digital</span>
 
-              <h1 className="hero-title">
-                Lleva tu marca a una
-                <span className="hero-accent"> experiencia premium</span>
+              <h1 className="title-neon">
+                Plataforma <span className="accent">profesional</span> de ventas
+                digitales
               </h1>
 
-              <p className="hero-text">
-                JONAS STREAM integra tienda, carrito, favoritos, pedidos, clientes
-                y administración en una sola plataforma con presencia visual fuerte,
-                diseño moderno y estructura lista para crecer.
+              <p className="subtitle">
+                Administra usuarios, productos, pedidos, carrito, favoritos y más
+                dentro de una experiencia visual moderna, potente y escalable,
+                diseñada para verse como un producto premium real.
               </p>
 
               <div className="hero-actions">
@@ -107,98 +78,82 @@ export default function HomePage() {
                 </Link>
 
                 <Link href="/tienda" className="btn-secondary">
-                  Explorar tienda
+                  Ver tienda
                 </Link>
               </div>
 
-              <div className="hero-points">
-                <span className="hero-chip">Diseño corporativo</span>
-                <span className="hero-chip">Estética turquesa + negro</span>
-                <span className="hero-chip">Base escalable</span>
-              </div>
+              <div className="hero-stats">
+                <div className="stat-card">
+                  <h3>24/7</h3>
+                  <p>Operación disponible y lista para crecer.</p>
+                </div>
 
-              <div className="hero-metrics">
-                {stats.map((item) => (
-                  <div key={item.label} className="metric-card">
-                    <strong>{item.value}</strong>
-                    <span>{item.label}</span>
-                  </div>
-                ))}
+                <div className="stat-card">
+                  <h3>+6</h3>
+                  <p>Módulos principales integrados en la plataforma.</p>
+                </div>
+
+                <div className="stat-card">
+                  <h3>PRO</h3>
+                  <p>Interfaz sólida con look premium futurista.</p>
+                </div>
               </div>
             </div>
 
-            <aside className="hero-showcase">
-              <div className="showcase-frame">
-                <div className="showcase-ring ring-1" />
-                <div className="showcase-ring ring-2" />
-                <div className="showcase-ring ring-3" />
+            <aside className="hero-panel">
+              <p className="panel-label">Vista rápida</p>
 
-                <div className="showcase-core">
-                  <span className="core-kicker">JONAS STREAM</span>
-                  <h2>Control total de tu plataforma</h2>
-                  <p>
-                    Un entorno visual elegante con identidad fuerte, pensado para
-                    vender, gestionar y transmitir una imagen seria.
-                  </p>
-
-                  <div className="core-badges">
-                    <span>Admin</span>
-                    <span>Productos</span>
-                    <span>Pedidos</span>
-                    <span>Clientes</span>
+              <div className="mini-dashboard">
+                <div className="mini-card">
+                  <div className="mini-highlight">
+                    <div>
+                      <p>Rendimiento visual</p>
+                      <div className="mini-number">98%</div>
+                    </div>
+                    <span className="mini-badge">Neon UI</span>
                   </div>
                 </div>
 
-                <div className="floating-panel panel-one">
-                  <span className="floating-label">Diseño premium</span>
-                  <strong>Interfaz moderna</strong>
+                <div className="mini-card">
+                  <h4>Diseño premium</h4>
+                  <p>
+                    Base ideal para evolucionar hacia dashboard admin, auth,
+                    analytics y paneles avanzados.
+                  </p>
                 </div>
 
-                <div className="floating-panel panel-two">
-                  <span className="floating-label">Estado</span>
-                  <strong>Activo y escalable</strong>
+                <div className="mini-card">
+                  <h4>Arquitectura limpia</h4>
+                  <p>
+                    Separación correcta entre layout, estilos globales y página
+                    principal para escalar como proyecto real.
+                  </p>
                 </div>
               </div>
             </aside>
-          </section>
+          </div>
 
-          <section className="brand-strip">
-            <div className="brand-strip-line" />
-            <div className="brand-strip-content">
-              <span>NEGRO</span>
-              <span>TURQUESA</span>
-              <span>PRESENCIA</span>
-              <span>PREMIUM</span>
-              <span>PROFESIONAL</span>
-              <span>ESCALABLE</span>
-            </div>
-          </section>
-
-          <section className="modules-section">
-            <div className="section-copy">
-              <span className="section-kicker">MÓDULOS PRINCIPALES</span>
-              <h2>Una portada conectada con todo tu sistema</h2>
-              <p>
-                Desde aquí puedes dirigir la experiencia hacia las áreas más
-                importantes del negocio con una presentación más limpia, elegante
-                y alineada a la identidad de JONAS STREAM.
-              </p>
+          <div className="routes-section">
+            <div className="section-head">
+              <div>
+                <h2>Módulos principales</h2>
+                <p>
+                  Accesos rápidos a las secciones más importantes del sistema,
+                  con una interfaz más fuerte, elegante y profesional.
+                </p>
+              </div>
             </div>
 
-            <div className="modules-grid">
+            <div className="grid">
               {modules.map((item) => (
-                <Link key={item.href} href={item.href} className="module-card">
-                  <div className="module-top">
-                    <div className="module-icon">{item.icon}</div>
-                    <span className="module-link">Abrir módulo</span>
-                  </div>
-
+                <Link key={item.href} href={item.href} className="card-hover">
+                  <div className="card-icon">{item.icon}</div>
                   <h3>{item.title}</h3>
                   <p>{item.description}</p>
                 </Link>
               ))}
             </div>
-          </section>
+          </div>
         </section>
       </main>
     </div>
