@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <>
@@ -12,10 +14,16 @@ export default function HomePage() {
           </div>
 
           <div className="topbar-right">
-            <a href="#" className="top-link primary">
+            <Link href="/login" className="top-link primary">
               INICIAR SESIÓN
-            </a>
-            <a href="#" className="top-link">
+            </Link>
+
+            <a
+              href="https://wa.me/51900557949"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="top-link"
+            >
               CONTÁCTANOS
             </a>
           </div>
@@ -41,12 +49,13 @@ export default function HomePage() {
                   </p>
 
                   <div className="buttons">
-                    <a href="#" className="btn btn1">
+                    <Link href="/quiero-ser-socio" className="btn btn1">
                       QUIERO SER SOCIO
-                    </a>
-                    <a href="#" className="btn btn2">
+                    </Link>
+
+                    <Link href="/ver-precios" className="btn btn2">
                       VER PRECIOS
-                    </a>
+                    </Link>
                   </div>
 
                   <div className="benefits-joined">
