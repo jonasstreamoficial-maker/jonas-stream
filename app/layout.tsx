@@ -2,25 +2,16 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "JONAS STREAM | Premium",
+  title: "Jonas Stream | Premium",
   description:
-    "Proveedor premium de plataformas de streaming, música y accesos digitales.",
-  keywords: [
-    "Jonas Stream",
-    "Netflix Premium",
-    "Spotify Premium",
-    "Disney Plus",
-    "Streaming",
-    "Cuentas Premium",
-  ],
-  themeColor: "#01E7EF",
+    "Tu proveedor de confianza en plataformas de streaming, música y accesos digitales premium.",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="es">
       <body>{children}</body>
