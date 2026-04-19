@@ -1,36 +1,20 @@
-// app/layout.tsx
-
-import "./globals.css"
-import type { Metadata } from "next"
-import type { ReactNode } from "react"
-import { Toaster } from "react-hot-toast"
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "JONAS STREAM",
-  description: "Plataforma premium oficial",
-}
+  title: "Jonas Stream | Premium",
+  description:
+    "Tu proveedor de confianza en plataformas de streaming, música y accesos digitales premium.",
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="es">
-      <body>
-        {children}
-
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: "#081018",
-              color: "#00e5ff",
-              border: "1px solid rgba(0,229,255,0.25)",
-            },
-          }}
-        />
-      </body>
+      <body>{children}</body>
     </html>
-  )
+  );
 }
