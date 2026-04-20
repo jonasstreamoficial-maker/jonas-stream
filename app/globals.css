@@ -125,7 +125,7 @@ img {
   background: rgba(3, 19, 22, 0.72);
   box-shadow:
     0 18px 40px rgba(0, 0, 0, 0.28),
-    0 0 24px rgba(1, 231, 239, 0.04);
+    0 0 28px rgba(1, 231, 239, 0.06);
   backdrop-filter: blur(16px);
   padding: 12px 22px;
   display: flex;
@@ -490,6 +490,7 @@ img {
     0 10px 24px rgba(0, 0, 0, 0.14),
     inset 0 0 0 1px rgba(236, 255, 255, 0.02);
   transition: 0.28s ease;
+  animation: floatSoft 5s ease-in-out infinite;
 }
 
 .benefit::before {
@@ -513,6 +514,14 @@ img {
     0 0 0 1px rgba(1, 231, 239, 0.1),
     0 0 18px rgba(1, 231, 239, 0.12),
     0 0 28px rgba(0, 251, 255, 0.08);
+}
+
+.benefit:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.benefit:nth-child(3) {
+  animation-delay: 1s;
 }
 
 .benefit-inner {
@@ -574,9 +583,8 @@ img {
   overflow: hidden;
   box-shadow:
     0 0 0 1px rgba(1, 231, 239, 0.08),
-    0 0 24px rgba(1, 231, 239, 0.12),
-    0 0 46px rgba(0, 251, 255, 0.06),
-    inset 0 0 24px rgba(1, 231, 239, 0.03);
+    0 0 22px rgba(1, 231, 239, 0.1);
+  animation: pulseGlow 4s ease-in-out infinite;
 }
 
 .logo-box::before {
@@ -681,6 +689,7 @@ img {
   text-align: center;
   position: relative;
   overflow: hidden;
+  animation: floatSoft 6s ease-in-out infinite;
 }
 
 .card::before {
@@ -702,6 +711,14 @@ img {
   box-shadow:
     0 18px 32px rgba(0, 0, 0, 0.22),
     0 0 26px rgba(1, 231, 239, 0.1);
+}
+
+.card:nth-child(2) {
+  animation-delay: 0.8s;
+}
+
+.card:nth-child(3) {
+  animation-delay: 1.6s;
 }
 
 .card-kicker {
@@ -801,7 +818,7 @@ img {
   box-shadow:
     inset 0 0 0 1px rgba(236, 255, 255, 0.03),
     0 12px 24px rgba(0, 0, 0, 0.14);
-  transition: 0.3s ease;
+  transition: 0.35s ease;
   position: relative;
   overflow: hidden;
 }
@@ -949,6 +966,38 @@ footer {
   }
   100% {
     filter: hue-rotate(18deg);
+  }
+}
+
+@keyframes floatSoft {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow:
+      0 0 0 1px rgba(1, 231, 239, 0.08),
+      0 0 22px rgba(1, 231, 239, 0.1);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(0, 251, 255, 0.18),
+      0 0 34px rgba(0, 251, 255, 0.22);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(1, 231, 239, 0.08),
+      0 0 22px rgba(1, 231, 239, 0.1);
   }
 }
 
@@ -1231,4 +1280,21 @@ footer {
     border-radius: 18px;
     font-size: 0.9rem;
   }
+}
+
+html::-webkit-scrollbar {
+  width: 10px;
+}
+
+html::-webkit-scrollbar-track {
+  background: #031316;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #01e7ef, #018b90);
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: #00fbff;
 }
