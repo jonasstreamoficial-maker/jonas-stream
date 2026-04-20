@@ -36,6 +36,7 @@ body {
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
+  cursor: default;
   background:
     radial-gradient(circle at 50% 18%, rgba(1, 231, 239, 0.14), transparent 18%),
     radial-gradient(circle at 15% 25%, rgba(1, 139, 144, 0.11), transparent 20%),
@@ -44,6 +45,11 @@ body {
     radial-gradient(circle at 80% 85%, rgba(1, 231, 239, 0.07), transparent 18%),
     linear-gradient(180deg, #000000 0%, #031316 52%, #071b1e 100%);
   position: relative;
+}
+
+::selection {
+  background: rgba(1, 231, 239, 0.22);
+  color: #ffffff;
 }
 
 body::before {
@@ -57,6 +63,7 @@ body::before {
   opacity: 0.08;
   pointer-events: none;
   z-index: 0;
+  mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
 }
 
 body::after {
@@ -66,13 +73,13 @@ body::after {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(circle at center, rgba(1, 231, 239, 0.05), transparent 30%),
+    radial-gradient(circle at center, rgba(1, 231, 239, 0.06), transparent 30%),
     linear-gradient(
       90deg,
-      rgba(1, 231, 239, 0.02),
+      rgba(1, 231, 239, 0.025),
       transparent 20%,
       transparent 80%,
-      rgba(0, 251, 255, 0.02)
+      rgba(0, 251, 255, 0.025)
     );
   mix-blend-mode: screen;
 }
@@ -134,6 +141,7 @@ img {
   gap: 18px;
   position: relative;
   overflow: hidden;
+  animation: heroFadeUp 0.8s ease;
 }
 
 .topbar::before {
@@ -240,6 +248,7 @@ img {
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(14px);
+  will-change: transform, opacity;
 }
 
 .panel::before {
@@ -264,6 +273,10 @@ img {
   align-items: center;
   justify-content: center;
   isolation: isolate;
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.42),
+    0 0 36px rgba(1, 231, 239, 0.05);
+  animation: heroFadeUp 1s ease;
 }
 
 .hero-main::after {
@@ -311,6 +324,7 @@ img {
   align-items: flex-start;
   text-align: left;
   padding: 8px 4px 0;
+  animation: heroFadeUp 0.9s ease;
 }
 
 .mini {
@@ -367,6 +381,7 @@ img {
   box-shadow:
     0 0 14px rgba(1, 231, 239, 0.14),
     0 0 24px rgba(0, 251, 255, 0.14);
+  animation: glowLine 3s ease-in-out infinite;
 }
 
 .text {
@@ -566,6 +581,7 @@ img {
   align-items: center;
   justify-content: center;
   height: 100%;
+  animation: heroFadeUp 1.05s ease;
 }
 
 .logo-box {
@@ -584,7 +600,9 @@ img {
   box-shadow:
     0 0 0 1px rgba(1, 231, 239, 0.08),
     0 0 22px rgba(1, 231, 239, 0.1);
-  animation: pulseGlow 4s ease-in-out infinite;
+  animation:
+    pulseGlow 4s ease-in-out infinite,
+    heroFadeUp 1s ease;
 }
 
 .logo-box::before {
@@ -662,6 +680,7 @@ img {
 .stats-panel,
 .social-panel {
   padding: 28px;
+  animation: heroFadeUp 1s ease;
 }
 
 .stats {
@@ -985,19 +1004,46 @@ footer {
   0% {
     box-shadow:
       0 0 0 1px rgba(1, 231, 239, 0.08),
-      0 0 22px rgba(1, 231, 239, 0.1);
+      0 0 22px rgba(1, 231, 239, 0.1),
+      0 0 42px rgba(0, 251, 255, 0.04);
   }
-
   50% {
     box-shadow:
       0 0 0 1px rgba(0, 251, 255, 0.18),
-      0 0 34px rgba(0, 251, 255, 0.22);
+      0 0 34px rgba(0, 251, 255, 0.22),
+      0 0 56px rgba(0, 251, 255, 0.08);
   }
-
   100% {
     box-shadow:
       0 0 0 1px rgba(1, 231, 239, 0.08),
-      0 0 22px rgba(1, 231, 239, 0.1);
+      0 0 22px rgba(1, 231, 239, 0.1),
+      0 0 42px rgba(0, 251, 255, 0.04);
+  }
+}
+
+@keyframes heroFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glowLine {
+  0% {
+    opacity: 0.7;
+    filter: brightness(0.95);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.2);
+  }
+  100% {
+    opacity: 0.7;
+    filter: brightness(0.95);
   }
 }
 

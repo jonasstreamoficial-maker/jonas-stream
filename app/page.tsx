@@ -36,7 +36,7 @@ export default function HomePage() {
             <div className="panel hero-main">
               <div className="hero-content">
                 <div className="hero-left">
-                  <div className="mini">BIENVENIDOS A</div>
+                  <div className="mini">PLATAFORMA OFICIAL</div>
 
                   <h1 className="title">JONAS STREAM</h1>
 
