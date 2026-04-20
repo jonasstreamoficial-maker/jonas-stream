@@ -6,11 +6,11 @@ export default function HomePage() {
       <div className="side-brand">JONAS STREAM</div>
       <div className="side-brand right">JONAS STREAM</div>
 
-      <div className="container topbar-wrap">
+      <header className="container topbar-wrap">
         <div className="topbar">
           <div className="brand-logo">
             <strong>JONAS STREAM</strong>
-            <span>Plataforma Premium Oficial</span>
+            <span>PLATAFORMA PREMIUM OFICIAL</span>
           </div>
 
           <div className="topbar-right">
@@ -28,7 +28,7 @@ export default function HomePage() {
             </a>
           </div>
         </div>
-      </div>
+      </header>
 
       <main className="container">
         <section className="hero">
@@ -90,7 +90,7 @@ export default function HomePage() {
                 <div className="hero-right">
                   <div className="logo-box">
                     <div className="logo-frame">
-                      <img src="/PERFIL WEB.jpg" alt="Logo Jonas Stream" />
+                      <img src="/perfil-web.jpg" alt="Logo Jonas Stream" />
                     </div>
                   </div>
                 </div>
