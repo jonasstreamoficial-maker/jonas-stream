@@ -5,12 +5,12 @@ const beneficios = [
   {
     numero: "01",
     titulo: "Publicidad ilimitada",
-    texto: "Promociona tus servicios con una imagen más profesional y mayor presencia digital.",
+    texto: "Promociona tus servicios con una imagen más profesional y una presencia digital más sólida.",
   },
   {
     numero: "02",
     titulo: "Soporte rápido",
-    texto: "Recibe ayuda ágil para activaciones, dudas y acompañamiento en tu proceso de venta.",
+    texto: "Recibe ayuda ágil para activaciones, dudas y acompañamiento durante tu proceso de venta.",
   },
   {
     numero: "03",
@@ -20,17 +20,17 @@ const beneficios = [
   {
     numero: "04",
     titulo: "Activación inmediata",
-    texto: "Ingreso rápido al sistema para que empieces a moverte y captar clientes cuanto antes.",
+    texto: "Empieza rápido para moverte antes y captar clientes con una propuesta más fuerte.",
   },
   {
     numero: "05",
     titulo: "Marca profesional",
-    texto: "Únete a una propuesta visual seria, moderna y llamativa para vender con más confianza.",
+    texto: "Forma parte de una identidad visual moderna, seria y llamativa para vender con más confianza.",
   },
   {
     numero: "06",
     titulo: "Escala tu negocio",
-    texto: "Ideal para emprendedores que buscan crecer, revender más y construir ingresos constantes.",
+    texto: "Ideal para emprendedores que quieren crecer, revender más y construir ingresos constantes.",
   },
 ];
 
@@ -38,7 +38,7 @@ const pasos = [
   {
     numero: "01",
     titulo: "Solicita tu ingreso",
-    texto: "Escríbenos por WhatsApp y recibe información completa sobre el acceso al grupo privado.",
+    texto: "Escríbenos por WhatsApp y recibe toda la información sobre el acceso al grupo privado.",
   },
   {
     numero: "02",
@@ -48,7 +48,7 @@ const pasos = [
   {
     numero: "03",
     titulo: "Empieza a vender",
-    texto: "Comienza a revender plataformas premium con apoyo, estructura y una mejor imagen.",
+    texto: "Comienza a revender plataformas premium con apoyo, estructura e imagen profesional.",
   },
 ];
 
@@ -96,7 +96,11 @@ export default function QuieroSerSocioPage() {
             <span className={styles.kicker}>PROGRAMA PREMIUM DE SOCIOS</span>
 
             <h1>
-              CONVIÉRTETE EN <span>SOCIO</span> DE JONAS STREAM
+              CONVIÉRTETE
+              <br />
+              EN <span>SOCIO</span> DE
+              <br />
+              JONAS STREAM
             </h1>
 
             <p className={styles.heroText}>
@@ -168,8 +172,8 @@ export default function QuieroSerSocioPage() {
             <span>BENEFICIOS PREMIUM</span>
             <h2>Todo lo que obtienes al ingresar como socio</h2>
             <p>
-              Una página de captación más seria debe comunicar valor, confianza
-              y crecimiento. Aquí está el corazón de tu propuesta.
+              Una propuesta de captación fuerte debe transmitir valor,
+              confianza, orden y crecimiento desde el primer vistazo.
             </p>
           </div>
 
@@ -189,7 +193,7 @@ export default function QuieroSerSocioPage() {
             <span>CÓMO FUNCIONA</span>
             <h2>Empieza en pocos pasos</h2>
             <p>
-              Un proceso simple, directo y pensado para que puedas iniciar sin
+              Un proceso simple, rápido y pensado para que puedas comenzar sin
               complicarte.
             </p>
           </div>
@@ -209,7 +213,9 @@ export default function QuieroSerSocioPage() {
           <div className={styles.bottomGlow}></div>
 
           <span className={styles.bottomTag}>JONAS STREAM | SOCIOS</span>
+
           <h2>EMPIEZA HOY Y ENTRA AL GRUPO PRIVADO</h2>
+
           <p>
             Da el siguiente paso y forma parte de una propuesta premium para
             revender plataformas con mayor presencia, mejor soporte y más
