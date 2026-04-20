@@ -951,6 +951,7 @@ footer {
 @media (max-width: 1100px) {
   .hero-content {
     grid-template-columns: 1fr;
+    gap: 22px;
   }
 
   .hero-right {
@@ -959,6 +960,8 @@ footer {
 
   .logo-box {
     min-height: auto;
+    max-width: 720px;
+    margin: 0 auto;
   }
 
   .logo-frame {
@@ -968,6 +971,7 @@ footer {
   .hero-left {
     align-items: center;
     text-align: center;
+    padding-top: 0;
   }
 
   .shine,
@@ -978,6 +982,10 @@ footer {
 
   .buttons,
   .benefits-joined {
+    max-width: 760px;
+  }
+
+  .sub {
     max-width: 760px;
   }
 }
@@ -1015,8 +1023,12 @@ footer {
     grid-template-columns: 1fr;
   }
 
+  .hero {
+    padding: 14px 0 24px;
+  }
+
   .hero-main {
-    padding: 34px 20px;
+    padding: 30px 20px;
     min-height: auto;
   }
 
@@ -1028,11 +1040,13 @@ footer {
   .sub {
     font-size: 0.72rem;
     letter-spacing: 4px;
+    max-width: 580px;
   }
 
   .text {
     font-size: 1rem;
     line-height: 1.8;
+    max-width: 580px;
   }
 
   .side-brand {
@@ -1052,6 +1066,10 @@ footer {
   .logo-frame {
     min-height: 300px;
   }
+
+  .logo-frame img {
+    max-width: 360px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -1059,9 +1077,14 @@ footer {
     width: min(100% - 18px, 1320px);
   }
 
+  .topbar-wrap {
+    padding-top: 10px;
+  }
+
   .topbar {
     border-radius: 18px;
     padding: 12px 12px;
+    gap: 12px;
   }
 
   .top-link {
@@ -1069,45 +1092,119 @@ footer {
     justify-content: center;
     display: flex;
     text-align: center;
+    min-height: 46px;
+    padding: 12px 14px;
   }
 
   .panel {
     border-radius: 24px;
   }
 
+  .hero {
+    padding: 10px 0 22px;
+  }
+
   .hero-main {
-    padding: 28px 16px;
+    padding: 24px 14px;
   }
 
   .mini {
     letter-spacing: 4px;
     font-size: 0.75rem;
+    margin-bottom: 10px;
   }
 
   .title {
-    font-size: 2.05rem;
+    font-size: 1.95rem;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
   }
 
   .sub {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
+    letter-spacing: 3px;
+    margin-bottom: 14px;
+  }
+
+  .shine {
+    width: min(250px, 100%);
+    height: 7px;
+    margin-bottom: 20px;
+  }
+
+  .text {
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 20px;
+  }
+
+  .buttons {
+    gap: 12px;
+    margin-bottom: 18px;
   }
 
   .btn {
-    min-height: 66px;
+    min-height: 62px;
+    font-size: 0.9rem;
+    border-radius: 16px;
+    padding: 12px 14px;
+  }
+
+  .benefit {
+    min-height: 82px;
+    border-radius: 18px;
+  }
+
+  .benefit-inner {
+    min-height: 82px;
+    padding: 12px 10px;
+  }
+
+  .benefit-label {
+    font-size: 0.94rem;
+  }
+
+  .stats-panel,
+  .social-panel {
+    padding: 18px 14px;
+  }
+
+  .card {
+    border-radius: 18px;
+    padding: 22px 16px;
+  }
+
+  .card h3 {
+    font-size: 1rem;
+  }
+
+  .card p {
     font-size: 0.92rem;
   }
 
   .social-title {
     letter-spacing: 2px;
+    font-size: 1.05rem;
+  }
+
+  .social-text {
+    font-size: 0.94rem;
+    line-height: 1.7;
   }
 
   .logo-box {
     padding: 12px;
+    border-radius: 22px;
   }
 
   .logo-frame {
-    min-height: 240px;
+    min-height: 220px;
     padding: 14px;
+    border-radius: 18px;
+  }
+
+  .logo-frame img {
+    max-width: 260px;
   }
 
   .social-shell {
@@ -1123,5 +1220,11 @@ footer {
   .social-link svg {
     width: 24px;
     height: 24px;
+  }
+
+  .footer {
+    padding: 18px 14px;
+    border-radius: 18px;
+    font-size: 0.9rem;
   }
 }
