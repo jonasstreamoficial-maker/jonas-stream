@@ -11,7 +11,7 @@ export default function HomePage() {
         <div className="topbar">
           <div className="brand-logo">
             <strong>JONAS STREAM</strong>
-            <span>PLATAFORMA PREMIUM OFICIAL</span>
+            <span>PLATAFORMA OFICIAL</span>
           </div>
 
           <div className="topbar-right">
@@ -37,11 +37,11 @@ export default function HomePage() {
             <div className="panel hero-main">
               <div className="hero-content">
                 <div className="hero-left">
-                  <div className="mini">PLATAFORMA OFICIAL</div>
+                  <div className="mini">BIENVENID@S</div>
 
                   <h1 className="title">JONAS STREAM</h1>
 
-                  <div className="sub">PLATAFORMA OFICIAL PREMIUM</div>
+                  <div className="sub">PLATAFORMA OFICIAL</div>
 
                   <div className="shine"></div>
 
