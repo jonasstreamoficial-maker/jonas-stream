@@ -47,7 +47,8 @@ export default function HomePage() {
                   <p className="text">
                     Tu proveedor de confianza en plataformas de streaming,
                     música y accesos digitales premium. Disfruta una experiencia
-                    moderna, rápida y segura para clientes y revendedores.
+                    moderna, rápida y segura, diseñada para clientes y
+                    revendedores que buscan calidad, soporte y confianza.
                   </p>
 
                   <div className="buttons">
@@ -99,26 +100,30 @@ export default function HomePage() {
             <div className="panel stats-panel">
               <div className="stats">
                 <div className="card">
+                  <span className="card-kicker">Confianza</span>
                   <h3>+2K CLIENTES</h3>
                   <p>
-                    Miles de usuarios ya confiaron en Jonas Stream para adquirir
-                    servicios digitales premium de manera segura.
+                    Más de dos mil usuarios ya confiaron en Jonas Stream para
+                    obtener accesos digitales premium con atención seria y
+                    servicio seguro.
                   </p>
                 </div>
 
                 <div className="card">
+                  <span className="card-kicker">Atención</span>
                   <h3>SOPORTE 24/7</h3>
                   <p>
-                    Atención rápida para ventas, activaciones, consultas y
-                    soporte técnico cuando más lo necesites.
+                    Respuesta rápida para ventas, activaciones, consultas y
+                    soporte técnico, con acompañamiento cuando más lo necesites.
                   </p>
                 </div>
 
                 <div className="card">
+                  <span className="card-kicker">Automatización</span>
                   <h3>BOT TELEGRAM</h3>
                   <p>
                     Sistema automatizado para respuestas inmediatas y una
-                    experiencia mucho más profesional y ordenada.
+                    experiencia mucho más profesional, ordenada y eficiente.
                   </p>
                 </div>
               </div>
