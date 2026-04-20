@@ -91,6 +91,175 @@
   transform: translate(-50%, -50%);
 }
 
+/* PROMO OVERLAY */
+
+.promoOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.promoBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.76);
+  backdrop-filter: blur(10px);
+}
+
+.promoModal {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 760px;
+  padding: 34px 26px 28px;
+  border-radius: 30px;
+  overflow: hidden;
+  text-align: center;
+  background:
+    radial-gradient(circle at top center, rgba(0, 251, 255, 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(7, 27, 30, 0.96) 0%, rgba(3, 19, 22, 0.94) 100%);
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.06),
+    0 24px 90px rgba(0, 0, 0, 0.55),
+    0 0 50px rgba(0, 251, 255, 0.12);
+}
+
+.promoTopLine {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan-strong), transparent);
+  box-shadow: 0 0 16px rgba(0, 251, 255, 0.4);
+}
+
+.promoClose {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(236, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.promoClose:hover {
+  border-color: rgba(1, 231, 239, 0.28);
+  color: var(--cyan-strong);
+  box-shadow: 0 0 18px rgba(1, 231, 239, 0.12);
+}
+
+.promoBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(1, 231, 239, 0.12);
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.promoTitle {
+  margin: 20px auto 16px;
+  max-width: 620px;
+  font-size: clamp(34px, 5vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.promoTitle span {
+  color: var(--cyan-strong);
+  text-shadow: 0 0 24px rgba(0, 251, 255, 0.22);
+}
+
+.promoText {
+  max-width: 620px;
+  margin: 0 auto 24px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.promoBenefits {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  max-width: 560px;
+  margin: 0 auto 26px;
+}
+
+.promoBenefit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(236, 255, 255, 0.06);
+}
+
+.promoBenefit span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--cyan-strong));
+  box-shadow: 0 0 16px rgba(0, 251, 255, 0.24);
+  flex: 0 0 auto;
+}
+
+.promoBenefit p {
+  margin: 0;
+  color: var(--white);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.promoActions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btnGhost {
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: 16px;
+  font-weight: 900;
+  border: 1px solid rgba(236, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--white);
+  cursor: pointer;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.btnGhost:hover {
+  transform: translateY(-2px);
+  border-color: rgba(1, 231, 239, 0.24);
+  box-shadow: 0 0 22px rgba(1, 231, 239, 0.08);
+}
+
 .banner,
 .hero,
 .card,
@@ -637,6 +806,19 @@
     padding: 18px 14px 40px;
   }
 
+  .promoModal {
+    padding: 28px 18px 22px;
+    border-radius: 24px;
+  }
+
+  .promoActions {
+    flex-direction: column;
+  }
+
+  .btnGhost {
+    width: 100%;
+  }
+
   .banner,
   .hero,
   .bottom {
@@ -670,12 +852,23 @@
   .banner p,
   .heroText,
   .sectionHead p,
-  .bottom p {
+  .bottom p,
+  .promoText {
     font-size: 15px;
   }
 }
 
 @media (max-width: 560px) {
+  .promoTitle {
+    font-size: 38px;
+  }
+
+  .promoClose {
+    width: 38px;
+    height: 38px;
+    font-size: 22px;
+  }
+
   .banner h2 {
     font-size: 34px;
   }

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 
@@ -60,8 +63,77 @@ const stats = [
 ];
 
 export default function QuieroSerSocioPage() {
+  const [mostrarPromo, setMostrarPromo] = useState(true);
+
   return (
     <main className={styles.page}>
+      {mostrarPromo && (
+        <div className={styles.promoOverlay}>
+          <div className={styles.promoBackdrop}></div>
+
+          <div className={styles.promoModal}>
+            <button
+              type="button"
+              className={styles.promoClose}
+              onClick={() => setMostrarPromo(false)}
+              aria-label="Cerrar promoción"
+            >
+              ×
+            </button>
+
+            <div className={styles.promoTopLine}></div>
+
+            <span className={styles.promoBadge}>PROMOCIÓN EXCLUSIVA</span>
+
+            <h2 className={styles.promoTitle}>
+              ACCEDE HOY AL GRUPO PRIVADO DESDE <span>S/ 8</span>
+            </h2>
+
+            <p className={styles.promoText}>
+              Empieza como socio revendedor con una propuesta más profesional,
+              acceso al grupo privado, soporte rápido y una oportunidad real
+              para generar ingresos.
+            </p>
+
+            <div className={styles.promoBenefits}>
+              <div className={styles.promoBenefit}>
+                <span></span>
+                <p>Acceso rápido al grupo privado</p>
+              </div>
+
+              <div className={styles.promoBenefit}>
+                <span></span>
+                <p>Ideal para emprendedores digitales</p>
+              </div>
+
+              <div className={styles.promoBenefit}>
+                <span></span>
+                <p>Promoción activa por tiempo limitado</p>
+              </div>
+            </div>
+
+            <div className={styles.promoActions}>
+              <a
+                href="https://wa.me/51900557949"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.btnPrimary}
+              >
+                QUIERO INGRESAR AHORA
+              </a>
+
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => setMostrarPromo(false)}
+              >
+                CERRAR Y SEGUIR VIENDO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.noise}></div>
       <div className={styles.gridLines}></div>
       <div className={styles.bgGlow1}></div>
@@ -137,25 +209,25 @@ export default function QuieroSerSocioPage() {
           <div className={styles.cardInfo}>
             <div className={styles.cardInfoTop}>
               <span className={styles.miniTag}>ACCESO RÁPIDO</span>
-              <h3>¿Por qué entrar ahora?</h3>
+              <h3>¿Cómo funciona el negocio?</h3>
             </div>
 
             <ul className={styles.featureList}>
               <li>
                 <span></span>
-                <p>Ingreso a comunidad privada de socios revendedores</p>
+                <p>Ingresas al grupo privado de socios revendedores</p>
               </li>
               <li>
                 <span></span>
-                <p>Modelo ideal para emprendedores digitales</p>
+                <p>Recibes orientación y acceso a la dinámica del negocio</p>
               </li>
               <li>
                 <span></span>
-                <p>Oportunidad de reventa con enfoque premium</p>
+                <p>Ofreces plataformas premium con una propuesta más sólida</p>
               </li>
               <li>
                 <span></span>
-                <p>Mejor presencia y propuesta para captar clientes</p>
+                <p>Generas ganancias revendiendo con apoyo y mejor presencia</p>
               </li>
             </ul>
 
@@ -172,8 +244,8 @@ export default function QuieroSerSocioPage() {
             <span>BENEFICIOS PREMIUM</span>
             <h2>Todo lo que obtienes al ingresar como socio</h2>
             <p>
-              Una propuesta de captación fuerte debe transmitir valor,
-              confianza, orden y crecimiento desde el primer vistazo.
+              Una propuesta fuerte debe transmitir valor, confianza, orden y
+              crecimiento desde el primer vistazo.
             </p>
           </div>
 
