@@ -36,17 +36,27 @@ export default function HomePage() {
             <div className="panel hero-main">
               <div className="hero-content">
                 <div className="hero-left">
-                  <div className="mini">BIENVENID@S A</div>
+                  <div className="mini">BIENVENIDOS A LA EXPERIENCIA PREMIUM</div>
+
                   <h1 className="title">JONAS STREAM</h1>
-                  <div className="sub">PLATAFORMA OFICIAL</div>
+
+                  <div className="sub">
+                    STREAMING, MÚSICA Y ACCESOS DIGITALES PREMIUM
+                  </div>
+
                   <div className="shine"></div>
 
                   <p className="text">
-                    Tu proveedor de confianza en plataformas de streaming,
-                    música y accesos digitales premium. Vive una experiencia
-                    moderna, elegante y profesional, diseñada para clientes y
-                    revendedores que buscan rapidez, soporte y seguridad.
+                    Accede a plataformas premium con una experiencia moderna,
+                    rápida y confiable. En Jonas Stream encuentras atención
+                    inmediata, soporte real y una propuesta profesional tanto
+                    para clientes como para personas que desean crecer
+                    revendiendo servicios digitales.
                   </p>
+
+                  <div className="hero-note">
+                    Atención rápida · Accesos premium · Soporte confiable
+                  </div>
 
                   <div className="buttons">
                     <Link href="/quiero-ser-socio" className="btn btn1">
@@ -86,6 +96,8 @@ export default function HomePage() {
 
                 <div className="hero-right">
                   <div className="logo-box">
+                    <div className="logo-badge">MARCA OFICIAL</div>
+
                     <div className="logo-frame">
                       <img src="/PERFIL WEB.jpg" alt="Logo Jonas Stream" />
                     </div>
