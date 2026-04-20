@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
@@ -90,7 +91,13 @@ export default function HomePage() {
                 <div className="hero-right">
                   <div className="logo-box">
                     <div className="logo-frame">
-                      <img src="/perfil-web.jpg" alt="Logo Jonas Stream" />
+                      <Image
+                        src="/perfil-web.jpg"
+                        alt="Logo Jonas Stream"
+                        width={430}
+                        height={430}
+                        priority
+                      />
                     </div>
                   </div>
                 </div>
