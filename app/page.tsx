@@ -61,31 +61,6 @@ export default function HomePage() {
                       VER PRECIOS
                     </Link>
                   </div>
-
-                  <div className="benefits-joined">
-                    <div className="benefits">
-                      <div className="benefit">
-                        <div className="benefit-inner">
-                          <span className="benefit-emoji">⚡</span>
-                          <span className="benefit-label">Velocidad</span>
-                        </div>
-                      </div>
-
-                      <div className="benefit">
-                        <div className="benefit-inner">
-                          <span className="benefit-emoji">🛡️</span>
-                          <span className="benefit-label">Garantía</span>
-                        </div>
-                      </div>
-
-                      <div className="benefit">
-                        <div className="benefit-inner">
-                          <span className="benefit-emoji">💸</span>
-                          <span className="benefit-label">Ahorro</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="hero-right">
@@ -98,6 +73,33 @@ export default function HomePage() {
                         height={430}
                         priority
                       />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="panel benefits-panel">
+              <div className="benefits-joined">
+                <div className="benefits">
+                  <div className="benefit">
+                    <div className="benefit-inner">
+                      <span className="benefit-emoji">⚡</span>
+                      <span className="benefit-label">Velocidad</span>
+                    </div>
+                  </div>
+
+                  <div className="benefit">
+                    <div className="benefit-inner">
+                      <span className="benefit-emoji">🛡️</span>
+                      <span className="benefit-label">Garantía</span>
+                    </div>
+                  </div>
+
+                  <div className="benefit">
+                    <div className="benefit-inner">
+                      <span className="benefit-emoji">💸</span>
+                      <span className="benefit-label">Ahorro</span>
                     </div>
                   </div>
                 </div>
