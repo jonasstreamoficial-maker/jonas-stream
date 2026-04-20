@@ -18,7 +18,7 @@
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  padding: 34px 16px 60px;
+  padding: 14px 16px 60px;
   background:
     radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.13), transparent 30%),
     radial-gradient(circle at 15% 18%, rgba(1, 139, 144, 0.12), transparent 24%),
@@ -60,7 +60,116 @@
   z-index: 0;
 }
 
-/* PROMO MODAL */
+/* TOPBAR */
+
+.topbar {
+  position: relative;
+  z-index: 2;
+  width: min(1320px, 100%);
+  margin: 0 auto 18px;
+  min-height: 78px;
+  border-radius: 24px;
+  border: 1px solid rgba(1, 231, 239, 0.1);
+  background: rgba(3, 19, 22, 0.72);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.28),
+    0 0 24px rgba(1, 231, 239, 0.05);
+  backdrop-filter: blur(16px);
+  padding: 12px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(1, 231, 239, 0.045),
+      transparent 20%,
+      transparent 80%,
+      rgba(1, 139, 144, 0.045)
+    ),
+    linear-gradient(180deg, rgba(236, 255, 255, 0.02), transparent);
+  pointer-events: none;
+}
+
+.brandBlock {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brandBlock strong {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.45rem;
+  letter-spacing: 2px;
+  color: var(--white);
+  text-shadow:
+    0 0 10px rgba(236, 255, 255, 0.08),
+    0 0 16px rgba(1, 231, 239, 0.1);
+}
+
+.brandBlock span {
+  font-size: 0.74rem;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.topActions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topLink,
+.topLinkPrimary {
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 900;
+  color: var(--white);
+  transition: 0.28s ease;
+  text-transform: uppercase;
+  border: 1px solid rgba(236, 255, 255, 0.07);
+}
+
+.topLink {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.topLinkPrimary {
+  background: linear-gradient(
+    135deg,
+    rgba(1, 231, 239, 0.2),
+    rgba(1, 139, 144, 0.1)
+  );
+  border-color: rgba(1, 231, 239, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.06),
+    0 0 18px rgba(1, 231, 239, 0.08);
+}
+
+.topLink:hover,
+.topLinkPrimary:hover {
+  transform: translateY(-2px);
+}
+
+/* PROMO */
 
 .promoOverlay {
   position: fixed;
@@ -155,6 +264,7 @@
 .promoTitle {
   position: relative;
   z-index: 2;
+  text-align: center;
   font-family: "Orbitron", sans-serif;
   font-size: clamp(1.8rem, 4vw, 3rem);
   line-height: 1.04;
@@ -194,7 +304,7 @@
 }
 
 .promoPriceUsd {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 1rem;
   color: var(--white);
   font-weight: 700;
@@ -220,19 +330,16 @@
   margin-bottom: 12px;
   color: var(--muted);
   font-size: 0.94rem;
-  letter-spacing: 0.3px;
 }
 
 .countdown {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
 .countBox {
-  min-width: 110px;
-  padding: 14px 12px;
+  padding: 14px 10px;
   border-radius: 22px;
   background:
     linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
@@ -246,7 +353,7 @@
 .countBox strong {
   display: block;
   font-family: "Orbitron", sans-serif;
-  font-size: 2rem;
+  font-size: 1.65rem;
   color: var(--white);
 }
 
@@ -257,13 +364,6 @@
   letter-spacing: 2px;
   color: var(--cyan);
   font-weight: 800;
-}
-
-.countSeparator {
-  font-family: "Orbitron", sans-serif;
-  font-size: 2rem;
-  color: var(--cyan);
-  transform: translateY(-4px);
 }
 
 .promoBenefits {
@@ -358,7 +458,7 @@
   font-size: 0.82rem;
 }
 
-/* GENERAL LAYOUT */
+/* SECTIONS */
 
 .hero,
 .section,
@@ -366,12 +466,12 @@
 .pricingSection {
   position: relative;
   z-index: 2;
-  width: min(1240px, 100%);
+  width: min(1320px, 100%);
   margin: 0 auto 22px;
 }
 
 .hero {
-  padding: 46px 30px 34px;
+  padding: 50px 30px 38px;
   border-radius: 34px;
   background:
     linear-gradient(180deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.92));
@@ -380,6 +480,7 @@
     0 30px 70px rgba(0, 0, 0, 0.34),
     0 0 25px rgba(1, 231, 239, 0.12);
   overflow: hidden;
+  text-align: center;
 }
 
 .hero::before {
@@ -417,13 +518,13 @@
   position: relative;
   z-index: 2;
   max-width: 980px;
+  margin: 0 auto 18px;
   font-family: "Orbitron", sans-serif;
   font-size: clamp(2rem, 5vw, 4.2rem);
   line-height: 1.02;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--white);
-  margin-bottom: 18px;
   text-shadow:
     0 0 10px rgba(236, 255, 255, 0.08),
     0 0 22px rgba(1, 231, 239, 0.14);
@@ -436,11 +537,11 @@
 .heroText {
   position: relative;
   z-index: 2;
-  max-width: 860px;
+  max-width: 880px;
+  margin: 0 auto 24px;
   color: var(--muted);
   font-size: 1.02rem;
   line-height: 1.85;
-  margin-bottom: 24px;
 }
 
 .heroText strong {
@@ -454,6 +555,7 @@
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .heroBtnPrimary,
@@ -492,7 +594,7 @@
 
 .heroBtnPrimary:hover,
 .heroBtnSecondary:hover,
-.inlineLink:hover {
+.netflixLink:hover {
   transform: translateY(-3px);
 }
 
@@ -523,10 +625,15 @@
   pointer-events: none;
 }
 
-.sectionHeader {
+.sectionHeader,
+.sectionHeaderCenter {
   position: relative;
   z-index: 2;
   margin-bottom: 22px;
+}
+
+.sectionHeaderCenter {
+  text-align: center;
 }
 
 .sectionKicker,
@@ -550,6 +657,8 @@
   margin: 0;
 }
 
+/* Platforms */
+
 .platformsGrid {
   position: relative;
   z-index: 2;
@@ -571,21 +680,86 @@
   border: 1px solid rgba(236, 255, 255, 0.05);
   color: var(--white);
   font-weight: 800;
-  transition: 0.26s ease;
+  transition: 0.28s ease;
 }
 
 .platformCard:hover {
   transform: translateY(-4px);
-  border-color: rgba(1, 231, 239, 0.14);
-  box-shadow: 0 0 22px rgba(1, 231, 239, 0.12);
 }
 
-.exampleCard,
-.affiliatesCard,
-.pricingCard,
-.infoCard {
+.netflix:hover {
+  border-color: rgba(229, 9, 20, 0.5);
+  box-shadow: 0 0 20px rgba(229, 9, 20, 0.28);
+  color: #ff5a64;
+}
+
+.disney:hover {
+  border-color: rgba(17, 131, 255, 0.5);
+  box-shadow: 0 0 20px rgba(17, 131, 255, 0.28);
+  color: #59b7ff;
+}
+
+.prime:hover {
+  border-color: rgba(0, 168, 225, 0.5);
+  box-shadow: 0 0 20px rgba(0, 168, 225, 0.28);
+  color: #47d0ff;
+}
+
+.max:hover {
+  border-color: rgba(123, 71, 255, 0.5);
+  box-shadow: 0 0 20px rgba(123, 71, 255, 0.28);
+  color: #a98aff;
+}
+
+.paramount:hover {
+  border-color: rgba(50, 121, 255, 0.5);
+  box-shadow: 0 0 20px rgba(50, 121, 255, 0.28);
+  color: #7aa8ff;
+}
+
+.crunchy:hover {
+  border-color: rgba(255, 136, 0, 0.5);
+  box-shadow: 0 0 20px rgba(255, 136, 0, 0.28);
+  color: #ffb14a;
+}
+
+.vix:hover {
+  border-color: rgba(255, 0, 153, 0.5);
+  box-shadow: 0 0 20px rgba(255, 0, 153, 0.28);
+  color: #ff61c1;
+}
+
+.iptv:hover {
+  border-color: rgba(141, 82, 255, 0.5);
+  box-shadow: 0 0 20px rgba(141, 82, 255, 0.28);
+  color: #b69cff;
+}
+
+.viki:hover {
+  border-color: rgba(0, 208, 132, 0.5);
+  box-shadow: 0 0 20px rgba(0, 208, 132, 0.28);
+  color: #52f0b1;
+}
+
+.more:hover {
+  border-color: rgba(1, 231, 239, 0.5);
+  box-shadow: 0 0 20px rgba(1, 231, 239, 0.2);
+  color: var(--cyan-strong);
+}
+
+/* Example horizontal */
+
+.exampleHorizontal {
   position: relative;
   z-index: 2;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.exampleLeft,
+.exampleRight {
   border-radius: 26px;
   padding: 24px;
   background:
@@ -593,51 +767,85 @@
   border: 1px solid rgba(236, 255, 255, 0.05);
 }
 
-.exampleIntro,
-.affiliatesCard p,
-.infoCard p {
+.exampleLead {
   color: var(--muted);
+  font-size: 1rem;
   line-height: 1.8;
-  font-size: 0.98rem;
+  margin-bottom: 20px;
 }
 
-.exampleSteps {
+.exampleProfitBox {
+  padding: 22px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(1, 231, 239, 0.12);
+  text-align: center;
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.05),
+    0 0 22px rgba(1, 231, 239, 0.08);
+}
+
+.exampleProfitLabel {
+  display: block;
+  color: var(--cyan);
+  font-size: 0.72rem;
+  letter-spacing: 1.8px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.exampleProfitBox strong {
+  display: block;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: var(--cyan-strong);
+}
+
+.exampleProfitBox small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.exampleRight {
   display: grid;
   gap: 14px;
-  margin-top: 20px;
 }
 
 .stepItem {
   display: flex;
   gap: 14px;
   align-items: flex-start;
-  padding: 14px;
+  padding: 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(236, 255, 255, 0.04);
 }
 
 .stepItem span {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   border-radius: 12px;
   display: grid;
   place-items: center;
   background: rgba(1, 231, 239, 0.1);
   color: var(--cyan);
   font-weight: 900;
+  font-size: 1.1rem;
 }
 
 .stepItem p {
   color: var(--white);
   line-height: 1.75;
+  font-size: 1rem;
 }
 
-.stepItem strong,
-.affiliatesCard strong {
+.stepItem strong {
   color: var(--cyan-strong);
 }
+
+/* Benefits */
 
 .benefitsGrid {
   position: relative;
@@ -645,6 +853,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+  margin-bottom: 22px;
 }
 
 .benefitCard {
@@ -708,12 +917,20 @@
   font-size: 0.96rem;
 }
 
-.doubleGrid {
+.extraBenefitsUnified {
   position: relative;
   z-index: 2;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
+}
+
+.infoCard {
+  border-radius: 26px;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(236, 255, 255, 0.05);
 }
 
 .infoCard h3 {
@@ -723,7 +940,28 @@
   font-family: "Orbitron", sans-serif;
 }
 
-.inlineLink {
+.infoCard p {
+  color: var(--muted);
+  line-height: 1.8;
+  font-size: 0.98rem;
+}
+
+.netflixCard {
+  border-color: rgba(229, 9, 20, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(229, 9, 20, 0.08),
+    0 0 24px rgba(229, 9, 20, 0.08);
+}
+
+.netflixCard .infoKicker {
+  color: #ff5a64;
+}
+
+.netflixCard h3 {
+  color: #ffffff;
+}
+
+.netflixLink {
   display: inline-flex;
   margin-top: 16px;
   min-height: 52px;
@@ -731,12 +969,24 @@
   align-items: center;
   justify-content: center;
   border-radius: 16px;
-  background: rgba(1, 231, 239, 0.12);
-  border: 1px solid rgba(1, 231, 239, 0.16);
-  color: var(--white);
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.24), rgba(120, 0, 0, 0.2));
+  border: 1px solid rgba(229, 9, 20, 0.22);
+  color: #ffffff;
   text-decoration: none;
   font-weight: 900;
   transition: 0.28s ease;
+}
+
+/* Pricing */
+
+.pricingCard {
+  position: relative;
+  z-index: 2;
+  border-radius: 26px;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(236, 255, 255, 0.05);
 }
 
 .pricingMain {
@@ -767,12 +1017,19 @@
   margin-top: 6px;
   color: var(--white);
   font-weight: 700;
+  font-size: 1rem;
 }
 
 .priceBefore {
   margin-top: 8px;
   color: var(--muted);
   text-decoration: line-through;
+}
+
+.rateInline {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .pricingList {
@@ -792,17 +1049,7 @@
   line-height: 1.68;
 }
 
-.affiliatesCard {
-  display: grid;
-  gap: 14px;
-}
-
-.affiliatesHighlight {
-  color: var(--cyan-strong) !important;
-  font-weight: 800;
-}
-
-/* ANIMATIONS */
+/* Responsive */
 
 @keyframes modalIn {
   from {
@@ -815,35 +1062,49 @@
   }
 }
 
-/* RESPONSIVE */
-
 @media (max-width: 1100px) {
   .platformsGrid,
   .benefitsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .doubleGrid {
+  .exampleHorizontal,
+  .extraBenefitsUnified {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 860px) {
-  .promoActions,
-  .heroActions,
-  .pricingActions {
+  .promoActions {
     grid-template-columns: 1fr;
-    display: grid;
   }
 
-  .countBox {
-    min-width: 94px;
+  .countdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
   .page {
-    padding: 20px 12px 40px;
+    padding: 12px 12px 42px;
+  }
+
+  .topbar {
+    padding: 12px 14px;
+    border-radius: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .brandBlock {
+    width: 100%;
+    align-items: center;
+  }
+
+  .topActions {
+    width: 100%;
+    justify-content: center;
   }
 
   .hero,
@@ -863,34 +1124,18 @@
     font-size: 1.55rem;
   }
 
-  .countdown {
-    gap: 8px;
-  }
-
-  .countBox {
-    min-width: 82px;
-    padding: 12px 8px;
-  }
-
-  .countBox strong {
-    font-size: 1.55rem;
-  }
-
   .platformsGrid,
-  .benefitsGrid,
-  .benefits {
+  .benefitsGrid {
     grid-template-columns: 1fr;
   }
 
-  .promoActions {
-    gap: 10px;
-  }
-
-  .primaryAction,
-  .secondaryAction,
   .heroBtnPrimary,
   .heroBtnSecondary,
-  .inlineLink {
+  .topLink,
+  .topLinkPrimary,
+  .primaryAction,
+  .secondaryAction,
+  .netflixLink {
     width: 100%;
   }
 }
@@ -913,14 +1158,26 @@
   }
 
   .heroText,
-  .exampleIntro,
-  .affiliatesCard p,
   .infoCard p,
-  .benefitCard p {
+  .benefitCard p,
+  .stepItem p {
     font-size: 0.94rem;
   }
 
-  .countSeparator {
-    font-size: 1.5rem;
+  .brandBlock strong {
+    font-size: 1.2rem;
+  }
+
+  .brandBlock span {
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+  }
+
+  .countBox strong {
+    font-size: 1.4rem;
+  }
+
+  .countBox span {
+    font-size: 0.66rem;
   }
 }
