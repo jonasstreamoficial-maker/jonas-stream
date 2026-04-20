@@ -1,185 +1,926 @@
-.page{
-  min-height:100vh;
-  background:linear-gradient(180deg,#000,#031316,#071b1e);
-  color:#ecffff;
-  padding:30px 16px;
-  position:relative;
-  overflow:hidden;
+.page {
+  --cyan: #01e7ef;
+  --cyan-strong: #00fbff;
+  --turquoise: #018b90;
+  --black: #000000;
+  --deep: #031316;
+  --deep-2: #071b1e;
+  --white: #ecffff;
+  --muted: #9bc8cb;
+  --glass-border: rgba(1, 231, 239, 0.18);
+  --glass-panel: rgba(3, 19, 22, 0.78);
+  --glass-panel-strong: rgba(3, 19, 22, 0.9);
+  --white-soft: rgba(236, 255, 255, 0.06);
+  --white-line: rgba(236, 255, 255, 0.08);
+  --shadow-soft: 0 0 25px rgba(1, 231, 239, 0.18);
+  --shadow-strong: 0 0 40px rgba(0, 251, 255, 0.22);
+
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  padding: 34px 16px 60px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.13), transparent 30%),
+    radial-gradient(circle at 15% 18%, rgba(1, 139, 144, 0.12), transparent 24%),
+    radial-gradient(circle at 85% 20%, rgba(0, 251, 255, 0.1), transparent 20%),
+    linear-gradient(180deg, #000000 0%, #031316 52%, #071b1e 100%);
+  color: var(--white);
+  isolation: isolate;
 }
 
-.wrap{
-  max-width:1200px;
-  margin:auto;
-  position:relative;
-  z-index:2;
+.bgGlowOne,
+.bgGlowTwo,
+.gridOverlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
 }
 
-.glow1,.glow2{
-  position:absolute;
-  border-radius:50%;
-  filter:blur(90px);
+.bgGlowOne {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(1, 231, 239, 0.1), transparent 22%),
+    radial-gradient(circle at 80% 15%, rgba(0, 251, 255, 0.08), transparent 18%);
+  z-index: 0;
 }
 
-.glow1{
-  width:260px;
-  height:260px;
-  background:#01e7ef55;
-  top:0;
-  left:-80px;
+.bgGlowTwo {
+  background:
+    radial-gradient(circle at 18% 82%, rgba(1, 139, 144, 0.08), transparent 18%),
+    radial-gradient(circle at 84% 72%, rgba(1, 231, 239, 0.08), transparent 20%);
+  z-index: 0;
 }
 
-.glow2{
-  width:320px;
-  height:320px;
-  background:#018b9050;
-  right:-100px;
-  bottom:0;
+.gridOverlay {
+  background-image:
+    linear-gradient(rgba(236, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(236, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 38px 38px;
+  opacity: 0.08;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  z-index: 0;
 }
 
-.top{
-  display:flex;
-  justify-content:space-between;
-  gap:20px;
-  align-items:end;
-  margin-bottom:28px;
-  padding:28px;
-  border-radius:24px;
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.06);
-  backdrop-filter:blur(14px);
+/* PROMO MODAL */
+
+.promoOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 20px;
 }
 
-.badge{
-  padding:8px 14px;
-  border-radius:999px;
-  background:#01e7ef20;
-  color:#01e7ef;
-  font-size:12px;
-  font-weight:800;
+.promoBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
 }
 
-.top h1{
-  font-size:54px;
-  margin:12px 0;
+.promoModal {
+  position: relative;
+  z-index: 2;
+  width: min(760px, 100%);
+  border-radius: 30px;
+  padding: 30px 26px 24px;
+  background:
+    linear-gradient(180deg, rgba(3, 19, 22, 0.96), rgba(7, 27, 30, 0.96));
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.42),
+    0 0 35px rgba(1, 231, 239, 0.16),
+    inset 0 0 0 1px rgba(236, 255, 255, 0.04);
+  overflow: hidden;
+  animation: modalIn 0.45s ease;
 }
 
-.top p{
-  color:#9bc8cb;
+.promoModal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(0, 251, 255, 0.12), transparent 28%),
+    linear-gradient(
+      135deg,
+      rgba(1, 231, 239, 0.05),
+      transparent 55%,
+      rgba(1, 139, 144, 0.05)
+    );
+  pointer-events: none;
 }
 
-.actions{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
+.closeButton {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(236, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: 0.28s ease;
+  z-index: 3;
 }
 
-.btn1,.btn2,.buy{
-  min-height:52px;
-  padding:0 22px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:14px;
-  text-decoration:none;
-  font-weight:800;
+.closeButton:hover {
+  transform: translateY(-2px);
+  border-color: rgba(1, 231, 239, 0.22);
+  box-shadow: 0 0 18px rgba(1, 231, 239, 0.12);
 }
 
-.btn1,.buy{
-  background:linear-gradient(135deg,#01e7ef,#00fbff);
-  color:#031316;
+.promoBadge {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(1, 231, 239, 0.1);
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
 }
 
-.btn2{
-  color:#fff;
-  border:1px solid rgba(255,255,255,.08);
+.promoTitle {
+  position: relative;
+  z-index: 2;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.04;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 18px;
+  color: var(--white);
+  text-shadow:
+    0 0 12px rgba(236, 255, 255, 0.12),
+    0 0 24px rgba(1, 231, 239, 0.16);
 }
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:18px;
+.promoPriceBox {
+  position: relative;
+  z-index: 2;
+  border-radius: 26px;
+  padding: 20px 18px;
+  margin-bottom: 18px;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.84), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(1, 231, 239, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.06),
+    0 0 26px rgba(1, 231, 239, 0.1);
+  text-align: center;
 }
 
-.card{
-  padding:24px;
-  border-radius:22px;
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.06);
-  backdrop-filter:blur(12px);
-  transition:.25s;
+.promoPriceMain {
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--cyan-strong);
+  text-shadow:
+    0 0 14px rgba(0, 251, 255, 0.22),
+    0 0 34px rgba(0, 251, 255, 0.14);
 }
 
-.card:hover{
-  transform:translateY(-8px);
+.promoPriceUsd {
+  margin-top: 6px;
+  font-size: 1rem;
+  color: var(--white);
+  font-weight: 700;
 }
 
-.estado{
-  font-size:12px;
-  color:#01e7ef;
-  font-weight:800;
+.promoOldPrice {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  text-decoration: line-through;
+  opacity: 0.82;
 }
 
-.card h2{
-  font-size:24px;
-  margin:12px 0;
+.countdownWrap {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 20px;
 }
 
-.price{
-  font-size:42px;
-  font-weight:900;
-  margin-bottom:12px;
+.countdownLabel {
+  display: block;
+  text-align: center;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 0.94rem;
+  letter-spacing: 0.3px;
 }
 
-.card p{
-  color:#9bc8cb;
-  margin-bottom:20px;
+.countdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
-.netflix:hover{box-shadow:0 0 25px #e50914;}
-.disney:hover{box-shadow:0 0 25px #1e90ff;}
-.spotify:hover{box-shadow:0 0 25px #1db954;}
-.youtube:hover{box-shadow:0 0 25px red;}
-.max:hover{box-shadow:0 0 25px #7b2cff;}
-.crunchy:hover{box-shadow:0 0 25px orange;}
-
-.bottom{
-  margin-top:28px;
-  padding:24px;
-  border-radius:22px;
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.06);
+.countBox {
+  min-width: 110px;
+  padding: 14px 12px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(236, 255, 255, 0.06);
+  text-align: center;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.02),
+    0 0 20px rgba(1, 231, 239, 0.08);
 }
 
-.bottom h3{
-  color:#01e7ef;
-  margin-bottom:10px;
+.countBox strong {
+  display: block;
+  font-family: "Orbitron", sans-serif;
+  font-size: 2rem;
+  color: var(--white);
 }
 
-.bottom p{
-  color:#9bc8cb;
+.countBox span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  font-weight: 800;
 }
 
-@media(max-width:900px){
-  .grid{
-    grid-template-columns:1fr 1fr;
+.countSeparator {
+  font-family: "Orbitron", sans-serif;
+  font-size: 2rem;
+  color: var(--cyan);
+  transform: translateY(-4px);
+}
+
+.promoBenefits {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.promoBenefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(236, 255, 255, 0.05);
+}
+
+.promoBenefit p {
+  color: var(--white);
+  line-height: 1.65;
+  font-size: 0.96rem;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex: 0 0 10px;
+  background: var(--cyan-strong);
+  box-shadow:
+    0 0 12px rgba(0, 251, 255, 0.4),
+    0 0 20px rgba(1, 231, 239, 0.2);
+}
+
+.promoActions {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.primaryAction,
+.secondaryAction {
+  min-height: 58px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border: 1px solid rgba(236, 255, 255, 0.08);
+  transition: 0.28s ease;
+  cursor: pointer;
+}
+
+.primaryAction {
+  color: var(--white);
+  background: linear-gradient(
+    135deg,
+    rgba(1, 231, 239, 0.24),
+    rgba(1, 139, 144, 0.16)
+  );
+  border-color: rgba(1, 231, 239, 0.24);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.08),
+    0 0 20px rgba(1, 231, 239, 0.1);
+}
+
+.secondaryAction {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.primaryAction:hover,
+.secondaryAction:hover {
+  transform: translateY(-3px);
+}
+
+.rateNote {
+  position: relative;
+  z-index: 2;
+  margin-top: 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* GENERAL LAYOUT */
+
+.hero,
+.section,
+.benefitsSection,
+.pricingSection {
+  position: relative;
+  z-index: 2;
+  width: min(1240px, 100%);
+  margin: 0 auto 22px;
+}
+
+.hero {
+  padding: 46px 30px 34px;
+  border-radius: 34px;
+  background:
+    linear-gradient(180deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.92));
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.34),
+    0 0 25px rgba(1, 231, 239, 0.12);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 84% 18%, rgba(0, 251, 255, 0.1), transparent 22%),
+    linear-gradient(
+      135deg,
+      rgba(1, 231, 239, 0.04),
+      transparent 52%,
+      rgba(1, 139, 144, 0.04)
+    );
+  pointer-events: none;
+}
+
+.heroBadge {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(1, 231, 239, 0.1);
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.heroTitle {
+  position: relative;
+  z-index: 2;
+  max-width: 980px;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(2rem, 5vw, 4.2rem);
+  line-height: 1.02;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--white);
+  margin-bottom: 18px;
+  text-shadow:
+    0 0 10px rgba(236, 255, 255, 0.08),
+    0 0 22px rgba(1, 231, 239, 0.14);
+}
+
+.heroTitle span {
+  color: var(--cyan-strong);
+}
+
+.heroText {
+  position: relative;
+  z-index: 2;
+  max-width: 860px;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.85;
+  margin-bottom: 24px;
+}
+
+.heroText strong {
+  color: var(--white);
+}
+
+.heroActions,
+.pricingActions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.heroBtnPrimary,
+.heroBtnSecondary {
+  min-height: 60px;
+  padding: 0 22px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  transition: 0.28s ease;
+}
+
+.heroBtnPrimary {
+  color: var(--white);
+  background: linear-gradient(
+    135deg,
+    rgba(1, 231, 239, 0.24),
+    rgba(1, 139, 144, 0.16)
+  );
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.06),
+    0 0 18px rgba(1, 231, 239, 0.1);
+}
+
+.heroBtnSecondary {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(236, 255, 255, 0.07);
+}
+
+.heroBtnPrimary:hover,
+.heroBtnSecondary:hover,
+.inlineLink:hover {
+  transform: translateY(-3px);
+}
+
+.section,
+.benefitsSection,
+.pricingSection {
+  padding: 28px;
+  border-radius: 30px;
+  background: var(--glass-panel);
+  border: 1px solid rgba(236, 255, 255, 0.06);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.section::before,
+.benefitsSection::before,
+.pricingSection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(1, 231, 239, 0.04),
+      transparent 55%,
+      rgba(1, 139, 144, 0.04)
+    );
+  pointer-events: none;
+}
+
+.sectionHeader {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 22px;
+}
+
+.sectionKicker,
+.infoKicker {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: var(--cyan);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.35rem, 3vw, 2.25rem);
+  line-height: 1.08;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.platformsGrid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.platformCard {
+  min-height: 76px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 10px;
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(236, 255, 255, 0.05);
+  color: var(--white);
+  font-weight: 800;
+  transition: 0.26s ease;
+}
+
+.platformCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(1, 231, 239, 0.14);
+  box-shadow: 0 0 22px rgba(1, 231, 239, 0.12);
+}
+
+.exampleCard,
+.affiliatesCard,
+.pricingCard,
+.infoCard {
+  position: relative;
+  z-index: 2;
+  border-radius: 26px;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(236, 255, 255, 0.05);
+}
+
+.exampleIntro,
+.affiliatesCard p,
+.infoCard p {
+  color: var(--muted);
+  line-height: 1.8;
+  font-size: 0.98rem;
+}
+
+.exampleSteps {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.stepItem {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(236, 255, 255, 0.04);
+}
+
+.stepItem span {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(1, 231, 239, 0.1);
+  color: var(--cyan);
+  font-weight: 900;
+}
+
+.stepItem p {
+  color: var(--white);
+  line-height: 1.75;
+}
+
+.stepItem strong,
+.affiliatesCard strong {
+  color: var(--cyan-strong);
+}
+
+.benefitsGrid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.benefitCard {
+  min-height: 220px;
+  padding: 24px 20px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.9), rgba(3, 19, 22, 0.99));
+  border: 1px solid rgba(236, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+  transition: 0.28s ease;
+}
+
+.benefitCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(1, 231, 239, 0.04),
+      transparent 55%,
+      rgba(1, 139, 144, 0.035)
+    );
+  pointer-events: none;
+}
+
+.benefitCard:hover {
+  transform: translateY(-6px);
+  border-color: rgba(1, 231, 239, 0.14);
+  box-shadow:
+    0 18px 32px rgba(0, 0, 0, 0.2),
+    0 0 22px rgba(1, 231, 239, 0.1);
+}
+
+.benefitNumber {
+  position: relative;
+  z-index: 2;
+  font-family: "Orbitron", sans-serif;
+  color: var(--cyan);
+  font-size: 0.86rem;
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+
+.benefitCard h3 {
+  position: relative;
+  z-index: 2;
+  margin: 0 0 12px;
+  color: var(--white);
+  font-size: 1.14rem;
+  font-family: "Orbitron", sans-serif;
+}
+
+.benefitCard p {
+  position: relative;
+  z-index: 2;
+  color: var(--muted);
+  line-height: 1.72;
+  font-size: 0.96rem;
+}
+
+.doubleGrid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.infoCard h3 {
+  margin: 0 0 12px;
+  font-size: 1.18rem;
+  color: var(--white);
+  font-family: "Orbitron", sans-serif;
+}
+
+.inlineLink {
+  display: inline-flex;
+  margin-top: 16px;
+  min-height: 52px;
+  padding: 0 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: rgba(1, 231, 239, 0.12);
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  color: var(--white);
+  text-decoration: none;
+  font-weight: 900;
+  transition: 0.28s ease;
+}
+
+.pricingMain {
+  position: relative;
+  z-index: 2;
+  margin: 16px 0 20px;
+  padding: 22px 18px;
+  border-radius: 24px;
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(1, 231, 239, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.06),
+    0 0 22px rgba(1, 231, 239, 0.08);
+}
+
+.priceNow {
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  color: var(--cyan-strong);
+  text-shadow:
+    0 0 14px rgba(0, 251, 255, 0.18),
+    0 0 24px rgba(1, 231, 239, 0.14);
+}
+
+.priceUsd {
+  margin-top: 6px;
+  color: var(--white);
+  font-weight: 700;
+}
+
+.priceBefore {
+  margin-top: 8px;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.pricingList {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.pricingItem {
+  padding: 14px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(236, 255, 255, 0.04);
+  color: var(--white);
+  line-height: 1.68;
+}
+
+.affiliatesCard {
+  display: grid;
+  gap: 14px;
+}
+
+.affiliatesHighlight {
+  color: var(--cyan-strong) !important;
+  font-weight: 800;
+}
+
+/* ANIMATIONS */
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1100px) {
+  .platformsGrid,
+  .benefitsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .top{
-    flex-direction:column;
-    align-items:start;
+  .doubleGrid {
+    grid-template-columns: 1fr;
   }
 }
 
-@media(max-width:600px){
-  .grid{
-    grid-template-columns:1fr;
+@media (max-width: 860px) {
+  .promoActions,
+  .heroActions,
+  .pricingActions {
+    grid-template-columns: 1fr;
+    display: grid;
   }
 
-  .top h1{
-    font-size:38px;
+  .countBox {
+    min-width: 94px;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 20px 12px 40px;
   }
 
-  .actions a{
-    width:100%;
+  .hero,
+  .section,
+  .benefitsSection,
+  .pricingSection {
+    padding: 20px 16px;
+    border-radius: 24px;
+  }
+
+  .promoModal {
+    padding: 24px 16px 18px;
+    border-radius: 24px;
+  }
+
+  .promoTitle {
+    font-size: 1.55rem;
+  }
+
+  .countdown {
+    gap: 8px;
+  }
+
+  .countBox {
+    min-width: 82px;
+    padding: 12px 8px;
+  }
+
+  .countBox strong {
+    font-size: 1.55rem;
+  }
+
+  .platformsGrid,
+  .benefitsGrid,
+  .benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .promoActions {
+    gap: 10px;
+  }
+
+  .primaryAction,
+  .secondaryAction,
+  .heroBtnPrimary,
+  .heroBtnSecondary,
+  .inlineLink {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .promoOverlay {
+    padding: 10px;
+  }
+
+  .promoPriceMain {
+    font-size: 2.2rem;
+  }
+
+  .promoBenefit {
+    padding: 12px;
+  }
+
+  .heroTitle {
+    font-size: 1.6rem;
+  }
+
+  .heroText,
+  .exampleIntro,
+  .affiliatesCard p,
+  .infoCard p,
+  .benefitCard p {
+    font-size: 0.94rem;
+  }
+
+  .countSeparator {
+    font-size: 1.5rem;
   }
 }
