@@ -36,16 +36,18 @@ export default function HomePage() {
             <div className="panel hero-main">
               <div className="hero-content">
                 <div className="hero-left">
-                  <div className="mini">BIENVENID@S A</div>
+                  <div className="mini">BIENVENIDOS A</div>
+
                   <h1 className="title">JONAS STREAM</h1>
-                  <div className="sub">PLATAFORMA OFICIAL</div>
+
+                  <div className="sub">PLATAFORMA OFICIAL PREMIUM</div>
+
                   <div className="shine"></div>
 
                   <p className="text">
                     Tu proveedor de confianza en plataformas de streaming,
-                    música y accesos digitales premium. Vive una experiencia
-                    moderna, elegante y profesional, diseñada para clientes y
-                    revendedores que buscan rapidez, soporte y seguridad.
+                    música y accesos digitales premium. Disfruta una experiencia
+                    moderna, rápida y segura para clientes y revendedores.
                   </p>
 
                   <div className="buttons">
