@@ -1,153 +1,146 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 
-const beneficios = [
-  {
-    numero: "01",
-    titulo: "Publicidad ilimitada",
-    texto:
-      "Promociona tus servicios con una imagen más profesional y una presencia digital mucho más fuerte.",
-  },
-  {
-    numero: "02",
-    titulo: "Soporte rápido",
-    texto:
-      "Recibe ayuda ágil para activaciones, dudas y acompañamiento durante tu proceso de venta.",
-  },
-  {
-    numero: "03",
-    titulo: "Ganancias por reventa",
-    texto:
-      "Accede a precios competitivos para generar ingresos revendiendo plataformas premium.",
-  },
-  {
-    numero: "04",
-    titulo: "Activación inmediata",
-    texto:
-      "Empieza rápido y aprovecha el impulso para captar clientes antes que otros.",
-  },
-  {
-    numero: "05",
-    titulo: "Imagen profesional",
-    texto:
-      "Forma parte de una propuesta moderna, seria y llamativa para vender con más confianza.",
-  },
-  {
-    numero: "06",
-    titulo: "Escala tu negocio",
-    texto:
-      "Ideal para emprendedores que quieren crecer, revender más y construir ingresos constantes.",
-  },
-];
-
-const pasos = [
-  {
-    numero: "01",
-    titulo: "Solicita tu ingreso",
-    texto:
-      "Escríbenos por WhatsApp y recibe todos los detalles sobre el acceso al grupo privado.",
-  },
-  {
-    numero: "02",
-    titulo: "Activa tu acceso",
-    texto:
-      "Se valida tu ingreso y obtienes acceso a la comunidad privada de socios revendedores.",
-  },
-  {
-    numero: "03",
-    titulo: "Empieza a vender",
-    texto:
-      "Comienza a revender plataformas premium con apoyo, estructura e imagen profesional.",
-  },
-];
-
-const stats = [
-  { valor: "+2K", label: "Clientes alcanzados" },
-  { valor: "24/7", label: "Soporte rápido" },
-  { valor: "S/ 8", label: "Ingreso promocional" },
-  { valor: "TOP", label: "Modelo de reventa" },
-];
+const PROMO_PRICE_PEN = 10;
+const OLD_PRICE_PEN = 80;
+const USD_RATE = 3.75; // Cambia este valor si deseas actualizar manualmente el tipo de cambio
 
 const promoBenefits = [
-  "Acceso rápido al grupo privado",
-  "Ideal para emprendedores digitales",
-  "Oferta especial por tiempo limitado",
+  "Ingresas al grupo privado de socios revendedores.",
+  "Recibes orientación para entender la dinámica del negocio.",
+  "Empiezas a ofrecer plataformas premium con mejor imagen.",
+  "Generas ganancias revendiendo con apoyo y respaldo.",
 ];
 
+const availablePlatforms = [
+  "Netflix",
+  "Disney+",
+  "Prime Video",
+  "Max",
+  "Paramount+",
+  "Crunchyroll",
+  "VIX",
+  "IPTV",
+  "Viki",
+  "y más",
+];
+
+const mainBenefits = [
+  {
+    number: "01",
+    title: "Comunidad privada",
+    text: "Forma parte del grupo exclusivo de socios revendedores para recibir soporte, guía y novedades del negocio.",
+  },
+  {
+    number: "02",
+    title: "Catálogo exclusivo",
+    text: "Accede a precios rebajados, promociones especiales y mejores condiciones que el público general.",
+  },
+  {
+    number: "03",
+    title: "Publicidad editable",
+    text: "Obtén material visual editable para publicar más profesional y vender con una mejor imagen.",
+  },
+  {
+    number: "04",
+    title: "Ganancias por reventa",
+    text: "Compras a precio socio y revendes por perfil o cuenta para generar ingresos con buena rentabilidad.",
+  },
+  {
+    number: "05",
+    title: "Soporte y orientación",
+    text: "No empiezas solo. Recibes acompañamiento para entender cómo funciona la dinámica de compra, venta y activación.",
+  },
+  {
+    number: "06",
+    title: "Oportunidad de afiliación",
+    text: "También puedes recomendar el acceso a otros y ganar activando nuevos socios dentro de la comunidad.",
+  },
+];
+
+function formatMoney(value: number) {
+  return value.toFixed(2);
+}
+
 export default function QuieroSerSocioPage() {
-  const [mostrarPromo, setMostrarPromo] = useState(false);
+  const [showPromo, setShowPromo] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(15 * 60);
 
   useEffect(() => {
-    const promoVista = localStorage.getItem("jonas-stream-promo-socio-vista");
+    if (!showPromo) return;
 
-    if (!promoVista) {
-      setMostrarPromo(true);
-    }
-  }, []);
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) return 15 * 60;
+        return prev - 1;
+      });
+    }, 1000);
 
-  useEffect(() => {
-    if (mostrarPromo) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    return () => clearInterval(interval);
+  }, [showPromo]);
 
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mostrarPromo]);
+  const usdPrice = useMemo(() => PROMO_PRICE_PEN / USD_RATE, []);
+  const oldUsdPrice = useMemo(() => OLD_PRICE_PEN / USD_RATE, []);
 
-  const cerrarPromo = () => {
-    localStorage.setItem("jonas-stream-promo-socio-vista", "true");
-    setMostrarPromo(false);
-  };
+  const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+  const seconds = String(timeLeft % 60).padStart(2, "0");
 
   return (
-    <main className={styles.page}>
-      {mostrarPromo && (
-        <div className={styles.promoOverlay}>
-          <div className={styles.promoBackdrop} onClick={cerrarPromo} />
+    <div className={styles.page}>
+      <div className={styles.bgGlowOne} />
+      <div className={styles.bgGlowTwo} />
+      <div className={styles.gridOverlay} />
 
-          <div
-            className={styles.promoModal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="promo-title"
-          >
+      {showPromo && (
+        <div className={styles.promoOverlay}>
+          <div className={styles.promoBackdrop} onClick={() => setShowPromo(false)} />
+
+          <div className={styles.promoModal}>
             <button
               type="button"
-              className={styles.promoClose}
-              onClick={cerrarPromo}
+              className={styles.closeButton}
+              onClick={() => setShowPromo(false)}
               aria-label="Cerrar promoción"
             >
               ×
             </button>
 
-            <div className={styles.promoTopLine} />
+            <div className={styles.promoBadge}>PROMOCIÓN EXCLUSIVA</div>
 
-            <span className={styles.promoBadge}>PROMOCIÓN EXCLUSIVA</span>
+            <h2 className={styles.promoTitle}>PROMOCIÓN EXCLUSIVA HOY</h2>
 
-            <p className={styles.promoMiniText}>
-              PRECIO REGULAR <span>S/ 15</span> · HOY <strong>S/ 8</strong>
-            </p>
+            <div className={styles.promoPriceBox}>
+              <div className={styles.promoPriceMain}>S/ {formatMoney(PROMO_PRICE_PEN)}</div>
+              <div className={styles.promoPriceUsd}>
+                ≈ USD {formatMoney(usdPrice)}
+              </div>
+              <div className={styles.promoOldPrice}>
+                Antes: S/ {formatMoney(OLD_PRICE_PEN)} · USD {formatMoney(oldUsdPrice)}
+              </div>
+            </div>
 
-            <h2 id="promo-title" className={styles.promoTitle}>
-              ACCEDE HOY AL <span>GRUPO PRIVADO</span> DE SOCIOS
-            </h2>
-
-            <p className={styles.promoText}>
-              Empieza con una propuesta más profesional, soporte rápido,
-              orientación para revender y una oportunidad real para generar
-              ingresos desde el primer paso.
-            </p>
+            <div className={styles.countdownWrap}>
+              <span className={styles.countdownLabel}>La promo termina en</span>
+              <div className={styles.countdown}>
+                <div className={styles.countBox}>
+                  <strong>{minutes}</strong>
+                  <span>MIN</span>
+                </div>
+                <div className={styles.countSeparator}>:</div>
+                <div className={styles.countBox}>
+                  <strong>{seconds}</strong>
+                  <span>SEG</span>
+                </div>
+              </div>
+            </div>
 
             <div className={styles.promoBenefits}>
               {promoBenefits.map((item) => (
                 <div key={item} className={styles.promoBenefit}>
-                  <span />
+                  <span className={styles.dot} />
                   <p>{item}</p>
                 </div>
               ))}
@@ -158,218 +151,205 @@ export default function QuieroSerSocioPage() {
                 href="https://wa.me/51900557949"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={styles.btnPrimary}
+                className={styles.primaryAction}
               >
-                QUIERO INGRESAR AHORA
+                QUIERO APROVECHAR LA PROMO
               </a>
 
               <button
                 type="button"
-                className={styles.btnGhost}
-                onClick={cerrarPromo}
+                className={styles.secondaryAction}
+                onClick={() => setShowPromo(false)}
               >
                 CERRAR Y SEGUIR VIENDO
               </button>
             </div>
+
+            <p className={styles.rateNote}>
+              Precio en dólares calculado con tipo de cambio manual: 1 USD = S/ {USD_RATE}
+            </p>
           </div>
         </div>
       )}
 
-      <div className={styles.noise} />
-      <div className={styles.gridLines} />
-      <div className={styles.bgGlow1} />
-      <div className={styles.bgGlow2} />
-      <div className={styles.bgGlow3} />
+      <section className={styles.hero}>
+        <div className={styles.heroBadge}>NEGOCIO PARA REVENDEDORES</div>
 
-      <section className={styles.wrap}>
-        <section className={styles.banner}>
-          <div className={styles.bannerGlow} />
+        <h1 className={styles.heroTitle}>
+          CONVIÉRTETE EN SOCIO Y EMPIEZA A REVENDER CON
+          <span> JONAS STREAM</span>
+        </h1>
 
-          <span className={styles.badge}>PROMO ACTIVA</span>
+        <p className={styles.heroText}>
+          ¿Te gustaría generar ingresos vendiendo las plataformas más buscadas del mercado?
+          Soy <strong>JONAS</strong>, administrador y proveedor autorizado. Te acompañaré
+          paso a paso para que empieces sin complicaciones y veas resultados rápido.
+        </p>
 
-          <h2>INGRESA HOY AL GRUPO PRIVADO DESDE S/ 8</h2>
+        <div className={styles.heroActions}>
+          <a
+            href="https://wa.me/51900557949"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.heroBtnPrimary}
+          >
+            QUIERO SER SOCIO
+          </a>
 
-          <p>
-            Cupos limitados para nuevos socios revendedores que quieran empezar
-            con una propuesta más seria, profesional y rentable.
-          </p>
-
-          <div className={styles.bannerActions}>
-            <a
-              href="https://wa.me/51900557949"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.btnPrimary}
-            >
-              QUIERO INGRESAR AHORA
-            </a>
-
-            <Link href="/" className={styles.btnSecondary}>
-              VOLVER AL INICIO
-            </Link>
-          </div>
-        </section>
-
-        <section className={styles.hero}>
-          <div className={styles.heroContent}>
-            <span className={styles.kicker}>PROGRAMA PREMIUM DE SOCIOS</span>
-
-            <h1>
-              CONVIÉRTETE EN <span>SOCIO</span> Y EMPIEZA A REVENDER CON
-              <br />
-              JONAS STREAM
-            </h1>
-
-            <div className={styles.heroLine} />
-
-            <p className={styles.heroText}>
-              Únete a una oportunidad real para revender plataformas premium
-              con soporte rápido, acceso al grupo privado, mejor presencia
-              comercial y una estructura pensada para crecer.
-            </p>
-
-            <div className={styles.heroPills}>
-              <span>Ingreso rápido</span>
-              <span>Grupo privado</span>
-              <span>Soporte</span>
-              <span>Reventa premium</span>
-            </div>
-
-            <div className={styles.actions}>
-              <a
-                href="https://wa.me/51900557949"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.btnPrimary}
-              >
-                SOLICITAR INFORMACIÓN
-              </a>
-
-              <Link href="/" className={styles.btnSecondary}>
-                VOLVER AL INICIO
-              </Link>
-            </div>
-
-            <div className={styles.stats}>
-              {stats.map((item) => (
-                <div key={item.label} className={styles.statCard}>
-                  <strong>{item.valor}</strong>
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.cardInfo}>
-            <div className={styles.cardInfoTop}>
-              <span className={styles.miniTag}>ACCESO RÁPIDO</span>
-              <h3>¿Cómo funciona el negocio?</h3>
-            </div>
-
-            <ul className={styles.featureList}>
-              <li>
-                <span />
-                <p>Ingresas al grupo privado de socios revendedores.</p>
-              </li>
-              <li>
-                <span />
-                <p>Recibes orientación para entender la dinámica del negocio.</p>
-              </li>
-              <li>
-                <span />
-                <p>Empiezas a ofrecer plataformas premium con mejor imagen.</p>
-              </li>
-              <li>
-                <span />
-                <p>Generas ganancias revendiendo con apoyo y respaldo.</p>
-              </li>
-            </ul>
-
-            <div className={styles.infoBox}>
-              <small>OFERTA ESPECIAL</small>
-              <strong>Accede hoy desde S/ 8</strong>
-              <p>Promoción sujeta a disponibilidad de cupos.</p>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.benefitsSection}>
-          <div className={styles.sectionHead}>
-            <span>BENEFICIOS PREMIUM</span>
-            <h2>Todo lo que obtienes al ingresar como socio</h2>
-            <p>
-              Una propuesta fuerte transmite valor, confianza, orden y una
-              imagen que ayuda a vender mejor desde el primer contacto.
-            </p>
-          </div>
-
-          <div className={styles.grid}>
-            {beneficios.map((item) => (
-              <article key={item.numero} className={styles.card}>
-                <div className={styles.cardNumber}>{item.numero}</div>
-                <h3>{item.titulo}</h3>
-                <p>{item.texto}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.stepsSection}>
-          <div className={styles.sectionHead}>
-            <span>CÓMO FUNCIONA</span>
-            <h2>Empieza en pocos pasos</h2>
-            <p>
-              Un proceso simple, rápido y pensado para que puedas comenzar sin
-              complicarte.
-            </p>
-          </div>
-
-          <div className={styles.stepsGrid}>
-            {pasos.map((paso) => (
-              <article key={paso.numero} className={styles.stepCard}>
-                <div className={styles.stepNumber}>{paso.numero}</div>
-                <h3>{paso.titulo}</h3>
-                <p>{paso.texto}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.bottom}>
-          <div className={styles.bottomGlow} />
-
-          <span className={styles.bottomTag}>JONAS STREAM | SOCIOS</span>
-
-          <h2>EMPIEZA HOY Y ENTRA AL GRUPO PRIVADO</h2>
-
-          <p>
-            Da el siguiente paso y forma parte de una propuesta premium para
-            revender plataformas con mejor soporte, mayor presencia y una
-            imagen mucho más profesional.
-          </p>
-
-          <div className={styles.bottomPriceBox}>
-            <small>INGRESO PROMOCIONAL</small>
-            <strong>S/ 8</strong>
-            <span>Oferta por tiempo limitado</span>
-          </div>
-
-          <div className={styles.bottomActions}>
-            <a
-              href="https://wa.me/51900557949"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.btnPrimary}
-            >
-              UNIRME AHORA
-            </a>
-
-            <Link href="/" className={styles.btnSecondary}>
-              VOLVER
-            </Link>
-          </div>
-        </section>
+          <Link href="/ver-precios" className={styles.heroBtnSecondary}>
+            VER PRECIOS
+          </Link>
+        </div>
       </section>
-    </main>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionKicker}>PLATAFORMAS DISPONIBLES</span>
+          <h2 className={styles.sectionTitle}>Lo que puedes ofrecer desde el inicio</h2>
+        </div>
+
+        <div className={styles.platformsGrid}>
+          {availablePlatforms.map((platform) => (
+            <div key={platform} className={styles.platformCard}>
+              {platform}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionKicker}>CÓMO GANAS DINERO</span>
+          <h2 className={styles.sectionTitle}>Ejemplo sencillo de rentabilidad</h2>
+        </div>
+
+        <div className={styles.exampleCard}>
+          <div className={styles.exampleIntro}>
+            Así funciona el negocio: compras al por mayor y vendes por perfil con buena ganancia.
+          </div>
+
+          <div className={styles.exampleSteps}>
+            <div className={styles.stepItem}>
+              <span>1</span>
+              <p>Compras una cuenta completa de <strong>Prime Video</strong> por <strong>S/12.00</strong> (incluye 6 perfiles).</p>
+            </div>
+            <div className={styles.stepItem}>
+              <span>2</span>
+              <p>Vendes cada perfil a <strong>S/8.00</strong>.</p>
+            </div>
+            <div className={styles.stepItem}>
+              <span>3</span>
+              <p>Total vendido: <strong>S/48.00</strong>.</p>
+            </div>
+            <div className={styles.stepItem}>
+              <span>4</span>
+              <p>Restando tu inversión de <strong>S/12.00</strong>, obtienes una <strong>ganancia neta de S/36.00</strong>.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.benefitsSection}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionKicker}>BENEFICIOS</span>
+          <h2 className={styles.sectionTitle}>Lo que recibes al entrar</h2>
+        </div>
+
+        <div className={styles.benefitsGrid}>
+          {mainBenefits.map((benefit) => (
+            <article key={benefit.number} className={styles.benefitCard}>
+              <div className={styles.benefitNumber}>{benefit.number}</div>
+              <h3>{benefit.title}</h3>
+              <p>{benefit.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.doubleGrid}>
+          <div className={styles.infoCard}>
+            <span className={styles.infoKicker}>PRIMER BENEFICIO</span>
+            <h3>Comunidad pública exclusiva</h3>
+            <p>
+              Únete gratis a nuestra comunidad pública exclusiva para empezar a conectar con el entorno del negocio.
+            </p>
+            <a
+              href="https://chat.whatsapp.com/Km1vlhsOpCJ1svHl5uNdig"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.inlineLink}
+            >
+              IR AL GRUPO OFICIAL
+            </a>
+          </div>
+
+          <div className={styles.infoCard}>
+            <span className={styles.infoKicker}>SEGUNDO BENEFICIO</span>
+            <h3>Catálogo + control profesional</h3>
+            <p>
+              Accede a un catálogo exclusivo con excelentes precios, actualizado constantemente, y una plantilla de Excel para organizar tus ventas.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.pricingSection}>
+        <div className={styles.pricingCard}>
+          <span className={styles.sectionKicker}>CÓMO SER SOCIO</span>
+          <h2 className={styles.sectionTitle}>Ingresa hoy con promoción activa</h2>
+
+          <div className={styles.pricingMain}>
+            <div className={styles.priceNow}>S/ {formatMoney(PROMO_PRICE_PEN)}</div>
+            <div className={styles.priceUsd}>USD {formatMoney(usdPrice)}</div>
+            <div className={styles.priceBefore}>Antes: S/ {formatMoney(OLD_PRICE_PEN)}</div>
+          </div>
+
+          <div className={styles.pricingList}>
+            <div className={styles.pricingItem}>✅ Catálogo exclusivo con precios rebajados</div>
+            <div className={styles.pricingItem}>✅ Promociones más accesibles que al público general</div>
+            <div className={styles.pricingItem}>✅ Comunidad privada de socios</div>
+            <div className={styles.pricingItem}>✅ Publicidad editable en Canva PRO</div>
+            <div className={styles.pricingItem}>✅ Oportunidad de generar ingresos desde casa</div>
+          </div>
+
+          <div className={styles.pricingActions}>
+            <Link href="/ver-precios" className={styles.heroBtnSecondary}>
+              VER PRECIOS EXCLUSIVOS
+            </Link>
+
+            <a
+              href="https://wa.me/51900557949"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.heroBtnPrimary}
+            >
+              ACTIVAR MI ACCESO
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionKicker}>AFILIACIÓN</span>
+          <h2 className={styles.sectionTitle}>También puedes ganar recomendando</h2>
+        </div>
+
+        <div className={styles.affiliatesCard}>
+          <p>
+            Recomiendas la comunidad a un amigo o familiar y tú decides cuánto cobrarle por inscripción.
+            Puede ser <strong>S/10, S/20 o S/30</strong>.
+          </p>
+          <p>
+            Nosotros solo cobramos <strong>S/5</strong> por activarlo y esa persona recibe los mismos beneficios:
+            catálogo exclusivo, promociones, comunidad privada y material publicitario.
+          </p>
+          <p className={styles.affiliatesHighlight}>
+            Hoy puedes empezar a ganar vendiendo y también recomendando.
+          </p>
+        </div>
+      </section>
+    </div>
   );
 }
