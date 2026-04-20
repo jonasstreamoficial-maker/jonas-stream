@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Jonas Stream | Plataforma Oficial",
+  title: "Jonas Stream | Oficial",
   description:
     "Tu proveedor de confianza en plataformas de streaming, música y accesos digitales premium.",
 };
