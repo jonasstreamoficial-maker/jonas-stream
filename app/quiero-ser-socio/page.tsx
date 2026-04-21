@@ -91,6 +91,24 @@ export default function QuieroSerSocioPage() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+
+    if (showPromo) {
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+    } else {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
+  }, [showPromo]);
+
   const days = Math.floor(secondsLeft / 86400);
   const hours = Math.floor((secondsLeft % 86400) / 3600);
   const minutes = Math.floor((secondsLeft % 3600) / 60);
@@ -112,6 +130,9 @@ export default function QuieroSerSocioPage() {
       <div className={styles.bgGlowOne} />
       <div className={styles.bgGlowTwo} />
       <div className={styles.gridOverlay} />
+
+      <div className={styles.sideBrand}>JONAS STREAM</div>
+      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>JONAS STREAM</div>
 
       {showPromo && (
         <div className={styles.promoOverlay}>
@@ -200,25 +221,27 @@ export default function QuieroSerSocioPage() {
         </div>
       )}
 
-      <header className={styles.topbar}>
-        <div className={styles.brandBlock}>
-          <strong>JONAS STREAM</strong>
-          <span>PLATAFORMA OFICIAL</span>
-        </div>
+      <header className={styles.topbarWrap}>
+        <div className={styles.topbar}>
+          <div className={styles.brandBlock}>
+            <strong>JONAS STREAM</strong>
+            <span>PLATAFORMA OFICIAL</span>
+          </div>
 
-        <div className={styles.topActions}>
-          <Link href="/ver-precios" className={styles.topLinkPrimary}>
-            VER PRECIOS
-          </Link>
+          <div className={styles.topActions}>
+            <Link href="/ver-precios" className={styles.topLinkPrimary}>
+              VER PRECIOS
+            </Link>
 
-          <a
-            href={buildWhatsAppLink(contactMessage)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.topLink}
-          >
-            CONTÁCTANOS
-          </a>
+            <a
+              href={buildWhatsAppLink(contactMessage)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.topLink}
+            >
+              CONTÁCTANOS
+            </a>
+          </div>
         </div>
       </header>
 
