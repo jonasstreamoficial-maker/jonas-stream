@@ -7,7 +7,7 @@ import styles from "./page.module.css";
 const WHATSAPP_NUMBER = "51900557949";
 const PRICE_PEN = 10;
 const OLD_PRICE_PEN = 80;
-const USD_RATE = 3.75; // Cambia aquí el tipo de cambio manual
+const FALLBACK_USD_RATE = 3.75;
 
 const promoBenefits = [
   "Ingresas al grupo privado de socios revendedores.",
@@ -80,16 +80,10 @@ function getSecondsUntilEndOfDay() {
 export default function QuieroSerSocioPage() {
   const [showPromo, setShowPromo] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [penPerUsd, setPenPerUsd] = useState<number>(FALLBACK_USD_RATE);
+  const [rateStatus, setRateStatus] = useState<"loading" | "live" | "fallback">("loading");
 
   useEffect(() => {
-    const storageKey = "jonas-stream-promo-date";
-    const today = new Date().toDateString();
-    const savedDate = window.localStorage.getItem(storageKey);
-
-    if (savedDate !== today) {
-      window.localStorage.setItem(storageKey, today);
-    }
-
     setSecondsLeft(getSecondsUntilEndOfDay());
 
     const timer = setInterval(() => {
@@ -99,13 +93,53 @@ export default function QuieroSerSocioPage() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchExchangeRate() {
+      try {
+        const response = await fetch(
+          "https://api.frankfurter.dev/v1/latest?base=USD&symbols=PEN",
+          { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+          throw new Error("No se pudo obtener el tipo de cambio.");
+        }
+
+        const data: { rates?: { PEN?: number } } = await response.json();
+        const apiRate = data?.rates?.PEN;
+
+        if (!apiRate || Number.isNaN(apiRate)) {
+          throw new Error("Tipo de cambio inválido.");
+        }
+
+        if (isMounted) {
+          setPenPerUsd(apiRate);
+          setRateStatus("live");
+        }
+      } catch {
+        if (isMounted) {
+          setPenPerUsd(FALLBACK_USD_RATE);
+          setRateStatus("fallback");
+        }
+      }
+    }
+
+    fetchExchangeRate();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const days = Math.floor(secondsLeft / 86400);
   const hours = Math.floor((secondsLeft % 86400) / 3600);
   const minutes = Math.floor((secondsLeft % 3600) / 60);
   const seconds = secondsLeft % 60;
 
-  const usdValue = useMemo(() => PRICE_PEN / USD_RATE, []);
-  const oldUsdValue = useMemo(() => OLD_PRICE_PEN / USD_RATE, []);
+  const usdValue = useMemo(() => PRICE_PEN / penPerUsd, [penPerUsd]);
+  const oldUsdValue = useMemo(() => OLD_PRICE_PEN / penPerUsd, [penPerUsd]);
 
   const promoMessage =
     "Hola, quiero aprovechar la PROMOCIÓN EXCLUSIVA HOY de S/10.00 para ingresar como socio revendedor de Jonas Stream.";
@@ -116,6 +150,13 @@ export default function QuieroSerSocioPage() {
     "Hola, quiero ser socio revendedor de Jonas Stream. Deseo más información para empezar.";
   const pricesMessage =
     "Hola, quiero ver la lista de precios exclusiva para socios de Jonas Stream.";
+
+  const rateLabel =
+    rateStatus === "live"
+      ? `Tipo de cambio de hoy: 1 USD = S/ ${formatMoney(penPerUsd)}`
+      : rateStatus === "loading"
+      ? "Cargando tipo de cambio..."
+      : `Tipo de cambio de respaldo: 1 USD = S/ ${formatMoney(penPerUsd)}`;
 
   return (
     <div className={styles.page}>
@@ -203,9 +244,7 @@ export default function QuieroSerSocioPage() {
               </button>
             </div>
 
-            <p className={styles.rateNote}>
-              Tipo de cambio manual actual: 1 USD = S/ {USD_RATE}
-            </p>
+            <p className={styles.rateNote}>{rateLabel}</p>
           </div>
         </div>
       )}
@@ -389,7 +428,7 @@ export default function QuieroSerSocioPage() {
             <div className={styles.priceNow}>S/ {formatMoney(PRICE_PEN)}</div>
             <div className={styles.priceUsd}>USD {formatMoney(usdValue)}</div>
             <div className={styles.priceBefore}>Antes: S/ {formatMoney(OLD_PRICE_PEN)}</div>
-            <div className={styles.rateInline}>Tipo de cambio manual: 1 USD = S/ {USD_RATE}</div>
+            <div className={styles.rateInline}>{rateLabel}</div>
           </div>
 
           <div className={styles.pricingList}>
