@@ -245,194 +245,196 @@ export default function QuieroSerSocioPage() {
         </div>
       </header>
 
-      <section className={styles.hero}>
-        <div className={styles.heroBadge}>NEGOCIO PARA REVENDEDORES</div>
+      <main className={styles.mainContent}>
+        <section className={styles.hero}>
+          <div className={styles.heroBadge}>NEGOCIO PARA REVENDEDORES</div>
 
-        <h1 className={styles.heroTitle}>
-          CONVIÉRTETE EN SOCIO Y EMPIEZA A REVENDER CON
-          <span> JONAS STREAM</span>
-        </h1>
+          <h1 className={styles.heroTitle}>
+            CONVIÉRTETE EN SOCIO Y EMPIEZA A REVENDER CON
+            <span> JONAS STREAM</span>
+          </h1>
 
-        <p className={styles.heroText}>
-          ¿Te gustaría generar ingresos vendiendo las plataformas más buscadas del mercado?
-          Soy <strong> JONAS</strong>, administrador y proveedor autorizado. Te acompañaré paso
-          a paso para que empieces sin complicaciones y veas resultados rápido.
-        </p>
+          <p className={styles.heroText}>
+            ¿Te gustaría generar ingresos vendiendo las plataformas más buscadas del mercado?
+            Soy <strong> JONAS</strong>, administrador y proveedor autorizado. Te acompañaré paso
+            a paso para que empieces sin complicaciones y veas resultados rápido.
+          </p>
 
-        <div className={styles.heroActions}>
-          <a
-            href={buildWhatsAppLink(heroMessage)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.heroBtnPrimary}
-          >
-            QUIERO SER SOCIO
-          </a>
-
-          <Link href="/ver-precios" className={styles.heroBtnSecondary}>
-            VER PRECIOS
-          </Link>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHeaderCenter}>
-          <span className={styles.sectionKicker}>PLATAFORMAS DISPONIBLES</span>
-          <h2 className={styles.sectionTitle}>Lo que puedes ofrecer desde el inicio</h2>
-        </div>
-
-        <div className={styles.platformsGrid}>
-          {platformItems.map((platform) => (
-            <div
-              key={platform.name}
-              className={`${styles.platformCard} ${styles[platform.className]}`}
-            >
-              {platform.name}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionKicker}>CÓMO GANAS DINERO</span>
-          <h2 className={styles.sectionTitle}>Ejemplo sencillo de rentabilidad</h2>
-        </div>
-
-        <div className={styles.exampleHorizontal}>
-          <div className={styles.exampleLeft}>
-            <p className={styles.exampleLead}>
-              Así funciona el negocio: compras al por mayor y vendes por perfil con buena ganancia.
-            </p>
-
-            <div className={styles.exampleProfitBox}>
-              <span className={styles.exampleProfitLabel}>GANANCIA NETA ESTIMADA</span>
-              <strong>S/36.00</strong>
-              <small>Ejemplo con Prime Video</small>
-            </div>
-          </div>
-
-          <div className={styles.exampleRight}>
-            <div className={styles.stepItem}>
-              <span>1</span>
-              <p>
-                Compras una cuenta completa de <strong>Prime Video</strong> por{" "}
-                <strong>S/12.00</strong> (incluye 6 perfiles).
-              </p>
-            </div>
-
-            <div className={styles.stepItem}>
-              <span>2</span>
-              <p>
-                Vendes cada perfil a <strong>S/8.00</strong>.
-              </p>
-            </div>
-
-            <div className={styles.stepItem}>
-              <span>3</span>
-              <p>
-                Total vendido: <strong>S/48.00</strong>.
-              </p>
-            </div>
-
-            <div className={styles.stepItem}>
-              <span>4</span>
-              <p>
-                Restando tu inversión de <strong>S/12.00</strong>, obtienes una{" "}
-                <strong>ganancia neta de S/36.00</strong>.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.benefitsSection}>
-        <div className={styles.sectionHeaderCenter}>
-          <span className={styles.sectionKicker}>BENEFICIOS</span>
-          <h2 className={styles.sectionTitle}>Lo que recibes al entrar</h2>
-        </div>
-
-        <div className={styles.benefitsGrid}>
-          {benefits.map((benefit) => (
-            <article key={benefit.number} className={styles.benefitCard}>
-              <div className={styles.benefitNumber}>{benefit.number}</div>
-              <h3>{benefit.title}</h3>
-              <p>{benefit.text}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className={styles.extraBenefitsUnified}>
-          <article className={`${styles.infoCard} ${styles.netflixCard}`}>
-            <span className={styles.infoKicker}>PRIMER BENEFICIO</span>
-            <h3>Comunidad pública exclusiva</h3>
-            <p>
-              Únete gratis a nuestra comunidad pública exclusiva de <strong>Netflix</strong> para
-              empezar a conectar con el entorno del negocio.
-            </p>
+          <div className={styles.heroActions}>
             <a
-              href="https://chat.whatsapp.com/Km1vlhsOpCJ1svHl5uNdig"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.netflixLink}
-            >
-              IR AL GRUPO OFICIAL
-            </a>
-          </article>
-
-          <article className={styles.infoCard}>
-            <span className={styles.infoKicker}>SEGUNDO BENEFICIO</span>
-            <h3>Catálogo + control profesional</h3>
-            <p>
-              Accede a un catálogo exclusivo con excelentes precios, actualizado constantemente,
-              y una plantilla de Excel para organizar tus ventas de forma profesional.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <section className={styles.pricingSection}>
-        <div className={styles.pricingCard}>
-          <div className={styles.sectionHeaderCenter}>
-            <span className={styles.sectionKicker}>CÓMO SER SOCIO</span>
-            <h2 className={styles.sectionTitle}>Ingresa hoy con promoción activa</h2>
-          </div>
-
-          <div className={styles.pricingMain}>
-            <div className={styles.priceNow}>S/ {formatMoney(PRICE_PEN)}</div>
-            <div className={styles.priceUsd}>USD {formatMoney(usdValue)}</div>
-            <div className={styles.priceBefore}>Antes: S/ {formatMoney(OLD_PRICE_PEN)}</div>
-            <div className={styles.rateInline}>Tipo de cambio manual: 1 USD = S/ {USD_RATE}</div>
-          </div>
-
-          <div className={styles.pricingList}>
-            <div className={styles.pricingItem}>✅ Catálogo exclusivo con precios rebajados</div>
-            <div className={styles.pricingItem}>
-              ✅ Promociones más accesibles que al público general
-            </div>
-            <div className={styles.pricingItem}>✅ Comunidad privada de socios</div>
-            <div className={styles.pricingItem}>✅ Publicidad editable en Canva PRO</div>
-            <div className={styles.pricingItem}>
-              ✅ Oportunidad de generar ingresos desde casa
-            </div>
-          </div>
-
-          <div className={styles.pricingActions}>
-            <Link href="/ver-precios" className={styles.heroBtnSecondary}>
-              VER PRECIOS EXCLUSIVOS
-            </Link>
-
-            <a
-              href={buildWhatsAppLink(activateMessage)}
+              href={buildWhatsAppLink(heroMessage)}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.heroBtnPrimary}
             >
-              ACTIVAR MI ACCESO
+              QUIERO SER SOCIO
             </a>
+
+            <Link href="/ver-precios" className={styles.heroBtnSecondary}>
+              VER PRECIOS
+            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeaderCenter}>
+            <span className={styles.sectionKicker}>PLATAFORMAS DISPONIBLES</span>
+            <h2 className={styles.sectionTitle}>Lo que puedes ofrecer desde el inicio</h2>
+          </div>
+
+          <div className={styles.platformsGrid}>
+            {platformItems.map((platform) => (
+              <div
+                key={platform.name}
+                className={`${styles.platformCard} ${styles[platform.className]}`}
+              >
+                {platform.name}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionKicker}>CÓMO GANAS DINERO</span>
+            <h2 className={styles.sectionTitle}>Ejemplo sencillo de rentabilidad</h2>
+          </div>
+
+          <div className={styles.exampleHorizontal}>
+            <div className={styles.exampleLeft}>
+              <p className={styles.exampleLead}>
+                Así funciona el negocio: compras al por mayor y vendes por perfil con buena ganancia.
+              </p>
+
+              <div className={styles.exampleProfitBox}>
+                <span className={styles.exampleProfitLabel}>GANANCIA NETA ESTIMADA</span>
+                <strong>S/36.00</strong>
+                <small>Ejemplo con Prime Video</small>
+              </div>
+            </div>
+
+            <div className={styles.exampleRight}>
+              <div className={styles.stepItem}>
+                <span>1</span>
+                <p>
+                  Compras una cuenta completa de <strong>Prime Video</strong> por{" "}
+                  <strong>S/12.00</strong> (incluye 6 perfiles).
+                </p>
+              </div>
+
+              <div className={styles.stepItem}>
+                <span>2</span>
+                <p>
+                  Vendes cada perfil a <strong>S/8.00</strong>.
+                </p>
+              </div>
+
+              <div className={styles.stepItem}>
+                <span>3</span>
+                <p>
+                  Total vendido: <strong>S/48.00</strong>.
+                </p>
+              </div>
+
+              <div className={styles.stepItem}>
+                <span>4</span>
+                <p>
+                  Restando tu inversión de <strong>S/12.00</strong>, obtienes una{" "}
+                  <strong>ganancia neta de S/36.00</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.benefitsSection}>
+          <div className={styles.sectionHeaderCenter}>
+            <span className={styles.sectionKicker}>BENEFICIOS</span>
+            <h2 className={styles.sectionTitle}>Lo que recibes al entrar</h2>
+          </div>
+
+          <div className={styles.benefitsGrid}>
+            {benefits.map((benefit) => (
+              <article key={benefit.number} className={styles.benefitCard}>
+                <div className={styles.benefitNumber}>{benefit.number}</div>
+                <h3>{benefit.title}</h3>
+                <p>{benefit.text}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className={styles.extraBenefitsUnified}>
+            <article className={`${styles.infoCard} ${styles.netflixCard}`}>
+              <span className={styles.infoKicker}>PRIMER BENEFICIO</span>
+              <h3>Comunidad pública exclusiva</h3>
+              <p>
+                Únete gratis a nuestra comunidad pública exclusiva de <strong>Netflix</strong> para
+                empezar a conectar con el entorno del negocio.
+              </p>
+              <a
+                href="https://chat.whatsapp.com/Km1vlhsOpCJ1svHl5uNdig"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.netflixLink}
+              >
+                IR AL GRUPO OFICIAL
+              </a>
+            </article>
+
+            <article className={styles.infoCard}>
+              <span className={styles.infoKicker}>SEGUNDO BENEFICIO</span>
+              <h3>Catálogo + control profesional</h3>
+              <p>
+                Accede a un catálogo exclusivo con excelentes precios, actualizado constantemente,
+                y una plantilla de Excel para organizar tus ventas de forma profesional.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section className={styles.pricingSection}>
+          <div className={styles.pricingCard}>
+            <div className={styles.sectionHeaderCenter}>
+              <span className={styles.sectionKicker}>CÓMO SER SOCIO</span>
+              <h2 className={styles.sectionTitle}>Ingresa hoy con promoción activa</h2>
+            </div>
+
+            <div className={styles.pricingMain}>
+              <div className={styles.priceNow}>S/ {formatMoney(PRICE_PEN)}</div>
+              <div className={styles.priceUsd}>USD {formatMoney(usdValue)}</div>
+              <div className={styles.priceBefore}>Antes: S/ {formatMoney(OLD_PRICE_PEN)}</div>
+              <div className={styles.rateInline}>Tipo de cambio manual: 1 USD = S/ {USD_RATE}</div>
+            </div>
+
+            <div className={styles.pricingList}>
+              <div className={styles.pricingItem}>✅ Catálogo exclusivo con precios rebajados</div>
+              <div className={styles.pricingItem}>
+                ✅ Promociones más accesibles que al público general
+              </div>
+              <div className={styles.pricingItem}>✅ Comunidad privada de socios</div>
+              <div className={styles.pricingItem}>✅ Publicidad editable en Canva PRO</div>
+              <div className={styles.pricingItem}>
+                ✅ Oportunidad de generar ingresos desde casa
+              </div>
+            </div>
+
+            <div className={styles.pricingActions}>
+              <Link href="/ver-precios" className={styles.heroBtnSecondary}>
+                VER PRECIOS EXCLUSIVOS
+              </Link>
+
+              <a
+                href={buildWhatsAppLink(activateMessage)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.heroBtnPrimary}
+              >
+                ACTIVAR MI ACCESO
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
