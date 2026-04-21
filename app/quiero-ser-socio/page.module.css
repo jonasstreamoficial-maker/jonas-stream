@@ -913,6 +913,68 @@
   color: var(--cyan-strong);
 }
 
+/* BENEFICIOS POR EL DÍA */
+
+.extraBenefitsUnified {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.infoCard {
+  border-radius: 26px;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(236, 255, 255, 0.05);
+}
+
+.infoCard h3 {
+  margin: 0 0 12px;
+  font-size: 1.18rem;
+  color: var(--white);
+  font-family: "Orbitron", sans-serif;
+}
+
+.infoCard p {
+  color: var(--muted);
+  line-height: 1.8;
+  font-size: 0.98rem;
+}
+
+.netflixCard {
+  border: 2px solid rgba(229, 9, 20, 0.34);
+  box-shadow:
+    0 0 0 1px rgba(229, 9, 20, 0.1),
+    0 0 28px rgba(229, 9, 20, 0.12);
+}
+
+.netflixCard .infoKicker {
+  color: #ff5a64;
+}
+
+.netflixCard h3 {
+  color: #ffffff;
+}
+
+.netflixLink {
+  display: inline-flex;
+  margin-top: 16px;
+  min-height: 52px;
+  padding: 0 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.26), rgba(120, 0, 0, 0.24));
+  border: 1px solid rgba(229, 9, 20, 0.26);
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 900;
+  transition: 0.28s ease;
+}
+
 /* Benefits */
 
 .benefitsGrid {
@@ -921,7 +983,6 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
-  margin-bottom: 22px;
 }
 
 .benefitCard {
@@ -983,66 +1044,6 @@
   color: var(--muted);
   line-height: 1.72;
   font-size: 0.96rem;
-}
-
-.extraBenefitsUnified {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-}
-
-.infoCard {
-  border-radius: 26px;
-  padding: 24px;
-  background:
-    linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
-  border: 1px solid rgba(236, 255, 255, 0.05);
-}
-
-.infoCard h3 {
-  margin: 0 0 12px;
-  font-size: 1.18rem;
-  color: var(--white);
-  font-family: "Orbitron", sans-serif;
-}
-
-.infoCard p {
-  color: var(--muted);
-  line-height: 1.8;
-  font-size: 0.98rem;
-}
-
-.netflixCard {
-  border-color: rgba(229, 9, 20, 0.22);
-  box-shadow:
-    0 0 0 1px rgba(229, 9, 20, 0.08),
-    0 0 24px rgba(229, 9, 20, 0.08);
-}
-
-.netflixCard .infoKicker {
-  color: #ff5a64;
-}
-
-.netflixCard h3 {
-  color: #ffffff;
-}
-
-.netflixLink {
-  display: inline-flex;
-  margin-top: 16px;
-  min-height: 52px;
-  padding: 0 18px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(229, 9, 20, 0.24), rgba(120, 0, 0, 0.2));
-  border: 1px solid rgba(229, 9, 20, 0.22);
-  color: #ffffff;
-  text-decoration: none;
-  font-weight: 900;
-  transition: 0.28s ease;
 }
 
 /* Pricing */

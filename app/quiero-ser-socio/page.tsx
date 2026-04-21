@@ -347,20 +347,10 @@ export default function QuieroSerSocioPage() {
           </div>
         </section>
 
-        <section className={styles.benefitsSection}>
+        <section className={styles.section}>
           <div className={styles.sectionHeaderCenter}>
-            <span className={styles.sectionKicker}>BENEFICIOS</span>
-            <h2 className={styles.sectionTitle}>Lo que recibes al entrar</h2>
-          </div>
-
-          <div className={styles.benefitsGrid}>
-            {benefits.map((benefit) => (
-              <article key={benefit.number} className={styles.benefitCard}>
-                <div className={styles.benefitNumber}>{benefit.number}</div>
-                <h3>{benefit.title}</h3>
-                <p>{benefit.text}</p>
-              </article>
-            ))}
+            <span className={styles.sectionKicker}>BENEFICIOS POR EL DÍA DE HOY</span>
+            <h2 className={styles.sectionTitle}>Accesos y ventajas activas para empezar hoy</h2>
           </div>
 
           <div className={styles.extraBenefitsUnified}>
@@ -389,6 +379,23 @@ export default function QuieroSerSocioPage() {
                 y una plantilla de Excel para organizar tus ventas de forma profesional.
               </p>
             </article>
+          </div>
+        </section>
+
+        <section className={styles.benefitsSection}>
+          <div className={styles.sectionHeaderCenter}>
+            <span className={styles.sectionKicker}>BENEFICIOS</span>
+            <h2 className={styles.sectionTitle}>Lo que recibes al entrar</h2>
+          </div>
+
+          <div className={styles.benefitsGrid}>
+            {benefits.map((benefit) => (
+              <article key={benefit.number} className={styles.benefitCard}>
+                <div className={styles.benefitNumber}>{benefit.number}</div>
+                <h3>{benefit.title}</h3>
+                <p>{benefit.text}</p>
+              </article>
+            ))}
           </div>
         </section>
 
