@@ -175,9 +175,10 @@
   position: fixed;
   inset: 0;
   z-index: 90;
-  display: grid;
-  place-items: center;
-  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
 }
 
 .promoBackdrop {
@@ -191,6 +192,9 @@
   position: relative;
   z-index: 2;
   width: min(760px, 100%);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: 30px;
   padding: 30px 26px 24px;
   background:
@@ -200,7 +204,7 @@
     0 30px 70px rgba(0, 0, 0, 0.42),
     0 0 35px rgba(1, 231, 239, 0.16),
     inset 0 0 0 1px rgba(236, 255, 255, 0.04);
-  overflow: hidden;
+  overflow-x: hidden;
   animation: modalIn 0.45s ease;
 }
 
@@ -220,20 +224,23 @@
 }
 
 .closeButton {
-  position: absolute;
-  top: 14px;
-  right: 14px;
+  position: sticky;
+  top: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 44px;
   height: 44px;
   border-radius: 14px;
   border: 1px solid rgba(236, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(11, 23, 26, 0.92);
   color: var(--white);
   font-size: 1.6rem;
   line-height: 1;
   cursor: pointer;
   transition: 0.28s ease;
-  z-index: 3;
+  z-index: 5;
 }
 
 .closeButton:hover {
@@ -767,6 +774,13 @@
   border: 1px solid rgba(236, 255, 255, 0.05);
 }
 
+.exampleLeft {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100%;
+}
+
 .exampleLead {
   color: var(--muted);
   font-size: 1rem;
@@ -775,11 +789,15 @@
 }
 
 .exampleProfitBox {
-  padding: 22px 18px;
+  min-height: 250px;
+  padding: 28px 20px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(1, 231, 239, 0.12);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   box-shadow:
     0 0 0 1px rgba(1, 231, 239, 0.05),
     0 0 22px rgba(1, 231, 239, 0.08);
@@ -788,23 +806,28 @@
 .exampleProfitLabel {
   display: block;
   color: var(--cyan);
-  font-size: 0.72rem;
-  letter-spacing: 1.8px;
+  font-size: 0.78rem;
+  letter-spacing: 2px;
   font-weight: 900;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .exampleProfitBox strong {
   display: block;
   font-family: "Orbitron", sans-serif;
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(3rem, 6vw, 4.8rem);
+  line-height: 1;
   color: var(--cyan-strong);
+  text-shadow:
+    0 0 14px rgba(0, 251, 255, 0.18),
+    0 0 24px rgba(1, 231, 239, 0.14);
 }
 
 .exampleProfitBox small {
   display: block;
-  margin-top: 8px;
+  margin-top: 14px;
   color: var(--muted);
+  font-size: 1rem;
 }
 
 .exampleRight {
@@ -1115,13 +1138,67 @@
     border-radius: 24px;
   }
 
+  .promoOverlay {
+    align-items: flex-start;
+    padding: 8px;
+  }
+
   .promoModal {
-    padding: 24px 16px 18px;
-    border-radius: 24px;
+    width: 100%;
+    max-height: calc(100dvh - 16px);
+    border-radius: 22px;
+    padding: 16px 14px 16px;
   }
 
   .promoTitle {
-    font-size: 1.55rem;
+    font-size: 1.3rem;
+    line-height: 1.08;
+    margin-bottom: 14px;
+  }
+
+  .promoPriceBox {
+    padding: 16px 12px;
+    margin-bottom: 14px;
+  }
+
+  .promoPriceMain {
+    font-size: 2.2rem;
+  }
+
+  .promoPriceUsd {
+    font-size: 0.95rem;
+  }
+
+  .promoOldPrice {
+    font-size: 0.82rem;
+  }
+
+  .countdownLabel {
+    font-size: 0.88rem;
+  }
+
+  .countBox {
+    padding: 12px 8px;
+    border-radius: 18px;
+  }
+
+  .countBox strong {
+    font-size: 1.2rem;
+  }
+
+  .countBox span {
+    font-size: 0.62rem;
+    letter-spacing: 1.5px;
+  }
+
+  .promoBenefit {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .promoBenefit p {
+    font-size: 0.9rem;
+    line-height: 1.55;
   }
 
   .platformsGrid,
@@ -1138,19 +1215,73 @@
   .netflixLink {
     width: 100%;
   }
+
+  .exampleProfitBox {
+    min-height: 180px;
+    padding: 22px 14px;
+  }
+
+  .exampleProfitBox strong {
+    font-size: 3rem;
+  }
+
+  .exampleProfitBox small {
+    font-size: 0.92rem;
+  }
 }
 
 @media (max-width: 560px) {
   .promoOverlay {
-    padding: 10px;
+    padding: 6px;
+  }
+
+  .promoModal {
+    max-height: calc(100dvh - 12px);
+    padding: 14px 12px 14px;
+  }
+
+  .closeButton {
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
+  }
+
+  .promoBadge {
+    font-size: 0.64rem;
+    letter-spacing: 1.4px;
+    padding: 6px 10px;
+    margin-bottom: 12px;
+  }
+
+  .promoTitle {
+    font-size: 1.12rem;
   }
 
   .promoPriceMain {
-    font-size: 2.2rem;
+    font-size: 1.95rem;
+  }
+
+  .promoPriceUsd {
+    font-size: 0.9rem;
+  }
+
+  .promoPriceBox {
+    border-radius: 20px;
   }
 
   .promoBenefit {
-    padding: 12px;
+    padding: 10px 10px;
+  }
+
+  .promoActions {
+    gap: 10px;
+  }
+
+  .primaryAction,
+  .secondaryAction {
+    min-height: 52px;
+    font-size: 0.84rem;
+    padding: 0 12px;
   }
 
   .heroTitle {
@@ -1173,11 +1304,27 @@
     letter-spacing: 2px;
   }
 
+  .countdown {
+    gap: 10px;
+  }
+
   .countBox strong {
-    font-size: 1.4rem;
+    font-size: 1.05rem;
   }
 
   .countBox span {
-    font-size: 0.66rem;
+    font-size: 0.58rem;
+  }
+
+  .exampleProfitLabel {
+    font-size: 0.7rem;
+  }
+
+  .exampleProfitBox strong {
+    font-size: 2.45rem;
+  }
+
+  .exampleProfitBox small {
+    font-size: 0.88rem;
   }
 }
