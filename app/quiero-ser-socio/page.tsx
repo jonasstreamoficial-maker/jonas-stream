@@ -308,7 +308,7 @@ export default function QuieroSerSocioPage() {
 
               <div className={styles.exampleProfitBox}>
                 <span className={styles.exampleProfitLabel}>GANANCIA NETA ESTIMADA</span>
-                <strong>S/36.00</strong>
+                <strong>S/38.00</strong>
                 <small>Ejemplo con Prime Video</small>
               </div>
             </div>
@@ -318,7 +318,7 @@ export default function QuieroSerSocioPage() {
                 <span>1</span>
                 <p>
                   Compras una cuenta completa de <strong>Prime Video</strong> por{" "}
-                  <strong>S/12.00</strong> (incluye 6 perfiles).
+                  <strong>S/10.00</strong> (incluye 6 perfiles).
                 </p>
               </div>
 
@@ -339,8 +339,8 @@ export default function QuieroSerSocioPage() {
               <div className={styles.stepItem}>
                 <span>4</span>
                 <p>
-                  Restando tu inversión de <strong>S/12.00</strong>, obtienes una{" "}
-                  <strong>ganancia neta de S/36.00</strong>.
+                  Restando tu inversión de <strong>S/10.00</strong>, obtienes una{" "}
+                  <strong>ganancia neta de S/38.00</strong>.
                 </p>
               </div>
             </div>
@@ -356,9 +356,9 @@ export default function QuieroSerSocioPage() {
           <div className={styles.extraBenefitsUnified}>
             <article className={`${styles.infoCard} ${styles.netflixCard}`}>
               <span className={styles.infoKicker}>PRIMER BENEFICIO</span>
-              <h3>Comunidad pública exclusiva</h3>
+              <h3>Comunidad Pública Exclusiva</h3>
               <p>
-                Únete gratis a nuestra comunidad pública exclusiva de <strong>Netflix</strong> para
+                Únete gratis a nuestra comunidad pública exclusiva de <strong>NETFLIX</strong> para
                 empezar a conectar con el entorno del negocio.
               </p>
               <a
@@ -373,7 +373,7 @@ export default function QuieroSerSocioPage() {
 
             <article className={styles.infoCard}>
               <span className={styles.infoKicker}>SEGUNDO BENEFICIO</span>
-              <h3>Catálogo + control profesional</h3>
+              <h3>Catálogo + Control Profesional</h3>
               <p>
                 Accede a un catálogo exclusivo con excelentes precios, actualizado constantemente,
                 y una plantilla de Excel para organizar tus ventas de forma profesional.
