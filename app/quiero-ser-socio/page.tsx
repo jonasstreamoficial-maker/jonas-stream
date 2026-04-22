@@ -132,11 +132,16 @@ export default function QuieroSerSocioPage() {
       <div className={styles.gridOverlay} />
 
       <div className={styles.sideBrand}>JONAS STREAM</div>
-      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>JONAS STREAM</div>
+      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>
+        JONAS STREAM
+      </div>
 
       {showPromo && (
         <div className={styles.promoOverlay}>
-          <div className={styles.promoBackdrop} onClick={() => setShowPromo(false)} />
+          <div
+            className={styles.promoBackdrop}
+            onClick={() => setShowPromo(false)}
+          />
 
           <div className={styles.promoModal}>
             <button
@@ -153,15 +158,22 @@ export default function QuieroSerSocioPage() {
             <h2 className={styles.promoTitle}>PROMOCIÓN EXCLUSIVA HOY</h2>
 
             <div className={styles.promoPriceBox}>
-              <div className={styles.promoPriceMain}>S/ {formatMoney(PRICE_PEN)}</div>
-              <div className={styles.promoPriceUsd}>USD {formatMoney(usdValue)}</div>
+              <div className={styles.promoPriceMain}>
+                S/ {formatMoney(PRICE_PEN)}
+              </div>
+              <div className={styles.promoPriceUsd}>
+                USD {formatMoney(usdValue)}
+              </div>
               <div className={styles.promoOldPrice}>
-                Antes: S/ {formatMoney(OLD_PRICE_PEN)} · USD {formatMoney(oldUsdValue)}
+                Antes: S/ {formatMoney(OLD_PRICE_PEN)} · USD{" "}
+                {formatMoney(oldUsdValue)}
               </div>
             </div>
 
             <div className={styles.countdownWrap}>
-              <span className={styles.countdownLabel}>Tiempo restante para que termine el día</span>
+              <span className={styles.countdownLabel}>
+                Tiempo restante para que termine el día
+              </span>
 
               <div className={styles.countdown}>
                 <div className={styles.countBox}>
@@ -228,25 +240,33 @@ export default function QuieroSerSocioPage() {
             <span>PLATAFORMA OFICIAL</span>
           </div>
 
-          <div className={styles.topActions}>
-            <Link href="/ver-precios" className={styles.topLinkPrimary}>
+          <nav className={styles.topActions}>
+            <Link href="/" className={styles.topLink}>
+              VOLVER AL INICIO
+            </Link>
+
+            <Link href="/ver-precios" className={styles.topLink}>
               VER PRECIOS
             </Link>
+
+            <a href="#hero" className={styles.topLink}>
+              NEGOCIO PARA REVENDEDORES
+            </a>
 
             <a
               href={buildWhatsAppLink(contactMessage)}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.topLink}
+              className={styles.topLinkPrimary}
             >
               CONTÁCTANOS
             </a>
-          </div>
+          </nav>
         </div>
       </header>
 
       <main className={styles.mainContent}>
-        <section className={styles.hero}>
+        <section id="hero" className={styles.hero}>
           <div className={styles.heroBadge}>NEGOCIO PARA REVENDEDORES</div>
 
           <h1 className={styles.heroTitle}>
@@ -255,9 +275,10 @@ export default function QuieroSerSocioPage() {
           </h1>
 
           <p className={styles.heroText}>
-            ¿Te gustaría generar ingresos vendiendo las plataformas más buscadas del mercado?
-            Soy <strong> JONAS</strong>, administrador y proveedor autorizado. Te acompañaré paso
-            a paso para que empieces sin complicaciones y veas resultados rápido.
+            ¿Te gustaría generar ingresos vendiendo las plataformas más buscadas
+            del mercado? Soy <strong> JONAS</strong>, administrador y proveedor
+            autorizado. Te acompañaré paso a paso para que empieces sin
+            complicaciones y veas resultados rápido.
           </p>
 
           <div className={styles.heroActions}>
@@ -276,10 +297,12 @@ export default function QuieroSerSocioPage() {
           </div>
         </section>
 
-        <section className={styles.section}>
+        <section id="plataformas" className={styles.section}>
           <div className={styles.sectionHeaderCenter}>
             <span className={styles.sectionKicker}>PLATAFORMAS DISPONIBLES</span>
-            <h2 className={styles.sectionTitle}>Lo que puedes ofrecer desde el inicio</h2>
+            <h2 className={styles.sectionTitle}>
+              Lo que puedes ofrecer desde el inicio
+            </h2>
           </div>
 
           <div className={styles.platformsGrid}>
@@ -297,17 +320,22 @@ export default function QuieroSerSocioPage() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionKicker}>CÓMO GANAS DINERO</span>
-            <h2 className={styles.sectionTitle}>Ejemplo sencillo de rentabilidad</h2>
+            <h2 className={styles.sectionTitle}>
+              Ejemplo sencillo de rentabilidad
+            </h2>
           </div>
 
           <div className={styles.exampleHorizontal}>
             <div className={styles.exampleLeft}>
               <p className={styles.exampleLead}>
-                Así funciona el negocio: compras al por mayor y vendes por perfil con buena ganancia.
+                Así funciona el negocio: compras al por mayor y vendes por
+                perfil con buena ganancia.
               </p>
 
               <div className={styles.exampleProfitBox}>
-                <span className={styles.exampleProfitLabel}>GANANCIA NETA ESTIMADA</span>
+                <span className={styles.exampleProfitLabel}>
+                  GANANCIA NETA ESTIMADA
+                </span>
                 <strong>S/38.00</strong>
                 <small>Ejemplo con Prime Video</small>
               </div>
@@ -317,8 +345,8 @@ export default function QuieroSerSocioPage() {
               <div className={styles.stepItem}>
                 <span>1</span>
                 <p>
-                  Compras una cuenta completa de <strong>Prime Video</strong> por{" "}
-                  <strong>S/10.00</strong> (incluye 6 perfiles).
+                  Compras una cuenta completa de <strong>Prime Video</strong>{" "}
+                  por <strong>S/10.00</strong> (incluye 6 perfiles).
                 </p>
               </div>
 
@@ -339,8 +367,8 @@ export default function QuieroSerSocioPage() {
               <div className={styles.stepItem}>
                 <span>4</span>
                 <p>
-                  Restando tu inversión de <strong>S/10.00</strong>, obtienes una{" "}
-                  <strong>ganancia neta de S/38.00</strong>.
+                  Restando tu inversión de <strong>S/10.00</strong>, obtienes
+                  una <strong>ganancia neta de S/38.00</strong>.
                 </p>
               </div>
             </div>
@@ -349,8 +377,12 @@ export default function QuieroSerSocioPage() {
 
         <section className={styles.section}>
           <div className={styles.sectionHeaderCenter}>
-            <span className={styles.sectionKicker}>BENEFICIOS POR EL DÍA DE HOY</span>
-            <h2 className={styles.sectionTitle}>Accesos y ventajas activas para empezar hoy</h2>
+            <span className={styles.sectionKicker}>
+              BENEFICIOS POR EL DÍA DE HOY
+            </span>
+            <h2 className={styles.sectionTitle}>
+              Accesos y ventajas activas para empezar hoy
+            </h2>
           </div>
 
           <div className={styles.extraBenefitsUnified}>
@@ -358,8 +390,9 @@ export default function QuieroSerSocioPage() {
               <span className={styles.infoKicker}>PRIMER BENEFICIO</span>
               <h3>Comunidad Pública Exclusiva</h3>
               <p>
-                Únete gratis a nuestra comunidad pública exclusiva de <strong>NETFLIX</strong> para
-                empezar a conectar con el entorno del negocio.
+                Únete gratis a nuestra comunidad pública exclusiva de{" "}
+                <strong>NETFLIX</strong> para empezar a conectar con el entorno
+                del negocio.
               </p>
               <a
                 href="https://chat.whatsapp.com/Km1vlhsOpCJ1svHl5uNdig"
@@ -371,13 +404,26 @@ export default function QuieroSerSocioPage() {
               </a>
             </article>
 
-            <article className={styles.infoCard}>
-              <span className={styles.infoKicker}>SEGUNDO BENEFICIO</span>
+            <article
+              className={`${styles.infoCard} ${styles.greenBenefitCard}`}
+            >
+              <span className={`${styles.infoKicker} ${styles.greenKicker}`}>
+                SEGUNDO BENEFICIO
+              </span>
               <h3>Catálogo + Control Profesional</h3>
               <p>
-                Accede a un catálogo exclusivo con excelentes precios, actualizado constantemente,
-                y una plantilla de Excel para organizar tus ventas de forma profesional.
+                Accede a un catálogo exclusivo con excelentes precios,
+                actualizado constantemente, y una plantilla de Excel para
+                organizar tus ventas de forma profesional.
               </p>
+              <a
+                href={buildWhatsAppLink(activateMessage)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.greenBenefitLink}
+              >
+                QUIERO ACTIVAR MI ACCESO
+              </a>
             </article>
           </div>
         </section>
@@ -403,23 +449,39 @@ export default function QuieroSerSocioPage() {
           <div className={styles.pricingCard}>
             <div className={styles.sectionHeaderCenter}>
               <span className={styles.sectionKicker}>CÓMO SER SOCIO</span>
-              <h2 className={styles.sectionTitle}>Ingresa hoy con promoción activa</h2>
+              <h2 className={styles.sectionTitle}>
+                Ingresa hoy con promoción activa
+              </h2>
             </div>
 
             <div className={styles.pricingMain}>
-              <div className={styles.priceNow}>S/ {formatMoney(PRICE_PEN)}</div>
-              <div className={styles.priceUsd}>USD {formatMoney(usdValue)}</div>
-              <div className={styles.priceBefore}>Antes: S/ {formatMoney(OLD_PRICE_PEN)}</div>
-              <div className={styles.rateInline}>Tipo de cambio manual: 1 USD = S/ {USD_RATE}</div>
+              <div className={styles.priceNow}>
+                S/ {formatMoney(PRICE_PEN)}
+              </div>
+              <div className={styles.priceUsd}>
+                USD {formatMoney(usdValue)}
+              </div>
+              <div className={styles.priceBefore}>
+                Antes: S/ {formatMoney(OLD_PRICE_PEN)}
+              </div>
+              <div className={styles.rateInline}>
+                Tipo de cambio manual: 1 USD = S/ {USD_RATE}
+              </div>
             </div>
 
             <div className={styles.pricingList}>
-              <div className={styles.pricingItem}>✅ Catálogo exclusivo con precios rebajados</div>
+              <div className={styles.pricingItem}>
+                ✅ Catálogo exclusivo con precios rebajados
+              </div>
               <div className={styles.pricingItem}>
                 ✅ Promociones más accesibles que al público general
               </div>
-              <div className={styles.pricingItem}>✅ Comunidad privada de socios</div>
-              <div className={styles.pricingItem}>✅ Publicidad editable en Canva PRO</div>
+              <div className={styles.pricingItem}>
+                ✅ Comunidad privada de socios
+              </div>
+              <div className={styles.pricingItem}>
+                ✅ Publicidad editable en Canva PRO
+              </div>
               <div className={styles.pricingItem}>
                 ✅ Oportunidad de generar ingresos desde casa
               </div>
