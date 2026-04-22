@@ -4,6 +4,21 @@ import styles from "./page.module.css";
 const USD_RATE = 3.75;
 const WHATSAPP_NUMBER = "51900557949";
 
+type ProductStatus = "ACTIVO" | "LIMITADO" | "AGOTADO";
+type ProductAccent =
+  | "netflix"
+  | "disney"
+  | "prime"
+  | "max"
+  | "spotify"
+  | "youtube"
+  | "crunchy"
+  | "paramount"
+  | "canva"
+  | "office"
+  | "iptv"
+  | "viki";
+
 type Product = {
   id: number;
   category: string;
@@ -11,206 +26,193 @@ type Product = {
   subtitle: string;
   type: string;
   duration: string;
-  stock: string;
-  status: "ACTIVO" | "LIMITADO" | "AGOTADO";
-  renewable: boolean;
   provider: string;
+  stockText: string;
+  status: ProductStatus;
+  renewable: boolean;
   pen: number;
-  usd: number;
   badge: string;
-  accent: string;
+  accent: ProductAccent;
 };
 
 const products: Product[] = [
   {
     id: 1,
-    category: "STREAMING",
+    category: "Streaming",
     name: "Netflix Premium",
     subtitle: "Perfil privado o compartido",
     type: "Perfil",
     duration: "1 mes",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 8,
-    usd: 8 / USD_RATE,
     badge: "Más vendido",
     accent: "netflix",
   },
   {
     id: 2,
-    category: "STREAMING",
+    category: "Streaming",
     name: "Disney+ Premium",
     subtitle: "Acceso estable de alta demanda",
     type: "Perfil",
     duration: "1 mes",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 8,
-    usd: 8 / USD_RATE,
     badge: "Premium",
     accent: "disney",
   },
   {
     id: 3,
-    category: "STREAMING",
+    category: "Streaming",
     name: "Prime Video",
     subtitle: "Ideal para reventa por perfiles",
     type: "Cuenta completa",
     duration: "1 mes",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 10,
-    usd: 10 / USD_RATE,
     badge: "Rentable",
     accent: "prime",
   },
   {
     id: 4,
-    category: "STREAMING",
+    category: "Streaming",
     name: "Max",
     subtitle: "Plataforma premium de alta rotación",
     type: "Perfil",
     duration: "1 mes",
-    stock: "Últimas unidades",
+    provider: "Jonas Stream",
+    stockText: "Últimas unidades",
     status: "LIMITADO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 9,
-    usd: 9 / USD_RATE,
     badge: "Top",
     accent: "max",
   },
   {
     id: 5,
-    category: "MÚSICA",
+    category: "Música",
     name: "Spotify Premium",
-    subtitle: "Acceso individual",
+    subtitle: "Acceso individual renovable",
     type: "Perfil",
     duration: "1 mes",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 10,
-    usd: 10 / USD_RATE,
     badge: "Popular",
     accent: "spotify",
   },
   {
     id: 6,
-    category: "VIDEO",
+    category: "Video",
     name: "YouTube Premium",
-    subtitle: "Sin anuncios y reproducción en segundo plano",
+    subtitle: "Sin anuncios y fondo activo",
     type: "Perfil",
     duration: "1 mes",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 11,
-    usd: 11 / USD_RATE,
     badge: "Recomendado",
     accent: "youtube",
   },
   {
     id: 7,
-    category: "ANIME",
+    category: "Anime",
     name: "Crunchyroll",
     subtitle: "Muy buscado por clientes anime",
     type: "Perfil",
     duration: "1 mes",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 7,
-    usd: 7 / USD_RATE,
     badge: "Venta rápida",
     accent: "crunchy",
   },
   {
     id: 8,
-    category: "STREAMING",
+    category: "Streaming",
     name: "Paramount+",
     subtitle: "Buen complemento para catálogo",
     type: "Perfil",
     duration: "1 mes",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 6,
-    usd: 6 / USD_RATE,
     badge: "Económico",
     accent: "paramount",
   },
   {
     id: 9,
-    category: "DISEÑO",
+    category: "Diseño",
     name: "Canva Pro",
-    subtitle: "Correo nuevo o acceso renovable",
+    subtitle: "Correo nuevo o renovable",
     type: "Cuenta completa",
     duration: "12 meses",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 15,
-    usd: 15 / USD_RATE,
-    badge: "Herramienta pro",
+    badge: "Herramienta Pro",
     accent: "canva",
   },
   {
     id: 10,
-    category: "OFICINA",
+    category: "Oficina",
     name: "Microsoft 365",
-    subtitle: "Licencia anual",
+    subtitle: "Licencia anual completa",
     type: "Cuenta completa",
     duration: "12 meses",
-    stock: "Stock disponible",
+    provider: "Jonas Stream",
+    stockText: "Stock disponible",
     status: "ACTIVO",
     renewable: false,
-    provider: "Jonas Stream",
     pen: 20,
-    usd: 20 / USD_RATE,
     badge: "Licencia",
     accent: "office",
   },
   {
     id: 11,
-    category: "TV DIGITAL",
+    category: "TV Digital",
     name: "IPTV",
-    subtitle: "Canales + películas + series",
+    subtitle: "Canales, series y películas",
     type: "Cuenta completa",
     duration: "1 mes",
-    stock: "Últimas unidades",
+    provider: "Jonas Stream",
+    stockText: "Últimas unidades",
     status: "LIMITADO",
     renewable: true,
-    provider: "Jonas Stream",
     pen: 12,
-    usd: 12 / USD_RATE,
     badge: "Alto margen",
     accent: "iptv",
   },
   {
     id: 12,
-    category: "STREAMING",
+    category: "Streaming",
     name: "Viki Pass",
     subtitle: "Ideal para nicho asiático",
     type: "Perfil",
     duration: "1 mes",
-    stock: "Sin reposición hoy",
+    provider: "Jonas Stream",
+    stockText: "Sin reposición hoy",
     status: "AGOTADO",
     renewable: false,
-    provider: "Jonas Stream",
     pen: 8,
-    usd: 8 / USD_RATE,
     badge: "Consultar",
     accent: "viki",
   },
@@ -224,10 +226,41 @@ function buildWhatsAppLink(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
-function getStatusClass(status: Product["status"]) {
-  if (status === "ACTIVO") return styles.active;
-  if (status === "LIMITADO") return styles.limited;
-  return styles.soldOut;
+function getStatusClass(status: ProductStatus) {
+  if (status === "ACTIVO") return styles.statusActive;
+  if (status === "LIMITADO") return styles.statusLimited;
+  return styles.statusSoldOut;
+}
+
+function getAccentLabel(accent: ProductAccent) {
+  switch (accent) {
+    case "netflix":
+      return "N";
+    case "disney":
+      return "D+";
+    case "prime":
+      return "P";
+    case "max":
+      return "M";
+    case "spotify":
+      return "S";
+    case "youtube":
+      return "YT";
+    case "crunchy":
+      return "C";
+    case "paramount":
+      return "P+";
+    case "canva":
+      return "Cv";
+    case "office":
+      return "365";
+    case "iptv":
+      return "TV";
+    case "viki":
+      return "V";
+    default:
+      return "JS";
+  }
 }
 
 export default function VerPreciosPage() {
@@ -244,7 +277,7 @@ export default function VerPreciosPage() {
         <div className={styles.topbar}>
           <div className={styles.brandBlock}>
             <strong>JONAS STREAM</strong>
-            <span>LISTADO OFICIAL DE PRECIOS</span>
+            <span>Listado Oficial de Precios</span>
           </div>
 
           <div className={styles.topActions}>
@@ -258,7 +291,7 @@ export default function VerPreciosPage() {
 
             <a
               href={buildWhatsAppLink(
-                "Hola, quiero más información sobre el listado de precios de Jonas Stream."
+                "Hola, quiero más información sobre el catálogo de precios de Jonas Stream."
               )}
               target="_blank"
               rel="noopener noreferrer"
@@ -281,15 +314,12 @@ export default function VerPreciosPage() {
 
           <p className={styles.heroText}>
             Explora nuestro catálogo visual de plataformas, licencias y accesos premium.
-            Aquí puedes ver ejemplos de precios, tipo de acceso, duración, stock y estado
-            actual del producto. Todo con un estilo premium, limpio y profesional.
+            Aquí puedes visualizar productos, tipo de acceso, duración, proveedor, estado y
+            precios referenciales en una presentación mucho más elegante y profesional.
           </p>
 
           <div className={styles.heroActions}>
-            <a
-              href="#catalogo"
-              className={styles.heroBtnPrimary}
-            >
+            <a href="#catalogo" className={styles.heroBtnPrimary}>
               VER CATÁLOGO
             </a>
 
@@ -312,132 +342,122 @@ export default function VerPreciosPage() {
               <span>Activo, limitado o agotado</span>
             </div>
             <div className={styles.heroStatCard}>
-              <strong>Visual Pro</strong>
-              <span>Solo exhibición premium</span>
+              <strong>Pro</strong>
+              <span>Visual premium y limpio</span>
             </div>
           </div>
         </section>
 
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionKicker}>VISTA GENERAL</span>
-            <h2 className={styles.sectionTitle}>Información rápida del catálogo</h2>
-          </div>
-
-          <div className={styles.infoGrid}>
-            <article className={styles.infoCard}>
-              <h3>Solo visualización</h3>
-              <p>
-                Este listado está pensado para mostrar productos, tipos de acceso, duración,
-                stock y precios de forma clara y elegante.
-              </p>
-            </article>
-
-            <article className={styles.infoCard}>
-              <h3>Fácil de editar</h3>
-              <p>
-                Luego puedes cambiar nombres, precios, estados, plataformas y categorías
-                directamente desde el arreglo de productos.
-              </p>
-            </article>
-
-            <article className={styles.infoCard}>
-              <h3>Diseño premium</h3>
-              <p>
-                Mantiene el ADN visual de Jonas Stream con paneles glass, glow cyan,
-                contraste oscuro y tarjetas modernas.
-              </p>
-            </article>
+        <section className={styles.infoSection}>
+          <div className={styles.infoBar}>
+            <div className={styles.infoMiniCard}>
+              <span>CATÁLOGO</span>
+              <strong>Solo visualización</strong>
+            </div>
+            <div className={styles.infoMiniCard}>
+              <span>EDICIÓN</span>
+              <strong>Fácil de modificar</strong>
+            </div>
+            <div className={styles.infoMiniCard}>
+              <span>ESTILO</span>
+              <strong>Premium Jonas Stream</strong>
+            </div>
           </div>
         </section>
 
-        <section className={styles.section} id="catalogo">
+        <section className={styles.catalogSection} id="catalogo">
           <div className={styles.sectionHeader}>
             <span className={styles.sectionKicker}>CATÁLOGO DISPONIBLE</span>
             <h2 className={styles.sectionTitle}>Productos, precios y estado actual</h2>
           </div>
 
           <div className={styles.catalogGrid}>
-            {products.map((product) => (
-              <article
-                key={product.id}
-                className={`${styles.productCard} ${styles[product.accent]}`}
-              >
-                <div className={styles.cardVisual}>
-                  <div className={styles.visualGlow} />
-                  <div className={styles.cardCategory}>{product.category}</div>
-                  <div className={styles.cardBadge}>{product.badge}</div>
-                  <div className={styles.cardLogoWrap}>
-                    <div className={styles.cardLogoText}>{product.name}</div>
-                  </div>
-                </div>
+            {products.map((product) => {
+              const usd = product.pen / USD_RATE;
 
-                <div className={styles.cardBody}>
-                  <h3 className={styles.cardTitle}>{product.name}</h3>
-                  <p className={styles.cardSubtitle}>{product.subtitle}</p>
-
-                  <div className={styles.metaGrid}>
-                    <div className={styles.metaItem}>
-                      <span>TIPO</span>
-                      <strong>{product.type}</strong>
+              return (
+                <article
+                  key={product.id}
+                  className={`${styles.productCard} ${styles[`accent_${product.accent}`]}`}
+                >
+                  <div className={styles.productTop}>
+                    <div className={styles.productBadges}>
+                      <span className={styles.categoryBadge}>{product.category}</span>
+                      <span className={styles.featureBadge}>{product.badge}</span>
                     </div>
 
-                    <div className={styles.metaItem}>
-                      <span>DURACIÓN</span>
-                      <strong>{product.duration}</strong>
-                    </div>
-
-                    <div className={styles.metaItem}>
-                      <span>PROVEEDOR</span>
-                      <strong>{product.provider}</strong>
-                    </div>
-
-                    <div className={styles.metaItem}>
-                      <span>RENOVABLE</span>
-                      <strong>{product.renewable ? "Sí" : "No"}</strong>
+                    <div className={styles.productVisual}>
+                      <div className={styles.productVisualGlow} />
+                      <div className={styles.logoCircle}>{getAccentLabel(product.accent)}</div>
+                      <div className={styles.productNameOverlay}>{product.name}</div>
                     </div>
                   </div>
 
-                  <div className={styles.stockRow}>
-                    <div className={`${styles.statusBadge} ${getStatusClass(product.status)}`}>
-                      {product.status}
-                    </div>
-                    <span className={styles.stockText}>{product.stock}</span>
-                  </div>
+                  <div className={styles.productBody}>
+                    <h3 className={styles.productTitle}>{product.name}</h3>
+                    <p className={styles.productSubtitle}>{product.subtitle}</p>
 
-                  <div className={styles.priceRow}>
-                    <div className={styles.priceBox}>
-                      <span>PEN</span>
-                      <strong>S/ {formatMoney(product.pen)}</strong>
+                    <div className={styles.metaGrid}>
+                      <div className={styles.metaCard}>
+                        <span>TIPO</span>
+                        <strong>{product.type}</strong>
+                      </div>
+
+                      <div className={styles.metaCard}>
+                        <span>DURACIÓN</span>
+                        <strong>{product.duration}</strong>
+                      </div>
+
+                      <div className={styles.metaCard}>
+                        <span>PROVEEDOR</span>
+                        <strong>{product.provider}</strong>
+                      </div>
+
+                      <div className={styles.metaCard}>
+                        <span>RENOVABLE</span>
+                        <strong>{product.renewable ? "Sí" : "No"}</strong>
+                      </div>
                     </div>
 
-                    <div className={styles.priceBox}>
-                      <span>USD</span>
-                      <strong>$ {formatMoney(product.usd)}</strong>
+                    <div className={styles.statusRow}>
+                      <span className={`${styles.statusBadge} ${getStatusClass(product.status)}`}>
+                        {product.status}
+                      </span>
+                      <span className={styles.stockText}>{product.stockText}</span>
+                    </div>
+
+                    <div className={styles.priceGrid}>
+                      <div className={styles.priceCard}>
+                        <small>PEN</small>
+                        <strong>S/ {formatMoney(product.pen)}</strong>
+                      </div>
+
+                      <div className={styles.priceCard}>
+                        <small>USD</small>
+                        <strong>$ {formatMoney(usd)}</strong>
+                      </div>
+                    </div>
+
+                    <div className={styles.cardFooter}>
+                      <span className={styles.visualTag}>SOLO VISUALIZACIÓN</span>
+                      <span className={styles.codeTag}>ID {String(product.id).padStart(2, "0")}</span>
                     </div>
                   </div>
-
-                  <div className={styles.cardFooter}>
-                    <span className={styles.visualOnlyTag}>SOLO VISUALIZACIÓN</span>
-                    <span className={styles.codeTag}>ID {String(product.id).padStart(2, "0")}</span>
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </section>
 
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionKicker}>NOTA</span>
-            <h2 className={styles.sectionTitle}>Catálogo editable para tu negocio</h2>
-          </div>
-
+        <section className={styles.bottomSection}>
           <div className={styles.bottomPanel}>
-            <p>
-              Todos los precios mostrados aquí son de ejemplo y puedes modificarlos cuando
-              quieras. También puedes cambiar stock, estado, duración, proveedor y tipo de
-              acceso según tu operación real.
+            <span className={styles.sectionKicker}>NOTA FINAL</span>
+            <h2 className={styles.sectionTitle}>Catálogo editable para tu negocio</h2>
+
+            <p className={styles.bottomText}>
+              Todos los productos y precios mostrados aquí son ejemplos. Luego puedes editar
+              nombre, costo, duración, proveedor, stock y estado directamente desde el arreglo
+              del archivo para adaptarlo a tu operación real.
             </p>
 
             <div className={styles.bottomActions}>
@@ -447,7 +467,7 @@ export default function VerPreciosPage() {
 
               <a
                 href={buildWhatsAppLink(
-                  "Hola, quiero ayuda para personalizar mi página de ver precios de Jonas Stream."
+                  "Hola, quiero ayuda para personalizar la página ver-precios de Jonas Stream."
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
