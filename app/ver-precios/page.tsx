@@ -1,63 +1,218 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 
-const PROMO_PRICE_PEN = 10;
-const OLD_PRICE_PEN = 80;
-const USD_RATE = 3.75; // Cambia este valor si deseas actualizar manualmente el tipo de cambio
+const USD_RATE = 3.75;
+const WHATSAPP_NUMBER = "51900557949";
 
-const promoBenefits = [
-  "Ingresas al grupo privado de socios revendedores.",
-  "Recibes orientación para entender la dinámica del negocio.",
-  "Empiezas a ofrecer plataformas premium con mejor imagen.",
-  "Generas ganancias revendiendo con apoyo y respaldo.",
-];
+type Product = {
+  id: number;
+  category: string;
+  name: string;
+  subtitle: string;
+  type: string;
+  duration: string;
+  stock: string;
+  status: "ACTIVO" | "LIMITADO" | "AGOTADO";
+  renewable: boolean;
+  provider: string;
+  pen: number;
+  usd: number;
+  badge: string;
+  accent: string;
+};
 
-const availablePlatforms = [
-  "Netflix",
-  "Disney+",
-  "Prime Video",
-  "Max",
-  "Paramount+",
-  "Crunchyroll",
-  "VIX",
-  "IPTV",
-  "Viki",
-  "y más",
-];
-
-const mainBenefits = [
+const products: Product[] = [
   {
-    number: "01",
-    title: "Comunidad privada",
-    text: "Forma parte del grupo exclusivo de socios revendedores para recibir soporte, guía y novedades del negocio.",
+    id: 1,
+    category: "STREAMING",
+    name: "Netflix Premium",
+    subtitle: "Perfil privado o compartido",
+    type: "Perfil",
+    duration: "1 mes",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 8,
+    usd: 8 / USD_RATE,
+    badge: "Más vendido",
+    accent: "netflix",
   },
   {
-    number: "02",
-    title: "Catálogo exclusivo",
-    text: "Accede a precios rebajados, promociones especiales y mejores condiciones que el público general.",
+    id: 2,
+    category: "STREAMING",
+    name: "Disney+ Premium",
+    subtitle: "Acceso estable de alta demanda",
+    type: "Perfil",
+    duration: "1 mes",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 8,
+    usd: 8 / USD_RATE,
+    badge: "Premium",
+    accent: "disney",
   },
   {
-    number: "03",
-    title: "Publicidad editable",
-    text: "Obtén material visual editable para publicar más profesional y vender con una mejor imagen.",
+    id: 3,
+    category: "STREAMING",
+    name: "Prime Video",
+    subtitle: "Ideal para reventa por perfiles",
+    type: "Cuenta completa",
+    duration: "1 mes",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 10,
+    usd: 10 / USD_RATE,
+    badge: "Rentable",
+    accent: "prime",
   },
   {
-    number: "04",
-    title: "Ganancias por reventa",
-    text: "Compras a precio socio y revendes por perfil o cuenta para generar ingresos con buena rentabilidad.",
+    id: 4,
+    category: "STREAMING",
+    name: "Max",
+    subtitle: "Plataforma premium de alta rotación",
+    type: "Perfil",
+    duration: "1 mes",
+    stock: "Últimas unidades",
+    status: "LIMITADO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 9,
+    usd: 9 / USD_RATE,
+    badge: "Top",
+    accent: "max",
   },
   {
-    number: "05",
-    title: "Soporte y orientación",
-    text: "No empiezas solo. Recibes acompañamiento para entender cómo funciona la dinámica de compra, venta y activación.",
+    id: 5,
+    category: "MÚSICA",
+    name: "Spotify Premium",
+    subtitle: "Acceso individual",
+    type: "Perfil",
+    duration: "1 mes",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 10,
+    usd: 10 / USD_RATE,
+    badge: "Popular",
+    accent: "spotify",
   },
   {
-    number: "06",
-    title: "Oportunidad de afiliación",
-    text: "También puedes recomendar el acceso a otros y ganar activando nuevos socios dentro de la comunidad.",
+    id: 6,
+    category: "VIDEO",
+    name: "YouTube Premium",
+    subtitle: "Sin anuncios y reproducción en segundo plano",
+    type: "Perfil",
+    duration: "1 mes",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 11,
+    usd: 11 / USD_RATE,
+    badge: "Recomendado",
+    accent: "youtube",
+  },
+  {
+    id: 7,
+    category: "ANIME",
+    name: "Crunchyroll",
+    subtitle: "Muy buscado por clientes anime",
+    type: "Perfil",
+    duration: "1 mes",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 7,
+    usd: 7 / USD_RATE,
+    badge: "Venta rápida",
+    accent: "crunchy",
+  },
+  {
+    id: 8,
+    category: "STREAMING",
+    name: "Paramount+",
+    subtitle: "Buen complemento para catálogo",
+    type: "Perfil",
+    duration: "1 mes",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 6,
+    usd: 6 / USD_RATE,
+    badge: "Económico",
+    accent: "paramount",
+  },
+  {
+    id: 9,
+    category: "DISEÑO",
+    name: "Canva Pro",
+    subtitle: "Correo nuevo o acceso renovable",
+    type: "Cuenta completa",
+    duration: "12 meses",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 15,
+    usd: 15 / USD_RATE,
+    badge: "Herramienta pro",
+    accent: "canva",
+  },
+  {
+    id: 10,
+    category: "OFICINA",
+    name: "Microsoft 365",
+    subtitle: "Licencia anual",
+    type: "Cuenta completa",
+    duration: "12 meses",
+    stock: "Stock disponible",
+    status: "ACTIVO",
+    renewable: false,
+    provider: "Jonas Stream",
+    pen: 20,
+    usd: 20 / USD_RATE,
+    badge: "Licencia",
+    accent: "office",
+  },
+  {
+    id: 11,
+    category: "TV DIGITAL",
+    name: "IPTV",
+    subtitle: "Canales + películas + series",
+    type: "Cuenta completa",
+    duration: "1 mes",
+    stock: "Últimas unidades",
+    status: "LIMITADO",
+    renewable: true,
+    provider: "Jonas Stream",
+    pen: 12,
+    usd: 12 / USD_RATE,
+    badge: "Alto margen",
+    accent: "iptv",
+  },
+  {
+    id: 12,
+    category: "STREAMING",
+    name: "Viki Pass",
+    subtitle: "Ideal para nicho asiático",
+    type: "Perfil",
+    duration: "1 mes",
+    stock: "Sin reposición hoy",
+    status: "AGOTADO",
+    renewable: false,
+    provider: "Jonas Stream",
+    pen: 8,
+    usd: 8 / USD_RATE,
+    badge: "Consultar",
+    accent: "viki",
   },
 ];
 
@@ -65,291 +220,245 @@ function formatMoney(value: number) {
   return value.toFixed(2);
 }
 
-export default function QuieroSerSocioPage() {
-  const [showPromo, setShowPromo] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(15 * 60);
+function buildWhatsAppLink(message: string) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
 
-  useEffect(() => {
-    if (!showPromo) return;
+function getStatusClass(status: Product["status"]) {
+  if (status === "ACTIVO") return styles.active;
+  if (status === "LIMITADO") return styles.limited;
+  return styles.soldOut;
+}
 
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) return 15 * 60;
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [showPromo]);
-
-  const usdPrice = useMemo(() => PROMO_PRICE_PEN / USD_RATE, []);
-  const oldUsdPrice = useMemo(() => OLD_PRICE_PEN / USD_RATE, []);
-
-  const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
-  const seconds = String(timeLeft % 60).padStart(2, "0");
-
+export default function VerPreciosPage() {
   return (
     <div className={styles.page}>
       <div className={styles.bgGlowOne} />
       <div className={styles.bgGlowTwo} />
       <div className={styles.gridOverlay} />
 
-      {showPromo && (
-        <div className={styles.promoOverlay}>
-          <div className={styles.promoBackdrop} onClick={() => setShowPromo(false)} />
+      <div className={styles.sideBrand}>JONAS STREAM</div>
+      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>JONAS STREAM</div>
 
-          <div className={styles.promoModal}>
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={() => setShowPromo(false)}
-              aria-label="Cerrar promoción"
-            >
-              ×
-            </button>
-
-            <div className={styles.promoBadge}>PROMOCIÓN EXCLUSIVA</div>
-
-            <h2 className={styles.promoTitle}>PROMOCIÓN EXCLUSIVA HOY</h2>
-
-            <div className={styles.promoPriceBox}>
-              <div className={styles.promoPriceMain}>S/ {formatMoney(PROMO_PRICE_PEN)}</div>
-              <div className={styles.promoPriceUsd}>
-                ≈ USD {formatMoney(usdPrice)}
-              </div>
-              <div className={styles.promoOldPrice}>
-                Antes: S/ {formatMoney(OLD_PRICE_PEN)} · USD {formatMoney(oldUsdPrice)}
-              </div>
-            </div>
-
-            <div className={styles.countdownWrap}>
-              <span className={styles.countdownLabel}>La promo termina en</span>
-              <div className={styles.countdown}>
-                <div className={styles.countBox}>
-                  <strong>{minutes}</strong>
-                  <span>MIN</span>
-                </div>
-                <div className={styles.countSeparator}>:</div>
-                <div className={styles.countBox}>
-                  <strong>{seconds}</strong>
-                  <span>SEG</span>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.promoBenefits}>
-              {promoBenefits.map((item) => (
-                <div key={item} className={styles.promoBenefit}>
-                  <span className={styles.dot} />
-                  <p>{item}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.promoActions}>
-              <a
-                href="https://wa.me/51900557949"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.primaryAction}
-              >
-                QUIERO APROVECHAR LA PROMO
-              </a>
-
-              <button
-                type="button"
-                className={styles.secondaryAction}
-                onClick={() => setShowPromo(false)}
-              >
-                CERRAR Y SEGUIR VIENDO
-              </button>
-            </div>
-
-            <p className={styles.rateNote}>
-              Precio en dólares calculado con tipo de cambio manual: 1 USD = S/ {USD_RATE}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <section className={styles.hero}>
-        <div className={styles.heroBadge}>NEGOCIO PARA REVENDEDORES</div>
-
-        <h1 className={styles.heroTitle}>
-          CONVIÉRTETE EN SOCIO Y EMPIEZA A REVENDER CON
-          <span> JONAS STREAM</span>
-        </h1>
-
-        <p className={styles.heroText}>
-          ¿Te gustaría generar ingresos vendiendo las plataformas más buscadas del mercado?
-          Soy <strong>JONAS</strong>, administrador y proveedor autorizado. Te acompañaré
-          paso a paso para que empieces sin complicaciones y veas resultados rápido.
-        </p>
-
-        <div className={styles.heroActions}>
-          <a
-            href="https://wa.me/51900557949"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.heroBtnPrimary}
-          >
-            QUIERO SER SOCIO
-          </a>
-
-          <Link href="/ver-precios" className={styles.heroBtnSecondary}>
-            VER PRECIOS
-          </Link>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionKicker}>PLATAFORMAS DISPONIBLES</span>
-          <h2 className={styles.sectionTitle}>Lo que puedes ofrecer desde el inicio</h2>
-        </div>
-
-        <div className={styles.platformsGrid}>
-          {availablePlatforms.map((platform) => (
-            <div key={platform} className={styles.platformCard}>
-              {platform}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionKicker}>CÓMO GANAS DINERO</span>
-          <h2 className={styles.sectionTitle}>Ejemplo sencillo de rentabilidad</h2>
-        </div>
-
-        <div className={styles.exampleCard}>
-          <div className={styles.exampleIntro}>
-            Así funciona el negocio: compras al por mayor y vendes por perfil con buena ganancia.
+      <header className={styles.topbarWrap}>
+        <div className={styles.topbar}>
+          <div className={styles.brandBlock}>
+            <strong>JONAS STREAM</strong>
+            <span>LISTADO OFICIAL DE PRECIOS</span>
           </div>
 
-          <div className={styles.exampleSteps}>
-            <div className={styles.stepItem}>
-              <span>1</span>
-              <p>Compras una cuenta completa de <strong>Prime Video</strong> por <strong>S/12.00</strong> (incluye 6 perfiles).</p>
-            </div>
-            <div className={styles.stepItem}>
-              <span>2</span>
-              <p>Vendes cada perfil a <strong>S/8.00</strong>.</p>
-            </div>
-            <div className={styles.stepItem}>
-              <span>3</span>
-              <p>Total vendido: <strong>S/48.00</strong>.</p>
-            </div>
-            <div className={styles.stepItem}>
-              <span>4</span>
-              <p>Restando tu inversión de <strong>S/12.00</strong>, obtienes una <strong>ganancia neta de S/36.00</strong>.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+          <div className={styles.topActions}>
+            <Link href="/" className={styles.topLink}>
+              VOLVER AL INICIO
+            </Link>
 
-      <section className={styles.benefitsSection}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionKicker}>BENEFICIOS</span>
-          <h2 className={styles.sectionTitle}>Lo que recibes al entrar</h2>
-        </div>
-
-        <div className={styles.benefitsGrid}>
-          {mainBenefits.map((benefit) => (
-            <article key={benefit.number} className={styles.benefitCard}>
-              <div className={styles.benefitNumber}>{benefit.number}</div>
-              <h3>{benefit.title}</h3>
-              <p>{benefit.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.doubleGrid}>
-          <div className={styles.infoCard}>
-            <span className={styles.infoKicker}>PRIMER BENEFICIO</span>
-            <h3>Comunidad pública exclusiva</h3>
-            <p>
-              Únete gratis a nuestra comunidad pública exclusiva para empezar a conectar con el entorno del negocio.
-            </p>
-            <a
-              href="https://chat.whatsapp.com/Km1vlhsOpCJ1svHl5uNdig"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.inlineLink}
-            >
-              IR AL GRUPO OFICIAL
-            </a>
-          </div>
-
-          <div className={styles.infoCard}>
-            <span className={styles.infoKicker}>SEGUNDO BENEFICIO</span>
-            <h3>Catálogo + control profesional</h3>
-            <p>
-              Accede a un catálogo exclusivo con excelentes precios, actualizado constantemente, y una plantilla de Excel para organizar tus ventas.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.pricingSection}>
-        <div className={styles.pricingCard}>
-          <span className={styles.sectionKicker}>CÓMO SER SOCIO</span>
-          <h2 className={styles.sectionTitle}>Ingresa hoy con promoción activa</h2>
-
-          <div className={styles.pricingMain}>
-            <div className={styles.priceNow}>S/ {formatMoney(PROMO_PRICE_PEN)}</div>
-            <div className={styles.priceUsd}>USD {formatMoney(usdPrice)}</div>
-            <div className={styles.priceBefore}>Antes: S/ {formatMoney(OLD_PRICE_PEN)}</div>
-          </div>
-
-          <div className={styles.pricingList}>
-            <div className={styles.pricingItem}>✅ Catálogo exclusivo con precios rebajados</div>
-            <div className={styles.pricingItem}>✅ Promociones más accesibles que al público general</div>
-            <div className={styles.pricingItem}>✅ Comunidad privada de socios</div>
-            <div className={styles.pricingItem}>✅ Publicidad editable en Canva PRO</div>
-            <div className={styles.pricingItem}>✅ Oportunidad de generar ingresos desde casa</div>
-          </div>
-
-          <div className={styles.pricingActions}>
-            <Link href="/ver-precios" className={styles.heroBtnSecondary}>
-              VER PRECIOS EXCLUSIVOS
+            <Link href="/quiero-ser-socio" className={styles.topLink}>
+              QUIERO SER SOCIO
             </Link>
 
             <a
-              href="https://wa.me/51900557949"
+              href={buildWhatsAppLink(
+                "Hola, quiero más información sobre el listado de precios de Jonas Stream."
+              )}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.heroBtnPrimary}
+              className={styles.topLinkPrimary}
             >
-              ACTIVAR MI ACCESO
+              CONTÁCTANOS
             </a>
           </div>
         </div>
-      </section>
+      </header>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionKicker}>AFILIACIÓN</span>
-          <h2 className={styles.sectionTitle}>También puedes ganar recomendando</h2>
-        </div>
+      <main className={styles.mainContent}>
+        <section className={styles.hero}>
+          <div className={styles.heroBadge}>CATÁLOGO VISUAL PREMIUM</div>
 
-        <div className={styles.affiliatesCard}>
-          <p>
-            Recomiendas la comunidad a un amigo o familiar y tú decides cuánto cobrarle por inscripción.
-            Puede ser <strong>S/10, S/20 o S/30</strong>.
+          <h1 className={styles.heroTitle}>
+            LISTADO OFICIAL DE
+            <span> PRECIOS JONAS STREAM</span>
+          </h1>
+
+          <p className={styles.heroText}>
+            Explora nuestro catálogo visual de plataformas, licencias y accesos premium.
+            Aquí puedes ver ejemplos de precios, tipo de acceso, duración, stock y estado
+            actual del producto. Todo con un estilo premium, limpio y profesional.
           </p>
-          <p>
-            Nosotros solo cobramos <strong>S/5</strong> por activarlo y esa persona recibe los mismos beneficios:
-            catálogo exclusivo, promociones, comunidad privada y material publicitario.
-          </p>
-          <p className={styles.affiliatesHighlight}>
-            Hoy puedes empezar a ganar vendiendo y también recomendando.
-          </p>
-        </div>
-      </section>
+
+          <div className={styles.heroActions}>
+            <a
+              href="#catalogo"
+              className={styles.heroBtnPrimary}
+            >
+              VER CATÁLOGO
+            </a>
+
+            <Link href="/quiero-ser-socio" className={styles.heroBtnSecondary}>
+              QUIERO REVENDER
+            </Link>
+          </div>
+
+          <div className={styles.heroStats}>
+            <div className={styles.heroStatCard}>
+              <strong>+12</strong>
+              <span>Productos ejemplo</span>
+            </div>
+            <div className={styles.heroStatCard}>
+              <strong>PEN + USD</strong>
+              <span>Doble precio visible</span>
+            </div>
+            <div className={styles.heroStatCard}>
+              <strong>Stock</strong>
+              <span>Activo, limitado o agotado</span>
+            </div>
+            <div className={styles.heroStatCard}>
+              <strong>Visual Pro</strong>
+              <span>Solo exhibición premium</span>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionKicker}>VISTA GENERAL</span>
+            <h2 className={styles.sectionTitle}>Información rápida del catálogo</h2>
+          </div>
+
+          <div className={styles.infoGrid}>
+            <article className={styles.infoCard}>
+              <h3>Solo visualización</h3>
+              <p>
+                Este listado está pensado para mostrar productos, tipos de acceso, duración,
+                stock y precios de forma clara y elegante.
+              </p>
+            </article>
+
+            <article className={styles.infoCard}>
+              <h3>Fácil de editar</h3>
+              <p>
+                Luego puedes cambiar nombres, precios, estados, plataformas y categorías
+                directamente desde el arreglo de productos.
+              </p>
+            </article>
+
+            <article className={styles.infoCard}>
+              <h3>Diseño premium</h3>
+              <p>
+                Mantiene el ADN visual de Jonas Stream con paneles glass, glow cyan,
+                contraste oscuro y tarjetas modernas.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section className={styles.section} id="catalogo">
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionKicker}>CATÁLOGO DISPONIBLE</span>
+            <h2 className={styles.sectionTitle}>Productos, precios y estado actual</h2>
+          </div>
+
+          <div className={styles.catalogGrid}>
+            {products.map((product) => (
+              <article
+                key={product.id}
+                className={`${styles.productCard} ${styles[product.accent]}`}
+              >
+                <div className={styles.cardVisual}>
+                  <div className={styles.visualGlow} />
+                  <div className={styles.cardCategory}>{product.category}</div>
+                  <div className={styles.cardBadge}>{product.badge}</div>
+                  <div className={styles.cardLogoWrap}>
+                    <div className={styles.cardLogoText}>{product.name}</div>
+                  </div>
+                </div>
+
+                <div className={styles.cardBody}>
+                  <h3 className={styles.cardTitle}>{product.name}</h3>
+                  <p className={styles.cardSubtitle}>{product.subtitle}</p>
+
+                  <div className={styles.metaGrid}>
+                    <div className={styles.metaItem}>
+                      <span>TIPO</span>
+                      <strong>{product.type}</strong>
+                    </div>
+
+                    <div className={styles.metaItem}>
+                      <span>DURACIÓN</span>
+                      <strong>{product.duration}</strong>
+                    </div>
+
+                    <div className={styles.metaItem}>
+                      <span>PROVEEDOR</span>
+                      <strong>{product.provider}</strong>
+                    </div>
+
+                    <div className={styles.metaItem}>
+                      <span>RENOVABLE</span>
+                      <strong>{product.renewable ? "Sí" : "No"}</strong>
+                    </div>
+                  </div>
+
+                  <div className={styles.stockRow}>
+                    <div className={`${styles.statusBadge} ${getStatusClass(product.status)}`}>
+                      {product.status}
+                    </div>
+                    <span className={styles.stockText}>{product.stock}</span>
+                  </div>
+
+                  <div className={styles.priceRow}>
+                    <div className={styles.priceBox}>
+                      <span>PEN</span>
+                      <strong>S/ {formatMoney(product.pen)}</strong>
+                    </div>
+
+                    <div className={styles.priceBox}>
+                      <span>USD</span>
+                      <strong>$ {formatMoney(product.usd)}</strong>
+                    </div>
+                  </div>
+
+                  <div className={styles.cardFooter}>
+                    <span className={styles.visualOnlyTag}>SOLO VISUALIZACIÓN</span>
+                    <span className={styles.codeTag}>ID {String(product.id).padStart(2, "0")}</span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionKicker}>NOTA</span>
+            <h2 className={styles.sectionTitle}>Catálogo editable para tu negocio</h2>
+          </div>
+
+          <div className={styles.bottomPanel}>
+            <p>
+              Todos los precios mostrados aquí son de ejemplo y puedes modificarlos cuando
+              quieras. También puedes cambiar stock, estado, duración, proveedor y tipo de
+              acceso según tu operación real.
+            </p>
+
+            <div className={styles.bottomActions}>
+              <Link href="/quiero-ser-socio" className={styles.heroBtnSecondary}>
+                VER PLAN SOCIO
+              </Link>
+
+              <a
+                href={buildWhatsAppLink(
+                  "Hola, quiero ayuda para personalizar mi página de ver precios de Jonas Stream."
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.heroBtnPrimary}
+              >
+                PEDIR PERSONALIZACIÓN
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
