@@ -229,6 +229,10 @@ export default function QuieroSerSocioPage() {
           </Link>
 
           <div className={styles.topActions}>
+            <Link href="/" className={styles.topLink}>
+              INICIO
+            </Link>
+
             <Link href="/ver-precios" className={styles.topLinkPrimary}>
               VER PRECIOS
             </Link>

@@ -1631,39 +1631,46 @@
 }
 
 /* ============================= */
-/* HEADER TIPO PORTADA - SIN ESPACIO EXAGERADO */
+/* HEADER FIJO TIPO PORTADA + BOTÓN INICIO */
 /* ============================= */
 
+/* Header fijo arriba */
 .topbarWrap {
-  position: sticky !important;
+  position: fixed !important;
   top: 0 !important;
-  left: auto !important;
-  transform: none !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
   width: min(1320px, calc(100% - 32px)) !important;
-  margin: 0 auto 18px !important;
-  z-index: 40;
+  margin: 0 !important;
+  z-index: 60 !important;
   padding-top: 8px;
   backdrop-filter: blur(10px);
 }
 
+/* Separación correcta debajo del header fijo */
 .mainContent {
-  padding-top: 0 !important;
+  padding-top: 118px !important;
 }
 
-.hero {
-  margin-top: 0 !important;
+/* Botones del header */
+.topActions {
+  align-items: center;
 }
 
-/* Celular: igual que la portada, el header ocupa su espacio y el contenido baja natural */
+.topLink,
+.topLinkPrimary {
+  cursor: pointer;
+  min-width: 112px;
+}
+
+/* En celular el header queda fijo, pero sin dejar hueco gigante */
 @media (max-width: 760px) {
   .page {
-    --topbar-height: auto !important;
     padding: 10px 9px 42px;
   }
 
   .topbarWrap {
     width: calc(100% - 18px) !important;
-    margin: 0 auto 18px !important;
     padding-top: 10px;
   }
 
@@ -1673,8 +1680,27 @@
     gap: 12px;
   }
 
+  .brandBlock {
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+
+  .topActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    width: 100%;
+    min-height: 46px;
+  }
+
   .mainContent {
-    padding-top: 0 !important;
+    padding-top: 286px !important;
   }
 
   .hero {
@@ -1684,13 +1710,11 @@
 
 @media (max-width: 560px) {
   .page {
-    --topbar-height: auto !important;
     padding: 10px 9px 36px;
   }
 
-  .topbarWrap {
-    width: calc(100% - 18px) !important;
-    margin-bottom: 18px !important;
+  .mainContent {
+    padding-top: 300px !important;
   }
 }
 
