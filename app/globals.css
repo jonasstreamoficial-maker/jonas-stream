@@ -510,7 +510,6 @@ img {
     0 10px 24px rgba(0, 0, 0, 0.14),
     inset 0 0 0 1px rgba(236, 255, 255, 0.02);
   transition: 0.28s ease;
-  animation: floatSoft 5s ease-in-out infinite;
 }
 
 .benefit::before {
@@ -713,7 +712,6 @@ img {
   text-align: center;
   position: relative;
   overflow: hidden;
-  animation: floatSoft 6s ease-in-out infinite;
 }
 
 .card::before {
