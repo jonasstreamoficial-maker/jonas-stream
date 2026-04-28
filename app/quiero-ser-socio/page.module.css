@@ -1629,3 +1629,68 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================= */
+/* HEADER TIPO PORTADA - SIN ESPACIO EXAGERADO */
+/* ============================= */
+
+.topbarWrap {
+  position: sticky !important;
+  top: 0 !important;
+  left: auto !important;
+  transform: none !important;
+  width: min(1320px, calc(100% - 32px)) !important;
+  margin: 0 auto 18px !important;
+  z-index: 40;
+  padding-top: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.mainContent {
+  padding-top: 0 !important;
+}
+
+.hero {
+  margin-top: 0 !important;
+}
+
+/* Celular: igual que la portada, el header ocupa su espacio y el contenido baja natural */
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: auto !important;
+    padding: 10px 9px 42px;
+  }
+
+  .topbarWrap {
+    width: calc(100% - 18px) !important;
+    margin: 0 auto 18px !important;
+    padding-top: 10px;
+  }
+
+  .topbar {
+    border-radius: 18px;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .mainContent {
+    padding-top: 0 !important;
+  }
+
+  .hero {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    --topbar-height: auto !important;
+    padding: 10px 9px 36px;
+  }
+
+  .topbarWrap {
+    width: calc(100% - 18px) !important;
+    margin-bottom: 18px !important;
+  }
+}
+
