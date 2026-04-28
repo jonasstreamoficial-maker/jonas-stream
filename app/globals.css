@@ -424,21 +424,7 @@ img {
 }
 
 .btn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(236, 255, 255, 0.1),
-    transparent
-  );
-  transform: translateX(-120%);
-  transition: 0.55s ease;
-}
-
-.btn:hover::before {
-  transform: translateX(120%);
+  display: none;
 }
 
 .btn:hover {
