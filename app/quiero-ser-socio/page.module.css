@@ -1631,10 +1631,9 @@
 }
 
 /* ============================= */
-/* HEADER FIJO TIPO PORTADA + BOTÓN INICIO */
+/* HEADER FIJO COMPACTO TIPO PORTADA */
 /* ============================= */
 
-/* Header fijo arriba */
 .topbarWrap {
   position: fixed !important;
   top: 0 !important;
@@ -1647,12 +1646,10 @@
   backdrop-filter: blur(10px);
 }
 
-/* Separación correcta debajo del header fijo */
 .mainContent {
   padding-top: 118px !important;
 }
 
-/* Botones del header */
 .topActions {
   align-items: center;
 }
@@ -1660,10 +1657,9 @@
 .topLink,
 .topLinkPrimary {
   cursor: pointer;
-  min-width: 112px;
 }
 
-/* En celular el header queda fijo, pero sin dejar hueco gigante */
+/* Celular: compacto como la portada, sin header gigante */
 @media (max-width: 760px) {
   .page {
     padding: 10px 9px 42px;
@@ -1686,10 +1682,19 @@
     text-align: center;
   }
 
+  .brandBlock strong {
+    font-size: 1.2rem;
+  }
+
+  .brandBlock span {
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+  }
+
   .topActions {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
 
@@ -1697,10 +1702,17 @@
   .topLinkPrimary {
     width: 100%;
     min-height: 46px;
+    padding: 0 12px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+  }
+
+  .topActions .topLink:last-child {
+    grid-column: 1 / -1;
   }
 
   .mainContent {
-    padding-top: 286px !important;
+    padding-top: 238px !important;
   }
 
   .hero {
@@ -1713,7 +1725,29 @@
     padding: 10px 9px 36px;
   }
 
+  .topbar {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .topActions {
+    gap: 10px;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    min-height: 44px;
+    font-size: 0.86rem;
+  }
+
   .mainContent {
-    padding-top: 300px !important;
+    padding-top: 242px !important;
   }
 }
+
+@media (max-width: 390px) {
+  .mainContent {
+    padding-top: 252px !important;
+  }
+}
+
