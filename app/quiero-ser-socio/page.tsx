@@ -371,7 +371,7 @@ export default function QuieroSerSocioPage() {
               </a>
             </article>
 
-            <article className={styles.infoCard}>
+            <article className={`${styles.infoCard} ${styles.greenCard}`}>
               <span className={styles.infoKicker}>SEGUNDO BENEFICIO</span>
               <h3>Catálogo + Control Profesional</h3>
               <p>
