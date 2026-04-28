@@ -9,10 +9,10 @@ export default function HomePage() {
 
       <header className="container topbar-wrap">
         <div className="topbar">
-          <div className="brand-logo">
+          <Link href="/" className="brand-logo">
             <strong>JONAS STREAM</strong>
             <span>PLATAFORMA OFICIAL</span>
-          </div>
+          </Link>
 
           <div className="topbar-right">
             <Link href="/login" className="top-link primary">
@@ -82,21 +82,21 @@ export default function HomePage() {
             <div className="panel benefits-panel">
               <div className="benefits-joined">
                 <div className="benefits">
-                  <div className="benefit">
+                  <div className="benefit velocidad">
                     <div className="benefit-inner">
                       <span className="benefit-emoji">⚡</span>
                       <span className="benefit-label">Velocidad</span>
                     </div>
                   </div>
 
-                  <div className="benefit">
+                  <div className="benefit garantia">
                     <div className="benefit-inner">
                       <span className="benefit-emoji">🛡️</span>
                       <span className="benefit-label">Garantía</span>
                     </div>
                   </div>
 
-                  <div className="benefit">
+                  <div className="benefit ahorro">
                     <div className="benefit-inner">
                       <span className="benefit-emoji">💸</span>
                       <span className="benefit-label">Ahorro</span>

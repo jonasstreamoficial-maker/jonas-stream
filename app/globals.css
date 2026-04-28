@@ -167,6 +167,8 @@ img {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .brand-logo strong {
@@ -1298,4 +1300,28 @@ html::-webkit-scrollbar-thumb {
 
 html::-webkit-scrollbar-thumb:hover {
   background: #00fbff;
+}
+
+.benefit.velocidad:hover {
+  border-color: #00fbff;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.3),
+    0 0 18px rgba(0, 251, 255, 0.35),
+    0 0 35px rgba(0, 251, 255, 0.25);
+}
+
+.benefit.garantia:hover {
+  border-color: #9b5cff;
+  box-shadow:
+    0 0 0 1px rgba(155, 92, 255, 0.3),
+    0 0 18px rgba(155, 92, 255, 0.35),
+    0 0 35px rgba(155, 92, 255, 0.25);
+}
+
+.benefit.ahorro:hover {
+  border-color: #00ff88;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.3),
+    0 0 18px rgba(0, 255, 136, 0.35),
+    0 0 35px rgba(0, 255, 136, 0.25);
 }
