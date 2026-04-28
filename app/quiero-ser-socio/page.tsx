@@ -223,10 +223,10 @@ export default function QuieroSerSocioPage() {
 
       <header className={styles.topbarWrap}>
         <div className={styles.topbar}>
-          <div className={styles.brandBlock}>
+          <Link href="/" className={styles.brandBlock}>
             <strong>JONAS STREAM</strong>
             <span>PLATAFORMA OFICIAL</span>
-          </div>
+          </Link>
 
           <div className={styles.topActions}>
             <Link href="/ver-precios" className={styles.topLinkPrimary}>
