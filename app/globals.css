@@ -1330,3 +1330,25 @@ html::-webkit-scrollbar-thumb:hover {
     0 0 18px rgba(0, 255, 136, 0.35),
     0 0 35px rgba(0, 255, 136, 0.25);
 }
+
+.btn1 {
+  animation: pulseButton 3s infinite;
+}
+
+@keyframes pulseButton {
+  0% {
+    box-shadow:
+      0 0 0 1px rgba(1, 231, 239, 0.1),
+      0 0 12px rgba(1, 231, 239, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(0, 251, 255, 0.3),
+      0 0 30px rgba(0, 251, 255, 0.3);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(1, 231, 239, 0.1),
+      0 0 12px rgba(1, 231, 239, 0.1);
+  }
+}
