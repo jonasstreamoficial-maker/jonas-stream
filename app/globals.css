@@ -415,12 +415,13 @@ img {
   letter-spacing: 0.6px;
   color: var(--text);
   border: 1px solid rgba(236, 255, 255, 0.08);
-  transition: 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-soft);
   text-transform: uppercase;
   text-align: center;
+  cursor: pointer;
 }
 
 .btn::before {
@@ -695,7 +696,7 @@ img {
     rgba(3, 19, 22, 0.99)
   );
   border: 1px solid rgba(236, 255, 255, 0.05);
-  transition: 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -842,7 +843,7 @@ img {
   inset: 0;
   background: radial-gradient(circle at center, rgba(1, 231, 239, 0.08), transparent 70%);
   opacity: 0;
-  transition: 0.28s ease;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .social-link svg {
@@ -1367,4 +1368,38 @@ html::-webkit-scrollbar-thumb:hover {
 
 .btn2:hover {
   letter-spacing: 1px;
+}
+
+/* BOTÓN PRINCIPAL MÁS DOMINANTE */
+
+.btn1 {
+  position: relative;
+  z-index: 1;
+
+  background: linear-gradient(
+    135deg,
+    rgba(1, 231, 239, 0.35),
+    rgba(1, 139, 144, 0.18)
+  );
+  border-color: rgba(1, 231, 239, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.15),
+    0 0 18px rgba(1, 231, 239, 0.2);
+
+  transition: all 0.3s ease;
+}
+
+.btn1::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 251, 255, 0.4),
+    transparent,
+    rgba(0, 251, 255, 0.4)
+  );
+  z-index: -1;
+  opacity: 0.6;
 }
