@@ -448,35 +448,40 @@ img {
 .btn1 {
   background: linear-gradient(
     135deg,
-    rgba(1, 231, 239, 0.28),
-    rgba(1, 139, 144, 0.16)
+    rgba(1, 231, 239, 0.35),
+    rgba(1, 139, 144, 0.18)
   );
-  border-color: rgba(1, 231, 239, 0.3);
+  border-color: rgba(1, 231, 239, 0.35);
   box-shadow:
-    0 0 0 1px rgba(1, 231, 239, 0.1),
-    0 0 22px rgba(1, 231, 239, 0.12);
+    0 0 0 1px rgba(1, 231, 239, 0.15),
+    0 0 18px rgba(1, 231, 239, 0.2);
+  transition: all 0.3s ease;
 }
 
 .btn1:hover {
+  transform: translateY(-4px) scale(1.03);
   box-shadow:
-    0 0 0 1px rgba(1, 231, 239, 0.18),
-    0 0 24px rgba(1, 231, 239, 0.2),
-    0 0 40px rgba(0, 251, 255, 0.16);
+    0 0 0 1px rgba(0, 251, 255, 0.3),
+    0 0 28px rgba(0, 251, 255, 0.35),
+    0 0 60px rgba(0, 251, 255, 0.25);
 }
 
 .btn2 {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.035),
-    rgba(1, 231, 239, 0.06)
+    rgba(255, 255, 255, 0.04),
+    rgba(1, 231, 239, 0.08)
   );
-  border-color: rgba(1, 231, 239, 0.16);
+  border-color: rgba(1, 231, 239, 0.18);
+  transition: all 0.3s ease;
 }
 
 .btn2:hover {
+  transform: translateY(-2px);
+  border-color: rgba(1, 231, 239, 0.35);
   box-shadow:
-    0 0 0 1px rgba(1, 231, 239, 0.18),
-    0 0 18px rgba(1, 231, 239, 0.12);
+    0 0 0 1px rgba(1, 231, 239, 0.2),
+    0 0 18px rgba(1, 231, 239, 0.15);
 }
 
 .benefits-panel {
