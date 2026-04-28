@@ -14,7 +14,7 @@
   --white-line: rgba(236, 255, 255, 0.08);
   --shadow-soft: 0 0 25px rgba(1, 231, 239, 0.18);
   --shadow-strong: 0 0 40px rgba(0, 251, 255, 0.22);
-  --topbar-height: 108px;
+  --topbar-height: 116px;
 
   min-height: 100vh;
   position: relative;
@@ -1164,8 +1164,8 @@
 
 @media (max-width: 760px) {
   .page {
-    --topbar-height: 330px;
-    padding: 12px 12px 42px;
+    --topbar-height: 176px;
+    padding: 10px 9px 42px;
   }
 
   .topbarWrap {
@@ -1174,11 +1174,12 @@
   }
 
   .topbar {
-    padding: 12px 14px;
-    border-radius: 20px;
+    padding: 10px;
+    border-radius: 18px;
     flex-wrap: wrap;
     justify-content: center;
     text-align: center;
+    gap: 10px;
   }
 
   .brandBlock {
@@ -1188,7 +1189,22 @@
 
   .topActions {
     width: 100%;
+    display: flex;
     justify-content: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 6px;
+    border-radius: 12px;
+    font-size: 0.68rem;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
   }
 
   .hero,
@@ -1269,8 +1285,6 @@
 
   .heroBtnPrimary,
   .heroBtnSecondary,
-  .topLink,
-  .topLinkPrimary,
   .primaryAction,
   .secondaryAction,
   .netflixLink {
@@ -1383,10 +1397,10 @@
 }
 
 /* ============================= */
-/* CORRECCIONES FINALES SOCIOS */
+/* FIX FINAL LIMPIO - SOCIOS */
 /* ============================= */
 
-/* 1) Ocultar la barra del anuncio/modal sin quitar el scroll interno */
+/* Ocultar la barra del anuncio/modal sin quitar scroll */
 .promoModal {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
@@ -1398,40 +1412,16 @@
   display: none !important;
 }
 
-/* 2) Separación correcta entre header fijo y contenido en celular */
+/* Header fijo compacto */
+.topbarWrap {
+  z-index: 60;
+}
+
 .mainContent {
-  padding-top: calc(var(--topbar-height) + 22px);
+  padding-top: var(--topbar-height);
 }
 
-@media (max-width: 760px) {
-  .page {
-    --topbar-height: 330px;
-  }
-
-  .mainContent {
-    padding-top: calc(var(--topbar-height) + 26px);
-  }
-
-  .hero {
-    margin-top: 0;
-  }
-
-  .heroBadge {
-    margin-top: 4px;
-  }
-}
-
-@media (max-width: 560px) {
-  .page {
-    --topbar-height: 360px;
-  }
-
-  .mainContent {
-    padding-top: calc(var(--topbar-height) + 28px);
-  }
-}
-
-/* 3) Primer beneficio rojo premium */
+/* Primer beneficio rojo */
 .netflixCard {
   border-color: rgba(229, 9, 20, 0.38);
   box-shadow:
@@ -1461,16 +1451,7 @@
     0 0 18px rgba(229, 9, 20, 0.12);
 }
 
-.netflixLink:hover,
-.netflixLink:active {
-  transform: translateY(-3px);
-  border-color: rgba(255, 45, 60, 0.56);
-  box-shadow:
-    0 0 0 1px rgba(255, 45, 60, 0.22),
-    0 0 24px rgba(229, 9, 20, 0.28);
-}
-
-/* 4) Segundo beneficio verde premium */
+/* Segundo beneficio verde */
 .greenCard {
   border: 2px solid rgba(0, 255, 136, 0.3);
   box-shadow:
@@ -1492,12 +1473,7 @@
   color: #00ff88;
 }
 
-.greenCard h3 strong,
-.greenCard p strong {
-  color: #00ff88;
-}
-
-/* 5) Microinteracciones premium */
+/* Microinteracciones premium */
 .hero,
 .section,
 .benefitsSection,
@@ -1582,42 +1558,87 @@
   }
 }
 
-.platformCard,
-.stepItem,
-.infoCard,
-.benefitCard,
-.pricingItem,
-.countBox,
-.promoBenefit {
-  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+/* Mobile definitivo: header fijo, compacto y sin bloque grueso */
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 156px;
+    padding: 10px 9px 42px;
+  }
+
+  .topbarWrap {
+    width: calc(100% - 18px);
+    padding-top: 10px;
+  }
+
+  .topbar {
+    padding: 10px;
+    gap: 10px;
+    border-radius: 18px;
+  }
+
+  .brandBlock {
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+
+  .brandBlock strong {
+    font-size: 1.2rem;
+  }
+
+  .brandBlock span {
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+  }
+
+  .topActions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 6px;
+    border-radius: 12px;
+    font-size: 0.68rem;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .mainContent {
+    padding-top: var(--topbar-height);
+  }
 }
 
-.platformCard:hover,
-.stepItem:hover,
-.pricingItem:hover,
-.countBox:hover,
-.promoBenefit:hover {
-  transform: translateY(-4px);
+@media (max-width: 560px) {
+  .page {
+    --topbar-height: 154px;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    min-height: 36px;
+    font-size: 0.62rem;
+    padding: 0 4px;
+  }
 }
 
-.promoPriceMain,
-.priceNow,
-.exampleProfitBox strong {
-  text-shadow:
-    0 0 14px rgba(0, 251, 255, 0.26),
-    0 0 34px rgba(0, 251, 255, 0.16);
-}
+@media (max-width: 370px) {
+  .page {
+    --topbar-height: 158px;
+  }
 
-.brandBlock:focus-visible,
-.topLink:focus-visible,
-.topLinkPrimary:focus-visible,
-.heroBtnPrimary:focus-visible,
-.heroBtnSecondary:focus-visible,
-.primaryAction:focus-visible,
-.secondaryAction:focus-visible,
-.netflixLink:focus-visible {
-  outline: 2px solid rgba(0, 251, 255, 0.75);
-  outline-offset: 4px;
+  .topLink,
+  .topLinkPrimary {
+    font-size: 0.58rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1627,187 +1648,5 @@
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* ============================= */
-/* HEADER FIJO IGUAL A PORTADA - COMPACTO */
-/* ============================= */
-
-.topbarWrap {
-  position: fixed !important;
-  top: 0 !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  width: min(1320px, calc(100% - 32px)) !important;
-  margin: 0 !important;
-  z-index: 60 !important;
-  padding-top: 8px !important;
-  backdrop-filter: blur(10px);
-}
-
-.topbar {
-  min-height: 78px;
-}
-
-.mainContent {
-  padding-top: 118px !important;
-}
-
-.topActions {
-  align-items: center;
-}
-
-.topLink,
-.topLinkPrimary {
-  cursor: pointer;
-}
-
-/* CELULAR: misma sensación que portada, header fijo pero delgado */
-@media (max-width: 760px) {
-  .page {
-    padding: 10px 9px 42px !important;
-  }
-
-  .topbarWrap {
-    width: calc(100% - 18px) !important;
-    padding-top: 10px !important;
-  }
-
-  .topbar {
-    border-radius: 18px !important;
-    padding: 12px !important;
-    gap: 12px !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    text-align: center !important;
-    min-height: auto !important;
-  }
-
-  .brandBlock {
-    width: 100% !important;
-    align-items: center !important;
-    text-align: center !important;
-  }
-
-  .brandBlock strong {
-    font-size: 1.2rem !important;
-  }
-
-  .brandBlock span {
-    font-size: 0.68rem !important;
-    letter-spacing: 2px !important;
-  }
-
-  .topActions {
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-  }
-
-  .topLink,
-  .topLinkPrimary {
-    width: 100% !important;
-    min-height: 44px !important;
-    padding: 0 8px !important;
-    border-radius: 14px !important;
-    font-size: 0.72rem !important;
-    letter-spacing: 0.2px !important;
-    white-space: nowrap !important;
-  }
-
-  .mainContent {
-    padding-top: 178px !important;
-  }
-
-  .hero {
-    margin-top: 0 !important;
-  }
-}
-
-@media (max-width: 560px) {
-  .page {
-    padding: 10px 9px 36px !important;
-  }
-
-  .topbar {
-    padding: 12px !important;
-    gap: 12px !important;
-  }
-
-  .topActions {
-    gap: 8px !important;
-  }
-
-  .topLink,
-  .topLinkPrimary {
-    min-height: 42px !important;
-    font-size: 0.68rem !important;
-    padding: 0 6px !important;
-  }
-
-  .mainContent {
-    padding-top: 178px !important;
-  }
-}
-
-@media (max-width: 390px) {
-  .topLink,
-  .topLinkPrimary {
-    font-size: 0.62rem !important;
-    padding: 0 4px !important;
-  }
-
-  .mainContent {
-    padding-top: 180px !important;
-  }
-}
-
-/* ===== FIX FINAL HEADER MOBILE ===== */
-
-@media (max-width: 760px) {
-  .topbarWrap {
-    position: fixed !important;
-    top: 0 !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: calc(100% - 18px) !important;
-    padding-top: 10px !important;
-    z-index: 60 !important;
-  }
-
-  .topbar {
-    padding: 10px !important;
-    gap: 10px !important;
-    border-radius: 18px !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    text-align: center !important;
-  }
-
-  .brandBlock {
-    width: 100% !important;
-    text-align: center !important;
-  }
-
-  .topActions {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    gap: 6px !important;
-  }
-
-  .topLink,
-  .topLinkPrimary {
-    flex: 1 !important;
-    min-height: 38px !important;
-    font-size: 0.7rem !important;
-    padding: 0 6px !important;
-    border-radius: 12px !important;
-  }
-
-  .mainContent {
-    padding-top: 140px !important;
   }
 }
