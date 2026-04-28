@@ -1631,7 +1631,7 @@
 }
 
 /* ============================= */
-/* HEADER FIJO COMPACTO TIPO PORTADA */
+/* HEADER FIJO IGUAL A PORTADA - COMPACTO */
 /* ============================= */
 
 .topbarWrap {
@@ -1642,8 +1642,12 @@
   width: min(1320px, calc(100% - 32px)) !important;
   margin: 0 !important;
   z-index: 60 !important;
-  padding-top: 8px;
+  padding-top: 8px !important;
   backdrop-filter: blur(10px);
+}
+
+.topbar {
+  min-height: 78px;
 }
 
 .mainContent {
@@ -1659,60 +1663,62 @@
   cursor: pointer;
 }
 
-/* Celular: compacto como la portada, sin header gigante */
+/* CELULAR: misma sensación que portada, header fijo pero delgado */
 @media (max-width: 760px) {
   .page {
-    padding: 10px 9px 42px;
+    padding: 10px 9px 42px !important;
   }
 
   .topbarWrap {
     width: calc(100% - 18px) !important;
-    padding-top: 10px;
+    padding-top: 10px !important;
   }
 
   .topbar {
-    border-radius: 18px;
-    padding: 12px;
-    gap: 12px;
+    border-radius: 18px !important;
+    padding: 12px !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    text-align: center !important;
+    min-height: auto !important;
   }
 
   .brandBlock {
-    width: 100%;
-    align-items: center;
-    text-align: center;
+    width: 100% !important;
+    align-items: center !important;
+    text-align: center !important;
   }
 
   .brandBlock strong {
-    font-size: 1.2rem;
+    font-size: 1.2rem !important;
   }
 
   .brandBlock span {
-    font-size: 0.68rem;
-    letter-spacing: 2px;
+    font-size: 0.68rem !important;
+    letter-spacing: 2px !important;
   }
 
   .topActions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
   }
 
   .topLink,
   .topLinkPrimary {
-    width: 100%;
-    min-height: 46px;
-    padding: 0 12px;
-    border-radius: 16px;
-    font-size: 0.9rem;
-  }
-
-  .topActions .topLink:last-child {
-    grid-column: 1 / -1;
+    width: 100% !important;
+    min-height: 44px !important;
+    padding: 0 8px !important;
+    border-radius: 14px !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.2px !important;
+    white-space: nowrap !important;
   }
 
   .mainContent {
-    padding-top: 238px !important;
+    padding-top: 178px !important;
   }
 
   .hero {
@@ -1722,32 +1728,38 @@
 
 @media (max-width: 560px) {
   .page {
-    padding: 10px 9px 36px;
+    padding: 10px 9px 36px !important;
   }
 
   .topbar {
-    padding: 12px;
-    gap: 12px;
+    padding: 12px !important;
+    gap: 12px !important;
   }
 
   .topActions {
-    gap: 10px;
+    gap: 8px !important;
   }
 
   .topLink,
   .topLinkPrimary {
-    min-height: 44px;
-    font-size: 0.86rem;
+    min-height: 42px !important;
+    font-size: 0.68rem !important;
+    padding: 0 6px !important;
   }
 
   .mainContent {
-    padding-top: 242px !important;
+    padding-top: 178px !important;
   }
 }
 
 @media (max-width: 390px) {
+  .topLink,
+  .topLinkPrimary {
+    font-size: 0.62rem !important;
+    padding: 0 4px !important;
+  }
+
   .mainContent {
-    padding-top: 252px !important;
+    padding-top: 180px !important;
   }
 }
-
