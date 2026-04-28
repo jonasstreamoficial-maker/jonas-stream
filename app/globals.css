@@ -432,19 +432,6 @@ img {
   transform: translateY(-4px);
 }
 
-.btn1 {
-  background: linear-gradient(
-    135deg,
-    rgba(1, 231, 239, 0.35),
-    rgba(1, 139, 144, 0.18)
-  );
-  border-color: rgba(1, 231, 239, 0.35);
-  box-shadow:
-    0 0 0 1px rgba(1, 231, 239, 0.15),
-    0 0 18px rgba(1, 231, 239, 0.2);
-  transition: all 0.3s ease;
-}
-
 .btn1:hover {
   transform: translateY(-4px) scale(1.03);
   box-shadow:
@@ -1342,10 +1329,6 @@ html::-webkit-scrollbar-thumb:hover {
 
 /* EFECTO CLICK PRO PARA BOTONES */
 
-.btn:active {
-  transform: translateY(1px) scale(0.98);
-}
-
 .btn1:active {
   transform: translateY(1px) scale(0.98);
   box-shadow:
@@ -1402,4 +1385,93 @@ html::-webkit-scrollbar-thumb:hover {
   );
   z-index: -1;
   opacity: 0.6;
+}
+
+/* Aparición suave de secciones */
+.hero-main,
+.benefits-panel,
+.stats-panel,
+.social-panel,
+.footer {
+  animation: sectionReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.benefits-panel {
+  animation-delay: 0.12s;
+}
+
+.stats-panel {
+  animation-delay: 0.22s;
+}
+
+.social-panel {
+  animation-delay: 0.32s;
+}
+
+.footer {
+  animation-delay: 0.42s;
+}
+
+@keyframes sectionReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(26px) scale(0.98);
+    filter: blur(6px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* Botón principal más fino */
+.btn1::after {
+  opacity: 0.45;
+  filter: blur(0.3px);
+}
+
+.btn1:hover::after {
+  opacity: 0.75;
+}
+
+/* Click más real */
+.btn:active {
+  transform: translateY(2px) scale(0.97);
+}
+
+/* Cards premium */
+.card:hover {
+  border-color: rgba(0, 251, 255, 0.22);
+  box-shadow:
+    0 20px 38px rgba(0, 0, 0, 0.28),
+    0 0 28px rgba(0, 251, 255, 0.12);
+}
+
+/* +2K clientes más poderoso */
+.card h3 {
+  text-shadow:
+    0 0 12px rgba(1, 231, 239, 0.25),
+    0 0 26px rgba(0, 251, 255, 0.12);
+}
+
+/* Mejor enfoque visual para botones y links */
+.btn:focus-visible,
+.top-link:focus-visible,
+.brand-logo:focus-visible,
+.social-link:focus-visible {
+  outline: 2px solid rgba(0, 251, 255, 0.75);
+  outline-offset: 4px;
+}
+
+/* Reduce animaciones si el usuario tiene modo accesible */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
