@@ -1763,3 +1763,51 @@
     padding-top: 180px !important;
   }
 }
+
+/* ===== FIX FINAL HEADER MOBILE ===== */
+
+@media (max-width: 760px) {
+  .topbarWrap {
+    position: fixed !important;
+    top: 0 !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 18px) !important;
+    padding-top: 10px !important;
+    z-index: 60 !important;
+  }
+
+  .topbar {
+    padding: 10px !important;
+    gap: 10px !important;
+    border-radius: 18px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .brandBlock {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .topActions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    flex: 1 !important;
+    min-height: 38px !important;
+    font-size: 0.7rem !important;
+    padding: 0 6px !important;
+    border-radius: 12px !important;
+  }
+
+  .mainContent {
+    padding-top: 140px !important;
+  }
+}
