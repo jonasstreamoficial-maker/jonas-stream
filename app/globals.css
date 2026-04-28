@@ -1303,6 +1303,15 @@ html::-webkit-scrollbar-thumb:hover {
 }
 
 .benefit.velocidad:hover {
+  border-color: #ff8c00;
+  box-shadow:
+    0 0 0 1px rgba(255, 140, 0, 0.3),
+    0 0 18px rgba(255, 140, 0, 0.35),
+    0 0 35px rgba(255, 140, 0, 0.25);
+}
+
+/* GARANTÍA - AZUL */
+.benefit.garantia:hover {
   border-color: #00fbff;
   box-shadow:
     0 0 0 1px rgba(0, 251, 255, 0.3),
@@ -1310,14 +1319,7 @@ html::-webkit-scrollbar-thumb:hover {
     0 0 35px rgba(0, 251, 255, 0.25);
 }
 
-.benefit.garantia:hover {
-  border-color: #9b5cff;
-  box-shadow:
-    0 0 0 1px rgba(155, 92, 255, 0.3),
-    0 0 18px rgba(155, 92, 255, 0.35),
-    0 0 35px rgba(155, 92, 255, 0.25);
-}
-
+/* AHORRO - VERDE */
 .benefit.ahorro:hover {
   border-color: #00ff88;
   box-shadow:
