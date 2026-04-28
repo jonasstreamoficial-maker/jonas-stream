@@ -1338,3 +1338,33 @@ html::-webkit-scrollbar-thumb:hover {
       0 0 12px rgba(1, 231, 239, 0.1);
   }
 }
+
+/* EFECTO CLICK PRO PARA BOTONES */
+
+.btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn1:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.18),
+    0 0 18px rgba(0, 251, 255, 0.25);
+}
+
+.btn2:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.16),
+    0 0 12px rgba(1, 231, 239, 0.12);
+}
+
+/* BORDE MÁS PREMIUM AL PASAR EL MOUSE */
+
+.btn1:hover {
+  letter-spacing: 1px;
+}
+
+.btn2:hover {
+  letter-spacing: 1px;
+}
