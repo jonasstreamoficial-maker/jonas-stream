@@ -986,7 +986,7 @@ footer {
   }
 
   .hero-right {
-    order: -1;
+    order: 0;
   }
 
   .logo-box {
@@ -1473,5 +1473,103 @@ html::-webkit-scrollbar-thumb:hover {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ==============================
+   AJUSTES FINALES JONAS STREAM
+   Mantiene la paleta principal y conserva naranja/verde en beneficios.
+   ============================== */
+
+/* Mejora la legibilidad del texto largo en pantallas grandes */
+.text,
+.social-text,
+.card p {
+  text-wrap: pretty;
+}
+
+/* Evita que animaciones de entrada vuelvan a competir visualmente */
+.topbar,
+.hero-left,
+.hero-right,
+.logo-box {
+  animation-fill-mode: both;
+}
+
+/* El logo conserva presencia, pero la venta queda primero en tablet/celular */
+@media (max-width: 1100px) {
+  .hero-right {
+    order: 0;
+  }
+}
+
+/* Header móvil más compacto: evita que los botones bajen demasiado la portada */
+@media (max-width: 560px) {
+  .topbar-right {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .top-link {
+    width: auto;
+    min-height: 44px;
+    padding: 11px 10px;
+    font-size: 0.74rem;
+    line-height: 1.2;
+  }
+
+  .brand-logo strong {
+    font-size: 1.05rem;
+    letter-spacing: 1.6px;
+  }
+
+  .brand-logo span {
+    font-size: 0.62rem;
+    letter-spacing: 1.6px;
+  }
+}
+
+/* CTA principal más premium sin perder fuerza */
+.btn1 {
+  isolation: isolate;
+}
+
+.btn1::after {
+  pointer-events: none;
+}
+
+/* Mejora táctil en celulares */
+@media (hover: none) {
+  .btn:hover,
+  .btn1:hover,
+  .btn2:hover,
+  .card:hover,
+  .benefit:hover,
+  .social-link:hover,
+  .logo-frame:hover img,
+  .top-link:hover {
+    transform: none;
+  }
+}
+
+/* Ajuste visual para pantallas muy pequeñas */
+@media (max-width: 380px) {
+  .title {
+    font-size: 1.72rem;
+    letter-spacing: 2px;
+  }
+
+  .sub {
+    letter-spacing: 2px;
+  }
+
+  .mini {
+    letter-spacing: 3px;
+  }
+
+  .btn {
+    font-size: 0.82rem;
   }
 }
