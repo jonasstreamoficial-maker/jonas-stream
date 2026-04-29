@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://jonasstream.xyz"),
+
   title: "Jonas Stream | Oficial",
   description:
     "Tu proveedor de confianza en plataformas de streaming, música y accesos digitales premium.",
+
   keywords: [
     "Jonas Stream",
     "streaming",
@@ -15,8 +18,10 @@ export const metadata: Metadata = {
     "Spotify",
     "Disney Plus",
   ],
+
   authors: [{ name: "Jonas Stream" }],
   creator: "Jonas Stream",
+
   openGraph: {
     title: "Jonas Stream | Oficial",
     description:
