@@ -1650,3 +1650,214 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================= */
+/* AJUSTES FINALES PRO - SOCIOS */
+/* Base visual alineada con la portada Jonas Stream */
+/* ============================= */
+
+.page {
+  background-color: #000000;
+}
+
+.heroTitle,
+.sectionTitle,
+.promoTitle {
+  text-wrap: balance;
+}
+
+.heroText,
+.exampleLead,
+.infoCard p,
+.benefitCard p,
+.stepItem p,
+.pricingItem {
+  text-wrap: pretty;
+}
+
+.hero,
+.section,
+.benefitsSection,
+.pricingSection,
+.footerWrap {
+  width: min(1320px, 100%);
+}
+
+/* Mantiene todas las secciones centradas y con el mismo aire premium de portada */
+.sectionHeader,
+.sectionHeaderCenter {
+  text-align: center;
+}
+
+.sectionHeader {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Botones más consistentes con la portada */
+.heroBtnPrimary,
+.heroBtnSecondary,
+.primaryAction,
+.secondaryAction,
+.netflixLink,
+.topLink,
+.topLinkPrimary {
+  text-align: center;
+}
+
+.heroBtnSecondary,
+.secondaryAction {
+  box-shadow: inset 0 0 0 1px rgba(236, 255, 255, 0.015);
+}
+
+.topLink:hover,
+.topLinkPrimary:hover {
+  color: #ffffff;
+  border-color: rgba(1, 231, 239, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.06),
+    0 0 18px rgba(1, 231, 239, 0.08);
+}
+
+/* Footer legal igual al concepto de portada */
+.footerWrap {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+}
+
+.footerLegal {
+  padding: 22px 24px;
+  border-radius: 24px;
+  background: rgba(3, 19, 22, 0.82);
+  border: 1px solid rgba(236, 255, 255, 0.05);
+  color: var(--muted);
+  text-align: center;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.16),
+    inset 0 0 0 1px rgba(236, 255, 255, 0.02);
+}
+
+.footerLinks {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+}
+
+.footerLinks a {
+  color: var(--cyan);
+  text-decoration: none;
+  font-weight: 800;
+  transition: 0.25s ease;
+}
+
+.footerLinks a:hover {
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(1, 231, 239, 0.22);
+}
+
+.footerSeparator {
+  color: rgba(236, 255, 255, 0.28);
+}
+
+/* Accesibilidad visual */
+.heroBtnPrimary:focus-visible,
+.heroBtnSecondary:focus-visible,
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible,
+.netflixLink:focus-visible,
+.topLink:focus-visible,
+.topLinkPrimary:focus-visible,
+.brandBlock:focus-visible,
+.closeButton:focus-visible,
+.footerLinks a:focus-visible {
+  outline: 2px solid rgba(0, 251, 255, 0.75);
+  outline-offset: 4px;
+}
+
+/* Ajustes de tarjetas para que todo se vea centrado en mobile */
+@media (max-width: 760px) {
+  .sectionHeader,
+  .sectionHeaderCenter,
+  .exampleLead,
+  .infoCard,
+  .benefitCard,
+  .pricingCard {
+    text-align: center;
+  }
+
+  .exampleLeft,
+  .exampleRight,
+  .infoCard,
+  .benefitCard,
+  .pricingCard {
+    padding: 20px 16px;
+  }
+
+  .stepItem {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .stepItem span {
+    margin-bottom: 2px;
+  }
+
+  .footerLegal {
+    padding: 18px 14px;
+    border-radius: 18px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .topActions {
+    gap: 5px;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    font-size: 0.56rem;
+    padding: 0 3px;
+  }
+
+  .heroTitle {
+    font-size: 1.46rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.18rem;
+  }
+
+  .heroBadge,
+  .sectionKicker,
+  .infoKicker {
+    letter-spacing: 1.2px;
+  }
+
+  .platformCard {
+    min-height: 66px;
+  }
+}
+
+@media (hover: none) {
+  .heroBtnPrimary:hover,
+  .heroBtnSecondary:hover,
+  .primaryAction:hover,
+  .secondaryAction:hover,
+  .netflixLink:hover,
+  .topLink:hover,
+  .topLinkPrimary:hover,
+  .platformCard:hover,
+  .benefitCard:hover,
+  .netflixCard:hover,
+  .greenCard:hover {
+    transform: none;
+  }
+}
