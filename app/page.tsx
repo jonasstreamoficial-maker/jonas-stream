@@ -88,7 +88,10 @@ export default function HomePage() {
               </div>
             </div>
 
-            <section className="panel benefits-panel" aria-label="Beneficios principales">
+            <section
+              className="panel benefits-panel"
+              aria-label="Beneficios principales"
+            >
               <div className="benefits-joined">
                 <div className="benefits">
                   <div className="benefit velocidad">
@@ -121,7 +124,10 @@ export default function HomePage() {
               </div>
             </section>
 
-            <section className="panel stats-panel" aria-label="Confianza y soporte">
+            <section
+              className="panel stats-panel"
+              aria-label="Confianza y soporte"
+            >
               <div className="stats">
                 <article className="card">
                   <span className="card-kicker">Confianza</span>
@@ -153,7 +159,10 @@ export default function HomePage() {
               </div>
             </section>
 
-            <section className="panel social-panel" aria-labelledby="social-title">
+            <section
+              className="panel social-panel"
+              aria-labelledby="social-title"
+            >
               <div className="social-head">
                 <h2 className="social-title" id="social-title">
                   Síguenos en Nuestras Redes Sociales
@@ -235,15 +244,11 @@ export default function HomePage() {
           <div className="footer">
             © 2026 Jonas Stream. Todos los derechos reservados.
 
-            <div className="footer">
-  © 2026 Jonas Stream. Todos los derechos reservados.
-
-  <div className="footer-links">
-    <a href="/terminos">Términos y Condiciones</a>
-    <span className="footer-separator">•</span>
-    <a href="/privacidad">Política de Privacidad</a>
-  </div>
-</div>
+            <div className="footer-links">
+              <Link href="/terminos">Términos y Condiciones</Link>
+              <span className="footer-separator">•</span>
+              <Link href="/privacidad">Política de Privacidad</Link>
+            </div>
           </div>
         </div>
       </footer>
