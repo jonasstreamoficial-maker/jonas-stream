@@ -234,6 +234,16 @@ export default function HomePage() {
         <div className="container">
           <div className="footer">
             © 2026 Jonas Stream. Todos los derechos reservados.
+
+            <div className="footer">
+  © 2026 Jonas Stream. Todos los derechos reservados.
+
+  <div className="footer-links">
+    <a href="/terminos">Términos y Condiciones</a>
+    <span className="footer-separator">•</span>
+    <a href="/privacidad">Política de Privacidad</a>
+  </div>
+</div>
           </div>
         </div>
       </footer>
