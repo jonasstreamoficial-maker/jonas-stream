@@ -1541,3 +1541,127 @@
     transform: none;
   }
 }
+
+
+/* ==========================================================
+   FIX FINAL SOLICITADO - VER PRECIOS
+   Mantiene el archivo completo, solo corrige filtros, CTAs y texto comercial.
+   ========================================================== */
+
+/* Oculta cualquier botón anterior de producto si quedó renderizado */
+.buyButton {
+  display: none !important;
+}
+
+/* Filtros más grandes y cómodos en celular y escritorio */
+.filterPanel {
+  align-items: stretch;
+}
+
+.searchBox,
+.filterGroup {
+  padding: 24px 22px;
+  border-radius: 26px;
+  min-height: 168px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.searchBox span,
+.filterGroup > span {
+  font-size: 0.82rem;
+  letter-spacing: 2.2px;
+  margin-bottom: 14px;
+}
+
+.searchBox input {
+  min-height: 62px;
+  border-radius: 18px;
+  font-size: 1rem;
+}
+
+.filterButtons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.filterButtons button {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 18px;
+  font-size: 1rem;
+}
+
+/* En escritorio los filtros se mantienen prolijos y con altura premium */
+@media (min-width: 1101px) {
+  .filterPanel {
+    grid-template-columns: 1.15fr 1fr 1fr;
+  }
+
+  .filterButtons button {
+    min-height: 50px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Sección final totalmente centrada */
+.bottomPanel {
+  text-align: center;
+}
+
+.bottomPanel .sectionKicker,
+.bottomPanel .sectionTitle,
+.bottomText {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.bottomActions {
+  justify-content: center;
+}
+
+/* Botones finales con texto real de venta */
+.bottomActions .heroBtnSecondary,
+.bottomActions .heroBtnPrimary {
+  min-width: 240px;
+}
+
+/* Mejora mobile: filtros grandes, pero sin sentirse exagerados */
+@media (max-width: 760px) {
+  .searchBox,
+  .filterGroup {
+    min-height: auto;
+    padding: 22px 18px;
+    border-radius: 24px;
+  }
+
+  .searchBox span,
+  .filterGroup > span {
+    font-size: 0.86rem;
+    letter-spacing: 2.6px;
+  }
+
+  .searchBox input {
+    min-height: 60px;
+    font-size: 0.95rem;
+  }
+
+  .filterButtons {
+    gap: 12px;
+  }
+
+  .filterButtons button {
+    min-height: 58px;
+    font-size: 0.98rem;
+    border-radius: 18px;
+  }
+
+  .bottomActions .heroBtnSecondary,
+  .bottomActions .heroBtnPrimary {
+    min-width: 0;
+    width: 100%;
+  }
+}

@@ -451,9 +451,7 @@ export default function VerPreciosPage() {
           <div className={styles.catalogGrid}>
             {filteredProducts.map((product) => {
               const usd = product.pen / USD_RATE;
-              const purchaseMessage = `Hola Jonas Stream, quiero consultar por ${product.name} (${product.type}) de ${product.duration}. Precio referencial: S/ ${formatMoney(product.pen)}.`;
-
-              return (
+return (
                 <article
                   key={product.id}
                   className={`${styles.productCard} ${styles[`accent_${product.accent}`]}`}
@@ -519,16 +517,7 @@ export default function VerPreciosPage() {
                         <strong>$ {formatMoney(usd)}</strong>
                       </div>
                     </div>
-
-                    <a
-                      href={buildWhatsAppLink(purchaseMessage)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.buyButton}
-                    >
-                      CONSULTAR PRODUCTO
-                    </a>
-                  </div>
+</div>
                 </article>
               );
             })}
@@ -553,18 +542,18 @@ export default function VerPreciosPage() {
 
             <div className={styles.bottomActions}>
               <Link href="/quiero-ser-socio" className={styles.heroBtnSecondary}>
-                VER PLAN SOCIO
+                QUIERO SER SOCIO
               </Link>
 
               <a
                 href={buildWhatsAppLink(
-                  "Hola Jonas Stream, quiero consultar disponibilidad de productos y promociones del día."
+                  "Hola Jonas Stream, quiero activar mi acceso y consultar disponibilidad de productos."
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.heroBtnPrimary}
               >
-                CONSULTAR POR WHATSAPP
+                QUIERO ACTIVAR MI ACCESO
               </a>
             </div>
           </div>
