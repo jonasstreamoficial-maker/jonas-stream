@@ -1764,3 +1764,162 @@
     font-size: 0.88rem !important;
   }
 }
+
+
+/* ==========================================================
+   FIX DEFINITIVO MOBILE/ANCHO - VER PRECIOS
+   Corrige hero tapado, botones hero, y filtros descuadrados.
+   ========================================================== */
+
+/* Desktop: mantener los filtros finos y alineados */
+.filterPanel {
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: 1.1fr 0.95fr 0.95fr !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+}
+
+.searchBox,
+.filterGroup {
+  min-height: 146px !important;
+  padding: 18px !important;
+  border-radius: 22px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+.searchBox input {
+  width: 100% !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  border-radius: 15px !important;
+}
+
+.filterButtons {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+}
+
+.filterButtons button {
+  width: 100% !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  border-radius: 14px !important;
+  font-size: 0.84rem !important;
+  padding: 0 10px !important;
+}
+
+/* Tablet: una sola columna, pero no gigante */
+@media (max-width: 1100px) {
+  .filterPanel {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .searchBox,
+  .filterGroup {
+    min-height: auto !important;
+  }
+}
+
+/* Mobile real: separar el contenido del header fijo y compactar filtros */
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 205px !important;
+  }
+
+  .mainContent {
+    padding-top: calc(var(--topbar-height) + 18px) !important;
+  }
+
+  .hero {
+    margin-top: 0 !important;
+    padding: 24px 14px !important;
+  }
+
+  .heroActions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  .heroBtnPrimary,
+  .heroBtnSecondary {
+    width: 100% !important;
+    min-height: 58px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .filterPanel {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .searchBox,
+  .filterGroup {
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 16px 14px !important;
+    border-radius: 20px !important;
+    justify-content: flex-start !important;
+  }
+
+  .searchBox span,
+  .filterGroup > span {
+    font-size: 0.74rem !important;
+    letter-spacing: 2px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .searchBox input {
+    min-height: 48px !important;
+    height: 48px !important;
+    border-radius: 14px !important;
+    font-size: 0.88rem !important;
+  }
+
+  .filterButtons {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+
+  .filterButtons button {
+    min-height: 46px !important;
+    height: 46px !important;
+    border-radius: 14px !important;
+    font-size: 0.86rem !important;
+    padding: 0 8px !important;
+  }
+}
+
+/* iPhone ancho pequeño: evitar que se vea tosco */
+@media (max-width: 430px) {
+  .page {
+    --topbar-height: 205px !important;
+  }
+
+  .mainContent {
+    padding-top: calc(var(--topbar-height) + 16px) !important;
+  }
+
+  .searchBox,
+  .filterGroup {
+    padding: 15px 12px !important;
+  }
+
+  .searchBox input {
+    font-size: 0.84rem !important;
+  }
+
+  .filterButtons button {
+    min-height: 44px !important;
+    height: 44px !important;
+    font-size: 0.84rem !important;
+  }
+}

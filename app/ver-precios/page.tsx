@@ -358,13 +358,13 @@ export default function VerPreciosPage() {
           </p>
 
           <div className={styles.heroActions}>
-            <a href="#catalogo" className={styles.heroBtnPrimary}>
+            <Link href="/quiero-ser-socio" className={styles.heroBtnPrimary}>
+              QUIERO SER SOCIO
+            </Link>
+
+            <a href="#catalogo" className={styles.heroBtnSecondary}>
               VER PRODUCTOS
             </a>
-
-            <Link href="/quiero-ser-socio" className={styles.heroBtnSecondary}>
-              QUIERO REVENDER
-            </Link>
           </div>
         </section>
 
