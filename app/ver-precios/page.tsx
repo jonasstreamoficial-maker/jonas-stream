@@ -553,7 +553,7 @@ return (
                 rel="noopener noreferrer"
                 className={styles.heroBtnPrimary}
               >
-                QUIERO ACTIVAR MI ACCESO
+                ACTIVAR MI ACCESO
               </a>
             </div>
           </div>

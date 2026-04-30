@@ -1665,3 +1665,102 @@
     width: 100%;
   }
 }
+
+
+/* ==========================================================
+   FIX FINO FINAL - FILTROS VER PRECIOS
+   Corrige tamaño tosco, mantiene ancho cómodo y estilo portada.
+   ========================================================== */
+
+/* Filtros en escritorio: anchos proporcionados, no altos */
+.filterPanel {
+  display: grid;
+  grid-template-columns: 1.1fr 0.95fr 0.95fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.searchBox,
+.filterGroup {
+  min-height: auto !important;
+  padding: 18px 18px !important;
+  border-radius: 22px !important;
+  justify-content: flex-start !important;
+}
+
+.searchBox span,
+.filterGroup > span {
+  font-size: 0.74rem !important;
+  letter-spacing: 1.8px !important;
+  margin-bottom: 10px !important;
+}
+
+.searchBox input {
+  min-height: 52px !important;
+  border-radius: 16px !important;
+  font-size: 0.95rem !important;
+  padding: 0 14px !important;
+}
+
+.filterButtons {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 9px !important;
+}
+
+.filterButtons button {
+  min-height: 44px !important;
+  height: auto !important;
+  border-radius: 14px !important;
+  font-size: 0.86rem !important;
+  padding: 0 10px !important;
+}
+
+/* Mobile: mantener ancho completo, pero con altura y letras finas */
+@media (max-width: 760px) {
+  .filterPanel {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .searchBox,
+  .filterGroup {
+    padding: 18px 14px !important;
+    border-radius: 20px !important;
+  }
+
+  .searchBox span,
+  .filterGroup > span {
+    font-size: 0.78rem !important;
+    letter-spacing: 2px !important;
+    margin-bottom: 11px !important;
+  }
+
+  .searchBox input {
+    min-height: 52px !important;
+    border-radius: 15px !important;
+    font-size: 0.92rem !important;
+  }
+
+  .filterButtons {
+    gap: 10px !important;
+  }
+
+  .filterButtons button {
+    min-height: 48px !important;
+    border-radius: 15px !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .filterButtons button {
+    min-height: 46px !important;
+    font-size: 0.86rem !important;
+  }
+
+  .searchBox input {
+    min-height: 50px !important;
+    font-size: 0.88rem !important;
+  }
+}
