@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 import styles from "./page.module.css";
 
 const USD_RATE = 3.75;
@@ -23,7 +24,7 @@ type ProductAccent =
   | "viki";
 
 type Product = {
-  id: number;
+  id: string;
   category: string;
   name: string;
   subtitle: string;
@@ -36,190 +37,30 @@ type Product = {
   pen: number;
   badge: string;
   accent: ProductAccent;
+  image?: string | null;
 };
 
-const products: Product[] = [
-  {
-    id: 1,
-    category: "Streaming",
-    name: "Netflix Premium",
-    subtitle: "Perfil privado disponible",
-    type: "Perfil",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: true,
-    pen: 8,
-    badge: "Más vendido",
-    accent: "netflix",
-  },
-  {
-    id: 2,
-    category: "Streaming",
-    name: "Disney+ Premium",
-    subtitle: "Perfil privado disponible",
-    type: "Perfil",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: true,
-    pen: 8,
-    badge: "Premium",
-    accent: "disney",
-  },
-  {
-    id: 3,
-    category: "Streaming",
-    name: "Prime Video",
-    subtitle: "Cuenta completa disponible",
-    type: "Cuenta completa",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: true,
-    pen: 10,
-    badge: "Rentable",
-    accent: "prime",
-  },
-  {
-    id: 4,
-    category: "Streaming",
-    name: "Max",
-    subtitle: "Perfil privado disponible",
-    type: "Perfil",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Últimas unidades",
-    status: "LIMITADO",
-    renewable: true,
-    pen: 9,
-    badge: "Top",
-    accent: "max",
-  },
-  {
-    id: 5,
-    category: "Música",
-    name: "Spotify Premium",
-    subtitle: "Perfil privado renovable",
-    type: "Perfil",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: true,
-    pen: 10,
-    badge: "Popular",
-    accent: "spotify",
-  },
-  {
-    id: 6,
-    category: "Video",
-    name: "YouTube Premium",
-    subtitle: "Perfil privado disponible",
-    type: "Perfil",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: true,
-    pen: 11,
-    badge: "Recomendado",
-    accent: "youtube",
-  },
-  {
-    id: 7,
-    category: "Anime",
-    name: "Crunchyroll",
-    subtitle: "Perfil privado disponible",
-    type: "Perfil",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: true,
-    pen: 7,
-    badge: "Venta rápida",
-    accent: "crunchy",
-  },
-  {
-    id: 8,
-    category: "Streaming",
-    name: "Paramount+",
-    subtitle: "Perfil privado disponible",
-    type: "Perfil",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: true,
-    pen: 6,
-    badge: "Económico",
-    accent: "paramount",
-  },
-  {
-    id: 9,
-    category: "Diseño",
-    name: "Canva Pro",
-    subtitle: "Cuenta completa disponible",
-    type: "Cuenta completa",
-    duration: "12 meses",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: true,
-    pen: 15,
-    badge: "Herramienta Pro",
-    accent: "canva",
-  },
-  {
-    id: 10,
-    category: "Oficina",
-    name: "Microsoft 365",
-    subtitle: "Cuenta completa disponible",
-    type: "Cuenta completa",
-    duration: "12 meses",
-    provider: "Jonas Stream",
-    stockText: "Stock disponible",
-    status: "ACTIVO",
-    renewable: false,
-    pen: 20,
-    badge: "Licencia",
-    accent: "office",
-  },
-  {
-    id: 11,
-    category: "TV Digital",
-    name: "IPTV",
-    subtitle: "Cuenta completa disponible",
-    type: "Cuenta completa",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Últimas unidades",
-    status: "LIMITADO",
-    renewable: true,
-    pen: 12,
-    badge: "Alto margen",
-    accent: "iptv",
-  },
-  {
-    id: 12,
-    category: "Streaming",
-    name: "Viki Pass",
-    subtitle: "Perfil privado disponible",
-    type: "Perfil",
-    duration: "1 mes",
-    provider: "Jonas Stream",
-    stockText: "Consultar reposición",
-    status: "AGOTADO",
-    renewable: false,
-    pen: 8,
-    badge: "Consultar",
-    accent: "viki",
-  },
-];
+type ProductoDB = {
+  id: string;
+  nombre: string | null;
+  descripcion: string | null;
+  precio: number | null;
+  stock: number | null;
+  imagen?: string | null;
+  categoria: string | null;
+  tipo_venta: string | null;
+  estado: string | null;
+  publicacion: boolean | null;
+  destacado: boolean | null;
+  oferta: boolean | null;
+  duracion?: string | null;
+  proveedor?: string | null;
+  renovable?: boolean | null;
+  stock_texto?: string | null;
+  estado_catalogo?: ProductStatus | string | null;
+  badge?: string | null;
+  accent?: ProductAccent | string | null;
+};
 
 function formatMoney(value: number) {
   return value.toFixed(2);
@@ -227,6 +68,89 @@ function formatMoney(value: number) {
 
 function buildWhatsAppLink(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+function normalizeType(value?: string | null): Product["type"] {
+  const text = (value || "").toLowerCase();
+
+  if (text.includes("cuenta")) return "Cuenta completa";
+
+  return "Perfil";
+}
+
+function normalizeStatus(product: ProductoDB): ProductStatus {
+  const explicit = (product.estado_catalogo || "").toUpperCase();
+
+  if (explicit === "ACTIVO" || explicit === "LIMITADO" || explicit === "AGOTADO") {
+    return explicit;
+  }
+
+  if ((product.estado || "").toLowerCase() === "inactivo") return "AGOTADO";
+
+  const stock = Number(product.stock || 0);
+
+  if (stock <= 0) return "AGOTADO";
+  if (stock <= 3) return "LIMITADO";
+
+  return "ACTIVO";
+}
+
+function normalizeAccent(value?: string | null): ProductAccent {
+  const accent = (value || "").toLowerCase();
+
+  const valid: ProductAccent[] = [
+    "netflix",
+    "disney",
+    "prime",
+    "max",
+    "spotify",
+    "youtube",
+    "crunchy",
+    "paramount",
+    "canva",
+    "office",
+    "iptv",
+    "viki",
+  ];
+
+  if (valid.includes(accent as ProductAccent)) {
+    return accent as ProductAccent;
+  }
+
+  return "prime";
+}
+
+function normalizeProduct(product: ProductoDB): Product {
+  const type = normalizeType(product.tipo_venta);
+  const status = normalizeStatus(product);
+  const stock = Number(product.stock || 0);
+
+  return {
+    id: product.id,
+    category: product.categoria || "Streaming",
+    name: product.nombre || "Producto",
+    subtitle:
+      product.descripcion ||
+      (type === "Perfil" ? "Perfil privado disponible" : "Cuenta completa disponible"),
+    type,
+    duration: product.duracion || "1 mes",
+    provider: product.proveedor || "Jonas Stream",
+    stockText:
+      product.stock_texto ||
+      (status === "AGOTADO"
+        ? "Consultar reposición"
+        : status === "LIMITADO"
+        ? "Últimas unidades"
+        : "Stock disponible"),
+    status,
+    renewable: product.renovable ?? true,
+    pen: Number(product.precio || 0),
+    badge:
+      product.badge ||
+      (product.oferta ? "Oferta" : product.destacado ? "Destacado" : stock <= 3 ? "Limitado" : "Disponible"),
+    accent: normalizeAccent(product.accent || product.nombre || product.categoria),
+    image: product.imagen || null,
+  };
 }
 
 function getStatusClass(status: ProductStatus) {
@@ -242,50 +166,52 @@ function getTypeClass(type: Product["type"]) {
 function getCategoryClass(category: string) {
   const key = category.toLowerCase().replace(/\s+/g, "");
   if (key.includes("streaming")) return styles.categoryStreaming;
-  if (key.includes("música")) return styles.categoryMusic;
+  if (key.includes("música") || key.includes("musica")) return styles.categoryMusic;
   if (key.includes("video")) return styles.categoryVideo;
   if (key.includes("anime")) return styles.categoryAnime;
-  if (key.includes("diseño")) return styles.categoryDesign;
+  if (key.includes("diseño") || key.includes("diseno")) return styles.categoryDesign;
   if (key.includes("oficina")) return styles.categoryOffice;
   if (key.includes("tv")) return styles.categoryTv;
   return styles.categoryDefault;
 }
 
-function getAccentLabel(accent: ProductAccent) {
-  switch (accent) {
-    case "netflix":
-      return "N";
-    case "disney":
-      return "D+";
-    case "prime":
-      return "P";
-    case "max":
-      return "M";
-    case "spotify":
-      return "S";
-    case "youtube":
-      return "YT";
-    case "crunchy":
-      return "C";
-    case "paramount":
-      return "P+";
-    case "canva":
-      return "Cv";
-    case "office":
-      return "365";
-    case "iptv":
-      return "TV";
-    case "viki":
-      return "V";
-    default:
-      return "JS";
-  }
+function getAccentLabel(product: Product) {
+  if (product.accent === "disney") return "D+";
+  if (product.accent === "youtube") return "YT";
+  if (product.accent === "paramount") return "P+";
+  if (product.accent === "canva") return "Cv";
+  if (product.accent === "office") return "365";
+  if (product.accent === "iptv") return "TV";
+
+  return product.name.slice(0, 1).toUpperCase();
 }
 
 export default function VerPreciosPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"TODOS" | "Perfil" | "Cuenta completa">("TODOS");
   const [statusFilter, setStatusFilter] = useState<"TODOS" | ProductStatus>("TODOS");
+
+  useEffect(() => {
+    const cargarProductos = async () => {
+      setLoadingProducts(true);
+
+      const { data, error } = await supabase
+        .from("productos")
+        .select("*")
+        .eq("publicacion", true)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setProducts((data as ProductoDB[]).map(normalizeProduct));
+      }
+
+      setLoadingProducts(false);
+    };
+
+    cargarProductos();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -302,7 +228,7 @@ export default function VerPreciosPage() {
 
       return matchesSearch && matchesType && matchesStatus;
     });
-  }, [search, typeFilter, statusFilter]);
+  }, [products, search, typeFilter, statusFilter]);
 
   return (
     <div className={styles.page}>
@@ -445,13 +371,20 @@ export default function VerPreciosPage() {
           </div>
 
           <div className={styles.resultInfo}>
-            Mostrando <strong>{filteredProducts.length}</strong> producto(s)
+            {loadingProducts ? (
+              "Cargando productos..."
+            ) : (
+              <>
+                Mostrando <strong>{filteredProducts.length}</strong> producto(s)
+              </>
+            )}
           </div>
 
           <div className={styles.catalogGrid}>
             {filteredProducts.map((product) => {
               const usd = product.pen / USD_RATE;
-return (
+
+              return (
                 <article
                   key={product.id}
                   className={`${styles.productCard} ${styles[`accent_${product.accent}`]}`}
@@ -468,7 +401,17 @@ return (
 
                     <div className={styles.productVisual}>
                       <div className={styles.productVisualGlow} />
-                      <div className={styles.logoCircle}>{getAccentLabel(product.accent)}</div>
+
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className={styles.productImage}
+                        />
+                      ) : (
+                        <div className={styles.logoCircle}>{getAccentLabel(product)}</div>
+                      )}
+
                       <div className={styles.productNameOverlay}>{product.name}</div>
                     </div>
                   </div>
@@ -517,13 +460,13 @@ return (
                         <strong>$ {formatMoney(usd)}</strong>
                       </div>
                     </div>
-</div>
+                  </div>
                 </article>
               );
             })}
           </div>
 
-          {filteredProducts.length === 0 && (
+          {!loadingProducts && filteredProducts.length === 0 && (
             <div className={styles.emptyState}>
               No encontramos productos con ese filtro. Prueba con otro nombre o consulta por WhatsApp.
             </div>

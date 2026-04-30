@@ -34,6 +34,13 @@ type Producto = {
   publicacion: boolean
   destacado: boolean
   oferta: boolean
+  duracion?: string | null
+  proveedor?: string | null
+  renovable?: boolean | null
+  stock_texto?: string | null
+  estado_catalogo?: string | null
+  badge?: string | null
+  accent?: string | null
 }
 
 type Pedido = {
@@ -69,6 +76,13 @@ const productoInicial = {
   publicacion: true,
   destacado: false,
   oferta: false,
+  duracion: "1 mes",
+  proveedor: "Jonas Stream",
+  renovable: true,
+  stock_texto: "",
+  estado_catalogo: "ACTIVO",
+  badge: "",
+  accent: "prime",
 }
 
 const configuracionInicial = {
@@ -288,6 +302,13 @@ export default function AdminPage() {
       publicacion: boolean
       destacado: boolean
       oferta: boolean
+      duracion: string
+      proveedor: string
+      renovable: boolean
+      stock_texto: string
+      estado_catalogo: string
+      badge: string
+      accent: string
     } = {
       nombre: formProducto.nombre,
       descripcion: formProducto.descripcion,
@@ -301,6 +322,13 @@ export default function AdminPage() {
       publicacion: formProducto.publicacion,
       destacado: formProducto.destacado,
       oferta: formProducto.oferta,
+      duracion: formProducto.duracion,
+      proveedor: formProducto.proveedor,
+      renovable: formProducto.renovable,
+      stock_texto: formProducto.stock_texto,
+      estado_catalogo: formProducto.estado_catalogo,
+      badge: formProducto.badge,
+      accent: formProducto.accent,
     }
 
     if (imagenUrl) {
@@ -351,6 +379,13 @@ export default function AdminPage() {
       publicacion: producto.publicacion ?? true,
       destacado: producto.destacado ?? false,
       oferta: producto.oferta ?? false,
+      duracion: producto.duracion || "1 mes",
+      proveedor: producto.proveedor || "Jonas Stream",
+      renovable: producto.renovable ?? true,
+      stock_texto: producto.stock_texto || "",
+      estado_catalogo: producto.estado_catalogo || "ACTIVO",
+      badge: producto.badge || "",
+      accent: producto.accent || "prime",
     })
     setImagenFile(null)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -679,6 +714,79 @@ export default function AdminPage() {
           </select>
 
           <input
+            name="duracion"
+            placeholder="Duración (ej: 1 mes, 12 meses)"
+            value={formProducto.duracion}
+            onChange={handleProductoChange}
+            style={estilos.input}
+          />
+
+          <input
+            name="proveedor"
+            placeholder="Proveedor"
+            value={formProducto.proveedor}
+            onChange={handleProductoChange}
+            style={estilos.input}
+          />
+
+          <input
+            name="stock_texto"
+            placeholder="Texto de stock (ej: Stock disponible, Últimas unidades)"
+            value={formProducto.stock_texto}
+            onChange={handleProductoChange}
+            style={estilos.input}
+          />
+
+          <select
+            name="estado_catalogo"
+            value={formProducto.estado_catalogo}
+            onChange={handleProductoChange}
+            style={estilos.input}
+          >
+            <option value="ACTIVO">ACTIVO</option>
+            <option value="LIMITADO">LIMITADO</option>
+            <option value="AGOTADO">AGOTADO</option>
+          </select>
+
+          <input
+            name="badge"
+            placeholder="Etiqueta visual (ej: Más vendido, Premium, Oferta)"
+            value={formProducto.badge}
+            onChange={handleProductoChange}
+            style={estilos.input}
+          />
+
+          <select
+            name="accent"
+            value={formProducto.accent}
+            onChange={handleProductoChange}
+            style={estilos.input}
+          >
+            <option value="netflix">Netflix</option>
+            <option value="disney">Disney+</option>
+            <option value="prime">Prime Video</option>
+            <option value="max">Max</option>
+            <option value="spotify">Spotify</option>
+            <option value="youtube">YouTube</option>
+            <option value="crunchy">Crunchyroll</option>
+            <option value="paramount">Paramount+</option>
+            <option value="canva">Canva</option>
+            <option value="office">Microsoft 365</option>
+            <option value="iptv">IPTV</option>
+            <option value="viki">Viki</option>
+          </select>
+
+          <label style={estilos.checkboxLabel}>
+            <input
+              type="checkbox"
+              name="renovable"
+              checked={formProducto.renovable}
+              onChange={handleProductoChange}
+            />
+            Renovable
+          </label>
+
+          <input
             name="whatsapp"
             placeholder="WhatsApp"
             value={formProducto.whatsapp}
@@ -820,6 +928,12 @@ export default function AdminPage() {
                   Tipo de venta: {p.tipo_venta || "-"}
                 </p>
                 <p style={estilos.infoTexto}>WhatsApp: {p.whatsapp || "-"}</p>
+                <p style={estilos.infoTexto}>Duración: {p.duracion || "-"}</p>
+                <p style={estilos.infoTexto}>Proveedor: {p.proveedor || "Jonas Stream"}</p>
+                <p style={estilos.infoTexto}>Estado catálogo: {p.estado_catalogo || "-"}</p>
+                <p style={estilos.infoTexto}>Texto stock: {p.stock_texto || "-"}</p>
+                <p style={estilos.infoTexto}>Renovable: {p.renovable ? "Sí" : "No"}</p>
+                <p style={estilos.infoTexto}>Accent: {p.accent || "-"}</p>
                 <p style={estilos.infoTexto}>Estado: {p.estado}</p>
                 <p style={estilos.infoTexto}>
                   Publicación: {p.publicacion ? "Sí" : "No"} | Destacado:{" "}
