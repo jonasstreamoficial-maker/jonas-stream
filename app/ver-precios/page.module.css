@@ -2331,3 +2331,106 @@
     min-height: 165px;
   }
 }
+
+/* ================================
+SOLO AGREGO / CORRIJO ESTA PARTE
+(TODO TU CSS ORIGINAL SE RESPETA)
+================================ */
+
+/* 🔥 QUITAR TEXTO DENTRO DE IMAGEN */
+.productNameOverlay {
+display: none !important;
+}
+
+/* 🔥 IMAGEN FULL COVER */
+.productImage {
+position: absolute !important;
+inset: 0 !important;
+width: 100% !important;
+height: 100% !important;
+object-fit: cover !important;
+border-radius: inherit !important;
+z-index: 2;
+}
+
+/* 🔥 CONTENEDOR DE IMAGEN */
+.productVisual {
+position: relative;
+overflow: hidden;
+}
+
+/* ================================
+🎨 BORDES POR PLATAFORMA REAL
+================================ */
+
+/* NETFLIX */
+.accent_netflix {
+border: 2px solid #E50914 !important;
+box-shadow: 0 0 20px rgba(229, 9, 20, 0.4) !important;
+}
+
+/* DISNEY */
+.accent_disney {
+border: 2px solid #089282 !important;
+box-shadow: 0 0 20px rgba(8, 146, 130, 0.4) !important;
+}
+
+/* PRIME VIDEO */
+.accent_prime {
+border: 2px solid #00A8E1 !important;
+box-shadow: 0 0 20px rgba(0, 168, 225, 0.4) !important;
+}
+
+/* HBO MAX */
+.accent_max {
+border: 2px solid #5822B4 !important;
+box-shadow: 0 0 20px rgba(88, 34, 180, 0.4) !important;
+}
+
+/* CRUNCHYROLL */
+.accent_crunchy {
+border: 2px solid #F47521 !important;
+box-shadow: 0 0 20px rgba(244, 117, 33, 0.4) !important;
+}
+
+/* VIX */
+.accent_vix {
+border: 2px solid #FF5000 !important;
+box-shadow: 0 0 20px rgba(255, 80, 0, 0.4) !important;
+}
+
+/* VIKI */
+.accent_viki {
+border: 2px solid #00A1E4 !important;
+box-shadow: 0 0 20px rgba(0, 161, 228, 0.4) !important;
+}
+
+/* APPLE TV */
+.accent_apple {
+border: 2px solid #ffffff !important;
+box-shadow: 0 0 20px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* IPTV */
+.accent_iptv {
+border: 2px solid #C51A1B !important;
+box-shadow: 0 0 20px rgba(197, 26, 27, 0.4) !important;
+}
+
+/* SPOTIFY */
+.accent_spotify {
+border: 2px solid #1DB954 !important;
+box-shadow: 0 0 20px rgba(29, 185, 84, 0.4) !important;
+}
+
+/* YOUTUBE */
+.accent_youtube {
+border: 2px solid #FF0000 !important;
+box-shadow: 0 0 20px rgba(255, 0, 0, 0.4) !important;
+}
+
+/* CHATGPT */
+.accent_chatgpt {
+border: 2px solid #10A37F !important;
+box-shadow: 0 0 20px rgba(16, 163, 127, 0.4) !important;
+}
