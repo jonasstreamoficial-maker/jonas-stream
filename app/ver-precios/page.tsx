@@ -275,18 +275,18 @@ export default function VerPreciosPage() {
 
       <header className={styles.topbarWrap}>
         <div className={styles.topbar}>
-          <div className={styles.brandBlock}>
+          <Link href="/" className={styles.brandBlock} aria-label="Ir al inicio">
             <strong>JONAS STREAM</strong>
             <span>Listado Oficial de Precios</span>
-          </div>
+          </Link>
 
           <div className={styles.topActions}>
             <Link href="/" className={styles.topLink}>
-              VOLVER AL INICIO
+              INICIO
             </Link>
 
             <Link href="/quiero-ser-socio" className={styles.topLink}>
-              QUIERO SER SOCIO
+              SER SOCIO
             </Link>
 
             <a
