@@ -411,8 +411,6 @@ export default function VerPreciosPage() {
                       ) : (
                         <div className={styles.logoCircle}>{getAccentLabel(product)}</div>
                       )}
-
-                      <div className={styles.productNameOverlay}>{product.name}</div>
                     </div>
                   </div>
 

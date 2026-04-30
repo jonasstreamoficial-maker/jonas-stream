@@ -2113,3 +2113,56 @@
     height: min(78%, 190px);
   }
 }
+/* ==========================================================
+   FIX IMAGEN PRODUCTO COMPLETA - VER PRECIOS
+   Quita el nombre dentro de la imagen y hace que la imagen cubra todo el recuadro.
+   ========================================================== */
+
+.productVisual {
+  min-height: 220px;
+  border-radius: 24px;
+  padding: 0 !important;
+  display: block !important;
+  background: #06151c;
+}
+
+.productImage {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  filter:
+    drop-shadow(0 0 18px rgba(1, 231, 239, 0.12))
+    drop-shadow(0 0 26px rgba(0, 251, 255, 0.08));
+}
+
+.productNameOverlay {
+  display: none !important;
+}
+
+.productVisualGlow {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.logoCircle {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+}
+
+@media (max-width: 760px) {
+  .productVisual {
+    min-height: 190px;
+    border-radius: 18px;
+  }
+
+  .productImage {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
