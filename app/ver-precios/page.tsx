@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 
@@ -24,7 +27,7 @@ type Product = {
   category: string;
   name: string;
   subtitle: string;
-  type: string;
+  type: "Perfil" | "Cuenta completa";
   duration: string;
   provider: string;
   stockText: string;
@@ -40,7 +43,7 @@ const products: Product[] = [
     id: 1,
     category: "Streaming",
     name: "Netflix Premium",
-    subtitle: "Perfil privado o compartido",
+    subtitle: "Perfil privado disponible",
     type: "Perfil",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -55,7 +58,7 @@ const products: Product[] = [
     id: 2,
     category: "Streaming",
     name: "Disney+ Premium",
-    subtitle: "Acceso estable de alta demanda",
+    subtitle: "Perfil privado disponible",
     type: "Perfil",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -70,7 +73,7 @@ const products: Product[] = [
     id: 3,
     category: "Streaming",
     name: "Prime Video",
-    subtitle: "Ideal para reventa por perfiles",
+    subtitle: "Cuenta completa disponible",
     type: "Cuenta completa",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -85,7 +88,7 @@ const products: Product[] = [
     id: 4,
     category: "Streaming",
     name: "Max",
-    subtitle: "Plataforma premium de alta rotación",
+    subtitle: "Perfil privado disponible",
     type: "Perfil",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -100,7 +103,7 @@ const products: Product[] = [
     id: 5,
     category: "Música",
     name: "Spotify Premium",
-    subtitle: "Acceso individual renovable",
+    subtitle: "Perfil privado renovable",
     type: "Perfil",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -115,7 +118,7 @@ const products: Product[] = [
     id: 6,
     category: "Video",
     name: "YouTube Premium",
-    subtitle: "Sin anuncios y fondo activo",
+    subtitle: "Perfil privado disponible",
     type: "Perfil",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -130,7 +133,7 @@ const products: Product[] = [
     id: 7,
     category: "Anime",
     name: "Crunchyroll",
-    subtitle: "Muy buscado por clientes anime",
+    subtitle: "Perfil privado disponible",
     type: "Perfil",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -145,7 +148,7 @@ const products: Product[] = [
     id: 8,
     category: "Streaming",
     name: "Paramount+",
-    subtitle: "Buen complemento para catálogo",
+    subtitle: "Perfil privado disponible",
     type: "Perfil",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -160,7 +163,7 @@ const products: Product[] = [
     id: 9,
     category: "Diseño",
     name: "Canva Pro",
-    subtitle: "Correo nuevo o renovable",
+    subtitle: "Cuenta completa disponible",
     type: "Cuenta completa",
     duration: "12 meses",
     provider: "Jonas Stream",
@@ -175,7 +178,7 @@ const products: Product[] = [
     id: 10,
     category: "Oficina",
     name: "Microsoft 365",
-    subtitle: "Licencia anual completa",
+    subtitle: "Cuenta completa disponible",
     type: "Cuenta completa",
     duration: "12 meses",
     provider: "Jonas Stream",
@@ -190,7 +193,7 @@ const products: Product[] = [
     id: 11,
     category: "TV Digital",
     name: "IPTV",
-    subtitle: "Canales, series y películas",
+    subtitle: "Cuenta completa disponible",
     type: "Cuenta completa",
     duration: "1 mes",
     provider: "Jonas Stream",
@@ -205,11 +208,11 @@ const products: Product[] = [
     id: 12,
     category: "Streaming",
     name: "Viki Pass",
-    subtitle: "Ideal para nicho asiático",
+    subtitle: "Perfil privado disponible",
     type: "Perfil",
     duration: "1 mes",
     provider: "Jonas Stream",
-    stockText: "Sin reposición hoy",
+    stockText: "Consultar reposición",
     status: "AGOTADO",
     renewable: false,
     pen: 8,
@@ -230,6 +233,22 @@ function getStatusClass(status: ProductStatus) {
   if (status === "ACTIVO") return styles.statusActive;
   if (status === "LIMITADO") return styles.statusLimited;
   return styles.statusSoldOut;
+}
+
+function getTypeClass(type: Product["type"]) {
+  return type === "Cuenta completa" ? styles.typeAccount : styles.typeProfile;
+}
+
+function getCategoryClass(category: string) {
+  const key = category.toLowerCase().replace(/\s+/g, "");
+  if (key.includes("streaming")) return styles.categoryStreaming;
+  if (key.includes("música")) return styles.categoryMusic;
+  if (key.includes("video")) return styles.categoryVideo;
+  if (key.includes("anime")) return styles.categoryAnime;
+  if (key.includes("diseño")) return styles.categoryDesign;
+  if (key.includes("oficina")) return styles.categoryOffice;
+  if (key.includes("tv")) return styles.categoryTv;
+  return styles.categoryDefault;
 }
 
 function getAccentLabel(accent: ProductAccent) {
@@ -264,6 +283,27 @@ function getAccentLabel(accent: ProductAccent) {
 }
 
 export default function VerPreciosPage() {
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"TODOS" | "Perfil" | "Cuenta completa">("TODOS");
+  const [statusFilter, setStatusFilter] = useState<"TODOS" | ProductStatus>("TODOS");
+
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        product.name.toLowerCase().includes(normalizedSearch) ||
+        product.category.toLowerCase().includes(normalizedSearch) ||
+        product.subtitle.toLowerCase().includes(normalizedSearch);
+
+      const matchesType = typeFilter === "TODOS" || product.type === typeFilter;
+      const matchesStatus = statusFilter === "TODOS" || product.status === statusFilter;
+
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [search, typeFilter, statusFilter]);
+
   return (
     <div className={styles.page}>
       <div className={styles.bgGlowOne} />
@@ -277,7 +317,7 @@ export default function VerPreciosPage() {
         <div className={styles.topbar}>
           <Link href="/" className={styles.brandBlock} aria-label="Ir al inicio">
             <strong>JONAS STREAM</strong>
-            <span>Listado Oficial de Precios</span>
+            <span>LISTADO OFICIAL DE PRECIOS</span>
           </Link>
 
           <div className={styles.topActions}>
@@ -291,7 +331,7 @@ export default function VerPreciosPage() {
 
             <a
               href={buildWhatsAppLink(
-                "Hola, quiero más información sobre el catálogo de precios de Jonas Stream."
+                "Hola, quiero más información sobre los productos y precios de Jonas Stream."
               )}
               target="_blank"
               rel="noopener noreferrer"
@@ -305,62 +345,95 @@ export default function VerPreciosPage() {
 
       <main className={styles.mainContent}>
         <section className={styles.hero}>
-          <div className={styles.heroBadge}>CATÁLOGO VISUAL PREMIUM</div>
+          <div className={styles.heroBadge}>CATÁLOGO OFICIAL</div>
 
           <h1 className={styles.heroTitle}>
-            LISTADO OFICIAL DE
-            <span> PRECIOS JONAS STREAM</span>
+            PRECIOS Y PRODUCTOS
+            <span> JONAS STREAM</span>
           </h1>
 
           <p className={styles.heroText}>
-            Explora nuestro catálogo visual de plataformas, licencias y accesos premium.
-            Aquí puedes visualizar productos, tipo de acceso, duración, proveedor, estado y
-            precios referenciales en una presentación mucho más elegante y profesional.
+            Revisa nuestras plataformas disponibles, tipos de acceso, duración, estado y precios
+            referenciales. Elige el producto que necesitas y contáctanos para confirmar stock.
           </p>
 
           <div className={styles.heroActions}>
             <a href="#catalogo" className={styles.heroBtnPrimary}>
-              VER CATÁLOGO
+              VER PRODUCTOS
             </a>
 
             <Link href="/quiero-ser-socio" className={styles.heroBtnSecondary}>
               QUIERO REVENDER
             </Link>
           </div>
-
-          <div className={styles.heroStats}>
-            <div className={styles.heroStatCard}>
-              <strong>+12</strong>
-              <span>Productos ejemplo</span>
-            </div>
-            <div className={styles.heroStatCard}>
-              <strong>PEN + USD</strong>
-              <span>Doble precio visible</span>
-            </div>
-            <div className={styles.heroStatCard}>
-              <strong>Stock</strong>
-              <span>Activo, limitado o agotado</span>
-            </div>
-            <div className={styles.heroStatCard}>
-              <strong>Pro</strong>
-              <span>Visual premium y limpio</span>
-            </div>
-          </div>
         </section>
 
-        <section className={styles.infoSection}>
-          <div className={styles.infoBar}>
-            <div className={styles.infoMiniCard}>
-              <span>CATÁLOGO</span>
-              <strong>Solo visualización</strong>
+        <section className={styles.infoSection} aria-label="Filtros de catálogo">
+          <div className={styles.filterPanel}>
+            <div className={styles.searchBox}>
+              <span>BUSCAR PRODUCTOS</span>
+              <input
+                type="search"
+                placeholder="Ejemplo: Netflix, Canva, IPTV..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
             </div>
-            <div className={styles.infoMiniCard}>
-              <span>EDICIÓN</span>
-              <strong>Fácil de modificar</strong>
+
+            <div className={styles.filterGroup}>
+              <span>TIPO DE ACCESO</span>
+
+              <div className={styles.filterButtons}>
+                <button
+                  type="button"
+                  className={typeFilter === "TODOS" ? styles.filterActive : ""}
+                  onClick={() => setTypeFilter("TODOS")}
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  className={typeFilter === "Perfil" ? styles.filterActive : ""}
+                  onClick={() => setTypeFilter("Perfil")}
+                >
+                  Perfiles
+                </button>
+                <button
+                  type="button"
+                  className={typeFilter === "Cuenta completa" ? styles.filterActive : ""}
+                  onClick={() => setTypeFilter("Cuenta completa")}
+                >
+                  Cuentas completas
+                </button>
+              </div>
             </div>
-            <div className={styles.infoMiniCard}>
-              <span>ESTILO</span>
-              <strong>Premium Jonas Stream</strong>
+
+            <div className={styles.filterGroup}>
+              <span>DISPONIBILIDAD</span>
+
+              <div className={styles.filterButtons}>
+                <button
+                  type="button"
+                  className={statusFilter === "TODOS" ? styles.filterActive : ""}
+                  onClick={() => setStatusFilter("TODOS")}
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  className={statusFilter === "ACTIVO" ? styles.filterActive : ""}
+                  onClick={() => setStatusFilter("ACTIVO")}
+                >
+                  Activos
+                </button>
+                <button
+                  type="button"
+                  className={statusFilter === "LIMITADO" ? styles.filterActive : ""}
+                  onClick={() => setStatusFilter("LIMITADO")}
+                >
+                  Limitados
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -371,9 +444,14 @@ export default function VerPreciosPage() {
             <h2 className={styles.sectionTitle}>Productos, precios y estado actual</h2>
           </div>
 
+          <div className={styles.resultInfo}>
+            Mostrando <strong>{filteredProducts.length}</strong> producto(s)
+          </div>
+
           <div className={styles.catalogGrid}>
-            {products.map((product) => {
+            {filteredProducts.map((product) => {
               const usd = product.pen / USD_RATE;
+              const purchaseMessage = `Hola Jonas Stream, quiero consultar por ${product.name} (${product.type}) de ${product.duration}. Precio referencial: S/ ${formatMoney(product.pen)}.`;
 
               return (
                 <article
@@ -382,8 +460,12 @@ export default function VerPreciosPage() {
                 >
                   <div className={styles.productTop}>
                     <div className={styles.productBadges}>
-                      <span className={styles.categoryBadge}>{product.category}</span>
-                      <span className={styles.featureBadge}>{product.badge}</span>
+                      <span className={`${styles.categoryBadge} ${getCategoryClass(product.category)}`}>
+                        {product.category}
+                      </span>
+                      <span className={`${styles.typeBadge} ${getTypeClass(product.type)}`}>
+                        {product.type === "Perfil" ? "Perfil privado" : "Cuenta completa"}
+                      </span>
                     </div>
 
                     <div className={styles.productVisual}>
@@ -438,26 +520,35 @@ export default function VerPreciosPage() {
                       </div>
                     </div>
 
-                    <div className={styles.cardFooter}>
-                      <span className={styles.visualTag}>SOLO VISUALIZACIÓN</span>
-                      <span className={styles.codeTag}>ID {String(product.id).padStart(2, "0")}</span>
-                    </div>
+                    <a
+                      href={buildWhatsAppLink(purchaseMessage)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.buyButton}
+                    >
+                      CONSULTAR PRODUCTO
+                    </a>
                   </div>
                 </article>
               );
             })}
           </div>
+
+          {filteredProducts.length === 0 && (
+            <div className={styles.emptyState}>
+              No encontramos productos con ese filtro. Prueba con otro nombre o consulta por WhatsApp.
+            </div>
+          )}
         </section>
 
         <section className={styles.bottomSection}>
           <div className={styles.bottomPanel}>
-            <span className={styles.sectionKicker}>NOTA FINAL</span>
-            <h2 className={styles.sectionTitle}>Catálogo editable para tu negocio</h2>
+            <span className={styles.sectionKicker}>ATENCIÓN PERSONALIZADA</span>
+            <h2 className={styles.sectionTitle}>¿No encuentras lo que buscas?</h2>
 
             <p className={styles.bottomText}>
-              Todos los productos y precios mostrados aquí son ejemplos. Luego puedes editar
-              nombre, costo, duración, proveedor, stock y estado directamente desde el arreglo
-              del archivo para adaptarlo a tu operación real.
+              Escríbenos para consultar disponibilidad, promociones del día, cuentas completas,
+              perfiles privados o precios especiales para socios revendedores.
             </p>
 
             <div className={styles.bottomActions}>
@@ -467,17 +558,29 @@ export default function VerPreciosPage() {
 
               <a
                 href={buildWhatsAppLink(
-                  "Hola, quiero ayuda para personalizar la página ver-precios de Jonas Stream."
+                  "Hola Jonas Stream, quiero consultar disponibilidad de productos y promociones del día."
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.heroBtnPrimary}
               >
-                PEDIR PERSONALIZACIÓN
+                CONSULTAR POR WHATSAPP
               </a>
             </div>
           </div>
         </section>
+
+        <footer className={styles.footerWrap}>
+          <div className={styles.footerLegal}>
+            © 2026 Jonas Stream. Todos los derechos reservados.
+
+            <div className={styles.footerLinks}>
+              <Link href="/terminos">Términos y Condiciones</Link>
+              <span className={styles.footerSeparator}>•</span>
+              <Link href="/privacidad">Política de Privacidad</Link>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
