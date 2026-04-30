@@ -1650,77 +1650,101 @@
     scroll-behavior: auto !important;
   }
 }
+/* ==========================================================
+   AJUSTE FINAL DE CONSISTENCIA CON PORTADA - JONAS STREAM
+   ========================================================== */
 
-/* ============================= */
-/* AJUSTES FINALES PRO - SOCIOS */
-/* Base visual alineada con la portada Jonas Stream */
-/* ============================= */
-
+/* Mismo ancho visual que la portada */
 .page {
   background-color: #000000;
+  padding-left: 0;
+  padding-right: 0;
 }
 
-.heroTitle,
-.sectionTitle,
-.promoTitle {
-  text-wrap: balance;
-}
-
-.heroText,
-.exampleLead,
-.infoCard p,
-.benefitCard p,
-.stepItem p,
-.pricingItem {
-  text-wrap: pretty;
-}
-
+.topbarWrap,
 .hero,
 .section,
 .benefitsSection,
 .pricingSection,
 .footerWrap {
-  width: min(1320px, 100%);
+  width: min(1320px, calc(100% - 28px));
 }
 
-/* Mantiene todas las secciones centradas y con el mismo aire premium de portada */
+/* Header con la misma presencia de portada */
+.topbarWrap {
+  padding-top: 14px;
+}
+
+.topbar {
+  min-height: 78px;
+  border-radius: 22px;
+  padding: 12px 22px;
+}
+
+/* Hero menos gigante y más elegante como la portada */
+.hero {
+  padding: 42px 34px;
+  border-radius: 30px;
+}
+
+.heroBadge {
+  margin-bottom: 16px;
+}
+
+.heroTitle {
+  max-width: 980px;
+  font-size: clamp(2.35rem, 4.4vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+  text-wrap: balance;
+}
+
+.heroText {
+  max-width: 760px;
+  font-size: 1.02rem;
+  line-height: 1.85;
+  margin-bottom: 24px;
+  text-wrap: pretty;
+}
+
+.heroActions {
+  max-width: 560px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.heroBtnPrimary,
+.heroBtnSecondary {
+  min-height: 60px;
+  min-width: 220px;
+  border-radius: 18px;
+}
+
+/* Secciones con el mismo aire de panel de portada */
+.section,
+.benefitsSection,
+.pricingSection {
+  border-radius: 30px;
+  padding: 28px;
+  background: rgba(3, 19, 22, 0.78);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32);
+}
+
 .sectionHeader,
 .sectionHeaderCenter {
   text-align: center;
-}
-
-.sectionHeader {
   max-width: 860px;
   margin-left: auto;
   margin-right: auto;
 }
 
-/* Botones más consistentes con la portada */
-.heroBtnPrimary,
-.heroBtnSecondary,
-.primaryAction,
-.secondaryAction,
-.netflixLink,
-.topLink,
-.topLinkPrimary {
-  text-align: center;
+.sectionTitle {
+  text-wrap: balance;
 }
 
-.heroBtnSecondary,
-.secondaryAction {
-  box-shadow: inset 0 0 0 1px rgba(236, 255, 255, 0.015);
-}
-
-.topLink:hover,
-.topLinkPrimary:hover {
-  color: #ffffff;
-  border-color: rgba(1, 231, 239, 0.22);
-  box-shadow:
-    0 0 0 1px rgba(1, 231, 239, 0.06),
-    0 0 18px rgba(1, 231, 239, 0.08);
-}
-
-/* Footer legal igual al concepto de portada */
+/* Footer igual al concepto legal de la portada */
 .footerWrap {
   position: relative;
   z-index: 2;
@@ -1765,30 +1789,157 @@
   color: rgba(236, 255, 255, 0.28);
 }
 
-/* Accesibilidad visual */
-.heroBtnPrimary:focus-visible,
-.heroBtnSecondary:focus-visible,
-.primaryAction:focus-visible,
-.secondaryAction:focus-visible,
-.netflixLink:focus-visible,
-.topLink:focus-visible,
-.topLinkPrimary:focus-visible,
-.brandBlock:focus-visible,
-.closeButton:focus-visible,
-.footerLinks a:focus-visible {
-  outline: 2px solid rgba(0, 251, 255, 0.75);
-  outline-offset: 4px;
+/* En laptop/PC evita que el título se vea exagerado */
+@media (max-width: 1200px) {
+  .heroTitle {
+    font-size: clamp(2.1rem, 4.2vw, 3.6rem);
+  }
 }
 
-/* Ajustes de tarjetas para que todo se vea centrado en mobile */
+/* Tablet: más parecido a portada, centrado pero sin texto gigante */
+@media (max-width: 900px) {
+  .hero {
+    padding: 34px 24px;
+  }
+
+  .heroTitle {
+    font-size: clamp(1.95rem, 6vw, 3.1rem);
+  }
+
+  .heroText {
+    max-width: 680px;
+  }
+}
+
+/* Mobile: header en 2 filas como pediste:
+   fila 1: INICIO + VER PRECIOS
+   fila 2: CONTÁCTANOS centrado */
 @media (max-width: 760px) {
-  .sectionHeader,
-  .sectionHeaderCenter,
-  .exampleLead,
-  .infoCard,
-  .benefitCard,
-  .pricingCard {
+  .page {
+    --topbar-height: 190px;
+    padding-top: 10px;
+    padding-bottom: 42px;
+  }
+
+  .topbarWrap,
+  .hero,
+  .section,
+  .benefitsSection,
+  .pricingSection,
+  .footerWrap {
+    width: min(100% - 18px, 1320px);
+  }
+
+  .topbarWrap {
+    padding-top: 10px;
+  }
+
+  .topbar {
+    border-radius: 18px;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .brandBlock {
+    width: 100%;
+    align-items: center;
     text-align: center;
+  }
+
+  .brandBlock strong {
+    font-size: 1.08rem;
+    letter-spacing: 1.8px;
+  }
+
+  .brandBlock span {
+    font-size: 0.62rem;
+    letter-spacing: 1.8px;
+  }
+
+  .topActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .topActions a:nth-child(3) {
+    grid-column: 1 / -1;
+    width: min(100%, 360px);
+    justify-self: center;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    min-height: 46px;
+    padding: 0 10px;
+    border-radius: 14px;
+    font-size: 0.76rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .mainContent {
+    padding-top: var(--topbar-height);
+  }
+
+  .hero {
+    padding: 24px 14px;
+    border-radius: 24px;
+  }
+
+  .heroBadge {
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    margin-bottom: 18px;
+    padding: 8px 12px;
+  }
+
+  .heroTitle {
+    font-size: 1.95rem;
+    line-height: 1.08;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+  }
+
+  .heroText {
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 22px;
+  }
+
+  .heroActions,
+  .pricingActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 100%;
+  }
+
+  .heroBtnPrimary,
+  .heroBtnSecondary {
+    width: 100%;
+    min-width: 0;
+    min-height: 62px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+  }
+
+  .section,
+  .benefitsSection,
+  .pricingSection {
+    padding: 20px 14px;
+    border-radius: 24px;
+  }
+
+  .sectionTitle {
+    font-size: 1.22rem;
+    line-height: 1.18;
+  }
+
+  .platformCard {
+    min-height: 82px;
+    border-radius: 18px;
   }
 
   .exampleLeft,
@@ -1797,16 +1948,13 @@
   .benefitCard,
   .pricingCard {
     padding: 20px 16px;
+    text-align: center;
   }
 
   .stepItem {
     flex-direction: column;
     align-items: center;
     text-align: center;
-  }
-
-  .stepItem span {
-    margin-bottom: 2px;
   }
 
   .footerLegal {
@@ -1817,32 +1965,35 @@
 }
 
 @media (max-width: 430px) {
-  .topActions {
-    gap: 5px;
+  .page {
+    --topbar-height: 190px;
+  }
+
+  .heroTitle {
+    font-size: 1.72rem;
+    letter-spacing: 1.6px;
+  }
+
+  .heroBadge {
+    letter-spacing: 2px;
+    font-size: 0.68rem;
   }
 
   .topLink,
   .topLinkPrimary {
-    font-size: 0.56rem;
-    padding: 0 3px;
+    font-size: 0.7rem;
+    padding: 0 8px;
   }
+}
 
+@media (max-width: 370px) {
   .heroTitle {
-    font-size: 1.46rem;
+    font-size: 1.55rem;
   }
 
-  .sectionTitle {
-    font-size: 1.18rem;
-  }
-
-  .heroBadge,
-  .sectionKicker,
-  .infoKicker {
-    letter-spacing: 1.2px;
-  }
-
-  .platformCard {
-    min-height: 66px;
+  .topLink,
+  .topLinkPrimary {
+    font-size: 0.64rem;
   }
 }
 
