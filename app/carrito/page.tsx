@@ -17,9 +17,19 @@ import { supabase } from "@/lib/supabase";
 import styles from "./carrito.module.css";
 
 const WHATSAPP_NUMBER = "51900557949";
+const COMPROBANTES_BUCKET = "comprobantes";
 
 function buildWhatsAppLink(message: string) {
   return `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
+}
+
+function limpiarNombreArchivo(nombre: string) {
+  return nombre
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9.]+/g, "-")
+    .replace(/-+/g, "-");
 }
 
 export default function CarritoPage() {
@@ -58,6 +68,10 @@ export default function CarritoPage() {
     return carrito.reduce((acc, item) => acc + item.cantidad, 0);
   }, [carrito]);
 
+  const totalOriginal = totalCarrito();
+  const montoDescuento = (totalOriginal * descuento) / 100;
+  const totalFinal = Math.max(totalOriginal - montoDescuento, 0);
+
   const aumentarCantidad = (id: string, cantidadActual: number) => {
     cambiarCantidadCarrito(id, cantidadActual + 1);
     cargarCarrito();
@@ -83,6 +97,9 @@ export default function CarritoPage() {
     setCodigoCupon("");
     setDescuento(0);
     setCuponAplicado(null);
+    setMetodoPago("");
+    setComprobante(null);
+    setPreviewComprobante(null);
     toast.success("Carrito vacío");
   };
 
@@ -111,49 +128,51 @@ export default function CarritoPage() {
     toast.success("Cupón removido");
   };
 
- const subirComprobante = async (pedidoId: string) => {
-  if (!comprobante) return "";
-
-  setSubiendoComprobante(true);
-
-  try {
-    const extension = comprobante.name.split(".").pop() || "jpg";
-    const fileName = `pedido-${pedidoId}-${Date.now()}.${extension}`;
-    const filePath = `pedidos/${fileName}`;
-
-    const { data, error } = await supabase.storage
-      .from("comprobantes")
-      .upload(filePath, comprobante, {
-        cacheControl: "3600",
-        upsert: true,
-      });
-
-    if (error) {
-      console.error("ERROR SUBIENDO:", error);
-      throw error;
+  const subirComprobante = async (pedidoId: string) => {
+    if (!comprobante) {
+      throw new Error("Debes adjuntar el comprobante de pago.");
     }
 
-    console.log("Archivo subido:", data);
+    setSubiendoComprobante(true);
 
-    const { data: publicUrlData } = supabase.storage
-      .from("comprobantes")
-      .getPublicUrl(filePath);
+    try {
+      const extension = comprobante.name.split(".").pop() || "jpg";
+      const nombreLimpio = limpiarNombreArchivo(comprobante.name);
+      const fileName = `pedido-${pedidoId}-${Date.now()}-${nombreLimpio || `comprobante.${extension}`}`;
+      const filePath = `pedidos/${fileName}`;
 
-    console.log("Public URL:", publicUrlData);
+      const { data, error } = await supabase.storage
+        .from(COMPROBANTES_BUCKET)
+        .upload(filePath, comprobante, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: comprobante.type || "image/jpeg",
+        });
 
-    if (!publicUrlData?.publicUrl) {
-      throw new Error("No se generó URL pública");
+      if (error) {
+        console.error("ERROR SUBIENDO COMPROBANTE:", error);
+        throw new Error(
+          `No se pudo subir el comprobante: ${error.message || "revisa policies del bucket"}`
+        );
+      }
+
+      console.log("Archivo subido:", data);
+
+      const { data: publicUrlData } = supabase.storage
+        .from(COMPROBANTES_BUCKET)
+        .getPublicUrl(filePath);
+
+      if (!publicUrlData?.publicUrl) {
+        throw new Error("El comprobante se subió, pero no se pudo generar el link público.");
+      }
+
+      console.log("URL pública comprobante:", publicUrlData.publicUrl);
+
+      return publicUrlData.publicUrl;
+    } finally {
+      setSubiendoComprobante(false);
     }
-
-    return publicUrlData.publicUrl;
-  } catch (err) {
-    console.error("FALLO TOTAL:", err);
-    return "";
-  } finally {
-    setSubiendoComprobante(false);
-  }
-};
-
+  };
 
   const seleccionarComprobante = (file?: File) => {
     if (!file) {
@@ -177,8 +196,18 @@ export default function CarritoPage() {
 
   const finalizarCompra = async () => {
     try {
+      if (carrito.length === 0) {
+        toast.error("Tu carrito está vacío");
+        return;
+      }
+
       if (!metodoPago) {
         toast.error("Selecciona un método de pago");
+        return;
+      }
+
+      if (!comprobante) {
+        toast.error("Adjunta la imagen del comprobante");
         return;
       }
 
@@ -192,17 +221,7 @@ export default function CarritoPage() {
       }));
 
       const pedido = await crearPedido("pendiente");
-
-      let comprobanteUrl = "";
-
-      if (comprobante) {
-        try {
-          comprobanteUrl = await subirComprobante(pedido.id);
-        } catch (error) {
-          console.error("Error subiendo comprobante:", error);
-          toast.error("El pedido se creó, pero el comprobante no se pudo subir. Se enviará manualmente.");
-        }
-      }
+      const comprobanteUrl = await subirComprobante(pedido.id);
 
       const detalleProductos = productosPedido
         .map(
@@ -211,15 +230,13 @@ export default function CarritoPage() {
         )
         .join("\n");
 
-const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido ID: ${
-  pedido.id
-}\n\nMétodo de pago: ${metodoPago}\nComprobante: ${
-  comprobanteUrl ? comprobanteUrl : "Adjuntaré luego"
-}\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
-  2
-)}\nDescuento: S/ ${montoDescuento.toFixed(2)}\nTotal: S/ ${totalFinal.toFixed(
-  2
-)}\n\nQuiero continuar con la confirmación de mi compra.`;
+      const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido ID: ${
+        pedido.id
+      }\n\nMétodo de pago: ${metodoPago}\nComprobante: ${comprobanteUrl}\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
+        2
+      )}\nDescuento: S/ ${montoDescuento.toFixed(2)}\nTotal: S/ ${totalFinal.toFixed(
+        2
+      )}\n\nQuiero continuar con la confirmación de mi compra.`;
 
       toast.success("Pedido creado. Redirigiendo a WhatsApp...");
 
@@ -246,10 +263,6 @@ const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido 
       setSubiendoComprobante(false);
     }
   };
-
-  const totalOriginal = totalCarrito();
-  const montoDescuento = (totalOriginal * descuento) / 100;
-  const totalFinal = Math.max(totalOriginal - montoDescuento, 0);
 
   return (
     <main className={styles.page}>
