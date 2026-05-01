@@ -19,7 +19,7 @@ import styles from "./carrito.module.css";
 const WHATSAPP_NUMBER = "51900557949";
 
 function buildWhatsAppLink(message: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  return `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
 }
 
 export default function CarritoPage() {
@@ -172,11 +172,6 @@ export default function CarritoPage() {
         return;
       }
 
-      if (!comprobante) {
-        toast.error("Adjunta la imagen del comprobante");
-        return;
-      }
-
       setProcesandoPedido(true);
 
       const productosPedido = carrito.map((producto) => ({
@@ -187,7 +182,17 @@ export default function CarritoPage() {
       }));
 
       const pedido = await crearPedido("pendiente");
-      const comprobanteUrl = await subirComprobante(pedido.id);
+
+      let comprobanteUrl = "";
+
+      if (comprobante) {
+        try {
+          comprobanteUrl = await subirComprobante(pedido.id);
+        } catch (error) {
+          console.error("Error subiendo comprobante:", error);
+          toast.error("El pedido se creó, pero el comprobante no se pudo subir. Se enviará manualmente.");
+        }
+      }
 
       const detalleProductos = productosPedido
         .map(
@@ -198,13 +203,21 @@ export default function CarritoPage() {
 
       const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido ID: ${
         pedido.id
-      }\n\nMétodo de pago: ${metodoPago}\nComprobante: ${comprobanteUrl}\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
+      }\n\nMétodo de pago: ${metodoPago}\nComprobante: ${
+        comprobanteUrl || "Lo enviaré manualmente"
+      }\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
         2
       )}\nDescuento: S/ ${montoDescuento.toFixed(2)}\nTotal: S/ ${totalFinal.toFixed(
         2
       )}\n\nQuiero continuar con la confirmación de mi compra.`;
 
-      toast.success(`Pedido creado correctamente. ID: ${pedido.id}`);
+      toast.success("Pedido creado. Redirigiendo a WhatsApp...");
+
+      const whatsappUrl = buildWhatsAppLink(mensajeWhatsApp);
+
+      setTimeout(() => {
+        window.location.assign(whatsappUrl);
+      }, 350);
 
       cargarCarrito();
       setCodigoCupon("");
@@ -213,9 +226,8 @@ export default function CarritoPage() {
       setMetodoPago("");
       setComprobante(null);
       setPreviewComprobante(null);
-
-      window.location.href = buildWhatsAppLink(mensajeWhatsApp);
     } catch (error) {
+      console.error("Error creando pedido:", error);
       const mensaje =
         error instanceof Error ? error.message : "Ocurrió un error al crear el pedido";
       toast.error(mensaje);
