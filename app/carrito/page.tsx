@@ -230,13 +230,11 @@ export default function CarritoPage() {
         )
         .join("\n");
 
-      const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido ID: ${
-        pedido.id
-      }\n\nMétodo de pago: ${metodoPago}\nComprobante: ${comprobanteUrl}\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
+      const mensajeWhatsApp = `🧾 *NUEVO PEDIDO - JONAS STREAM*\n\n*Pedido ID:*\n${pedido.id}\n\n*Pago:*\n• Método: ${metodoPago}\n• Comprobante: ${comprobanteUrl}\n\n*Productos:*\n${detalleProductos}\n\n*Resumen:*\n• Subtotal: S/ ${totalOriginal.toFixed(
         2
-      )}\nDescuento: S/ ${montoDescuento.toFixed(2)}\nTotal: S/ ${totalFinal.toFixed(
+      )}\n• Descuento: S/ ${montoDescuento.toFixed(2)}\n• *Total: S/ ${totalFinal.toFixed(
         2
-      )}\n\nQuiero continuar con la confirmación de mi compra.`;
+      )}*\n\nQuedo atento a la confirmación de mi compra.`;
 
       toast.success("Pedido creado. Redirigiendo a WhatsApp...");
 
