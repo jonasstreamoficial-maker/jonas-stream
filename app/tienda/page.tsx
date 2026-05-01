@@ -46,7 +46,7 @@ type Favorito = {
   producto_id: string;
 };
 
-type MiniCartItem = {
+type CartItem = {
   id: string;
   nombre: string;
   precio: number;
@@ -109,6 +109,36 @@ function getCategoryClass(category: string) {
   return styles.categoryDefault;
 }
 
+function leerCarritoLocal(): CartItem[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const data = window.localStorage.getItem("carrito");
+    if (!data) return [];
+
+    const parsed = JSON.parse(data);
+
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((item: any) => ({
+      id: String(item.id),
+      nombre: String(item.nombre || item.name || "Producto"),
+      precio: Number(item.precio || item.price || 0),
+      imagen: item.imagen || item.image || null,
+      categoria: String(item.categoria || ""),
+      tipo_venta: String(item.tipo_venta || ""),
+      cantidad: Number(item.cantidad || item.quantity || 1),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function guardarCarritoLocal(items: CartItem[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("carrito", JSON.stringify(items));
+}
+
 export default function TiendaPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [config, setConfig] = useState<ConfiguracionTienda | null>(null);
@@ -117,15 +147,22 @@ export default function TiendaPage() {
   const [statusFilter, setStatusFilter] = useState<"TODOS" | ProductStatus>("TODOS");
   const [cantidadCarrito, setCantidadCarrito] = useState(0);
   const [favoritos, setFavoritos] = useState<string[]>([]);
-  const [miniCartItems, setMiniCartItems] = useState<MiniCartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
     cargarTienda();
-    actualizarContador();
+    actualizarCarrito();
     cargarFavoritos();
+
+    const handleFocus = () => actualizarCarrito();
+    window.addEventListener("focus", handleFocus);
+
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
-  const actualizarContador = () => {
+  const actualizarCarrito = () => {
+    const items = leerCarritoLocal();
+    setCartItems(items);
     setCantidadCarrito(contarItemsCarrito());
   };
 
@@ -187,39 +224,13 @@ export default function TiendaPage() {
     });
   }, [productos, busqueda, typeFilter, statusFilter]);
 
-  const miniCartTotal = useMemo(() => {
-    return miniCartItems.reduce((total, item) => total + item.precio * item.cantidad, 0);
-  }, [miniCartItems]);
+  const cartTotal = useMemo(() => {
+    return cartItems.reduce((total, item) => total + item.precio * item.cantidad, 0);
+  }, [cartItems]);
 
-  const miniCartCantidad = useMemo(() => {
-    return miniCartItems.reduce((total, item) => total + item.cantidad, 0);
-  }, [miniCartItems]);
-
-  const agregarProductoAlPreview = (producto: Producto) => {
-    const item: MiniCartItem = {
-      id: producto.id,
-      nombre: producto.nombre || "Producto",
-      precio: Number(producto.precio || 0),
-      imagen: producto.imagen || null,
-      categoria: producto.categoria || "",
-      tipo_venta: producto.tipo_venta || "",
-      cantidad: 1,
-    };
-
-    setMiniCartItems((prev) => {
-      const exists = prev.find((cartItem) => cartItem.id === item.id);
-
-      if (exists) {
-        return prev.map((cartItem) =>
-          cartItem.id === item.id
-            ? { ...cartItem, cantidad: cartItem.cantidad + 1 }
-            : cartItem
-        );
-      }
-
-      return [item, ...prev];
-    });
-  };
+  const cartCantidad = useMemo(() => {
+    return cartItems.reduce((total, item) => total + item.cantidad, 0);
+  }, [cartItems]);
 
   const comprarProducto = (producto: Producto) => {
     agregarAlCarrito({
@@ -231,9 +242,36 @@ export default function TiendaPage() {
       tipo_venta: producto.tipo_venta || "",
     });
 
-    agregarProductoAlPreview(producto);
-    actualizarContador();
+    actualizarCarrito();
     toast.success(`Agregado al carrito: ${producto.nombre || "Producto"}`);
+  };
+
+  const cambiarCantidad = (productoId: string, cantidad: number) => {
+    const actual = leerCarritoLocal();
+
+    const actualizado =
+      cantidad <= 0
+        ? actual.filter((item) => item.id !== productoId)
+        : actual.map((item) => (item.id === productoId ? { ...item, cantidad } : item));
+
+    guardarCarritoLocal(actualizado);
+    setCartItems(actualizado);
+    setCantidadCarrito(actualizado.reduce((total, item) => total + item.cantidad, 0));
+  };
+
+  const quitarProducto = (productoId: string) => {
+    const actualizado = leerCarritoLocal().filter((item) => item.id !== productoId);
+    guardarCarritoLocal(actualizado);
+    setCartItems(actualizado);
+    setCantidadCarrito(actualizado.reduce((total, item) => total + item.cantidad, 0));
+    toast.success("Producto quitado del carrito");
+  };
+
+  const limpiarVistaCarrito = () => {
+    guardarCarritoLocal([]);
+    setCartItems([]);
+    setCantidadCarrito(0);
+    toast.success("Carrito limpiado");
   };
 
   const abrirWhatsApp = (producto: Producto) => {
@@ -248,11 +286,6 @@ export default function TiendaPage() {
       producto.nombre || "Producto"
     }.`;
     window.open(buildWhatsAppLink(numero, mensaje), "_blank", "noopener,noreferrer");
-  };
-
-  const limpiarVistaRapida = () => {
-    setMiniCartItems([]);
-    toast.success("Vista rápida limpiada");
   };
 
   return (
@@ -277,7 +310,7 @@ export default function TiendaPage() {
             </Link>
 
             <Link href="/carrito" className={styles.topLink}>
-              CARRITO ({cantidadCarrito})
+              CARRITO ({cartCantidad || cantidadCarrito})
             </Link>
 
             <a
@@ -544,14 +577,14 @@ export default function TiendaPage() {
         <aside className={styles.cartPanel}>
           <div className={styles.cartHeader}>
             <div>
-              <span>Carrito visible</span>
+              <span>Carrito</span>
               <h3>Tu compra</h3>
             </div>
 
-            <strong>{miniCartCantidad}</strong>
+            <strong>{cartCantidad}</strong>
           </div>
 
-          {miniCartItems.length === 0 ? (
+          {cartItems.length === 0 ? (
             <div className={styles.cartEmpty}>
               <strong>Aún no agregaste productos</strong>
               <p>Presiona “Comprar” en cualquier producto y aparecerá aquí al instante.</p>
@@ -559,7 +592,7 @@ export default function TiendaPage() {
           ) : (
             <>
               <div className={styles.cartItems}>
-                {miniCartItems.map((item) => (
+                {cartItems.map((item) => (
                   <div key={item.id} className={styles.cartItem}>
                     <div className={styles.cartImage}>
                       {item.imagen ? <img src={item.imagen} alt={item.nombre} /> : <span>JS</span>}
@@ -568,9 +601,32 @@ export default function TiendaPage() {
                     <div className={styles.cartInfo}>
                       <strong>{item.nombre}</strong>
                       <span>{item.tipo_venta || item.categoria || "Producto digital"}</span>
-                      <small>
-                        {item.cantidad} × S/ {formatMoney(item.precio)}
-                      </small>
+
+                      <div className={styles.cartControls}>
+                        <button
+                          type="button"
+                          onClick={() => cambiarCantidad(item.id, item.cantidad - 1)}
+                        >
+                          −
+                        </button>
+
+                        <small>{item.cantidad}</small>
+
+                        <button
+                          type="button"
+                          onClick={() => cambiarCantidad(item.id, item.cantidad + 1)}
+                        >
+                          +
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => quitarProducto(item.id)}
+                          className={styles.cartRemove}
+                        >
+                          Quitar
+                        </button>
+                      </div>
                     </div>
 
                     <div className={styles.cartPrice}>
@@ -583,12 +639,12 @@ export default function TiendaPage() {
               <div className={styles.cartSummary}>
                 <div>
                   <span>Productos</span>
-                  <strong>{miniCartCantidad}</strong>
+                  <strong>{cartCantidad}</strong>
                 </div>
 
                 <div>
                   <span>Total rápido</span>
-                  <strong>S/ {formatMoney(miniCartTotal)}</strong>
+                  <strong>S/ {formatMoney(cartTotal)}</strong>
                 </div>
               </div>
 
@@ -597,8 +653,8 @@ export default function TiendaPage() {
                   Finalizar compra
                 </Link>
 
-                <button type="button" onClick={limpiarVistaRapida} className={styles.cartContinue}>
-                  Limpiar vista
+                <button type="button" onClick={limpiarVistaCarrito} className={styles.cartContinue}>
+                  Vaciar carrito
                 </button>
               </div>
 
