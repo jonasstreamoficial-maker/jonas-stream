@@ -15,6 +15,12 @@ import { validarCupon } from "@/lib/cupones";
 import toast from "react-hot-toast";
 import styles from "./carrito.module.css";
 
+const WHATSAPP_NUMBER = "51900557949";
+
+function buildWhatsAppLink(message: string) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 export default function CarritoPage() {
   const [carrito, setCarrito] = useState<ProductoCarrito[]>([]);
   const [procesandoPedido, setProcesandoPedido] = useState(false);
@@ -95,8 +101,35 @@ export default function CarritoPage() {
   const finalizarCompra = async () => {
     try {
       setProcesandoPedido(true);
+
+      const productosPedido = carrito.map((producto) => ({
+        nombre: producto.nombre,
+        cantidad: producto.cantidad,
+        precio: Number(producto.precio || 0),
+        subtotal: Number(producto.precio || 0) * producto.cantidad,
+      }));
+
       const pedido = await crearPedido("pendiente");
+
+      const detalleProductos = productosPedido
+        .map(
+          (producto) =>
+            `• ${producto.nombre} x${producto.cantidad} - S/ ${producto.subtotal.toFixed(2)}`
+        )
+        .join("\n");
+
+      const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido ID: ${
+        pedido.id
+      }\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
+        2
+      )}\nDescuento: S/ ${montoDescuento.toFixed(2)}\nTotal: S/ ${totalFinal.toFixed(
+        2
+      )}\n\nQuiero continuar con la confirmación de mi compra.`;
+
       toast.success(`Pedido creado correctamente. ID: ${pedido.id}`);
+
+      window.open(buildWhatsAppLink(mensajeWhatsApp), "_blank", "noopener,noreferrer");
+
       cargarCarrito();
       setCodigoCupon("");
       setDescuento(0);
@@ -127,7 +160,7 @@ export default function CarritoPage() {
         <div className={styles.topbar}>
           <Link href="/" className={styles.brandBlock} aria-label="Ir al inicio">
             <strong>JONAS STREAM</strong>
-            <span>CARRITO DE COMPRA</span>
+            <span>TIENDA OFICIAL</span>
           </Link>
 
           <div className={styles.topActions}>
@@ -139,9 +172,14 @@ export default function CarritoPage() {
               TIENDA
             </Link>
 
-            <Link href="/ver-precios" className={styles.topLinkPrimary}>
-              VER PRECIOS
-            </Link>
+            <a
+              href="https://wa.me/51900557949?text=Hola%20Jonas%20Stream%2C%20quiero%20informaci%C3%B3n"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.topLinkPrimary}
+            >
+              CONTÁCTANOS
+            </a>
           </div>
         </div>
       </header>
