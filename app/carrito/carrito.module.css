@@ -1,0 +1,877 @@
+.page {
+  --cyan: #01e7ef;
+  --cyan-strong: #00fbff;
+  --turquoise: #018b90;
+  --black: #000000;
+  --deep: #031316;
+  --deep-2: #071b1e;
+  --white: #ecffff;
+  --muted: #9bc8cb;
+  --glass-border: rgba(1, 231, 239, 0.18);
+  --glass-panel: rgba(3, 19, 22, 0.78);
+  --topbar-height: 116px;
+
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px 60px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.13), transparent 30%),
+    radial-gradient(circle at 15% 18%, rgba(1, 139, 144, 0.12), transparent 24%),
+    radial-gradient(circle at 85% 20%, rgba(0, 251, 255, 0.1), transparent 20%),
+    linear-gradient(180deg, #000000 0%, #031316 52%, #071b1e 100%);
+  color: var(--white);
+  isolation: isolate;
+}
+
+.bgGlowOne,
+.bgGlowTwo,
+.gridOverlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.bgGlowOne {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(1, 231, 239, 0.1), transparent 22%),
+    radial-gradient(circle at 80% 15%, rgba(0, 251, 255, 0.08), transparent 18%);
+  z-index: 0;
+}
+
+.bgGlowTwo {
+  background:
+    radial-gradient(circle at 18% 82%, rgba(1, 139, 144, 0.08), transparent 18%),
+    radial-gradient(circle at 84% 72%, rgba(1, 231, 239, 0.08), transparent 20%);
+  z-index: 0;
+}
+
+.gridOverlay {
+  background-image:
+    linear-gradient(rgba(236, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(236, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 38px 38px;
+  opacity: 0.08;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  z-index: 0;
+}
+
+.sideBrand {
+  position: fixed;
+  top: 50%;
+  left: -58px;
+  transform: translateY(-50%) rotate(-90deg);
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(2rem, 2.5vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: 5px;
+  color: rgba(1, 231, 239, 0.07);
+  user-select: none;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.sideBrandRight {
+  left: auto;
+  right: -58px;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.topbarWrap {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1320px, calc(100% - 28px));
+  z-index: 60;
+  padding-top: 14px;
+}
+
+.topbar {
+  position: relative;
+  min-height: 78px;
+  border-radius: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.1);
+  background: rgba(3, 19, 22, 0.76);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28), 0 0 24px rgba(1, 231, 239, 0.05);
+  backdrop-filter: blur(16px);
+  padding: 12px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(1, 231, 239, 0.045), transparent 20%, transparent 80%, rgba(1, 139, 144, 0.045)),
+    linear-gradient(180deg, rgba(236, 255, 255, 0.02), transparent);
+  pointer-events: none;
+}
+
+.brandBlock {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.brandBlock strong {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.45rem;
+  letter-spacing: 2px;
+  color: var(--white);
+}
+
+.brandBlock span {
+  font-size: 0.74rem;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.topActions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topLink,
+.topLinkPrimary {
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 900;
+  color: var(--white);
+  transition: 0.28s ease;
+  text-transform: uppercase;
+  border: 1px solid rgba(236, 255, 255, 0.07);
+}
+
+.topLink {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.topLinkPrimary {
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.2), rgba(1, 139, 144, 0.1));
+  border-color: rgba(1, 231, 239, 0.2);
+}
+
+.topLink:hover,
+.topLinkPrimary:hover {
+  transform: translateY(-2px);
+}
+
+.hero,
+.checkoutGrid,
+.emptySection {
+  position: relative;
+  z-index: 2;
+  width: min(1320px, calc(100% - 28px));
+  margin: 0 auto 22px;
+}
+
+.hero {
+  margin-top: var(--topbar-height);
+  padding: 50px 30px 38px;
+  border-radius: 34px;
+  background: linear-gradient(180deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.92));
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.34), 0 0 25px rgba(1, 231, 239, 0.12);
+  overflow: hidden;
+  text-align: center;
+}
+
+.hero::before,
+.productsPanel::before,
+.summaryPanel::before,
+.emptySection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 84% 18%, rgba(0, 251, 255, 0.1), transparent 22%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.04), transparent 52%, rgba(1, 139, 144, 0.04));
+  pointer-events: none;
+}
+
+.heroBadge,
+.sectionKicker {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(1, 231, 239, 0.1);
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.heroTitle {
+  position: relative;
+  z-index: 2;
+  max-width: 980px;
+  margin: 0 auto 18px;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(2.35rem, 4.4vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--white);
+  text-wrap: balance;
+}
+
+.heroTitle span {
+  display: block;
+  color: var(--cyan-strong);
+}
+
+.heroText {
+  position: relative;
+  z-index: 2;
+  max-width: 780px;
+  margin: 0 auto 24px;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.85;
+}
+
+.heroActions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.heroBtnPrimary,
+.heroBtnDanger,
+.emptyButton {
+  min-height: 60px;
+  padding: 0 22px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 900;
+  text-transform: uppercase;
+  transition: 0.28s ease;
+  cursor: pointer;
+}
+
+.heroBtnPrimary,
+.emptyButton {
+  color: var(--white);
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.24), rgba(1, 139, 144, 0.16));
+  border: 1px solid rgba(1, 231, 239, 0.22);
+}
+
+.heroBtnDanger {
+  color: #ffb3b3;
+  background: rgba(255, 80, 80, 0.1);
+  border: 1px solid rgba(255, 120, 120, 0.24);
+}
+
+.checkoutGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 18px;
+  align-items: start;
+}
+
+.productsPanel,
+.summaryPanel,
+.emptySection {
+  position: relative;
+  border-radius: 30px;
+  background: var(--glass-panel);
+  border: 1px solid rgba(236, 255, 255, 0.06);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+.productsPanel {
+  padding: 28px;
+}
+
+.summaryPanel {
+  position: sticky;
+  top: 110px;
+  padding: 22px;
+}
+
+.sectionHeader {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 860px;
+  margin: 0 auto 22px;
+}
+
+.sectionTitle {
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.35rem, 3vw, 2.25rem);
+  line-height: 1.08;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.productsList {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 16px;
+}
+
+.cartCard {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr) 150px;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(7, 27, 30, 0.92), rgba(3, 19, 22, 0.98));
+  border: 1px solid rgba(236, 255, 255, 0.06);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.2);
+}
+
+.imageWrap {
+  width: 128px;
+  height: 128px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(1, 231, 239, 0.08);
+  border: 1px solid rgba(1, 231, 239, 0.12);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--cyan-strong);
+  font-weight: 900;
+  font-family: "Orbitron", sans-serif;
+}
+
+.productInfo {
+  min-width: 0;
+}
+
+.category {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
+.productInfo h3 {
+  margin: 0 0 6px;
+  font-family: "Orbitron", sans-serif;
+  color: var(--white);
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.productInfo p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.unitPrice {
+  display: inline-grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(236, 255, 255, 0.06);
+}
+
+.unitPrice small {
+  color: var(--muted);
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+.unitPrice strong {
+  color: var(--cyan-strong);
+  font-family: "Orbitron", sans-serif;
+}
+
+.qtyControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qtyControl button,
+.qtyControl span {
+  min-width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qtyControl button {
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  background: rgba(1, 231, 239, 0.08);
+  color: var(--white);
+  font-weight: 900;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.qtyControl span {
+  color: var(--cyan-strong);
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(236, 255, 255, 0.06);
+}
+
+.productTotal {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  text-align: right;
+}
+
+.productTotal span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.productTotal strong {
+  color: var(--cyan-strong);
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.2rem;
+}
+
+.removeButton {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+  color: #ffb3b3;
+  background: rgba(255, 80, 80, 0.1);
+  border: 1px solid rgba(255, 120, 120, 0.24);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.summaryHeader {
+  position: relative;
+  z-index: 2;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(236, 255, 255, 0.08);
+  margin-bottom: 16px;
+}
+
+.summaryHeader span,
+.couponBox > span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.summaryHeader h2 {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  text-transform: uppercase;
+  font-size: 1.35rem;
+}
+
+.summaryRows,
+.couponBox {
+  position: relative;
+  z-index: 2;
+}
+
+.summaryRows {
+  display: grid;
+  gap: 12px;
+}
+
+.summaryRow,
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
+.summaryRow span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.summaryRow strong {
+  color: var(--white);
+}
+
+.discountRow span,
+.discountRow strong {
+  color: #5dff9b;
+}
+
+.line {
+  height: 1px;
+  background: rgba(1, 231, 239, 0.12);
+  margin: 4px 0;
+}
+
+.totalRow {
+  padding: 12px 0;
+}
+
+.totalRow span {
+  color: var(--white);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.totalRow strong {
+  color: var(--cyan-strong);
+  font-size: 1.45rem;
+  font-family: "Orbitron", sans-serif;
+}
+
+.couponBox {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(1, 231, 239, 0.05);
+  border: 1px solid rgba(1, 231, 239, 0.12);
+}
+
+.couponGrid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.couponGrid input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--white);
+  outline: none;
+  padding: 0 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.couponGrid button {
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  color: #001018;
+  background: var(--cyan);
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.appliedCoupon {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.appliedCoupon p {
+  margin: 0;
+  color: #5dff9b;
+  font-weight: 800;
+}
+
+.appliedCoupon button {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: #ffb3b3;
+  background: rgba(255, 80, 80, 0.1);
+  border: 1px solid rgba(255, 120, 120, 0.24);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.createOrderButton {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 58px;
+  margin-top: 16px;
+  border-radius: 18px;
+  color: #001018;
+  background: var(--cyan);
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 22px rgba(1, 231, 239, 0.18);
+}
+
+.createOrderButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.summaryNote {
+  position: relative;
+  z-index: 2;
+  margin: 14px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.emptySection {
+  padding: 44px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  position: relative;
+  z-index: 2;
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 18px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  background: rgba(1, 231, 239, 0.08);
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  font-size: 2rem;
+}
+
+.emptySection h2,
+.emptySection p,
+.emptySection a {
+  position: relative;
+  z-index: 2;
+}
+
+.emptySection h2 {
+  margin: 0 0 10px;
+  font-family: "Orbitron", sans-serif;
+  text-transform: uppercase;
+}
+
+.emptySection p {
+  margin: 0 auto 20px;
+  max-width: 520px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 1100px) {
+  .checkoutGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryPanel {
+    position: relative;
+    top: auto;
+    order: -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 205px;
+    padding: 10px 0 42px;
+  }
+
+  .topbarWrap,
+  .hero,
+  .checkoutGrid,
+  .emptySection {
+    width: min(100% - 18px, 1320px);
+  }
+
+  .topbarWrap {
+    padding-top: 10px;
+  }
+
+  .topbar {
+    border-radius: 18px;
+    padding: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .brandBlock {
+    width: 100%;
+    align-items: center;
+  }
+
+  .brandBlock strong {
+    font-size: 1.08rem;
+    letter-spacing: 1.8px;
+  }
+
+  .brandBlock span {
+    font-size: 0.62rem;
+    letter-spacing: 1.8px;
+  }
+
+  .topActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .topActions a:nth-child(3) {
+    grid-column: 1 / -1;
+    width: min(100%, 360px);
+    justify-self: center;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    min-height: 46px;
+    padding: 0 10px;
+    border-radius: 14px;
+    font-size: 0.76rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 14px);
+    padding: 24px 14px;
+    border-radius: 24px;
+  }
+
+  .heroTitle {
+    font-size: 1.75rem;
+    line-height: 1.08;
+    letter-spacing: 1.4px;
+  }
+
+  .heroText {
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  .heroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .heroBtnPrimary,
+  .heroBtnDanger {
+    width: 100%;
+    min-height: 58px;
+    font-size: 0.9rem;
+  }
+
+  .productsPanel,
+  .summaryPanel {
+    padding: 20px 14px;
+    border-radius: 24px;
+  }
+
+  .cartCard {
+    grid-template-columns: 92px 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .imageWrap {
+    width: 92px;
+    height: 92px;
+    border-radius: 16px;
+  }
+
+  .productInfo h3 {
+    font-size: 1rem;
+  }
+
+  .unitPrice {
+    padding: 8px 10px;
+  }
+
+  .productTotal {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+  }
+
+  .couponGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .heroTitle {
+    font-size: 1.58rem;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    font-size: 0.7rem;
+    padding: 0 8px;
+  }
+}
+
+@media (hover: none) {
+  .heroBtnPrimary:hover,
+  .heroBtnDanger:hover,
+  .topLink:hover,
+  .topLinkPrimary:hover {
+    transform: none;
+  }
+}
