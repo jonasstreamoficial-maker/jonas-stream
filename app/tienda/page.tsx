@@ -8,6 +8,8 @@ import { agregarAlCarrito, contarItemsCarrito } from "@/lib/carrito";
 import { toggleFavorito, obtenerFavoritos } from "@/lib/favoritos";
 import styles from "./tienda.module.css";
 
+type ProductStatus = "ACTIVO" | "LIMITADO" | "AGOTADO";
+
 type Producto = {
   id: string;
   nombre: string | null;
@@ -23,6 +25,11 @@ type Producto = {
   publicacion: boolean | null;
   destacado: boolean | null;
   oferta: boolean | null;
+  duracion?: string | null;
+  proveedor?: string | null;
+  renovable?: boolean | null;
+  stock_texto?: string | null;
+  estado_catalogo?: string | null;
 };
 
 type ConfiguracionTienda = {
@@ -47,12 +54,57 @@ function buildWhatsAppLink(numero: string, mensaje: string) {
   return `https://wa.me/${numero.replace(/\D/g, "")}?text=${encodeURIComponent(mensaje)}`;
 }
 
+function normalizeType(value?: string | null) {
+  const text = (value || "").toLowerCase();
+  if (text.includes("cuenta")) return "Cuenta completa";
+  return "Perfil";
+}
+
+function normalizeStatus(producto: Producto): ProductStatus {
+  const explicit = (producto.estado_catalogo || "").toUpperCase();
+
+  if (explicit === "ACTIVO" || explicit === "LIMITADO" || explicit === "AGOTADO") {
+    return explicit;
+  }
+
+  if ((producto.estado || "").toLowerCase() === "inactivo") return "AGOTADO";
+
+  const stock = Number(producto.stock || 0);
+
+  if (stock <= 0) return "AGOTADO";
+  if (stock <= 3) return "LIMITADO";
+
+  return "ACTIVO";
+}
+
+function getStatusClass(status: ProductStatus) {
+  if (status === "ACTIVO") return styles.statusActive;
+  if (status === "LIMITADO") return styles.statusLimited;
+  return styles.statusSoldOut;
+}
+
+function getTypeClass(type: string) {
+  return type === "Cuenta completa" ? styles.typeAccount : styles.typeProfile;
+}
+
+function getCategoryClass(category: string) {
+  const key = category.toLowerCase().replace(/\s+/g, "");
+  if (key.includes("streaming")) return styles.categoryStreaming;
+  if (key.includes("música") || key.includes("musica")) return styles.categoryMusic;
+  if (key.includes("video")) return styles.categoryVideo;
+  if (key.includes("anime")) return styles.categoryAnime;
+  if (key.includes("diseño") || key.includes("diseno")) return styles.categoryDesign;
+  if (key.includes("oficina")) return styles.categoryOffice;
+  if (key.includes("tv")) return styles.categoryTv;
+  return styles.categoryDefault;
+}
+
 export default function TiendaPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [config, setConfig] = useState<ConfiguracionTienda | null>(null);
-  const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState("todos");
+  const [typeFilter, setTypeFilter] = useState<"TODOS" | "Perfil" | "Cuenta completa">("TODOS");
+  const [statusFilter, setStatusFilter] = useState<"TODOS" | ProductStatus>("TODOS");
   const [cantidadCarrito, setCantidadCarrito] = useState(0);
   const [favoritos, setFavoritos] = useState<string[]>([]);
 
@@ -80,12 +132,9 @@ export default function TiendaPage() {
   };
 
   const cargarTienda = async () => {
-    setCargando(true);
-
     const { data: productosData, error: productosError } = await supabase
       .from("productos")
       .select("*")
-      .eq("estado", "activo")
       .eq("publicacion", true)
       .order("created_at", { ascending: false });
 
@@ -106,38 +155,26 @@ export default function TiendaPage() {
     if (configData && configData.length > 0) {
       setConfig(configData[0] as ConfiguracionTienda);
     }
-
-    setCargando(false);
   };
-
-  const categoriasUnicas = useMemo(() => {
-    return [
-      "todos",
-      ...Array.from(
-        new Set(
-          productos
-            .map((producto) => producto.categoria || "")
-            .filter((categoria) => categoria.trim() !== "")
-        )
-      ),
-    ];
-  }, [productos]);
 
   const productosFiltrados = useMemo(() => {
     const textoBusqueda = busqueda.trim().toLowerCase();
 
     return productos.filter((producto) => {
+      const type = normalizeType(producto.tipo_venta);
+      const status = normalizeStatus(producto);
+
       const texto = `${producto.nombre || ""} ${producto.descripcion || ""} ${
         producto.categoria || ""
       } ${producto.tipo_venta || ""}`.toLowerCase();
 
-      const coincideBusqueda = textoBusqueda.length === 0 || texto.includes(textoBusqueda);
-      const coincideCategoria =
-        categoriaFiltro === "todos" || producto.categoria === categoriaFiltro;
+      const matchesSearch = textoBusqueda.length === 0 || texto.includes(textoBusqueda);
+      const matchesType = typeFilter === "TODOS" || type === typeFilter;
+      const matchesStatus = statusFilter === "TODOS" || status === statusFilter;
 
-      return coincideBusqueda && coincideCategoria;
+      return matchesSearch && matchesType && matchesStatus;
     });
-  }, [productos, busqueda, categoriaFiltro]);
+  }, [productos, busqueda, typeFilter, statusFilter]);
 
   const comprarProducto = (producto: Producto) => {
     agregarAlCarrito({
@@ -167,21 +204,6 @@ export default function TiendaPage() {
     window.open(buildWhatsAppLink(numero, mensaje), "_blank", "noopener,noreferrer");
   };
 
-  if (cargando) {
-    return (
-      <main className={styles.page}>
-        <div className={styles.bgGlowOne} />
-        <div className={styles.bgGlowTwo} />
-        <div className={styles.gridOverlay} />
-
-        <section className={styles.loadingBox}>
-          <div className={styles.loadingIcon}>⚡</div>
-          <p>Cargando tienda...</p>
-        </section>
-      </main>
-    );
-  }
-
   return (
     <main className={styles.page}>
       <div className={styles.bgGlowOne} />
@@ -203,13 +225,21 @@ export default function TiendaPage() {
               INICIO
             </Link>
 
-            <Link href="/ver-precios" className={styles.topLink}>
-              VER PRECIOS
-            </Link>
-
-            <Link href="/carrito" className={styles.topLinkPrimary}>
+            <Link href="/carrito" className={styles.topLink}>
               CARRITO ({cantidadCarrito})
             </Link>
+
+            <a
+              href={buildWhatsAppLink(
+                config?.whatsapp || "51900557949",
+                "Hola Jonas Stream, quiero más información sobre la tienda."
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.topLinkPrimary}
+            >
+              CONTÁCTANOS
+            </a>
           </div>
         </div>
       </header>
@@ -218,8 +248,8 @@ export default function TiendaPage() {
         <div className={styles.heroBadge}>TIENDA OFICIAL</div>
 
         <h1 className={styles.heroTitle}>
-          {config?.banner_titulo || "Tienda digital"}
-          <span> Jonas Stream</span>
+          TIENDA DIGITAL
+          <span> JONAS STREAM</span>
         </h1>
 
         <p className={styles.heroText}>
@@ -238,37 +268,10 @@ export default function TiendaPage() {
         </div>
       </section>
 
-      <section className={styles.infoSection}>
-        <div className={styles.infoBar}>
-          <div className={styles.infoMiniCard}>
-            <span>Tienda</span>
-            <strong>{config?.nombre_tienda || "Jonas Stream"}</strong>
-          </div>
-
-          <div className={styles.infoMiniCard}>
-            <span>Productos activos</span>
-            <strong>{productos.length}</strong>
-          </div>
-
-          <div className={styles.infoMiniCard}>
-            <span>Destacados</span>
-            <strong>{productos.filter((producto) => producto.destacado).length}</strong>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.catalogSection} id="productos">
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionKicker}>CATÁLOGO DE COMPRA</span>
-          <h2 className={styles.sectionTitle}>Productos disponibles</h2>
-          <p className={styles.sectionText}>
-            Agrega productos al carrito o consulta disponibilidad directa por WhatsApp.
-          </p>
-        </div>
-
+      <section className={styles.infoSection} aria-label="Filtros de tienda">
         <div className={styles.filterPanel}>
           <div className={styles.searchBox}>
-            <span>BUSCAR PRODUCTO</span>
+            <span>BUSCAR PRODUCTOS</span>
             <input
               type="search"
               placeholder="Ejemplo: Netflix, Canva, IPTV..."
@@ -278,19 +281,71 @@ export default function TiendaPage() {
           </div>
 
           <div className={styles.filterGroup}>
-            <span>CATEGORÍA</span>
+            <span>TIPO DE ACCESO</span>
 
-            <select
-              value={categoriaFiltro}
-              onChange={(event) => setCategoriaFiltro(event.target.value)}
-            >
-              {categoriasUnicas.map((categoria) => (
-                <option key={categoria} value={categoria}>
-                  {categoria === "todos" ? "Todas las categorías" : categoria}
-                </option>
-              ))}
-            </select>
+            <div className={styles.filterButtons}>
+              <button
+                type="button"
+                className={typeFilter === "TODOS" ? styles.filterActive : ""}
+                onClick={() => setTypeFilter("TODOS")}
+              >
+                Todos
+              </button>
+
+              <button
+                type="button"
+                className={typeFilter === "Perfil" ? styles.filterActive : ""}
+                onClick={() => setTypeFilter("Perfil")}
+              >
+                Perfiles
+              </button>
+
+              <button
+                type="button"
+                className={typeFilter === "Cuenta completa" ? styles.filterActive : ""}
+                onClick={() => setTypeFilter("Cuenta completa")}
+              >
+                Cuentas completas
+              </button>
+            </div>
           </div>
+
+          <div className={styles.filterGroup}>
+            <span>DISPONIBILIDAD</span>
+
+            <div className={styles.filterButtons}>
+              <button
+                type="button"
+                className={statusFilter === "TODOS" ? styles.filterActive : ""}
+                onClick={() => setStatusFilter("TODOS")}
+              >
+                Todos
+              </button>
+
+              <button
+                type="button"
+                className={statusFilter === "ACTIVO" ? styles.filterActive : ""}
+                onClick={() => setStatusFilter("ACTIVO")}
+              >
+                Activos
+              </button>
+
+              <button
+                type="button"
+                className={statusFilter === "LIMITADO" ? styles.filterActive : ""}
+                onClick={() => setStatusFilter("LIMITADO")}
+              >
+                Limitados
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.catalogSection} id="productos">
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionKicker}>CATÁLOGO DE COMPRA</span>
+          <h2 className={styles.sectionTitle}>Productos disponibles</h2>
         </div>
 
         <div className={styles.resultInfo}>
@@ -300,84 +355,136 @@ export default function TiendaPage() {
         {productosFiltrados.length === 0 ? (
           <div className={styles.emptyState}>
             <h3>No hay productos para mostrar</h3>
-            <p>Intenta cambiar la búsqueda o la categoría.</p>
+            <p>Intenta cambiar la búsqueda, el tipo de acceso o la disponibilidad.</p>
           </div>
         ) : (
           <div className={styles.catalogGrid}>
-            {productosFiltrados.map((producto) => (
-              <article key={producto.id} className={styles.productCard}>
-                <button
-                  type="button"
-                  aria-label="Agregar a favoritos"
-                  onClick={() => manejarFavorito(producto.id)}
-                  className={`${styles.favoriteButton} ${
-                    favoritos.includes(producto.id) ? styles.favoriteActive : ""
-                  }`}
-                >
-                  {favoritos.includes(producto.id) ? "❤️" : "🤍"}
-                </button>
+            {productosFiltrados.map((producto) => {
+              const type = normalizeType(producto.tipo_venta);
+              const status = normalizeStatus(producto);
 
-                <div className={styles.productVisual}>
-                  {producto.imagen ? (
-                    <img
-                      src={producto.imagen}
-                      alt={producto.nombre || "Producto"}
-                      className={styles.productImage}
-                    />
-                  ) : (
-                    <div className={styles.imagePlaceholder}>Sin imagen</div>
-                  )}
+              return (
+                <article key={producto.id} className={styles.productCard}>
+                  <button
+                    type="button"
+                    aria-label="Agregar a favoritos"
+                    onClick={() => manejarFavorito(producto.id)}
+                    className={`${styles.favoriteButton} ${
+                      favoritos.includes(producto.id) ? styles.favoriteActive : ""
+                    }`}
+                  >
+                    {favoritos.includes(producto.id) ? "❤️" : "🤍"}
+                  </button>
 
-                  <div className={styles.productBadges}>
-                    {producto.destacado && <span className={styles.badgeFeatured}>Destacado</span>}
-                    {producto.oferta && <span className={styles.badgeOffer}>Oferta</span>}
-                  </div>
-                </div>
+                  <div className={styles.productTop}>
+                    <div className={styles.productBadges}>
+                      <span
+                        className={`${styles.categoryBadge} ${getCategoryClass(
+                          producto.categoria || "Streaming"
+                        )}`}
+                      >
+                        {producto.categoria || "Streaming"}
+                      </span>
 
-                <div className={styles.productBody}>
-                  <p className={styles.productCategory}>{producto.categoria || "General"}</p>
+                      <span className={`${styles.typeBadge} ${getTypeClass(type)}`}>
+                        {type === "Perfil" ? "Perfil privado" : "Cuenta completa"}
+                      </span>
+                    </div>
 
-                  <h3 className={styles.productTitle}>{producto.nombre || "Producto"}</h3>
-
-                  <p className={styles.productSubtitle}>
-                    {producto.descripcion || "Producto digital disponible"}
-                  </p>
-
-                  <div className={styles.metaRow}>
-                    <span>{producto.tipo_venta || "Digital"}</span>
-                    <span>Stock: {producto.stock ?? 0}</span>
-                  </div>
-
-                  <div className={styles.priceRow}>
-                    <strong>S/ {formatMoney(producto.precio)}</strong>
-
-                    {producto.precio_antes &&
-                      producto.precio &&
-                      producto.precio_antes > producto.precio && (
-                        <span>S/ {formatMoney(producto.precio_antes)}</span>
+                    <div className={styles.productVisual}>
+                      {producto.imagen ? (
+                        <img
+                          src={producto.imagen}
+                          alt={producto.nombre || "Producto"}
+                          className={styles.productImage}
+                        />
+                      ) : (
+                        <div className={styles.imagePlaceholder}>Sin imagen</div>
                       )}
+                    </div>
                   </div>
 
-                  <div className={styles.cardActions}>
-                    <button
-                      type="button"
-                      onClick={() => comprarProducto(producto)}
-                      className={styles.buyButton}
-                    >
-                      Comprar
-                    </button>
+                  <div className={styles.productBody}>
+                    <h3 className={styles.productTitle}>{producto.nombre || "Producto"}</h3>
 
-                    <button
-                      type="button"
-                      onClick={() => abrirWhatsApp(producto)}
-                      className={styles.whatsappButton}
-                    >
-                      WhatsApp
-                    </button>
+                    <p className={styles.productSubtitle}>
+                      {producto.descripcion || "Producto digital disponible"}
+                    </p>
+
+                    <div className={styles.metaGrid}>
+                      <div className={styles.metaCard}>
+                        <span>TIPO</span>
+                        <strong>{type}</strong>
+                      </div>
+
+                      <div className={styles.metaCard}>
+                        <span>DURACIÓN</span>
+                        <strong>{producto.duracion || "1 mes"}</strong>
+                      </div>
+
+                      <div className={styles.metaCard}>
+                        <span>PROVEEDOR</span>
+                        <strong>{producto.proveedor || "Jonas Stream"}</strong>
+                      </div>
+
+                      <div className={styles.metaCard}>
+                        <span>RENOVABLE</span>
+                        <strong>{producto.renovable ?? true ? "Sí" : "No"}</strong>
+                      </div>
+                    </div>
+
+                    <div className={styles.statusRow}>
+                      <span className={`${styles.statusBadge} ${getStatusClass(status)}`}>
+                        {status}
+                      </span>
+
+                      <span className={styles.stockText}>
+                        {producto.stock_texto ||
+                          (status === "LIMITADO"
+                            ? "Últimas unidades"
+                            : status === "AGOTADO"
+                            ? "Consultar reposición"
+                            : "Stock disponible")}
+                      </span>
+                    </div>
+
+                    <div className={styles.priceGrid}>
+                      <div className={styles.priceCard}>
+                        <small>PEN</small>
+                        <strong>S/ {formatMoney(producto.precio)}</strong>
+                      </div>
+
+                      {producto.precio_antes &&
+                        producto.precio &&
+                        producto.precio_antes > producto.precio && (
+                          <div className={styles.priceCard}>
+                            <small>ANTES</small>
+                            <strong>S/ {formatMoney(producto.precio_antes)}</strong>
+                          </div>
+                        )}
+                    </div>
+
+                    <div className={styles.cardActions}>
+                      <button
+                        type="button"
+                        onClick={() => comprarProducto(producto)}
+                        className={styles.buyButton}
+                      >
+                        Comprar
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => abrirWhatsApp(producto)}
+                        className={styles.whatsappButton}
+                      >
+                        WhatsApp
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
