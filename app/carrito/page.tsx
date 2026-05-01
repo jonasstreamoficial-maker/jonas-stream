@@ -111,38 +111,48 @@ export default function CarritoPage() {
     toast.success("Cupón removido");
   };
 
-  const subirComprobante = async (pedidoId: string) => {
-    if (!comprobante) return "";
+ const subirComprobante = async (pedidoId: string) => {
+  if (!comprobante) return "";
 
-    setSubiendoComprobante(true);
+  setSubiendoComprobante(true);
 
+  try {
     const extension = comprobante.name.split(".").pop() || "jpg";
     const fileName = `pedido-${pedidoId}-${Date.now()}.${extension}`;
     const filePath = `pedidos/${fileName}`;
 
-    const { error } = await supabase.storage
+    const { data, error } = await supabase.storage
       .from("comprobantes")
       .upload(filePath, comprobante, {
         cacheControl: "3600",
-        upsert: false,
-        contentType: comprobante.type || "image/jpeg",
+        upsert: true,
       });
 
-    setSubiendoComprobante(false);
-
     if (error) {
-      console.error("Error subiendo comprobante:", error);
-      throw new Error("No se pudo subir el comprobante. Revisa que el bucket comprobantes exista y sea público.");
+      console.error("ERROR SUBIENDO:", error);
+      throw error;
     }
 
-    const { data } = supabase.storage.from("comprobantes").getPublicUrl(filePath);
+    console.log("Archivo subido:", data);
 
-    if (!data?.publicUrl) {
-      throw new Error("No se pudo generar el link público del comprobante.");
+    const { data: publicUrlData } = supabase.storage
+      .from("comprobantes")
+      .getPublicUrl(filePath);
+
+    console.log("Public URL:", publicUrlData);
+
+    if (!publicUrlData?.publicUrl) {
+      throw new Error("No se generó URL pública");
     }
 
-    return data.publicUrl;
-  };
+    return publicUrlData.publicUrl;
+  } catch (err) {
+    console.error("FALLO TOTAL:", err);
+    return "";
+  } finally {
+    setSubiendoComprobante(false);
+  }
+};
 
 
   const seleccionarComprobante = (file?: File) => {
@@ -201,15 +211,15 @@ export default function CarritoPage() {
         )
         .join("\n");
 
-      const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido ID: ${
-        pedido.id
-      }\n\nMétodo de pago: ${metodoPago}\nComprobante: ${
-        comprobanteUrl || "Lo enviaré manualmente"
-      }\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
-        2
-      )}\nDescuento: S/ ${montoDescuento.toFixed(2)}\nTotal: S/ ${totalFinal.toFixed(
-        2
-      )}\n\nQuiero continuar con la confirmación de mi compra.`;
+const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido ID: ${
+  pedido.id
+}\n\nMétodo de pago: ${metodoPago}\nComprobante: ${
+  comprobanteUrl ? comprobanteUrl : "Adjuntaré luego"
+}\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
+  2
+)}\nDescuento: S/ ${montoDescuento.toFixed(2)}\nTotal: S/ ${totalFinal.toFixed(
+  2
+)}\n\nQuiero continuar con la confirmación de mi compra.`;
 
       toast.success("Pedido creado. Redirigiendo a WhatsApp...");
 
