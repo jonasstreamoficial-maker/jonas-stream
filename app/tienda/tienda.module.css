@@ -1221,3 +1221,151 @@
     transform: none;
   }
 }
+
+
+/* ==========================================================
+   FIX PRO FINAL
+   - Productos tipo Ver Precios: 3 columnas cuando hay espacio
+   - Carrito derecho fijo/profesional
+   - Sin barra ploma visible
+   - Lista del carrito con scroll oculto
+   ========================================================== */
+
+.shopSection {
+  width: min(1640px, calc(100% - 28px)) !important;
+  grid-template-columns: minmax(0, 1fr) 340px !important;
+  gap: 18px !important;
+}
+
+.catalogPanel {
+  min-width: 0 !important;
+}
+
+.catalogGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+}
+
+.productVisual {
+  min-height: 220px !important;
+}
+
+.productTitle {
+  font-size: 1.1rem !important;
+}
+
+.productSubtitle {
+  min-height: 46px !important;
+}
+
+.cartPanel {
+  position: sticky !important;
+  top: 110px !important;
+  height: calc(100vh - 130px) !important;
+  max-height: calc(100vh - 130px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+}
+
+.cartPanel::-webkit-scrollbar,
+.cartItems::-webkit-scrollbar {
+  display: none !important;
+}
+
+.cartHeader {
+  flex: 0 0 auto !important;
+}
+
+.cartItems {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  padding-right: 2px !important;
+  scrollbar-width: none !important;
+  min-height: 0 !important;
+}
+
+.cartSummary,
+.cartActions,
+.cartNote {
+  flex: 0 0 auto !important;
+}
+
+.cartItem {
+  grid-template-columns: 58px 1fr !important;
+  gap: 12px !important;
+  padding: 12px !important;
+}
+
+.cartImage {
+  width: 58px !important;
+  height: 58px !important;
+}
+
+.cartInfo strong {
+  font-size: 0.95rem !important;
+}
+
+.cartControls {
+  margin-top: 8px !important;
+}
+
+.cartControls button,
+.cartControls small {
+  min-width: 30px !important;
+  height: 30px !important;
+}
+
+.cartPrice {
+  margin-top: 4px !important;
+}
+
+@media (max-width: 1500px) {
+  .shopSection {
+    width: min(1440px, calc(100% - 28px)) !important;
+    grid-template-columns: minmax(0, 1fr) 330px !important;
+  }
+
+  .catalogGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .shopSection {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cartPanel {
+    position: relative !important;
+    top: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    order: -1 !important;
+    overflow: visible !important;
+  }
+
+  .cartItems {
+    max-height: 360px !important;
+    overflow-y: auto !important;
+  }
+
+  .catalogGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .catalogGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cartItems {
+    max-height: 320px !important;
+  }
+
+  .productVisual {
+    min-height: 190px !important;
+  }
+}
