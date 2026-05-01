@@ -32,6 +32,16 @@ function limpiarNombreArchivo(nombre: string) {
     .replace(/-+/g, "-");
 }
 
+function esCuentaCompleta(tipoVenta?: string | null) {
+  const texto = (tipoVenta || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+  return texto.includes("cuenta");
+}
+
 export default function CarritoPage() {
   const [carrito, setCarrito] = useState<ProductoCarrito[]>([]);
   const [procesandoPedido, setProcesandoPedido] = useState(false);
@@ -224,21 +234,30 @@ export default function CarritoPage() {
       const comprobanteUrl = await subirComprobante(pedido.id);
 
       // 🔥 AGRUPAR PRODUCTOS POR TIPO
-      const cuentas = carrito.filter(p => p.tipo_venta === "Cuenta completa");
-      const perfiles = carrito.filter(p => p.tipo_venta !== "Cuenta completa");
+      // Detecta "Cuenta completa", "cuenta completa", "CUENTA", etc.
+      const cuentas = carrito.filter((p) => esCuentaCompleta(p.tipo_venta));
+      const perfiles = carrito.filter((p) => !esCuentaCompleta(p.tipo_venta));
 
-      const listaCuentas = cuentas.map(p =>
-        `• ${p.nombre} x${p.cantidad} — S/ ${(p.precio * p.cantidad).toFixed(2)}`
-      ).join("\n");
+      const listaCuentas = cuentas
+        .map(
+          (p) =>
+            `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`
+        )
+        .join("\n");
 
-      const listaPerfiles = perfiles.map(p =>
-        `• ${p.nombre} x${p.cantidad} — S/ ${(p.precio * p.cantidad).toFixed(2)}`
-      ).join("\n");
+      const listaPerfiles = perfiles
+        .map(
+          (p) =>
+            `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`
+        )
+        .join("\n");
 
-      const productosTexto = `
-${cuentas.length ? `*🔥 Cuenta completa*\n${listaCuentas}\n` : ""}
-${perfiles.length ? `\n*👤 Perfil*\n${listaPerfiles}` : ""}
-`;
+      const productosTexto = [
+        cuentas.length ? `*🔥 Cuenta completa*\n${listaCuentas}` : "",
+        perfiles.length ? `*👤 Perfil*\n${listaPerfiles}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
 
       const mensajeWhatsApp = `🧾 *NUEVO PEDIDO - JONAS STREAM*
 
