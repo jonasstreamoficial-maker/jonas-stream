@@ -8,6 +8,8 @@ import { agregarAlCarrito, contarItemsCarrito } from "@/lib/carrito";
 import { toggleFavorito, obtenerFavoritos } from "@/lib/favoritos";
 import styles from "./tienda.module.css";
 
+const USD_RATE = 3.75;
+
 type ProductStatus = "ACTIVO" | "LIMITADO" | "AGOTADO";
 
 type Producto = {
@@ -447,6 +449,7 @@ export default function TiendaPage() {
               {productosFiltrados.map((producto) => {
                 const type = normalizeType(producto.tipo_venta);
                 const status = normalizeStatus(producto);
+                const usd = Number(producto.precio || 0) / USD_RATE;
 
                 return (
                   <article key={producto.id} className={styles.productCard}>
@@ -539,14 +542,10 @@ export default function TiendaPage() {
                           <strong>S/ {formatMoney(producto.precio)}</strong>
                         </div>
 
-                        {producto.precio_antes &&
-                          producto.precio &&
-                          producto.precio_antes > producto.precio && (
-                            <div className={styles.priceCard}>
-                              <small>ANTES</small>
-                              <strong>S/ {formatMoney(producto.precio_antes)}</strong>
-                            </div>
-                          )}
+                        <div className={styles.priceCard}>
+                          <small>USD</small>
+                          <strong>$ {formatMoney(usd)}</strong>
+                        </div>
                       </div>
 
                       <div className={styles.cardActions}>
@@ -556,14 +555,6 @@ export default function TiendaPage() {
                           className={styles.buyButton}
                         >
                           Comprar
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => abrirWhatsApp(producto)}
-                          className={styles.whatsappButton}
-                        >
-                          WhatsApp
                         </button>
                       </div>
                     </div>
