@@ -13,6 +13,7 @@ import {
 import { crearPedido } from "@/lib/pedidos";
 import { validarCupon } from "@/lib/cupones";
 import toast from "react-hot-toast";
+import { supabase } from "@/lib/supabase";
 import styles from "./carrito.module.css";
 
 const WHATSAPP_NUMBER = "51900557949";
@@ -27,6 +28,9 @@ export default function CarritoPage() {
   const [codigoCupon, setCodigoCupon] = useState("");
   const [descuento, setDescuento] = useState(0);
   const [cuponAplicado, setCuponAplicado] = useState<string | null>(null);
+  const [metodoPago, setMetodoPago] = useState("");
+  const [comprobante, setComprobante] = useState<File | null>(null);
+  const [subiendoComprobante, setSubiendoComprobante] = useState(false);
 
   const cargarCarrito = () => {
     setCarrito(obtenerCarrito());
@@ -98,8 +102,45 @@ export default function CarritoPage() {
     toast.success("Cupón removido");
   };
 
+  const subirComprobante = async (pedidoId: string) => {
+    if (!comprobante) return "";
+
+    setSubiendoComprobante(true);
+
+    const extension = comprobante.name.split(".").pop() || "jpg";
+    const fileName = `pedido-${pedidoId}-${Date.now()}.${extension}`;
+    const filePath = `pedidos/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from("comprobantes")
+      .upload(filePath, comprobante, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    setSubiendoComprobante(false);
+
+    if (error) {
+      throw new Error("No se pudo subir el comprobante. Verifica el bucket comprobantes.");
+    }
+
+    const { data } = supabase.storage.from("comprobantes").getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
   const finalizarCompra = async () => {
     try {
+      if (!metodoPago) {
+        toast.error("Selecciona un método de pago");
+        return;
+      }
+
+      if (!comprobante) {
+        toast.error("Adjunta la imagen del comprobante");
+        return;
+      }
+
       setProcesandoPedido(true);
 
       const productosPedido = carrito.map((producto) => ({
@@ -110,6 +151,7 @@ export default function CarritoPage() {
       }));
 
       const pedido = await crearPedido("pendiente");
+      const comprobanteUrl = await subirComprobante(pedido.id);
 
       const detalleProductos = productosPedido
         .map(
@@ -120,6 +162,8 @@ export default function CarritoPage() {
 
       const mensajeWhatsApp = `Hola Jonas Stream, acabo de crear un pedido.\n\nPedido ID: ${
         pedido.id
+      }\n\nMétodo de pago: ${metodoPago}\nComprobante: ${
+        comprobanteUrl || "Pendiente de revisión"
       }\n\nProductos:\n${detalleProductos}\n\nSubtotal: S/ ${totalOriginal.toFixed(
         2
       )}\nDescuento: S/ ${montoDescuento.toFixed(2)}\nTotal: S/ ${totalFinal.toFixed(
@@ -134,12 +178,15 @@ export default function CarritoPage() {
       setCodigoCupon("");
       setDescuento(0);
       setCuponAplicado(null);
+      setMetodoPago("");
+      setComprobante(null);
     } catch (error) {
       const mensaje =
         error instanceof Error ? error.message : "Ocurrió un error al crear el pedido";
       toast.error(mensaje);
     } finally {
       setProcesandoPedido(false);
+      setSubiendoComprobante(false);
     }
   };
 
@@ -350,13 +397,41 @@ export default function CarritoPage() {
               )}
             </div>
 
+            <div className={styles.paymentBox}>
+              <span>MÉTODO DE PAGO</span>
+
+              <div className={styles.paymentGrid}>
+                {["Yape", "Plin", "Bim", "Binance"].map((metodo) => (
+                  <button
+                    key={metodo}
+                    type="button"
+                    onClick={() => setMetodoPago(metodo)}
+                    className={metodoPago === metodo ? styles.paymentActive : ""}
+                  >
+                    {metodo}
+                  </button>
+                ))}
+              </div>
+
+              <label className={styles.uploadBox}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setComprobante(event.target.files?.[0] || null)}
+                />
+
+                <strong>{comprobante ? comprobante.name : "Adjuntar comprobante"}</strong>
+                <small>Sube una captura o foto del pago. Se enviará como link por WhatsApp.</small>
+              </label>
+            </div>
+
             <button
               type="button"
               className={styles.createOrderButton}
               onClick={finalizarCompra}
-              disabled={procesandoPedido}
+              disabled={procesandoPedido || subiendoComprobante}
             >
-              {procesandoPedido ? "Procesando pedido..." : "Crear pedido"}
+              {procesandoPedido || subiendoComprobante ? "Procesando pedido..." : "Crear pedido"}
             </button>
 
             <p className={styles.summaryNote}>

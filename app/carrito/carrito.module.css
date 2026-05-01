@@ -709,6 +709,81 @@
   line-height: 1.7;
 }
 
+
+.paymentBox {
+  position: relative;
+  z-index: 2;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(236, 255, 255, 0.06);
+}
+
+.paymentBox > span {
+  display: inline-flex;
+  margin-bottom: 12px;
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.paymentGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.paymentGrid button {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(236, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--white);
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.paymentGrid button:hover,
+.paymentGrid .paymentActive {
+  border-color: rgba(0, 251, 255, 0.28);
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.22), rgba(1, 139, 144, 0.12));
+  box-shadow: 0 0 18px rgba(1, 231, 239, 0.1);
+}
+
+.uploadBox {
+  min-height: 92px;
+  border-radius: 16px;
+  border: 1px dashed rgba(1, 231, 239, 0.28);
+  background: rgba(1, 231, 239, 0.045);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 5px;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.uploadBox input {
+  display: none;
+}
+
+.uploadBox strong {
+  color: var(--white);
+  font-weight: 900;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.uploadBox small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 @media (max-width: 1100px) {
   .checkoutGrid {
     grid-template-columns: 1fr;
