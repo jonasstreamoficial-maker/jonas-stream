@@ -223,12 +223,22 @@ export default function CarritoPage() {
       const pedido = await crearPedido("pendiente");
       const comprobanteUrl = await subirComprobante(pedido.id);
 
-      const detalleProductos = productosPedido
-        .map(
-          (producto) =>
-            `• ${producto.nombre} x${producto.cantidad} - S/ ${producto.subtotal.toFixed(2)}`
-        )
-        .join("\n");
+      // 🔥 AGRUPAR PRODUCTOS POR TIPO
+      const cuentas = carrito.filter(p => p.tipo_venta === "Cuenta completa");
+      const perfiles = carrito.filter(p => p.tipo_venta !== "Cuenta completa");
+
+      const listaCuentas = cuentas.map(p =>
+        `• ${p.nombre} x${p.cantidad} — S/ ${(p.precio * p.cantidad).toFixed(2)}`
+      ).join("\n");
+
+      const listaPerfiles = perfiles.map(p =>
+        `• ${p.nombre} x${p.cantidad} — S/ ${(p.precio * p.cantidad).toFixed(2)}`
+      ).join("\n");
+
+      const productosTexto = `
+${cuentas.length ? `*🔥 Cuenta completa*\n${listaCuentas}\n` : ""}
+${perfiles.length ? `\n*👤 Perfil*\n${listaPerfiles}` : ""}
+`;
 
       const mensajeWhatsApp = `🧾 *NUEVO PEDIDO - JONAS STREAM*
 
@@ -240,7 +250,7 @@ ${pedido.id}
 • Comprobante: ${comprobanteUrl}
 
 📦 *Productos:*
-${detalleProductos}
+${productosTexto}
 
 💰 *Resumen:*
 • Subtotal: S/ ${totalOriginal.toFixed(2)}
