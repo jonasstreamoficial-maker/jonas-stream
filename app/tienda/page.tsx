@@ -46,6 +46,16 @@ type Favorito = {
   producto_id: string;
 };
 
+type MiniCartItem = {
+  id: string;
+  nombre: string;
+  precio: number;
+  imagen: string | null;
+  categoria: string;
+  tipo_venta: string;
+  cantidad: number;
+};
+
 function formatMoney(value: number | null | undefined) {
   return Number(value || 0).toFixed(2);
 }
@@ -107,6 +117,7 @@ export default function TiendaPage() {
   const [statusFilter, setStatusFilter] = useState<"TODOS" | ProductStatus>("TODOS");
   const [cantidadCarrito, setCantidadCarrito] = useState(0);
   const [favoritos, setFavoritos] = useState<string[]>([]);
+  const [miniCartItems, setMiniCartItems] = useState<MiniCartItem[]>([]);
 
   useEffect(() => {
     cargarTienda();
@@ -176,6 +187,40 @@ export default function TiendaPage() {
     });
   }, [productos, busqueda, typeFilter, statusFilter]);
 
+  const miniCartTotal = useMemo(() => {
+    return miniCartItems.reduce((total, item) => total + item.precio * item.cantidad, 0);
+  }, [miniCartItems]);
+
+  const miniCartCantidad = useMemo(() => {
+    return miniCartItems.reduce((total, item) => total + item.cantidad, 0);
+  }, [miniCartItems]);
+
+  const agregarProductoAlPreview = (producto: Producto) => {
+    const item: MiniCartItem = {
+      id: producto.id,
+      nombre: producto.nombre || "Producto",
+      precio: Number(producto.precio || 0),
+      imagen: producto.imagen || null,
+      categoria: producto.categoria || "",
+      tipo_venta: producto.tipo_venta || "",
+      cantidad: 1,
+    };
+
+    setMiniCartItems((prev) => {
+      const exists = prev.find((cartItem) => cartItem.id === item.id);
+
+      if (exists) {
+        return prev.map((cartItem) =>
+          cartItem.id === item.id
+            ? { ...cartItem, cantidad: cartItem.cantidad + 1 }
+            : cartItem
+        );
+      }
+
+      return [item, ...prev];
+    });
+  };
+
   const comprarProducto = (producto: Producto) => {
     agregarAlCarrito({
       id: producto.id,
@@ -186,6 +231,7 @@ export default function TiendaPage() {
       tipo_venta: producto.tipo_venta || "",
     });
 
+    agregarProductoAlPreview(producto);
     actualizarContador();
     toast.success(`Agregado al carrito: ${producto.nombre || "Producto"}`);
   };
@@ -202,6 +248,11 @@ export default function TiendaPage() {
       producto.nombre || "Producto"
     }.`;
     window.open(buildWhatsAppLink(numero, mensaje), "_blank", "noopener,noreferrer");
+  };
+
+  const limpiarVistaRapida = () => {
+    setMiniCartItems([]);
+    toast.success("Vista rápida limpiada");
   };
 
   return (
@@ -263,7 +314,7 @@ export default function TiendaPage() {
           </a>
 
           <Link href="/carrito" className={styles.heroBtnSecondary}>
-            Ver carrito
+            Finalizar compra
           </Link>
         </div>
       </section>
@@ -342,151 +393,221 @@ export default function TiendaPage() {
         </div>
       </section>
 
-      <section className={styles.catalogSection} id="productos">
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionKicker}>CATÁLOGO DE COMPRA</span>
-          <h2 className={styles.sectionTitle}>Productos disponibles</h2>
-        </div>
-
-        <div className={styles.resultInfo}>
-          Mostrando <strong>{productosFiltrados.length}</strong> producto(s)
-        </div>
-
-        {productosFiltrados.length === 0 ? (
-          <div className={styles.emptyState}>
-            <h3>No hay productos para mostrar</h3>
-            <p>Intenta cambiar la búsqueda, el tipo de acceso o la disponibilidad.</p>
+      <section className={styles.shopSection} id="productos">
+        <div className={styles.catalogPanel}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionKicker}>CATÁLOGO DE COMPRA</span>
+            <h2 className={styles.sectionTitle}>Productos disponibles</h2>
           </div>
-        ) : (
-          <div className={styles.catalogGrid}>
-            {productosFiltrados.map((producto) => {
-              const type = normalizeType(producto.tipo_venta);
-              const status = normalizeStatus(producto);
 
-              return (
-                <article key={producto.id} className={styles.productCard}>
-                  <button
-                    type="button"
-                    aria-label="Agregar a favoritos"
-                    onClick={() => manejarFavorito(producto.id)}
-                    className={`${styles.favoriteButton} ${
-                      favoritos.includes(producto.id) ? styles.favoriteActive : ""
-                    }`}
-                  >
-                    {favoritos.includes(producto.id) ? "❤️" : "🤍"}
-                  </button>
+          <div className={styles.resultInfo}>
+            Mostrando <strong>{productosFiltrados.length}</strong> producto(s)
+          </div>
 
-                  <div className={styles.productTop}>
-                    <div className={styles.productBadges}>
-                      <span
-                        className={`${styles.categoryBadge} ${getCategoryClass(
-                          producto.categoria || "Streaming"
-                        )}`}
-                      >
-                        {producto.categoria || "Streaming"}
-                      </span>
+          {productosFiltrados.length === 0 ? (
+            <div className={styles.emptyState}>
+              <h3>No hay productos para mostrar</h3>
+              <p>Intenta cambiar la búsqueda, el tipo de acceso o la disponibilidad.</p>
+            </div>
+          ) : (
+            <div className={styles.catalogGrid}>
+              {productosFiltrados.map((producto) => {
+                const type = normalizeType(producto.tipo_venta);
+                const status = normalizeStatus(producto);
 
-                      <span className={`${styles.typeBadge} ${getTypeClass(type)}`}>
-                        {type === "Perfil" ? "Perfil privado" : "Cuenta completa"}
-                      </span>
-                    </div>
+                return (
+                  <article key={producto.id} className={styles.productCard}>
+                    <button
+                      type="button"
+                      aria-label="Agregar a favoritos"
+                      onClick={() => manejarFavorito(producto.id)}
+                      className={`${styles.favoriteButton} ${
+                        favoritos.includes(producto.id) ? styles.favoriteActive : ""
+                      }`}
+                    >
+                      {favoritos.includes(producto.id) ? "❤️" : "🤍"}
+                    </button>
 
-                    <div className={styles.productVisual}>
-                      {producto.imagen ? (
-                        <img
-                          src={producto.imagen}
-                          alt={producto.nombre || "Producto"}
-                          className={styles.productImage}
-                        />
-                      ) : (
-                        <div className={styles.imagePlaceholder}>Sin imagen</div>
-                      )}
-                    </div>
-                  </div>
+                    <div className={styles.productTop}>
+                      <div className={styles.productBadges}>
+                        <span
+                          className={`${styles.categoryBadge} ${getCategoryClass(
+                            producto.categoria || "Streaming"
+                          )}`}
+                        >
+                          {producto.categoria || "Streaming"}
+                        </span>
 
-                  <div className={styles.productBody}>
-                    <h3 className={styles.productTitle}>{producto.nombre || "Producto"}</h3>
-
-                    <p className={styles.productSubtitle}>
-                      {producto.descripcion || "Producto digital disponible"}
-                    </p>
-
-                    <div className={styles.metaGrid}>
-                      <div className={styles.metaCard}>
-                        <span>TIPO</span>
-                        <strong>{type}</strong>
+                        <span className={`${styles.typeBadge} ${getTypeClass(type)}`}>
+                          {type === "Perfil" ? "Perfil privado" : "Cuenta completa"}
+                        </span>
                       </div>
 
-                      <div className={styles.metaCard}>
-                        <span>DURACIÓN</span>
-                        <strong>{producto.duracion || "1 mes"}</strong>
-                      </div>
-
-                      <div className={styles.metaCard}>
-                        <span>PROVEEDOR</span>
-                        <strong>{producto.proveedor || "Jonas Stream"}</strong>
-                      </div>
-
-                      <div className={styles.metaCard}>
-                        <span>RENOVABLE</span>
-                        <strong>{producto.renovable ?? true ? "Sí" : "No"}</strong>
-                      </div>
-                    </div>
-
-                    <div className={styles.statusRow}>
-                      <span className={`${styles.statusBadge} ${getStatusClass(status)}`}>
-                        {status}
-                      </span>
-
-                      <span className={styles.stockText}>
-                        {producto.stock_texto ||
-                          (status === "LIMITADO"
-                            ? "Últimas unidades"
-                            : status === "AGOTADO"
-                            ? "Consultar reposición"
-                            : "Stock disponible")}
-                      </span>
-                    </div>
-
-                    <div className={styles.priceGrid}>
-                      <div className={styles.priceCard}>
-                        <small>PEN</small>
-                        <strong>S/ {formatMoney(producto.precio)}</strong>
-                      </div>
-
-                      {producto.precio_antes &&
-                        producto.precio &&
-                        producto.precio_antes > producto.precio && (
-                          <div className={styles.priceCard}>
-                            <small>ANTES</small>
-                            <strong>S/ {formatMoney(producto.precio_antes)}</strong>
-                          </div>
+                      <div className={styles.productVisual}>
+                        {producto.imagen ? (
+                          <img
+                            src={producto.imagen}
+                            alt={producto.nombre || "Producto"}
+                            className={styles.productImage}
+                          />
+                        ) : (
+                          <div className={styles.imagePlaceholder}>Sin imagen</div>
                         )}
+                      </div>
                     </div>
 
-                    <div className={styles.cardActions}>
-                      <button
-                        type="button"
-                        onClick={() => comprarProducto(producto)}
-                        className={styles.buyButton}
-                      >
-                        Comprar
-                      </button>
+                    <div className={styles.productBody}>
+                      <h3 className={styles.productTitle}>{producto.nombre || "Producto"}</h3>
 
-                      <button
-                        type="button"
-                        onClick={() => abrirWhatsApp(producto)}
-                        className={styles.whatsappButton}
-                      >
-                        WhatsApp
-                      </button>
+                      <p className={styles.productSubtitle}>
+                        {producto.descripcion || "Producto digital disponible"}
+                      </p>
+
+                      <div className={styles.metaGrid}>
+                        <div className={styles.metaCard}>
+                          <span>TIPO</span>
+                          <strong>{type}</strong>
+                        </div>
+
+                        <div className={styles.metaCard}>
+                          <span>DURACIÓN</span>
+                          <strong>{producto.duracion || "1 mes"}</strong>
+                        </div>
+
+                        <div className={styles.metaCard}>
+                          <span>PROVEEDOR</span>
+                          <strong>{producto.proveedor || "Jonas Stream"}</strong>
+                        </div>
+
+                        <div className={styles.metaCard}>
+                          <span>RENOVABLE</span>
+                          <strong>{producto.renovable ?? true ? "Sí" : "No"}</strong>
+                        </div>
+                      </div>
+
+                      <div className={styles.statusRow}>
+                        <span className={`${styles.statusBadge} ${getStatusClass(status)}`}>
+                          {status}
+                        </span>
+
+                        <span className={styles.stockText}>
+                          {producto.stock_texto ||
+                            (status === "LIMITADO"
+                              ? "Últimas unidades"
+                              : status === "AGOTADO"
+                              ? "Consultar reposición"
+                              : "Stock disponible")}
+                        </span>
+                      </div>
+
+                      <div className={styles.priceGrid}>
+                        <div className={styles.priceCard}>
+                          <small>PEN</small>
+                          <strong>S/ {formatMoney(producto.precio)}</strong>
+                        </div>
+
+                        {producto.precio_antes &&
+                          producto.precio &&
+                          producto.precio_antes > producto.precio && (
+                            <div className={styles.priceCard}>
+                              <small>ANTES</small>
+                              <strong>S/ {formatMoney(producto.precio_antes)}</strong>
+                            </div>
+                          )}
+                      </div>
+
+                      <div className={styles.cardActions}>
+                        <button
+                          type="button"
+                          onClick={() => comprarProducto(producto)}
+                          className={styles.buyButton}
+                        >
+                          Comprar
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => abrirWhatsApp(producto)}
+                          className={styles.whatsappButton}
+                        >
+                          WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <aside className={styles.cartPanel}>
+          <div className={styles.cartHeader}>
+            <div>
+              <span>Carrito visible</span>
+              <h3>Tu compra</h3>
+            </div>
+
+            <strong>{miniCartCantidad}</strong>
+          </div>
+
+          {miniCartItems.length === 0 ? (
+            <div className={styles.cartEmpty}>
+              <strong>Aún no agregaste productos</strong>
+              <p>Presiona “Comprar” en cualquier producto y aparecerá aquí al instante.</p>
+            </div>
+          ) : (
+            <>
+              <div className={styles.cartItems}>
+                {miniCartItems.map((item) => (
+                  <div key={item.id} className={styles.cartItem}>
+                    <div className={styles.cartImage}>
+                      {item.imagen ? <img src={item.imagen} alt={item.nombre} /> : <span>JS</span>}
+                    </div>
+
+                    <div className={styles.cartInfo}>
+                      <strong>{item.nombre}</strong>
+                      <span>{item.tipo_venta || item.categoria || "Producto digital"}</span>
+                      <small>
+                        {item.cantidad} × S/ {formatMoney(item.precio)}
+                      </small>
+                    </div>
+
+                    <div className={styles.cartPrice}>
+                      S/ {formatMoney(item.precio * item.cantidad)}
                     </div>
                   </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+                ))}
+              </div>
+
+              <div className={styles.cartSummary}>
+                <div>
+                  <span>Productos</span>
+                  <strong>{miniCartCantidad}</strong>
+                </div>
+
+                <div>
+                  <span>Total rápido</span>
+                  <strong>S/ {formatMoney(miniCartTotal)}</strong>
+                </div>
+              </div>
+
+              <div className={styles.cartActions}>
+                <Link href="/carrito" className={styles.cartGoTo}>
+                  Finalizar compra
+                </Link>
+
+                <button type="button" onClick={limpiarVistaRapida} className={styles.cartContinue}>
+                  Limpiar vista
+                </button>
+              </div>
+
+              <p className={styles.cartNote}>
+                Finaliza en el carrito completo para crear tu pedido, aplicar cupón y confirmar datos.
+              </p>
+            </>
+          )}
+        </aside>
       </section>
     </main>
   );

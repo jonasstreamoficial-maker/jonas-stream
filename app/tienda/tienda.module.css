@@ -984,23 +984,6 @@
   text-align: center;
 }
 
-@media (max-width: 1280px) {
-  .shopSection {
-    grid-template-columns: 1fr;
-  }
-
-  .cartPanel {
-    position: relative;
-    top: auto;
-    max-height: none;
-    order: -1;
-  }
-
-  .catalogGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 1100px) {
   .filterPanel {
     grid-template-columns: 1fr;
@@ -1193,5 +1176,113 @@
   .topLinkPrimary:hover,
   .productCard:hover {
     transform: none;
+  }
+}
+
+
+/* ==========================================================
+   FIX FINAL - CARRITO REAL A LA DERECHA + CARDS COMPACTAS
+   ========================================================== */
+
+.shopSection {
+  width: min(1320px, calc(100% - 28px)) !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 340px !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+.catalogPanel {
+  min-width: 0 !important;
+}
+
+.cartPanel {
+  display: block !important;
+  position: sticky !important;
+  top: 112px !important;
+  min-width: 0 !important;
+  max-height: calc(100vh - 132px) !important;
+  overflow-y: auto !important;
+}
+
+.catalogGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+}
+
+.productVisual {
+  min-height: 205px !important;
+}
+
+.productTitle {
+  font-size: 1.05rem !important;
+}
+
+.productSubtitle {
+  font-size: 0.9rem !important;
+  min-height: 42px !important;
+}
+
+.metaGrid {
+  gap: 8px !important;
+}
+
+.metaCard {
+  padding: 9px !important;
+}
+
+.priceGrid {
+  gap: 8px !important;
+}
+
+.cardActions {
+  gap: 8px !important;
+}
+
+.cartPanel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cartPanel::-webkit-scrollbar-thumb {
+  background: rgba(1, 231, 239, 0.24);
+  border-radius: 999px;
+}
+
+.cartPanel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+@media (max-width: 1180px) {
+  .shopSection {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cartPanel {
+    position: relative !important;
+    top: auto !important;
+    max-height: none !important;
+    order: -1 !important;
+  }
+
+  .catalogGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .shopSection {
+    grid-template-columns: 1fr !important;
+  }
+
+  .catalogGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cartPanel {
+    order: -1 !important;
+  }
+
+  .productVisual {
+    min-height: 190px !important;
   }
 }
