@@ -30,6 +30,7 @@ export default function CarritoPage() {
   const [cuponAplicado, setCuponAplicado] = useState<string | null>(null);
   const [metodoPago, setMetodoPago] = useState("");
   const [comprobante, setComprobante] = useState<File | null>(null);
+  const [previewComprobante, setPreviewComprobante] = useState<string | null>(null);
   const [subiendoComprobante, setSubiendoComprobante] = useState(false);
 
   const cargarCarrito = () => {
@@ -44,6 +45,14 @@ export default function CarritoPage() {
 
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewComprobante) {
+        URL.revokeObjectURL(previewComprobante);
+      }
+    };
+  }, [previewComprobante]);
 
   const unidades = useMemo(() => {
     return carrito.reduce((acc, item) => acc + item.cantidad, 0);
@@ -129,7 +138,29 @@ export default function CarritoPage() {
     return data.publicUrl;
   };
 
+  const seleccionarComprobante = (file?: File) => {
+    if (!file) {
+      setComprobante(null);
+      setPreviewComprobante(null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Sube una imagen válida");
+      return;
+    }
+
+    if (previewComprobante) {
+      URL.revokeObjectURL(previewComprobante);
+    }
+
+    setComprobante(file);
+    setPreviewComprobante(URL.createObjectURL(file));
+  };
+
   const finalizarCompra = async () => {
+    let whatsappWindow: Window | null = null;
+
     try {
       if (!metodoPago) {
         toast.error("Selecciona un método de pago");
@@ -140,6 +171,8 @@ export default function CarritoPage() {
         toast.error("Adjunta la imagen del comprobante");
         return;
       }
+
+      whatsappWindow = window.open("", "_blank");
 
       setProcesandoPedido(true);
 
@@ -172,7 +205,13 @@ export default function CarritoPage() {
 
       toast.success(`Pedido creado correctamente. ID: ${pedido.id}`);
 
-      window.open(buildWhatsAppLink(mensajeWhatsApp), "_blank", "noopener,noreferrer");
+      const whatsappUrl = buildWhatsAppLink(mensajeWhatsApp);
+
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappUrl;
+      } else {
+        window.location.href = whatsappUrl;
+      }
 
       cargarCarrito();
       setCodigoCupon("");
@@ -180,7 +219,12 @@ export default function CarritoPage() {
       setCuponAplicado(null);
       setMetodoPago("");
       setComprobante(null);
+      setPreviewComprobante(null);
     } catch (error) {
+      if (whatsappWindow) {
+        whatsappWindow.close();
+      }
+
       const mensaje =
         error instanceof Error ? error.message : "Ocurrió un error al crear el pedido";
       toast.error(mensaje);
@@ -417,11 +461,17 @@ export default function CarritoPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(event) => setComprobante(event.target.files?.[0] || null)}
+                  onChange={(event) => seleccionarComprobante(event.target.files?.[0])}
                 />
 
                 <strong>{comprobante ? comprobante.name : "Adjuntar comprobante"}</strong>
                 <small>Sube una captura o foto del pago. Se enviará como link por WhatsApp.</small>
+
+                {previewComprobante && (
+                  <div className={styles.previewBox}>
+                    <img src={previewComprobante} alt="Vista previa del comprobante" />
+                  </div>
+                )}
               </label>
             </div>
 
