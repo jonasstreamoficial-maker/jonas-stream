@@ -127,22 +127,26 @@ export default function LoginPage() {
             Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo de cuenta.
           </p>
 
-          <div className={styles.featureGrid} aria-label="Tipos de acceso">
-            <div className={styles.featureCard}>
-              <span>01</span>
-              <strong>Cliente</strong>
+          <div className={styles.accessGrid} aria-label="Accesos disponibles">
+            <div className={styles.accessCard}>
+              <span>CLIENTE</span>
+              <strong>Consulta tus pedidos y servicios activos.</strong>
             </div>
 
-            <div className={styles.featureCard}>
-              <span>02</span>
-              <strong>Proveedor</strong>
+            <div className={styles.accessCard}>
+              <span>PROVEEDOR</span>
+              <strong>Gestiona productos y disponibilidad.</strong>
             </div>
 
-            <div className={styles.featureCard}>
-              <span>03</span>
-              <strong>Administrador</strong>
+            <div className={styles.accessCard}>
+              <span>ADMIN</span>
+              <strong>Administra usuarios, ventas y configuración.</strong>
             </div>
           </div>
+
+          <p className={styles.panelNote}>
+            Si tu cuenta está pendiente, espera la aprobación o comunícate con soporte.
+          </p>
         </div>
 
         <form onSubmit={iniciarSesion} className={styles.loginCard}>
@@ -173,7 +177,7 @@ export default function LoginPage() {
           <div className={styles.inputGroup}>
             <label htmlFor="contrasena">Contraseña</label>
 
-            <div className={styles.inputWrap}>
+            <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
               <input
                 id="contrasena"
                 type={mostrarContrasena ? "text" : "password"}
