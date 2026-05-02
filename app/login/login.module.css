@@ -847,3 +847,63 @@
     --topbar-height: 160px;
   }
 }
+
+
+/* ==========================================================
+   FIX FINAL MOBILE - ESPACIOS VERTICALES MAS DELGADOS
+   Corrige el espacio grande debajo del header y entre paneles.
+   ========================================================== */
+
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 126px !important;
+    padding-top: calc(var(--topbar-height) + 4px) !important;
+    padding-bottom: 26px !important;
+  }
+
+  .topbarWrap {
+    padding-top: 8px !important;
+  }
+
+  .topbar {
+    min-height: auto !important;
+    padding: 10px 12px !important;
+  }
+
+  .loginShell {
+    margin-top: 0 !important;
+    margin-bottom: 10px !important;
+    gap: 10px !important;
+  }
+
+  .brandPanel {
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+  }
+
+  .loginCard {
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+  }
+
+  .panelNote {
+    margin-top: 10px !important;
+  }
+
+  .footerLegal {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .page {
+    --topbar-height: 126px !important;
+    padding-top: calc(var(--topbar-height) + 4px) !important;
+  }
+
+  .loginShell {
+    gap: 10px !important;
+    margin-bottom: 10px !important;
+  }
+}
