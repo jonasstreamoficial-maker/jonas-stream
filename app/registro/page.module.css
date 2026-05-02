@@ -851,26 +851,37 @@
 
 
 /* ==========================================================
-   FIX FINAL V2 - REGISTRO
-   Panel de registro mas ancho en escritorio + separacion mobile correcta.
+   FIX FINAL DEFINITIVO - REGISTRO JONAS STREAM
+   1) Registro ancho en desktop.
+   2) Separación mobile delgada, no pegada y no gigante.
+   3) Mantiene toda la lógica y diseño base.
    ========================================================== */
 
+/* DESKTOP / LAPTOP: el panel de registro ocupa el ancho grande */
 @media (min-width: 761px) {
+  .formSection {
+    width: min(1320px, calc(100% - 28px)) !important;
+  }
+
   .registerCard {
-    width: min(1020px, 100%) !important;
+    width: 100% !important;
+    max-width: 1320px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
 
   .formGrid {
     grid-template-columns: 1fr 1fr !important;
-    column-gap: 20px !important;
+    column-gap: 22px !important;
   }
 }
 
+/* CELULAR: separación fina como veníamos trabajando */
 @media (max-width: 760px) {
   .page {
-    --topbar-height: 238px !important;
-    padding-top: calc(var(--topbar-height) + 14px) !important;
-    padding-bottom: 28px !important;
+    --topbar-height: 126px !important;
+    padding-top: calc(var(--topbar-height) + 6px) !important;
+    padding-bottom: 26px !important;
   }
 
   .topbarWrap,
@@ -878,32 +889,64 @@
   .formSection,
   .footerWrap {
     width: min(100% - 18px, 1320px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .topbarWrap {
+    padding-top: 8px !important;
+  }
+
+  .topbar {
+    min-height: auto !important;
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    border-radius: 18px !important;
+  }
+
+  .topActions {
+    gap: 8px !important;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    min-height: 44px !important;
   }
 
   .heroPanel {
     margin-top: 0 !important;
-    margin-bottom: 14px !important;
-    padding-top: 28px !important;
+    margin-bottom: 12px !important;
+    padding-top: 22px !important;
+    padding-bottom: 22px !important;
   }
 
   .heroBadge {
     margin-top: 0 !important;
-    margin-bottom: 20px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .heroTitle {
+    margin-bottom: 16px !important;
   }
 
   .formSection {
     margin-top: 0 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .registerCard {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 
 @media (max-width: 430px) {
   .page {
-    --topbar-height: 238px !important;
-    padding-top: calc(var(--topbar-height) + 14px) !important;
+    --topbar-height: 126px !important;
+    padding-top: calc(var(--topbar-height) + 6px) !important;
   }
 
   .heroPanel {
     margin-top: 0 !important;
-    padding-top: 28px !important;
   }
 }
