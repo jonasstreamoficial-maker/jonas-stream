@@ -950,3 +950,30 @@
     margin-top: 0 !important;
   }
 }
+
+/* =========================================
+   FIX SEPARACIÓN HEADER → HERO (MOBILE)
+   ========================================= */
+
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 150px !important; /* antes estaba muy alto o mal calibrado */
+    padding-top: calc(var(--topbar-height) + 12px) !important;
+  }
+
+  .heroPanel {
+    margin-top: 0 !important;
+    padding-top: 18px !important;
+  }
+
+  .topbarWrap {
+    padding-top: 6px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .page {
+    --topbar-height: 150px !important;
+    padding-top: calc(var(--topbar-height) + 10px) !important;
+  }
+}
