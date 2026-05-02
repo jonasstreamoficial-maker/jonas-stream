@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -9,8 +9,45 @@ import styles from "./page.module.css";
 
 const WHATSAPP_NUMBER = "51900557949";
 
+const paises = [
+  { pais: "Perú", codigo: "+51" },
+  { pais: "Guatemala", codigo: "+502" },
+  { pais: "México", codigo: "+52" },
+  { pais: "Colombia", codigo: "+57" },
+  { pais: "Ecuador", codigo: "+593" },
+  { pais: "Bolivia", codigo: "+591" },
+  { pais: "Chile", codigo: "+56" },
+  { pais: "Argentina", codigo: "+54" },
+  { pais: "Uruguay", codigo: "+598" },
+  { pais: "Paraguay", codigo: "+595" },
+  { pais: "Venezuela", codigo: "+58" },
+  { pais: "Brasil", codigo: "+55" },
+  { pais: "Panamá", codigo: "+507" },
+  { pais: "Costa Rica", codigo: "+506" },
+  { pais: "El Salvador", codigo: "+503" },
+  { pais: "Honduras", codigo: "+504" },
+  { pais: "Nicaragua", codigo: "+505" },
+  { pais: "República Dominicana", codigo: "+1" },
+  { pais: "Puerto Rico", codigo: "+1" },
+  { pais: "Estados Unidos", codigo: "+1" },
+  { pais: "Canadá", codigo: "+1" },
+  { pais: "España", codigo: "+34" },
+  { pais: "Alemania", codigo: "+49" },
+  { pais: "Francia", codigo: "+33" },
+  { pais: "Italia", codigo: "+39" },
+  { pais: "Portugal", codigo: "+351" },
+  { pais: "Reino Unido", codigo: "+44" },
+  { pais: "Australia", codigo: "+61" },
+  { pais: "Japón", codigo: "+81" },
+  { pais: "China", codigo: "+86" },
+];
+
 function buildWhatsAppLink(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+function limpiarCelular(value: string) {
+  return value.replace(/[^\d]/g, "");
 }
 
 export default function RegistroPage() {
@@ -18,10 +55,19 @@ export default function RegistroPage() {
 
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
+  const [pais, setPais] = useState("Perú");
+  const [celular, setCelular] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
   const [cargando, setCargando] = useState(false);
+
+  const paisSeleccionado = useMemo(() => {
+    return paises.find((item) => item.pais === pais) || paises[0];
+  }, [pais]);
+
+  const celularLimpio = limpiarCelular(celular);
+  const celularCompleto = `${paisSeleccionado.codigo}${celularLimpio}`;
 
   const registrarUsuario = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,6 +79,16 @@ export default function RegistroPage() {
 
     if (nombreLimpio.length < 3) {
       toast.error("Ingresa tu nombre completo");
+      return;
+    }
+
+    if (!paisSeleccionado) {
+      toast.error("Selecciona tu país");
+      return;
+    }
+
+    if (celularLimpio.length < 6) {
+      toast.error("Ingresa un número de celular válido");
       return;
     }
 
@@ -63,6 +119,10 @@ export default function RegistroPage() {
     const { error } = await supabase.from("usuarios").insert({
       nombre: nombreLimpio,
       correo: correoNormalizado,
+      pais: paisSeleccionado.pais,
+      codigo_pais: paisSeleccionado.codigo,
+      celular: celularLimpio,
+      celular_completo: celularCompleto,
       contrasena,
       rol: "cliente",
       estado: "pendiente",
@@ -149,8 +209,7 @@ export default function RegistroPage() {
           </div>
 
           <p className={styles.panelNote}>
-            Después de registrarte, espera la aprobación. Cuando tu cuenta sea aprobada, podrás
-            iniciar sesión normalmente.
+            El administrador verá tu país, código y número completo para contactarte más rápido.
           </p>
         </div>
 
@@ -193,6 +252,52 @@ export default function RegistroPage() {
                 required
               />
             </div>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label htmlFor="pais">País</label>
+
+            <div className={styles.inputWrap}>
+              <select
+                id="pais"
+                value={pais}
+                onChange={(e) => {
+                  setPais(e.target.value);
+                  setCelular("");
+                }}
+                required
+              >
+                {paises.map((item) => (
+                  <option key={`${item.pais}-${item.codigo}`} value={item.pais}>
+                    {item.pais} ({item.codigo})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label htmlFor="celular">Celular</label>
+
+            <div className={`${styles.inputWrap} ${styles.phoneWrap}`}>
+              <span className={styles.phoneCode}>{paisSeleccionado.codigo}</span>
+
+              <input
+                id="celular"
+                type="tel"
+                value={celular}
+                onChange={(e) => setCelular(limpiarCelular(e.target.value))}
+                placeholder="Ingresa tu número"
+                autoComplete="tel-national"
+                required
+              />
+            </div>
+
+            {celularLimpio.length > 0 && (
+              <p className={styles.phonePreview}>
+                Número completo: <strong>{celularCompleto}</strong>
+              </p>
+            )}
           </div>
 
           <div className={styles.inputGroup}>
