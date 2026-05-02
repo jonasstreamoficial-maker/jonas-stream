@@ -2168,39 +2168,182 @@
 }
 
 /* ==========================================================
-   FIX FINAL SOLO SEPARACION MOBILE (SIN ROMPER NADA)
+   FIX FINAL MOBILE - VER PRECIOS
+   Separación correcta + filtros con un solo ancho uniforme.
    ========================================================== */
 
 @media (max-width: 760px) {
   .page {
-    --topbar-height: 165px !important;
+    --topbar-height: 178px !important;
+    padding: 10px 0 42px !important;
+    overflow-x: hidden !important;
+  }
+
+  .topbarWrap,
+  .hero,
+  .infoSection,
+  .catalogSection,
+  .bottomSection,
+  .footerWrap {
+    width: min(100% - 18px, 1320px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbarWrap {
+    padding-top: 10px !important;
+  }
+
+  .topbar {
+    min-height: auto !important;
+    padding: 12px !important;
+    gap: 12px !important;
+    border-radius: 18px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    text-align: center !important;
   }
 
   .mainContent {
-    padding-top: calc(var(--topbar-height) + 6px) !important;
+    padding-top: calc(var(--topbar-height) + 10px) !important;
   }
 
   .hero {
     margin-top: 0 !important;
-    margin-bottom: 16px !important;
+    margin-bottom: 18px !important;
+    padding: 24px 14px !important;
+    border-radius: 24px !important;
   }
 
   .infoSection {
-    margin-top: 6px !important;
-    margin-bottom: 16px !important;
+    margin-top: 0 !important;
+    margin-bottom: 18px !important;
+    padding: 0 !important;
+  }
+
+  .filterPanel {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .searchBox,
+  .filterGroup {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 16px 14px !important;
+    border-radius: 20px !important;
+    min-height: auto !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  .searchBox span,
+  .filterGroup > span {
+    display: block !important;
+    margin-bottom: 10px !important;
+    font-size: 0.74rem !important;
+    letter-spacing: 2px !important;
+    line-height: 1.2 !important;
+  }
+
+  .searchBox input {
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border-radius: 14px !important;
+    font-size: 0.88rem !important;
+    padding: 0 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  .filterButtons {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .filterButtons button {
+    width: 100% !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 14px !important;
+    font-size: 0.86rem !important;
+    line-height: 1.1 !important;
+    padding: 0 10px !important;
+    box-sizing: border-box !important;
   }
 
   .catalogSection {
-    margin-top: 10px !important;
+    margin-top: 0 !important;
+    margin-bottom: 18px !important;
+    padding: 20px 14px !important;
+    border-radius: 24px !important;
+  }
+
+  .bottomSection {
+    margin-top: 0 !important;
+    margin-bottom: 18px !important;
+  }
+
+  .bottomPanel {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 20px 14px !important;
+    border-radius: 24px !important;
+  }
+
+  .footerLegal {
+    padding: 18px 14px !important;
+    border-radius: 18px !important;
+    font-size: 0.9rem !important;
   }
 }
 
 @media (max-width: 430px) {
   .page {
-    --topbar-height: 165px !important;
+    --topbar-height: 178px !important;
   }
 
   .mainContent {
-    padding-top: calc(var(--topbar-height) + 4px) !important;
+    padding-top: calc(var(--topbar-height) + 8px) !important;
+  }
+
+  .topbarWrap,
+  .hero,
+  .infoSection,
+  .catalogSection,
+  .bottomSection,
+  .footerWrap {
+    width: min(100% - 18px, 1320px) !important;
+  }
+
+  .searchBox,
+  .filterGroup {
+    padding: 15px 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .searchBox input {
+    height: 46px !important;
+    min-height: 46px !important;
+    font-size: 0.84rem !important;
+  }
+
+  .filterButtons button {
+    height: 44px !important;
+    min-height: 44px !important;
+    font-size: 0.84rem !important;
   }
 }
