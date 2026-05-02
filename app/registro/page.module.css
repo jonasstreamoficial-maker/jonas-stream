@@ -851,13 +851,11 @@
 
 
 /* ==========================================================
-   FIX FINAL DEFINITIVO - REGISTRO JONAS STREAM
-   1) Registro ancho en desktop.
-   2) Separación mobile delgada, no pegada y no gigante.
-   3) Mantiene toda la lógica y diseño base.
+   FIX DEFINITIVO - REGISTRO
+   Desktop: formulario ancho.
+   Mobile: separacion real entre header fijo y hero, sin quedar pegado.
    ========================================================== */
 
-/* DESKTOP / LAPTOP: el panel de registro ocupa el ancho grande */
 @media (min-width: 761px) {
   .formSection {
     width: min(1320px, calc(100% - 28px)) !important;
@@ -876,11 +874,10 @@
   }
 }
 
-/* CELULAR: separación fina como veníamos trabajando */
 @media (max-width: 760px) {
   .page {
-    --topbar-height: 126px !important;
-    padding-top: calc(var(--topbar-height) + 6px) !important;
+    --topbar-height: 168px !important;
+    padding-top: calc(var(--topbar-height) + 12px) !important;
     padding-bottom: 26px !important;
   }
 
@@ -914,9 +911,9 @@
   }
 
   .heroPanel {
-    margin-top: 0 !important;
+    margin-top: 10px !important;
     margin-bottom: 12px !important;
-    padding-top: 22px !important;
+    padding-top: 24px !important;
     padding-bottom: 22px !important;
   }
 
@@ -942,38 +939,11 @@
 
 @media (max-width: 430px) {
   .page {
-    --topbar-height: 126px !important;
-    padding-top: calc(var(--topbar-height) + 6px) !important;
-  }
-
-  .heroPanel {
-    margin-top: 0 !important;
-  }
-}
-
-/* =========================================
-   FIX SEPARACIÓN HEADER → HERO (MOBILE)
-   ========================================= */
-
-@media (max-width: 760px) {
-  .page {
-    --topbar-height: 150px !important; /* antes estaba muy alto o mal calibrado */
+    --topbar-height: 168px !important;
     padding-top: calc(var(--topbar-height) + 12px) !important;
   }
 
   .heroPanel {
-    margin-top: 0 !important;
-    padding-top: 18px !important;
-  }
-
-  .topbarWrap {
-    padding-top: 6px !important;
-  }
-}
-
-@media (max-width: 430px) {
-  .page {
-    --topbar-height: 150px !important;
-    padding-top: calc(var(--topbar-height) + 10px) !important;
+    margin-top: 10px !important;
   }
 }
