@@ -11,11 +11,12 @@
   --glass-panel: rgba(3, 19, 22, 0.78);
   --shadow-soft: 0 0 25px rgba(1, 231, 239, 0.18);
   --shadow-strong: 0 0 40px rgba(0, 251, 255, 0.22);
+  --topbar-height: 106px;
 
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
-  padding: 14px 16px 28px;
+  padding: calc(var(--topbar-height) + 14px) 16px 28px;
   background:
     radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.13), transparent 30%),
     radial-gradient(circle at 15% 18%, rgba(1, 139, 144, 0.12), transparent 24%),
@@ -78,17 +79,18 @@
   transform: translateY(-50%) rotate(90deg);
 }
 
-.topbarWrap,
-.loginShell,
-.footerWrap {
-  position: relative;
-  z-index: 2;
+.topbarWrap {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 60;
   width: min(1320px, calc(100% - 28px));
-  margin-left: auto;
-  margin-right: auto;
+  transform: translateX(-50%);
+  padding-top: 14px;
 }
 
 .topbar {
+  position: relative;
   min-height: 78px;
   border-radius: 22px;
   border: 1px solid rgba(1, 231, 239, 0.1);
@@ -184,19 +186,22 @@
 }
 
 .loginShell {
-  width: min(1120px, calc(100% - 28px));
-  min-height: calc(100vh - 235px);
-  margin-top: 26px;
-  margin-bottom: 22px;
+  position: relative;
+  z-index: 2;
+  width: min(1320px, calc(100% - 28px));
+  min-height: calc(100vh - 255px);
+  margin: 0 auto 22px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 430px;
-  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) minmax(430px, 470px);
+  gap: 18px;
   align-items: stretch;
 }
 
 .brandPanel,
 .loginCard {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
   border-radius: 34px;
   background: var(--glass-panel);
@@ -246,10 +251,10 @@
 .heroTitle {
   position: relative;
   z-index: 2;
-  max-width: 680px;
+  max-width: 760px;
   margin: 0 0 18px;
   font-family: "Orbitron", sans-serif;
-  font-size: clamp(2.15rem, 4.8vw, 4.15rem);
+  font-size: clamp(2.2rem, 4.2vw, 4.25rem);
   line-height: 1.02;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -267,7 +272,7 @@
 .heroText {
   position: relative;
   z-index: 2;
-  max-width: 660px;
+  max-width: 720px;
   margin: 0 0 26px;
   color: var(--muted);
   font-size: 1.02rem;
@@ -283,6 +288,7 @@
 }
 
 .accessCard {
+  min-height: 96px;
   padding: 16px 14px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.025);
@@ -322,7 +328,7 @@
 }
 
 .loginCard {
-  padding: 30px;
+  padding: 34px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -515,7 +521,10 @@
 }
 
 .footerWrap {
+  position: relative;
   z-index: 2;
+  width: min(1320px, calc(100% - 28px));
+  margin: 0 auto;
 }
 
 .footerLegal {
@@ -555,17 +564,14 @@
   color: rgba(236, 255, 255, 0.28);
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1180px) {
   .loginShell {
     grid-template-columns: 1fr;
-    max-width: 760px;
+    max-width: 780px;
     min-height: auto;
   }
 
-  .brandPanel {
-    min-height: auto;
-  }
-
+  .brandPanel,
   .loginCard {
     min-height: auto;
   }
@@ -599,13 +605,18 @@
 
 @media (max-width: 760px) {
   .page {
-    padding: 10px 0 24px;
+    --topbar-height: 176px;
+    padding: calc(var(--topbar-height) + 10px) 0 24px;
   }
 
   .topbarWrap,
   .loginShell,
   .footerWrap {
     width: min(100% - 18px, 1320px);
+  }
+
+  .topbarWrap {
+    padding-top: 10px;
   }
 
   .topbar {
@@ -650,7 +661,7 @@
   }
 
   .loginShell {
-    margin-top: 16px;
+    margin-bottom: 16px;
     gap: 16px;
   }
 
@@ -687,6 +698,7 @@
   }
 
   .accessCard {
+    min-height: auto;
     padding: 13px 14px;
   }
 
@@ -738,6 +750,10 @@
 }
 
 @media (max-width: 430px) {
+  .page {
+    --topbar-height: 176px;
+  }
+
   .heroTitle {
     font-size: 1.58rem;
   }
