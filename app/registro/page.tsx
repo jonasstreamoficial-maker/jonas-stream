@@ -82,11 +82,6 @@ export default function RegistroPage() {
       return;
     }
 
-    if (!paisSeleccionado) {
-      toast.error("Selecciona tu país");
-      return;
-    }
-
     if (celularLimpio.length < 6) {
       toast.error("Ingresa un número de celular válido");
       return;
@@ -162,7 +157,7 @@ export default function RegistroPage() {
             </Link>
 
             <Link href="/login" className={styles.topLink}>
-              LOGIN
+              INICIAR SESIÓN
             </Link>
 
             <a
@@ -177,42 +172,42 @@ export default function RegistroPage() {
         </div>
       </header>
 
-      <section className={styles.registerShell}>
-        <div className={styles.brandPanel}>
-          <div className={styles.heroBadge}>NUEVA CUENTA</div>
+      <section className={styles.heroPanel}>
+        <div className={styles.heroBadge}>NUEVA CUENTA</div>
 
-          <h1 className={styles.heroTitle}>
-            CREA TU
-            <span> ACCESO</span>
-          </h1>
+        <h1 className={styles.heroTitle}>
+          CREA TU
+          <span> ACCESO</span>
+        </h1>
 
-          <p className={styles.heroText}>
-            Regístrate para solicitar acceso a Jonas Stream. Tu cuenta quedará pendiente hasta que
-            el administrador revise y apruebe tu solicitud.
-          </p>
+        <p className={styles.heroText}>
+          Regístrate para solicitar acceso a Jonas Stream. Tu cuenta quedará pendiente hasta que el
+          administrador revise y apruebe tu solicitud.
+        </p>
 
-          <div className={styles.accessGrid}>
-            <div className={styles.accessCard}>
-              <span>01</span>
-              <strong>Envías tu solicitud</strong>
-            </div>
-
-            <div className={styles.accessCard}>
-              <span>02</span>
-              <strong>Admin revisa</strong>
-            </div>
-
-            <div className={styles.accessCard}>
-              <span>03</span>
-              <strong>Acceso aprobado</strong>
-            </div>
+        <div className={styles.accessGrid}>
+          <div className={styles.accessCard}>
+            <span>01</span>
+            <strong>Envías tu solicitud</strong>
           </div>
 
-          <p className={styles.panelNote}>
-            El administrador verá tu país, código y número completo para contactarte más rápido.
-          </p>
+          <div className={styles.accessCard}>
+            <span>02</span>
+            <strong>Admin revisa</strong>
+          </div>
+
+          <div className={styles.accessCard}>
+            <span>03</span>
+            <strong>Acceso aprobado</strong>
+          </div>
         </div>
 
+        <p className={styles.panelNote}>
+          El administrador verá tu país, código y número completo para contactarte más rápido.
+        </p>
+      </section>
+
+      <section className={styles.formSection}>
         <form onSubmit={registrarUsuario} className={styles.registerCard}>
           <div className={styles.cardGlow} />
 
@@ -222,122 +217,118 @@ export default function RegistroPage() {
             <p>Completa tus datos para crear tu cuenta.</p>
           </div>
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="nombre">Nombre completo</label>
-
-            <div className={styles.inputWrap}>
-              <input
-                id="nombre"
-                type="text"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Tu nombre completo"
-                autoComplete="name"
-                required
-              />
-            </div>
-          </div>
-
-          <div className={styles.inputGroup}>
-            <label htmlFor="correo">Correo electrónico</label>
-
-            <div className={styles.inputWrap}>
-              <input
-                id="correo"
-                type="email"
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
-                placeholder="tunombre@correo.com"
-                autoComplete="email"
-                required
-              />
-            </div>
-          </div>
-
-          <div className={styles.inputGroup}>
-            <label htmlFor="pais">País</label>
-
-            <div className={styles.inputWrap}>
-              <select
-                id="pais"
-                value={pais}
-                onChange={(e) => {
-                  setPais(e.target.value);
-                  setCelular("");
-                }}
-                required
-              >
-                {paises.map((item) => (
-                  <option key={`${item.pais}-${item.codigo}`} value={item.pais}>
-                    {item.pais} ({item.codigo})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className={styles.inputGroup}>
-            <label htmlFor="celular">Celular</label>
-
-            <div className={`${styles.inputWrap} ${styles.phoneWrap}`}>
-              <span className={styles.phoneCode}>{paisSeleccionado.codigo}</span>
-
-              <input
-                id="celular"
-                type="tel"
-                value={celular}
-                onChange={(e) => setCelular(limpiarCelular(e.target.value))}
-                placeholder="Ingresa tu número"
-                autoComplete="tel-national"
-                required
-              />
+          <div className={styles.formGrid}>
+            <div className={styles.inputGroup}>
+              <label htmlFor="nombre">Nombre completo</label>
+              <div className={styles.inputWrap}>
+                <input
+                  id="nombre"
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Tu nombre completo"
+                  autoComplete="name"
+                  required
+                />
+              </div>
             </div>
 
-            {celularLimpio.length > 0 && (
-              <p className={styles.phonePreview}>
-                Número completo: <strong>{celularCompleto}</strong>
-              </p>
-            )}
-          </div>
-
-          <div className={styles.inputGroup}>
-            <label htmlFor="contrasena">Contraseña</label>
-
-            <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
-              <input
-                id="contrasena"
-                type={mostrarContrasena ? "text" : "password"}
-                value={contrasena}
-                onChange={(e) => setContrasena(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                autoComplete="new-password"
-                required
-              />
-
-              <button
-                type="button"
-                className={styles.passwordToggle}
-                onClick={() => setMostrarContrasena((prev) => !prev)}
-                aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
-              >
-                {mostrarContrasena ? "OCULTAR" : "VER"}
-              </button>
+            <div className={styles.inputGroup}>
+              <label htmlFor="correo">Correo electrónico</label>
+              <div className={styles.inputWrap}>
+                <input
+                  id="correo"
+                  type="email"
+                  value={correo}
+                  onChange={(e) => setCorreo(e.target.value)}
+                  placeholder="tunombre@correo.com"
+                  autoComplete="email"
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="confirmarContrasena">Confirmar contraseña</label>
+            <div className={styles.inputGroup}>
+              <label htmlFor="pais">País</label>
+              <div className={styles.inputWrap}>
+                <select
+                  id="pais"
+                  value={pais}
+                  onChange={(e) => {
+                    setPais(e.target.value);
+                    setCelular("");
+                  }}
+                  required
+                >
+                  {paises.map((item) => (
+                    <option key={`${item.pais}-${item.codigo}`} value={item.pais}>
+                      {item.pais} ({item.codigo})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-            <div className={styles.inputWrap}>
-              <input
-                id="confirmarContrasena"
-                type={mostrarContrasena ? "text" : "password"}
-                value={confirmarContrasena}
-                onChange={(e) => setConfirmarContrasena(e.target.value)}
-                placeholder="Repite tu contraseña"
-                autoComplete="new-password"
-                required
-              />
+            <div className={styles.inputGroup}>
+              <label htmlFor="celular">Celular</label>
+              <div className={`${styles.inputWrap} ${styles.phoneWrap}`}>
+                <span className={styles.phoneCode}>{paisSeleccionado.codigo}</span>
+
+                <input
+                  id="celular"
+                  type="tel"
+                  value={celular}
+                  onChange={(e) => setCelular(limpiarCelular(e.target.value))}
+                  placeholder="Ingresa tu número"
+                  autoComplete="tel-national"
+                  required
+                />
+              </div>
+
+              {celularLimpio.length > 0 && (
+                <p className={styles.phonePreview}>
+                  Número completo: <strong>{celularCompleto}</strong>
+                </p>
+              )}
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label htmlFor="contrasena">Contraseña</label>
+              <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
+                <input
+                  id="contrasena"
+                  type={mostrarContrasena ? "text" : "password"}
+                  value={contrasena}
+                  onChange={(e) => setContrasena(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  autoComplete="new-password"
+                  required
+                />
+
+                <button
+                  type="button"
+                  className={styles.passwordToggle}
+                  onClick={() => setMostrarContrasena((prev) => !prev)}
+                  aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {mostrarContrasena ? "OCULTAR" : "VER"}
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label htmlFor="confirmarContrasena">Confirmar contraseña</label>
+              <div className={styles.inputWrap}>
+                <input
+                  id="confirmarContrasena"
+                  type={mostrarContrasena ? "text" : "password"}
+                  value={confirmarContrasena}
+                  onChange={(e) => setConfirmarContrasena(e.target.value)}
+                  placeholder="Repite tu contraseña"
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
             </div>
           </div>
 

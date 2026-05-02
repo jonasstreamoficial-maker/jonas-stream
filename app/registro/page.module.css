@@ -185,24 +185,20 @@
   transform: translateY(-2px);
 }
 
-.registerShell {
+.heroPanel,
+.formSection,
+.footerWrap {
   position: relative;
   z-index: 2;
   width: min(1320px, calc(100% - 28px));
-  min-height: calc(100vh - 255px);
-  margin: 0 auto 22px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(430px, 470px);
-  gap: 18px;
-  align-items: stretch;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.brandPanel,
-.registerCard {
-  position: relative;
-  width: 100%;
-  box-sizing: border-box;
-  overflow: hidden;
+.heroPanel {
+  text-align: center;
+  padding: 46px 34px;
+  margin-bottom: 18px;
   border-radius: 34px;
   background: var(--glass-panel);
   border: 1px solid var(--glass-border);
@@ -210,16 +206,10 @@
     0 30px 70px rgba(0, 0, 0, 0.34),
     var(--shadow-soft);
   backdrop-filter: blur(16px);
+  overflow: hidden;
 }
 
-.brandPanel {
-  padding: 34px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.brandPanel::before,
+.heroPanel::before,
 .registerCard::before {
   content: "";
   position: absolute;
@@ -251,8 +241,8 @@
 .heroTitle {
   position: relative;
   z-index: 2;
-  max-width: 760px;
-  margin: 0 0 18px;
+  max-width: 840px;
+  margin: 0 auto 18px;
   font-family: "Orbitron", sans-serif;
   font-size: clamp(2.2rem, 4.2vw, 4.25rem);
   line-height: 1.02;
@@ -272,8 +262,8 @@
 .heroText {
   position: relative;
   z-index: 2;
-  max-width: 720px;
-  margin: 0 0 26px;
+  max-width: 780px;
+  margin: 0 auto 26px;
   color: var(--muted);
   font-size: 1.02rem;
   line-height: 1.85;
@@ -285,6 +275,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .accessCard {
@@ -318,7 +310,8 @@
 .panelNote {
   position: relative;
   z-index: 2;
-  margin: 22px 0 0;
+  max-width: 900px;
+  margin: 18px auto 0;
   padding: 14px 16px;
   border-radius: 18px;
   color: var(--muted);
@@ -327,11 +320,24 @@
   border: 1px solid rgba(1, 231, 239, 0.1);
 }
 
+.formSection {
+  margin-bottom: 22px;
+}
+
 .registerCard {
+  position: relative;
+  width: min(760px, 100%);
+  box-sizing: border-box;
+  overflow: hidden;
+  margin: 0 auto;
+  border-radius: 34px;
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.34),
+    var(--shadow-soft);
+  backdrop-filter: blur(16px);
   padding: 34px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 }
 
 .cardGlow {
@@ -373,6 +379,14 @@
   line-height: 1.6;
 }
 
+.formGrid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
 .inputGroup {
   position: relative;
   z-index: 2;
@@ -394,7 +408,8 @@
   width: 100%;
 }
 
-.inputWrap input {
+.inputWrap input,
+.inputWrap select {
   width: 100%;
   min-height: 56px;
   border: 1px solid rgba(1, 231, 239, 0.16);
@@ -409,6 +424,23 @@
   box-sizing: border-box;
 }
 
+.inputWrap select {
+  appearance: none;
+  cursor: pointer;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.inputWrap select::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.inputWrap select option {
+  background: #031316;
+  color: #ecffff;
+}
+
 .passwordWrap input {
   padding-right: 98px;
 }
@@ -417,12 +449,46 @@
   color: rgba(155, 200, 203, 0.72);
 }
 
-.inputWrap input:focus {
+.inputWrap input:focus,
+.inputWrap select:focus {
   border-color: rgba(0, 251, 255, 0.4);
   box-shadow:
     0 0 0 1px rgba(0, 251, 255, 0.12),
     0 0 18px rgba(0, 251, 255, 0.12);
   background: rgba(255, 255, 255, 0.035);
+}
+
+.phoneWrap {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.phoneCode {
+  min-height: 56px;
+  border-radius: 16px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  background: rgba(1, 231, 239, 0.08);
+  color: var(--cyan-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Orbitron", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+}
+
+.phonePreview {
+  position: relative;
+  z-index: 2;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.phonePreview strong {
+  color: var(--cyan-strong);
 }
 
 .passwordToggle {
@@ -520,13 +586,6 @@
   box-shadow: 0 0 18px rgba(1, 231, 239, 0.08);
 }
 
-.footerWrap {
-  position: relative;
-  z-index: 2;
-  width: min(1320px, calc(100% - 28px));
-  margin: 0 auto;
-}
-
 .footerLegal {
   padding: 18px 20px;
   border-radius: 22px;
@@ -564,65 +623,34 @@
   color: rgba(236, 255, 255, 0.28);
 }
 
-@media (max-width: 1180px) {
-  .registerShell {
-    grid-template-columns: 1fr;
-    max-width: 780px;
-    min-height: auto;
-  }
-
-  .brandPanel,
-  .registerCard {
-    min-height: auto;
-  }
-}
-
 @media (max-width: 980px) {
   .sideBrand,
   .sideBrandRight {
     display: none;
   }
-
-  .brandPanel {
-    padding: 28px 24px 24px;
-    text-align: center;
-    align-items: center;
-  }
-
-  .heroText {
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .accessGrid {
-    width: 100%;
-  }
-
-  .panelNote {
-    text-align: center;
-  }
 }
 
 @media (max-width: 760px) {
   .page {
-    --topbar-height: 126px;
-    padding: calc(var(--topbar-height) + 4px) 0 26px;
+    --topbar-height: 178px;
+    padding: calc(var(--topbar-height) + 8px) 0 26px;
   }
 
   .topbarWrap,
-  .registerShell,
+  .heroPanel,
+  .formSection,
   .footerWrap {
     width: min(100% - 18px, 1320px);
   }
 
   .topbarWrap {
-    padding-top: 8px;
+    padding-top: 10px;
   }
 
   .topbar {
     min-height: auto;
     border-radius: 18px;
-    padding: 10px 12px;
+    padding: 12px;
     gap: 12px;
     flex-wrap: wrap;
     justify-content: center;
@@ -658,26 +686,17 @@
   .topLink,
   .topLinkPrimary {
     min-height: 46px;
-    padding: 0 10px;
+    padding: 0 8px;
     border-radius: 14px;
-    font-size: 0.76rem;
+    font-size: 0.68rem;
     line-height: 1.15;
     white-space: nowrap;
   }
 
-  .registerShell {
-    margin-top: 0;
-    margin-bottom: 10px;
-    gap: 10px;
-  }
-
-  .brandPanel,
-  .registerCard {
+  .heroPanel {
+    padding: 24px 16px;
+    margin-bottom: 12px;
     border-radius: 24px;
-  }
-
-  .brandPanel {
-    padding: 18px 16px;
   }
 
   .heroBadge,
@@ -714,18 +733,41 @@
     font-size: 0.86rem;
   }
 
+  .formSection {
+    margin-bottom: 12px;
+  }
+
   .registerCard {
-    padding: 18px 14px;
+    width: 100%;
+    border-radius: 24px;
+    padding: 20px 14px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 
   .formHeader h2 {
     font-size: 1.35rem;
   }
 
-  .inputWrap input {
+  .inputWrap input,
+  .inputWrap select {
     min-height: 54px;
     border-radius: 15px;
     font-size: 0.9rem;
+  }
+
+  .phoneWrap {
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .phoneCode {
+    min-height: 54px;
+    border-radius: 15px;
+    font-size: 0.86rem;
   }
 
   .passwordWrap input {
@@ -757,8 +799,8 @@
 
 @media (max-width: 430px) {
   .page {
-    --topbar-height: 126px;
-    padding-top: calc(var(--topbar-height) + 4px);
+    --topbar-height: 178px;
+    padding-top: calc(var(--topbar-height) + 8px);
   }
 
   .heroTitle {
@@ -774,8 +816,16 @@
 
   .topLink,
   .topLinkPrimary {
-    font-size: 0.7rem;
-    padding: 0 8px;
+    font-size: 0.64rem;
+    padding: 0 6px;
+  }
+
+  .phoneWrap {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .phoneCode {
+    font-size: 0.78rem;
   }
 
   .passwordWrap input {
@@ -796,188 +846,5 @@
   .topLink:hover,
   .topLinkPrimary:hover {
     transform: none;
-  }
-}
-
-
-/* ==========================================================
-   CAMPOS PAIS / CELULAR - REGISTRO
-   ========================================================== */
-
-.inputWrap select {
-  width: 100%;
-  min-height: 56px;
-  border: 1px solid rgba(1, 231, 239, 0.16);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.025);
-  color: var(--white);
-  outline: none;
-  padding: 0 15px;
-  font-weight: 800;
-  font-size: 0.95rem;
-  transition: 0.25s ease;
-  box-sizing: border-box;
-  appearance: none;
-  cursor: pointer;
-}
-
-.inputWrap select:focus {
-  border-color: rgba(0, 251, 255, 0.4);
-  box-shadow:
-    0 0 0 1px rgba(0, 251, 255, 0.12),
-    0 0 18px rgba(0, 251, 255, 0.12);
-  background: rgba(255, 255, 255, 0.035);
-}
-
-.inputWrap select option {
-  background: #031316;
-  color: #ecffff;
-}
-
-.phoneWrap {
-  display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
-  gap: 10px;
-}
-
-.phoneCode {
-  min-height: 56px;
-  border-radius: 16px;
-  border: 1px solid rgba(1, 231, 239, 0.16);
-  background: rgba(1, 231, 239, 0.08);
-  color: var(--cyan-strong);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: "Orbitron", sans-serif;
-  font-weight: 900;
-  letter-spacing: 0.8px;
-}
-
-.phonePreview {
-  position: relative;
-  z-index: 2;
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.45;
-}
-
-.phonePreview strong {
-  color: var(--cyan-strong);
-}
-
-@media (max-width: 760px) {
-  .inputWrap select {
-    min-height: 54px;
-    border-radius: 15px;
-    font-size: 0.9rem;
-  }
-
-  .phoneWrap {
-    grid-template-columns: 78px minmax(0, 1fr);
-    gap: 8px;
-  }
-
-  .phoneCode {
-    min-height: 54px;
-    border-radius: 15px;
-    font-size: 0.86rem;
-  }
-}
-
-@media (max-width: 430px) {
-  .phoneWrap {
-    grid-template-columns: 72px minmax(0, 1fr);
-  }
-
-  .phoneCode {
-    font-size: 0.78rem;
-  }
-}
-
-
-/* ==========================================================
-   FIX FINAL REGISTRO
-   - Botón superior: INICIAR SESIÓN en page.tsx
-   - Menos vacío en el panel izquierdo en escritorio
-   - Separación mobile correcta debajo del header fijo
-   ========================================================== */
-
-@media (min-width: 1181px) {
-  .registerShell {
-    align-items: start !important;
-  }
-
-  .brandPanel {
-    min-height: 560px !important;
-    justify-content: center !important;
-  }
-
-  .registerCard {
-    min-height: auto !important;
-  }
-}
-
-@media (max-width: 760px) {
-  .page {
-    --topbar-height: 178px !important;
-    padding-top: calc(var(--topbar-height) + 10px) !important;
-    padding-bottom: 26px !important;
-  }
-
-  .topbarWrap,
-  .registerShell,
-  .footerWrap {
-    width: min(100% - 18px, 1320px) !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-  }
-
-  .topbarWrap {
-    padding-top: 10px !important;
-  }
-
-  .topbar {
-    min-height: auto !important;
-    padding: 12px !important;
-    gap: 12px !important;
-    border-radius: 18px !important;
-  }
-
-  .registerShell {
-    margin-top: 0 !important;
-    margin-bottom: 12px !important;
-    gap: 12px !important;
-  }
-
-  .brandPanel {
-    padding-top: 24px !important;
-    padding-bottom: 24px !important;
-  }
-
-  .registerCard {
-    padding-top: 20px !important;
-    padding-bottom: 20px !important;
-  }
-
-  .heroBadge {
-    margin-bottom: 18px !important;
-  }
-
-  .heroTitle {
-    margin-bottom: 18px !important;
-  }
-}
-
-@media (max-width: 430px) {
-  .page {
-    --topbar-height: 178px !important;
-    padding-top: calc(var(--topbar-height) + 8px) !important;
-  }
-
-  .registerShell {
-    gap: 12px !important;
-    margin-bottom: 12px !important;
   }
 }
