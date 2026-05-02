@@ -7,6 +7,8 @@ import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
 import styles from "./login.module.css";
 
+const WHATSAPP_NUMBER = "51900557949";
+
 type Usuario = {
   id: string;
   nombre: string;
@@ -15,6 +17,10 @@ type Usuario = {
   rol: string;
   estado: string;
 };
+
+function buildWhatsAppLink(message: string) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,6 +32,9 @@ export default function LoginPage() {
 
   const iniciarSesion = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (cargando) return;
+
     setCargando(true);
 
     const correoNormalizado = correo.trim().toLowerCase();
@@ -81,39 +90,57 @@ export default function LoginPage() {
       <div className={styles.sideBrand}>JONAS STREAM</div>
       <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>JONAS STREAM</div>
 
-      <section className={styles.loginShell}>
-        <div className={styles.brandPanel}>
+      <header className={styles.topbarWrap}>
+        <div className={styles.topbar}>
           <Link href="/" className={styles.brandBlock} aria-label="Ir al inicio">
             <strong>JONAS STREAM</strong>
             <span>ACCESO OFICIAL</span>
           </Link>
 
-          <div className={styles.heroBadge}>LOGIN SEGURO</div>
+          <div className={styles.topActions}>
+            <Link href="/" className={styles.topLink}>
+              INICIO
+            </Link>
+
+            <a
+              href={buildWhatsAppLink("Hola Jonas Stream, necesito ayuda con mi acceso.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.topLinkPrimary}
+            >
+              CONTÁCTANOS
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <section className={styles.loginShell}>
+        <div className={styles.brandPanel}>
+          <div className={styles.heroBadge}>ACCESO OFICIAL</div>
 
           <h1 className={styles.heroTitle}>
             ENTRA A TU
-            <span> PANEL DIGITAL</span>
+            <span> CUENTA</span>
           </h1>
 
           <p className={styles.heroText}>
-            Accede a tu cuenta Jonas Stream para gestionar tus pedidos, clientes, productos o
-            panel de administración con una experiencia rápida y segura.
+            Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo de cuenta.
           </p>
 
-          <div className={styles.featureGrid}>
+          <div className={styles.featureGrid} aria-label="Tipos de acceso">
             <div className={styles.featureCard}>
               <span>01</span>
-              <strong>Acceso privado</strong>
+              <strong>Cliente</strong>
             </div>
 
             <div className={styles.featureCard}>
               <span>02</span>
-              <strong>Panel responsive</strong>
+              <strong>Proveedor</strong>
             </div>
 
             <div className={styles.featureCard}>
               <span>03</span>
-              <strong>Estilo neon</strong>
+              <strong>Administrador</strong>
             </div>
           </div>
         </div>
@@ -129,6 +156,7 @@ export default function LoginPage() {
 
           <div className={styles.inputGroup}>
             <label htmlFor="correo">Correo electrónico</label>
+
             <div className={styles.inputWrap}>
               <input
                 id="correo"
@@ -144,6 +172,7 @@ export default function LoginPage() {
 
           <div className={styles.inputGroup}>
             <label htmlFor="contrasena">Contraseña</label>
+
             <div className={styles.inputWrap}>
               <input
                 id="contrasena"
@@ -175,10 +204,22 @@ export default function LoginPage() {
               Volver al inicio
             </Link>
 
-            <span>Acceso para clientes, proveedores y administración.</span>
+            <span>Acceso exclusivo para usuarios registrados.</span>
           </div>
         </form>
       </section>
+
+      <footer className={styles.footerWrap}>
+        <div className={styles.footerLegal}>
+          © 2026 Jonas Stream. Todos los derechos reservados.
+
+          <div className={styles.footerLinks}>
+            <Link href="/terminos">Términos y Condiciones</Link>
+            <span className={styles.footerSeparator}>•</span>
+            <Link href="/privacidad">Política de Privacidad</Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

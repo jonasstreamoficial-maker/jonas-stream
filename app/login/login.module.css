@@ -11,11 +11,12 @@
   --glass-panel: rgba(3, 19, 22, 0.78);
   --shadow-soft: 0 0 25px rgba(1, 231, 239, 0.18);
   --shadow-strong: 0 0 40px rgba(0, 251, 255, 0.22);
+  --topbar-height: 116px;
 
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  padding: 24px 16px;
+  padding: 14px 16px 28px;
   background:
     radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.13), transparent 30%),
     radial-gradient(circle at 15% 18%, rgba(1, 139, 144, 0.12), transparent 24%),
@@ -23,9 +24,6 @@
     linear-gradient(180deg, #000000 0%, #031316 52%, #071b1e 100%);
   color: var(--white);
   isolation: isolate;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .bgGlowOne,
@@ -81,52 +79,44 @@
   transform: translateY(-50%) rotate(90deg);
 }
 
-.loginShell {
+.topbarWrap {
   position: relative;
-  z-index: 2;
-  width: min(1120px, 100%);
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) 430px;
-  gap: 22px;
-  align-items: stretch;
+  z-index: 60;
+  width: min(1320px, calc(100% - 28px));
+  margin: 0 auto;
+  padding-top: 0;
 }
 
-.brandPanel,
-.loginCard {
+.topbar {
   position: relative;
-  overflow: hidden;
-  border-radius: 34px;
-  background: var(--glass-panel);
-  border: 1px solid var(--glass-border);
+  min-height: 78px;
+  border-radius: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.1);
+  background: rgba(3, 19, 22, 0.76);
   box-shadow:
-    0 30px 70px rgba(0, 0, 0, 0.34),
-    var(--shadow-soft);
+    0 18px 40px rgba(0, 0, 0, 0.28),
+    0 0 24px rgba(1, 231, 239, 0.05);
   backdrop-filter: blur(16px);
-}
-
-.brandPanel {
-  min-height: 620px;
-  padding: 34px;
+  padding: 12px 22px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  overflow: hidden;
 }
 
-.brandPanel::before,
-.loginCard::before {
+.topbar::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 84% 18%, rgba(0, 251, 255, 0.1), transparent 22%),
-    linear-gradient(135deg, rgba(1, 231, 239, 0.04), transparent 52%, rgba(1, 139, 144, 0.04));
+    linear-gradient(90deg, rgba(1, 231, 239, 0.045), transparent 20%, transparent 80%, rgba(1, 139, 144, 0.045)),
+    linear-gradient(180deg, rgba(236, 255, 255, 0.02), transparent);
   pointer-events: none;
 }
 
 .brandBlock {
-  position: absolute;
-  top: 28px;
-  left: 30px;
+  position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -149,6 +139,91 @@
   letter-spacing: 3px;
   color: var(--muted);
   text-transform: uppercase;
+}
+
+.topActions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topLink,
+.topLinkPrimary {
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 900;
+  color: var(--white);
+  transition: 0.28s ease;
+  text-transform: uppercase;
+  border: 1px solid rgba(236, 255, 255, 0.07);
+  font-size: 0.9rem;
+}
+
+.topLink {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.topLinkPrimary {
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.2), rgba(1, 139, 144, 0.1));
+  border-color: rgba(1, 231, 239, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.06),
+    0 0 18px rgba(1, 231, 239, 0.08);
+}
+
+.topLink:hover,
+.topLinkPrimary:hover {
+  transform: translateY(-2px);
+}
+
+.loginShell {
+  position: relative;
+  z-index: 2;
+  width: min(1120px, calc(100% - 28px));
+  min-height: calc(100vh - 230px);
+  margin: 28px auto 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) 430px;
+  gap: 22px;
+  align-items: stretch;
+}
+
+.brandPanel,
+.loginCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 34px;
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.34),
+    var(--shadow-soft);
+  backdrop-filter: blur(16px);
+}
+
+.brandPanel {
+  padding: 34px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.brandPanel::before,
+.loginCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 84% 18%, rgba(0, 251, 255, 0.1), transparent 22%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.04), transparent 52%, rgba(1, 139, 144, 0.04));
+  pointer-events: none;
 }
 
 .heroBadge,
@@ -422,9 +497,52 @@
   box-shadow: 0 0 18px rgba(1, 231, 239, 0.08);
 }
 
+.footerWrap {
+  position: relative;
+  z-index: 2;
+  width: min(1320px, calc(100% - 28px));
+  margin: 0 auto;
+}
+
+.footerLegal {
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: rgba(3, 19, 22, 0.82);
+  border: 1px solid rgba(236, 255, 255, 0.05);
+  color: var(--muted);
+  text-align: center;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.16),
+    inset 0 0 0 1px rgba(236, 255, 255, 0.02);
+}
+
+.footerLinks {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+}
+
+.footerLinks a {
+  color: var(--cyan);
+  text-decoration: none;
+  font-weight: 800;
+  transition: 0.25s ease;
+}
+
+.footerLinks a:hover {
+  color: var(--cyan-strong);
+}
+
+.footerSeparator {
+  color: rgba(236, 255, 255, 0.28);
+}
+
 @media (max-width: 980px) {
   .page {
-    align-items: flex-start;
     overflow-y: auto;
   }
 
@@ -435,20 +553,14 @@
 
   .loginShell {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
 
   .brandPanel {
     min-height: auto;
-    padding: 86px 24px 24px;
+    padding: 28px 24px 24px;
     text-align: center;
     align-items: center;
-  }
-
-  .brandBlock {
-    left: 50%;
-    transform: translateX(-50%);
-    align-items: center;
-    text-align: center;
   }
 
   .heroText {
@@ -463,20 +575,27 @@
 
 @media (max-width: 760px) {
   .page {
-    padding: 10px 9px 42px;
+    padding: 10px 0 24px;
   }
 
-  .loginShell {
-    gap: 16px;
+  .topbarWrap,
+  .loginShell,
+  .footerWrap {
+    width: min(100% - 18px, 1320px);
   }
 
-  .brandPanel,
-  .loginCard {
-    border-radius: 24px;
+  .topbar {
+    border-radius: 18px;
+    padding: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
   }
 
-  .brandPanel {
-    padding: 84px 16px 22px;
+  .brandBlock {
+    width: 100%;
+    align-items: center;
   }
 
   .brandBlock strong {
@@ -487,6 +606,37 @@
   .brandBlock span {
     font-size: 0.62rem;
     letter-spacing: 1.8px;
+  }
+
+  .topActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    min-height: 46px;
+    padding: 0 10px;
+    border-radius: 14px;
+    font-size: 0.76rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .loginShell {
+    margin-top: 16px;
+    gap: 16px;
+  }
+
+  .brandPanel,
+  .loginCard {
+    border-radius: 24px;
+  }
+
+  .brandPanel {
+    padding: 22px 16px;
   }
 
   .heroBadge,
@@ -533,6 +683,12 @@
     border-radius: 16px;
     font-size: 0.9rem;
   }
+
+  .footerLegal {
+    padding: 18px 14px;
+    border-radius: 18px;
+    font-size: 0.9rem;
+  }
 }
 
 @media (max-width: 430px) {
@@ -555,12 +711,20 @@
   .inputWrap input[type="text"] {
     padding-right: 82px;
   }
+
+  .topLink,
+  .topLinkPrimary {
+    font-size: 0.7rem;
+    padding: 0 8px;
+  }
 }
 
 @media (hover: none) {
   .submitButton:hover:not(:disabled),
   .secondaryLink:hover,
-  .passwordToggle:hover {
+  .passwordToggle:hover,
+  .topLink:hover,
+  .topLinkPrimary:hover {
     transform: none;
   }
 }
