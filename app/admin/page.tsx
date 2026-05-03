@@ -193,17 +193,47 @@ export default function AdminPage() {
 
   useEffect(() => {
     const validarAcceso = async () => {
-      const guardado = localStorage.getItem("usuario")
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
 
-      if (!guardado) {
+      if (sessionError || !session?.user?.email) {
+        localStorage.removeItem("usuario")
         router.push("/login")
         return
       }
 
-      const usuarioParseado: Usuario = JSON.parse(guardado)
+      const correoAuth = session.user.email.trim().toLowerCase()
+
+      const { data: usuarioData, error: usuarioError } = await supabase
+        .from("usuarios")
+        .select("id,nombre,correo,rol,estado")
+        .eq("correo", correoAuth)
+        .single()
+
+      if (usuarioError || !usuarioData) {
+        await supabase.auth.signOut()
+        localStorage.removeItem("usuario")
+        toast.error("Tu usuario no existe en la tabla usuarios")
+        router.push("/login")
+        return
+      }
+
+      const usuarioParseado = usuarioData as Usuario
       const rolPermitido = usuarioParseado.rol === "admin" || usuarioParseado.rol === "proveedor"
 
       if (!rolPermitido || usuarioParseado.estado === "rechazado") {
+        await supabase.auth.signOut()
+        localStorage.removeItem("usuario")
+        router.push("/login")
+        return
+      }
+
+      if (usuarioParseado.estado === "pendiente") {
+        await supabase.auth.signOut()
+        localStorage.removeItem("usuario")
+        toast("Tu cuenta está pendiente de aprobación")
         router.push("/login")
         return
       }
@@ -606,7 +636,8 @@ export default function AdminPage() {
     await cargarDatos()
   }
 
-  const cerrarSesion = () => {
+  const cerrarSesion = async () => {
+    await supabase.auth.signOut()
     localStorage.removeItem("usuario")
     router.push("/login")
   }
