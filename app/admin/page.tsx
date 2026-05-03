@@ -172,7 +172,22 @@ export default function AdminPage() {
     if (sonar) reproducirBeep()
   }
 
-  const registrarLog = async (accion: string, entidad: string, entidadId?: string, detalle?: string) => {
+  const registrarLog = async (
+  accion: string,
+  entidad: string,
+  entidadId?: string,
+  detalle?: string
+) => {
+  try {
+    await supabase.rpc("log_admin_action", {
+      p_accion: accion.toUpperCase(),
+      p_entidad: entidad,
+      p_entidad_id: entidadId || null,
+      p_detalle: detalle || null,
+    })
+  } catch (err) {
+    console.error("Error log:", err)
+  }
     const payload = {
       accion,
       entidad,
@@ -571,7 +586,12 @@ export default function AdminPage() {
     if (!error) {
       setProductos((prev) => prev.filter((p) => p.id !== id))
       registrarEvento("Producto eliminado")
-      await registrarLog("eliminar", "productos", id, "Producto eliminado")
+      await registrarLog(
+  "ELIMINAR",
+  "producto",
+  id,
+  "Producto eliminado"
+)
       await cargarDatos()
     } else {
       toast.error("No se pudo eliminar el producto")
