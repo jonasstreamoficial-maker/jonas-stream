@@ -54,6 +54,17 @@ type Pedido = {
   created_at: string
 }
 
+type AdminLog = {
+  id: string
+  accion: string
+  entidad: string
+  entidad_id?: string | null
+  actor_nombre?: string | null
+  actor_correo?: string | null
+  detalle?: string | null
+  created_at: string
+}
+
 type ConfiguracionTienda = {
   id: string
   nombre_tienda: string
@@ -103,6 +114,7 @@ const tabs = [
   { id: "comprobantes", label: "Comprobantes", icon: "▤" },
   { id: "inventario", label: "Inventario", icon: "▦" },
   { id: "creditos", label: "Créditos", icon: "✦" },
+  { id: "historial", label: "Historial", icon: "◷" },
   { id: "configuracion", label: "Configuración", icon: "⚙" },
 ] as const
 
@@ -115,6 +127,7 @@ export default function AdminPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [logs, setLogs] = useState<AdminLog[]>([])
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<TabId>("dashboard")
   const [busquedaGlobal, setBusquedaGlobal] = useState("")
@@ -137,27 +150,69 @@ export default function AdminPage() {
   const [imagenFile, setImagenFile] = useState<File | null>(null)
   const [subiendoImagen, setSubiendoImagen] = useState(false)
 
-  const registrarEvento = (mensaje: string) => {
-    setEventosLive((prev) => [mensaje, ...prev].slice(0, 6))
+  const reproducirBeep = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      const audioContext = new AudioContextClass()
+      const oscillator = audioContext.createOscillator()
+      const gain = audioContext.createGain()
+      oscillator.connect(gain)
+      gain.connect(audioContext.destination)
+      oscillator.frequency.value = 880
+      gain.gain.setValueAtTime(0.025, audioContext.currentTime)
+      oscillator.start()
+      oscillator.stop(audioContext.currentTime + 0.12)
+    } catch {
+      // El navegador puede bloquear audio automático. No afecta el panel.
+    }
+  }
+
+  const registrarEvento = (mensaje: string, sonar = false) => {
+    setEventosLive((prev) => [mensaje, ...prev].slice(0, 8))
+    if (sonar) reproducirBeep()
+  }
+
+  const registrarLog = async (accion: string, entidad: string, entidadId?: string, detalle?: string) => {
+    const payload = {
+      accion,
+      entidad,
+      entidad_id: entidadId || null,
+      actor_nombre: usuario?.nombre || null,
+      actor_correo: usuario?.correo || null,
+      detalle: detalle || null,
+    }
+
+    const { error } = await supabase.from("admin_logs").insert([payload])
+    if (!error) {
+      setLogs((prev) => [
+        { id: crypto.randomUUID(), created_at: new Date().toISOString(), ...payload },
+        ...prev,
+      ].slice(0, 30))
+    }
   }
 
   useEffect(() => {
-    const guardado = localStorage.getItem("usuario")
+    const validarAcceso = async () => {
+      const guardado = localStorage.getItem("usuario")
 
-    if (!guardado) {
-      router.push("/login")
-      return
+      if (!guardado) {
+        router.push("/login")
+        return
+      }
+
+      const usuarioParseado: Usuario = JSON.parse(guardado)
+      const rolPermitido = usuarioParseado.rol === "admin" || usuarioParseado.rol === "proveedor"
+
+      if (!rolPermitido || usuarioParseado.estado === "rechazado") {
+        router.push("/login")
+        return
+      }
+
+      setUsuario(usuarioParseado)
+      cargarDatos(usuarioParseado)
     }
 
-    const usuarioParseado: Usuario = JSON.parse(guardado)
-
-    if (usuarioParseado.rol !== "admin") {
-      router.push("/login")
-      return
-    }
-
-    setUsuario(usuarioParseado)
-    cargarDatos()
+    validarAcceso()
   }, [router])
 
 
@@ -165,7 +220,7 @@ export default function AdminPage() {
     const canal = supabase
       .channel("jonas-stream-admin-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
-        registrarEvento("Nuevo movimiento en pedidos")
+        registrarEvento("Nuevo movimiento en pedidos", true)
         toast.success("Pedidos actualizados en vivo")
         cargarDatos()
       })
@@ -177,6 +232,10 @@ export default function AdminPage() {
         registrarEvento("Cambio detectado en usuarios")
         cargarDatos()
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "admin_logs" }, () => {
+        registrarEvento("Nuevo registro en historial")
+        cargarDatos()
+      })
       .subscribe()
 
     return () => {
@@ -184,20 +243,37 @@ export default function AdminPage() {
     }
   }, [])
 
-  const cargarDatos = async () => {
+  const cargarDatos = async (usuarioActual = usuario) => {
     setCargando(true)
 
-    const { data: usuariosData } = await supabase.from("usuarios").select("*")
+    const esProveedor = usuarioActual?.rol === "proveedor"
 
-    const { data: productosData } = await supabase
+    const usuariosQuery = supabase.from("usuarios").select("*")
+    const productosQuery = supabase
       .from("productos")
       .select("*")
       .order("created_at", { ascending: false })
-
-    const { data: pedidosData } = await supabase
+    const pedidosQuery = supabase
       .from("pedidos")
       .select("*")
       .order("created_at", { ascending: false })
+
+    if (esProveedor && usuarioActual?.nombre) {
+      productosQuery.eq("proveedor", usuarioActual.nombre)
+    }
+
+    const { data: usuariosData } = esProveedor
+      ? await usuariosQuery.eq("id", usuarioActual.id)
+      : await usuariosQuery
+
+    const { data: productosData } = await productosQuery
+    const { data: pedidosData } = await pedidosQuery
+
+    const { data: logsData } = await supabase
+      .from("admin_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(30)
 
     const { data: configData } = await supabase
       .from("configuracion_tienda")
@@ -208,6 +284,7 @@ export default function AdminPage() {
     if (usuariosData) setUsuarios(usuariosData)
     if (productosData) setProductos(productosData)
     if (pedidosData) setPedidos(pedidosData)
+    if (logsData) setLogs(logsData as AdminLog[])
 
     if (configData && configData.length > 0) {
       const config = configData[0] as ConfiguracionTienda
@@ -238,6 +315,7 @@ export default function AdminPage() {
     if (!error) {
       setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, estado: nuevoEstado } : u)))
       registrarEvento(`Usuario actualizado a ${nuevoEstado}`)
+      await registrarLog("actualizar_estado", "usuarios", id, `Estado: ${nuevoEstado}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo actualizar el estado")
@@ -253,6 +331,7 @@ export default function AdminPage() {
     if (!error) {
       setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, rol: nuevoRol } : u)))
       registrarEvento(`Rol actualizado a ${nuevoRol}`)
+      await registrarLog("cambiar_rol", "usuarios", id, `Rol: ${nuevoRol}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo cambiar el rol")
@@ -268,6 +347,7 @@ export default function AdminPage() {
     if (!error) {
       setUsuarios((prev) => prev.filter((u) => u.id !== id))
       registrarEvento("Usuario eliminado")
+      await registrarLog("eliminar", "usuarios", id, "Usuario eliminado")
       await cargarDatos()
     } else {
       toast.error("No se pudo eliminar el usuario")
@@ -282,7 +362,8 @@ export default function AdminPage() {
 
     if (!error) {
       setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: nuevoEstado } : p)))
-      registrarEvento(`Pedido marcado como ${nuevoEstado}`)
+      registrarEvento(`Pedido marcado como ${nuevoEstado}`, true)
+      await registrarLog("actualizar_estado", "pedidos", id, `Estado: ${nuevoEstado}`)
       toast.success(`Pedido actualizado a ${nuevoEstado}`)
       await cargarDatos()
     } else {
@@ -403,6 +484,7 @@ export default function AdminPage() {
         return
       }
 
+      await registrarLog("actualizar", "productos", editandoId, formProducto.nombre)
       toast.success("Producto actualizado")
     } else {
       const { error } = await supabase.from("productos").insert([payload])
@@ -412,6 +494,7 @@ export default function AdminPage() {
         return
       }
 
+      await registrarLog("crear", "productos", undefined, formProducto.nombre)
       toast.success("Producto creado")
     }
 
@@ -458,6 +541,7 @@ export default function AdminPage() {
     if (!error) {
       setProductos((prev) => prev.filter((p) => p.id !== id))
       registrarEvento("Producto eliminado")
+      await registrarLog("eliminar", "productos", id, "Producto eliminado")
       await cargarDatos()
     } else {
       toast.error("No se pudo eliminar el producto")
@@ -496,6 +580,7 @@ export default function AdminPage() {
         return
       }
 
+      await registrarLog("actualizar", "configuracion_tienda", configId, "Configuración de tienda")
       toast.success("Configuración actualizada")
     } else {
       const { data, error } = await supabase
@@ -513,6 +598,7 @@ export default function AdminPage() {
         setConfigId(data[0].id)
       }
 
+      await registrarLog("crear", "configuracion_tienda", undefined, "Configuración de tienda")
       toast.success("Configuración guardada")
     }
 
@@ -525,6 +611,7 @@ export default function AdminPage() {
     router.push("/login")
   }
 
+  const esProveedor = usuario?.rol === "proveedor"
   const totalUsuarios = usuarios.length
   const totalProductos = productos.length
   const productosActivos = productos.filter((p) => p.estado === "activo").length
@@ -674,7 +761,7 @@ export default function AdminPage() {
               )}
             </div>
 
-            <button type="button" onClick={cargarDatos} className={styles.refreshButton}>Actualizar</button>
+            <button type="button" onClick={() => cargarDatos()} className={styles.refreshButton}>Actualizar</button>
             {ultimaActualizacion && <div className={styles.topbarPill}>Sync {ultimaActualizacion}</div>}
             <div className={styles.topbarPill}>
               <span className={styles.statusDot}></span>
@@ -1115,6 +1202,36 @@ export default function AdminPage() {
           />
         )}
 
+
+        {tabActiva === "historial" && (
+          <div className={styles.sectionStack}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.kicker}>Auditoría</p>
+                <h3>Historial de actividad</h3>
+                <span>Registra acciones importantes del panel para control interno.</span>
+              </div>
+            </div>
+
+            <div className={styles.listGrid}>
+              {logs.length === 0 ? (
+                <EmptyState title="Sin historial todavía" text="Ejecuta el SQL de admin_logs para activar auditoría persistente." />
+              ) : (
+                logs.map((log) => (
+                  <article key={log.id} className={styles.rowCard}>
+                    <div>
+                      <h4>{log.accion} · {log.entidad}</h4>
+                      <p>{log.detalle || "Sin detalle"}</p>
+                      <span>{log.actor_nombre || "Sistema"} · {log.actor_correo || "sin correo"}</span>
+                    </div>
+                    <StatusBadge estado={new Date(log.created_at).toLocaleString()} />
+                  </article>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {tabActiva === "configuracion" && (
           <article className={styles.panel}>
             <div className={styles.panelHeader}>
@@ -1257,8 +1374,15 @@ function StatusBadge({ estado }: { estado: string }) {
 }
 
 function PriorityItem({ label, value, tone }: { label: string; value: number; tone: "success" | "warning" | "danger" | "info" }) {
+  const toneClass = {
+    success: styles.prioritySuccess,
+    warning: styles.priorityWarning,
+    danger: styles.priorityDanger,
+    info: styles.priorityInfo,
+  }[tone]
+
   return (
-    <div className={`${styles.priorityItem} ${styles[`priority${tone[0].toUpperCase()}${tone.slice(1)}`]}`}>
+    <div className={`${styles.priorityItem} ${toneClass}`}>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -1291,22 +1415,22 @@ function EmptyState({ title, text }: { title: string; text: string }) {
   )
 }
 
-function PlaceholderPanel({
-  title,
-  text,
-  buttonText,
-}: {
+type PlaceholderPanelProps = {
   title: string
   text: string
   buttonText: string
-}) {
+}
+
+function PlaceholderPanel({ title, text, buttonText }: PlaceholderPanelProps) {
   return (
     <article className={`${styles.panel} ${styles.placeholderPanel}`}>
       <div className={styles.placeholderOrb}>✦</div>
       <p className={styles.kicker}>Módulo preparado</p>
       <h3>{title}</h3>
       <p>{text}</p>
-      <button type="button" className={styles.secondaryButton}>{buttonText}</button>
+      <button type="button" className={styles.secondaryButton}>
+        {buttonText}
+      </button>
     </article>
   )
 }
