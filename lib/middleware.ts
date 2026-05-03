@@ -21,7 +21,9 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll()
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        )
 
         response = NextResponse.next({
           request: {
@@ -43,20 +45,28 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   if (pathname.startsWith("/admin")) {
-    if (!user?.email) {
+    // 🔒 NO USER
+    if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = "/login"
       return NextResponse.redirect(url)
     }
 
-    const { data: usuario } = await supabase
+    // 🔥 CONSULTA SEGURA
+    const { data: usuario, error } = await supabase
       .from("usuarios")
-      .select("rol,estado")
+      .select("rol, estado")
       .eq("id", user.id)
-      .single()
+      .maybeSingle() // 👈 IMPORTANTE (evita crash)
 
+    if (error || !usuario) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/login"
+      return NextResponse.redirect(url)
+    }
+
+    // 🔐 VALIDACIÓN FINAL
     const puedeEntrar =
-      usuario &&
       (usuario.estado === "aprobado" || usuario.estado === "activo") &&
       (usuario.rol === "admin" || usuario.rol === "proveedor")
 
