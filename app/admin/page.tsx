@@ -188,22 +188,6 @@ export default function AdminPage() {
   } catch (err) {
     console.error("Error log:", err)
   }
-    const payload = {
-      accion,
-      entidad,
-      entidad_id: entidadId || null,
-      actor_nombre: usuario?.nombre || null,
-      actor_correo: usuario?.correo || null,
-      detalle: detalle || null,
-    }
-
-    const { error } = await supabase.from("admin_logs").insert([payload])
-    if (!error) {
-      setLogs((prev) => [
-        { id: crypto.randomUUID(), created_at: new Date().toISOString(), ...payload },
-        ...prev,
-      ].slice(0, 30))
-    }
   }
 
   useEffect(() => {
