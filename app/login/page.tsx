@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
 import styles from "./login.module.css";
@@ -22,8 +21,6 @@ function buildWhatsAppLink(message: string) {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -38,22 +35,24 @@ export default function LoginPage() {
 
     const correoNormalizado = correo.trim().toLowerCase();
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: correoNormalizado,
       password: contrasena,
     });
 
-    if (authError) {
+    if (authError || !authData.user) {
       toast.error("Correo o contraseña incorrectos");
       setCargando(false);
       return;
     }
 
+    await supabase.auth.getSession();
+
     const { data, error } = await supabase
       .from("usuarios")
       .select("id,nombre,correo,rol,estado")
-      .eq("correo", correoNormalizado)
-      .single();
+      .eq("id", authData.user.id)
+      .maybeSingle();
 
     if (error || !data) {
       await supabase.auth.signOut();
@@ -78,24 +77,28 @@ export default function LoginPage() {
       return;
     }
 
+    if (usuario.estado !== "aprobado" && usuario.estado !== "activo") {
+      await supabase.auth.signOut();
+      toast.error("Tu cuenta no está habilitada");
+      setCargando(false);
+      return;
+    }
+
     localStorage.setItem("usuario", JSON.stringify(usuario));
 
     toast.success("Bienvenido 🚀");
 
     if (usuario.rol === "admin") {
-      router.push("/admin");
-      router.refresh();
+      window.location.href = "/admin";
       return;
     }
 
     if (usuario.rol === "proveedor") {
-      router.push("/proveedor");
-      router.refresh();
+      window.location.href = "/proveedor";
       return;
     }
 
-    router.push("/cliente");
-    router.refresh();
+    window.location.href = "/cliente";
   };
 
   return (
