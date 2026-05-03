@@ -208,7 +208,7 @@ export default function AdminPage() {
       const { data: usuarioData, error: usuarioError } = await supabase
         .from("usuarios")
         .select("id,nombre,correo,rol,estado")
-        .eq("correo", correoAuth)
+        .eq("id", session.user.id)
         .single()
 
       if (usuarioError || !usuarioData) {
