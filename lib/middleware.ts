@@ -57,7 +57,7 @@ export async function middleware(request: NextRequest) {
 
     const puedeEntrar =
       usuario &&
-      usuario.estado === "aprobado" &&
+      (usuario.estado === "aprobado" || usuario.estado === "activo") &&
       (usuario.rol === "admin" || usuario.rol === "proveedor")
 
     if (!puedeEntrar) {
