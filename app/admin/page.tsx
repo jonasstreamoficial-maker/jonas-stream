@@ -715,6 +715,13 @@ export default function AdminPage() {
     })
 
   const productosVisibles = productosFiltrados.slice(0, limiteProductos)
+
+// 🔥 AI simple + alertas stock
+const sugerenciasIA = productos
+  .filter(p => Number(p.stock) <= 2)
+  .map(p => `⚠️ Stock bajo en ${p.nombre}`)
+  .slice(0,5);
+
   const pedidosVisibles = pedidos.slice(0, limitePedidos)
 
   
@@ -828,7 +835,16 @@ if (cargando) {
         </header>
 
         {tabActiva === "dashboard" && (
-          <div className={styles.sectionStack}>
+          
+<div className={styles.sectionStack}>
+  {sugerenciasIA.length > 0 && (
+    <div style={{background:"#111",padding:10,borderRadius:10,marginBottom:10}}>
+      {sugerenciasIA.map((s,i)=>(
+        <div key={i} style={{color:"#facc15"}}>{s}</div>
+      ))}
+    </div>
+  )}
+
             <div className={styles.metricsGrid}>
               <MetricCard title="Ventas totales" value={`S/ ${ventasTotales.toFixed(2)}`} detail="Pedidos completados" />
               <MetricCard title="Pedidos pendientes" value={pedidosPendientes} detail={`${totalPedidos} pedidos en total`} />
