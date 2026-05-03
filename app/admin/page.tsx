@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -180,6 +181,7 @@ export default function AdminPage() {
   const router = useRouter()
 
   const [usuario, setUsuario] = useState<Usuario | null>(null)
+  const usuarioRef = useRef<Usuario | null>(null)
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [pedidos, setPedidos] = useState<Pedido[]>([])
@@ -264,10 +266,10 @@ export default function AdminPage() {
     }
   }, [])
 
-  const cargarDatos = useCallback(async (usuarioActual?: Usuario | null) => {
-    setCargando(true)
+  const cargarDatos = useCallback(async (usuarioActual?: Usuario | null, mostrarSkeleton = false) => {
+    if (mostrarSkeleton) setCargando(true)
 
-    const adminActual = usuarioActual ?? usuario
+    const adminActual = usuarioActual ?? usuarioRef.current
     const esProveedorActual = adminActual?.rol === "proveedor"
 
     const usuariosQuery = supabase.from("usuarios").select("*").order("nombre", { ascending: true })
@@ -318,7 +320,7 @@ export default function AdminPage() {
 
     setUltimaActualizacion(new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }))
     setCargando(false)
-  }, [usuario])
+  }, [])
 
   useEffect(() => {
     const validarAcceso = async () => {
@@ -365,8 +367,9 @@ export default function AdminPage() {
         return
       }
 
+      usuarioRef.current = usuarioParseado
       setUsuario(usuarioParseado)
-      await cargarDatos(usuarioParseado)
+      await cargarDatos(usuarioParseado, true)
     }
 
     validarAcceso()
