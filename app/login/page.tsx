@@ -13,7 +13,6 @@ type Usuario = {
   id: string;
   nombre: string;
   correo: string;
-  contrasena: string;
   rol: string;
   estado: string;
 };
@@ -39,15 +38,26 @@ export default function LoginPage() {
 
     const correoNormalizado = correo.trim().toLowerCase();
 
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: correoNormalizado,
+      password: contrasena,
+    });
+
+    if (authError) {
+      toast.error("Correo o contraseña incorrectos");
+      setCargando(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("usuarios")
-      .select("*")
+      .select("id,nombre,correo,rol,estado")
       .eq("correo", correoNormalizado)
-      .eq("contrasena", contrasena)
       .single();
 
     if (error || !data) {
-      toast.error("Correo o contraseña incorrectos");
+      await supabase.auth.signOut();
+      toast.error("Usuario no encontrado en la tabla usuarios");
       setCargando(false);
       return;
     }
@@ -55,12 +65,14 @@ export default function LoginPage() {
     const usuario = data as Usuario;
 
     if (usuario.estado === "pendiente") {
+      await supabase.auth.signOut();
       toast("Tu cuenta está pendiente de aprobación");
       setCargando(false);
       return;
     }
 
     if (usuario.estado === "rechazado") {
+      await supabase.auth.signOut();
       toast.error("Tu cuenta fue rechazada");
       setCargando(false);
       return;
@@ -72,13 +84,18 @@ export default function LoginPage() {
 
     if (usuario.rol === "admin") {
       router.push("/admin");
-    } else if (usuario.rol === "proveedor") {
-      router.push("/proveedor");
-    } else {
-      router.push("/cliente");
+      router.refresh();
+      return;
     }
 
-    setCargando(false);
+    if (usuario.rol === "proveedor") {
+      router.push("/proveedor");
+      router.refresh();
+      return;
+    }
+
+    router.push("/cliente");
+    router.refresh();
   };
 
   return (
