@@ -118,6 +118,10 @@ export default function AdminPage() {
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<TabId>("dashboard")
   const [busquedaGlobal, setBusquedaGlobal] = useState("")
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<string | null>(null)
+  const [eventosLive, setEventosLive] = useState<string[]>([])
+  const [limiteProductos, setLimiteProductos] = useState(12)
+  const [limitePedidos, setLimitePedidos] = useState(12)
 
   const [formProducto, setFormProducto] = useState(productoInicial)
   const [editandoId, setEditandoId] = useState<string | null>(null)
@@ -132,6 +136,10 @@ export default function AdminPage() {
 
   const [imagenFile, setImagenFile] = useState<File | null>(null)
   const [subiendoImagen, setSubiendoImagen] = useState(false)
+
+  const registrarEvento = (mensaje: string) => {
+    setEventosLive((prev) => [mensaje, ...prev].slice(0, 6))
+  }
 
   useEffect(() => {
     const guardado = localStorage.getItem("usuario")
@@ -151,6 +159,30 @@ export default function AdminPage() {
     setUsuario(usuarioParseado)
     cargarDatos()
   }, [router])
+
+
+  useEffect(() => {
+    const canal = supabase
+      .channel("jonas-stream-admin-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
+        registrarEvento("Nuevo movimiento en pedidos")
+        toast.success("Pedidos actualizados en vivo")
+        cargarDatos()
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, () => {
+        registrarEvento("Cambio detectado en productos")
+        cargarDatos()
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "usuarios" }, () => {
+        registrarEvento("Cambio detectado en usuarios")
+        cargarDatos()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(canal)
+    }
+  }, [])
 
   const cargarDatos = async () => {
     setCargando(true)
@@ -193,6 +225,7 @@ export default function AdminPage() {
       setFormConfig(configuracionInicial)
     }
 
+    setUltimaActualizacion(new Date().toLocaleTimeString())
     setCargando(false)
   }
 
@@ -203,6 +236,8 @@ export default function AdminPage() {
       .eq("id", id)
 
     if (!error) {
+      setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, estado: nuevoEstado } : u)))
+      registrarEvento(`Usuario actualizado a ${nuevoEstado}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo actualizar el estado")
@@ -216,6 +251,8 @@ export default function AdminPage() {
       .eq("id", id)
 
     if (!error) {
+      setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, rol: nuevoRol } : u)))
+      registrarEvento(`Rol actualizado a ${nuevoRol}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo cambiar el rol")
@@ -229,6 +266,8 @@ export default function AdminPage() {
     const { error } = await supabase.from("usuarios").delete().eq("id", id)
 
     if (!error) {
+      setUsuarios((prev) => prev.filter((u) => u.id !== id))
+      registrarEvento("Usuario eliminado")
       await cargarDatos()
     } else {
       toast.error("No se pudo eliminar el usuario")
@@ -242,6 +281,8 @@ export default function AdminPage() {
       .eq("id", id)
 
     if (!error) {
+      setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: nuevoEstado } : p)))
+      registrarEvento(`Pedido marcado como ${nuevoEstado}`)
       toast.success(`Pedido actualizado a ${nuevoEstado}`)
       await cargarDatos()
     } else {
@@ -415,6 +456,8 @@ export default function AdminPage() {
     const { error } = await supabase.from("productos").delete().eq("id", id)
 
     if (!error) {
+      setProductos((prev) => prev.filter((p) => p.id !== id))
+      registrarEvento("Producto eliminado")
       await cargarDatos()
     } else {
       toast.error("No se pudo eliminar el producto")
@@ -498,6 +541,12 @@ export default function AdminPage() {
   const ticketPromedio = pedidosCompletados > 0 ? ventasTotales / pedidosCompletados : 0
   const tasaConversion = totalPedidos > 0 ? Math.round((pedidosCompletados / totalPedidos) * 100) : 0
   const saludInventario = totalProductos > 0 ? Math.max(0, Math.round(((totalProductos - productosBajoStock.length) / totalProductos) * 100)) : 100
+  const ingresosPendientes = pedidos
+    .filter((pedido) => pedido.estado === "pendiente")
+    .reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
+  const productosDestacados = productos.filter((p) => p.destacado).length
+  const productosOferta = productos.filter((p) => p.oferta).length
+  const usuariosAprobados = usuarios.filter((u) => u.estado === "aprobado").length
 
   const resultadosGlobales = useMemo(() => {
     const query = busquedaGlobal.trim().toLowerCase()
@@ -542,6 +591,9 @@ export default function AdminPage() {
           return 0
       }
     })
+
+  const productosVisibles = productosFiltrados.slice(0, limiteProductos)
+  const pedidosVisibles = pedidos.slice(0, limitePedidos)
 
   if (cargando) {
     return <AdminSkeleton />
@@ -623,6 +675,7 @@ export default function AdminPage() {
             </div>
 
             <button type="button" onClick={cargarDatos} className={styles.refreshButton}>Actualizar</button>
+            {ultimaActualizacion && <div className={styles.topbarPill}>Sync {ultimaActualizacion}</div>}
             <div className={styles.topbarPill}>
               <span className={styles.statusDot}></span>
               Supabase conectado
@@ -641,6 +694,9 @@ export default function AdminPage() {
               <MetricCard title="Conversión" value={`${tasaConversion}%`} detail={`${pedidosCompletados} completados`} />
               <MetricCard title="Salud inventario" value={`${saludInventario}%`} detail={`${productosBajoStock.length} alertas de stock`} />
               <MetricCard title="Cancelados" value={pedidosCancelados} detail="Pedidos perdidos" />
+              <MetricCard title="Pendiente por cobrar" value={`S/ ${ingresosPendientes.toFixed(2)}`} detail="Monto no completado" />
+              <MetricCard title="Destacados" value={productosDestacados} detail={`${productosOferta} productos en oferta`} />
+              <MetricCard title="Usuarios aprobados" value={usuariosAprobados} detail="Comunidad validada" />
             </div>
 
             <div className={styles.commandGrid}>
@@ -666,6 +722,38 @@ export default function AdminPage() {
                   <PriorityItem label="Usuarios por aprobar" value={usuariosPendientes} tone="success" />
                   <PriorityItem label="Productos bajo stock" value={productosBajoStock.length} tone="danger" />
                   <PriorityItem label="Productos activos" value={productosActivos} tone="info" />
+                </div>
+              </article>
+            </div>
+
+            <div className={styles.analyticsGrid}>
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Analytics</p>
+                    <h3>Embudo de pedidos</h3>
+                  </div>
+                </div>
+                <div className={styles.barChart}>
+                  <ChartBar label="Completados" value={pedidosCompletados} total={Math.max(totalPedidos, 1)} />
+                  <ChartBar label="Pendientes" value={pedidosPendientes} total={Math.max(totalPedidos, 1)} />
+                  <ChartBar label="Cancelados" value={pedidosCancelados} total={Math.max(totalPedidos, 1)} />
+                </div>
+              </article>
+
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Live center</p>
+                    <h3>Eventos en vivo</h3>
+                  </div>
+                </div>
+                <div className={styles.liveList}>
+                  {eventosLive.length === 0 ? (
+                    <EmptyState title="Escuchando cambios" text="Los movimientos nuevos aparecerán aquí en tiempo real." />
+                  ) : (
+                    eventosLive.map((evento, index) => <div key={`${evento}-${index}`} className={styles.liveItem}>{evento}</div>)
+                  )}
                 </div>
               </article>
             </div>
@@ -866,7 +954,7 @@ export default function AdminPage() {
               </div>
 
               <div className={styles.productGrid}>
-                {productosFiltrados.map((p) => (
+                {productosVisibles.map((p) => (
                   <article key={p.id} className={styles.productCard}>
                     {p.imagen ? (
                       <img src={p.imagen} alt={p.nombre} className={styles.productImage} />
@@ -902,6 +990,14 @@ export default function AdminPage() {
                   </article>
                 ))}
               </div>
+
+              {productosFiltrados.length > productosVisibles.length && (
+                <div className={styles.loadMoreBox}>
+                  <button type="button" onClick={() => setLimiteProductos((prev) => prev + 12)} className={styles.secondaryButton}>
+                    Cargar más productos
+                  </button>
+                </div>
+              )}
             </article>
           </div>
         )}
@@ -919,8 +1015,9 @@ export default function AdminPage() {
             {pedidos.length === 0 ? (
               <EmptyState title="No hay pedidos" text="Aún no hay pedidos registrados." />
             ) : (
+              <>
               <div className={styles.cardsGrid}>
-                {pedidos.map((pedido) => (
+                {pedidosVisibles.map((pedido) => (
                   <article key={pedido.id} className={styles.orderCard}>
                     <div className={styles.cardHeaderLine}>
                       <h4>Pedido #{pedido.id.slice(0, 8)}</h4>
@@ -943,6 +1040,14 @@ export default function AdminPage() {
                   </article>
                 ))}
               </div>
+              {pedidos.length > pedidosVisibles.length && (
+                <div className={styles.loadMoreBox}>
+                  <button type="button" onClick={() => setLimitePedidos((prev) => prev + 12)} className={styles.secondaryButton}>
+                    Cargar más pedidos
+                  </button>
+                </div>
+              )}
+              </>
             )}
           </article>
         )}
@@ -1156,6 +1261,22 @@ function PriorityItem({ label, value, tone }: { label: string; value: number; to
     <div className={`${styles.priorityItem} ${styles[`priority${tone[0].toUpperCase()}${tone.slice(1)}`]}`}>
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  )
+}
+
+function ChartBar({ label, value, total }: { label: string; value: number; total: number }) {
+  const width = Math.max(5, Math.round((value / total) * 100))
+
+  return (
+    <div className={styles.chartRow}>
+      <div className={styles.chartTopline}>
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+      <div className={styles.chartTrack}>
+        <div className={styles.chartFill} style={{ width: `${width}%` }}></div>
+      </div>
     </div>
   )
 }
