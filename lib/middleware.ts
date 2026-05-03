@@ -3,17 +3,13 @@ import { NextResponse, type NextRequest } from "next/server"
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   })
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return response
-  }
+  if (!supabaseUrl || !supabaseAnonKey) return response
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -26,9 +22,7 @@ export async function middleware(request: NextRequest) {
         )
 
         response = NextResponse.next({
-          request: {
-            headers: request.headers,
-          },
+          request: { headers: request.headers },
         })
 
         cookiesToSet.forEach(({ name, value, options }) => {
@@ -45,32 +39,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   if (pathname.startsWith("/admin")) {
-    // 🔒 NO USER
     if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/login"
-      return NextResponse.redirect(url)
-    }
-
-    // 🔥 CONSULTA SEGURA
-    const { data: usuario, error } = await supabase
-      .from("usuarios")
-      .select("rol, estado")
-      .eq("id", user.id)
-      .maybeSingle() // 👈 IMPORTANTE (evita crash)
-
-    if (error || !usuario) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/login"
-      return NextResponse.redirect(url)
-    }
-
-    // 🔐 VALIDACIÓN FINAL
-    const puedeEntrar =
-      (usuario.estado === "aprobado" || usuario.estado === "activo") &&
-      (usuario.rol === "admin" || usuario.rol === "proveedor")
-
-    if (!puedeEntrar) {
       const url = request.nextUrl.clone()
       url.pathname = "/login"
       return NextResponse.redirect(url)
@@ -81,8 +50,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/admin/:path*"],
 }
