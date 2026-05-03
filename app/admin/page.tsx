@@ -3,13 +3,13 @@
 import {
   useEffect,
   useState,
-  type CSSProperties,
   type ChangeEvent,
   type FormEvent,
 } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
+import styles from "./admin.module.css"
 
 type Usuario = {
   id: string
@@ -94,6 +94,19 @@ const configuracionInicial = {
   whatsapp: "",
 }
 
+const tabs = [
+  { id: "dashboard", label: "Dashboard", icon: "▣" },
+  { id: "productos", label: "Productos", icon: "◈" },
+  { id: "pedidos", label: "Pedidos", icon: "◉" },
+  { id: "usuarios", label: "Usuarios", icon: "◎" },
+  { id: "comprobantes", label: "Comprobantes", icon: "▤" },
+  { id: "inventario", label: "Inventario", icon: "▦" },
+  { id: "creditos", label: "Créditos", icon: "✦" },
+  { id: "configuracion", label: "Configuración", icon: "⚙" },
+] as const
+
+type TabId = (typeof tabs)[number]["id"]
+
 export default function AdminPage() {
   const router = useRouter()
 
@@ -102,6 +115,7 @@ export default function AdminPage() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [cargando, setCargando] = useState(true)
+  const [tabActiva, setTabActiva] = useState<TabId>("dashboard")
 
   const [formProducto, setFormProducto] = useState(productoInicial)
   const [editandoId, setEditandoId] = useState<string | null>(null)
@@ -388,6 +402,7 @@ export default function AdminPage() {
       accent: producto.accent || "prime",
     })
     setImagenFile(null)
+    setTabActiva("productos")
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -468,796 +483,537 @@ export default function AdminPage() {
   const totalUsuarios = usuarios.length
   const totalProductos = productos.length
   const productosActivos = productos.filter((p) => p.estado === "activo").length
-  const productosInactivos = productos.filter((p) => p.estado === "inactivo").length
   const totalPedidos = pedidos.length
+  const ventasTotales = pedidos
+    .filter((pedido) => pedido.estado === "completado")
+    .reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
+  const pedidosPendientes = pedidos.filter((pedido) => pedido.estado === "pendiente").length
+  const usuariosPendientes = usuarios.filter((u) => u.estado === "pendiente").length
+  const pedidosRecientes = pedidos.slice(0, 5)
+  const productosBajoStock = productos.filter((p) => Number(p.stock) <= 3).slice(0, 6)
 
-  const productosFiltrados = [...productos]
-    .filter((p) => {
-      const texto =
-        `${p.nombre} ${p.descripcion} ${p.categoria} ${p.tipo_venta}`.toLowerCase()
-
+  const productosFiltrados: Producto[] = [...productos]
+    .filter((producto: Producto) => {
+      const texto = `${producto.nombre} ${producto.descripcion} ${producto.categoria} ${producto.tipo_venta}`.toLowerCase()
       const coincideBusqueda = texto.includes(busquedaProducto.toLowerCase())
-
       const coincideEstado =
-        filtroEstadoProducto === "todos"
-          ? true
-          : p.estado === filtroEstadoProducto
+        filtroEstadoProducto === "todos" || producto.estado === filtroEstadoProducto
 
       return coincideBusqueda && coincideEstado
     })
-    .sort((a, b) => {
-      if (ordenProducto === "nombre") {
-        return a.nombre.localeCompare(b.nombre)
+    .sort((a: Producto, b: Producto) => {
+      switch (ordenProducto) {
+        case "nombre":
+          return a.nombre.localeCompare(b.nombre)
+        case "precio_mayor":
+          return b.precio - a.precio
+        case "precio_menor":
+          return a.precio - b.precio
+        default:
+          return 0
       }
-
-      if (ordenProducto === "precio_mayor") {
-        return b.precio - a.precio
-      }
-
-      if (ordenProducto === "precio_menor") {
-        return a.precio - b.precio
-      }
-
-      return 0
     })
 
   if (cargando) {
     return (
-      <main style={estilos.main}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "60vh",
-            fontSize: "20px",
-            color: "#00e5ff",
-          }}
-        >
-          ⚡ Cargando panel admin...
+      <main className={styles.loadingPage}>
+        <div className={styles.loadingCard}>
+          <span className={styles.loader}></span>
+          <p>⚡ Cargando panel admin...</p>
         </div>
       </main>
     )
   }
 
   return (
-    <main style={estilos.main}>
-      <div style={estilos.fondoGlow}></div>
+    <main className={styles.adminShell}>
+      <div className={styles.backgroundGlow}></div>
 
-      <header style={estilos.header}>
-        <div>
-          <h1 style={estilos.titulo}>JONAS STREAM | ADMIN</h1>
-          <p style={estilos.subtexto}>Bienvenido: {usuario?.nombre}</p>
-          <p style={estilos.subtexto}>Correo: {usuario?.correo}</p>
-        </div>
-
-        <button onClick={cerrarSesion} style={estilos.botonPrincipal}>
-          Cerrar sesión
-        </button>
-      </header>
-
-      <section style={{ marginBottom: "40px" }}>
-        <h2 style={estilos.sectionTitle}>Dashboard</h2>
-
-        <div style={estilos.gridCards}>
-          <div style={estilos.card}>
-            <h3 style={estilos.cardTitle}>Total usuarios</h3>
-            <p style={estilos.cardValue}>{totalUsuarios}</p>
-          </div>
-
-          <div style={estilos.card}>
-            <h3 style={estilos.cardTitle}>Total productos</h3>
-            <p style={estilos.cardValue}>{totalProductos}</p>
-          </div>
-
-          <div style={estilos.card}>
-            <h3 style={estilos.cardTitle}>Productos activos</h3>
-            <p style={estilos.cardValue}>{productosActivos}</p>
-          </div>
-
-          <div style={estilos.card}>
-            <h3 style={estilos.cardTitle}>Productos inactivos</h3>
-            <p style={estilos.cardValue}>{productosInactivos}</p>
-          </div>
-
-          <div style={estilos.card}>
-            <h3 style={estilos.cardTitle}>Total pedidos</h3>
-            <p style={estilos.cardValue}>{totalPedidos}</p>
-          </div>
-        </div>
-      </section>
-
-      <section style={{ marginBottom: "40px" }}>
-        <h2 style={estilos.sectionTitle}>Gestión de usuarios</h2>
-
-        <div style={estilos.listaUsuarios}>
-          {usuarios.map((u) => (
-            <div key={u.id} style={estilos.usuarioCard}>
-              <div style={{ marginBottom: "14px" }}>
-                <h3 style={{ fontSize: "22px", marginBottom: "8px" }}>
-                  {u.nombre}
-                </h3>
-                <p style={estilos.infoTexto}>Correo: {u.correo}</p>
-                <p style={estilos.infoTexto}>Rol: {u.rol}</p>
-                <p style={estilos.infoTexto}>
-                  Estado:{" "}
-                  <span
-                    style={{
-                      color:
-                        u.estado === "aprobado"
-                          ? "#7CFFB2"
-                          : u.estado === "rechazado"
-                          ? "#FF8B8B"
-                          : "#FFE082",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {u.estado}
-                  </span>
-                </p>
-              </div>
-
-              <div style={estilos.acciones}>
-                <button
-                  onClick={() => actualizarEstado(u.id, "aprobado")}
-                  style={estilos.botonSecundario}
-                >
-                  Aprobar
-                </button>
-
-                <button
-                  onClick={() => actualizarEstado(u.id, "rechazado")}
-                  style={estilos.botonSecundario}
-                >
-                  Rechazar
-                </button>
-
-                <button
-                  onClick={() => cambiarRol(u.id, "cliente")}
-                  style={estilos.botonSecundario}
-                >
-                  Cliente
-                </button>
-
-                <button
-                  onClick={() => cambiarRol(u.id, "proveedor")}
-                  style={estilos.botonSecundario}
-                >
-                  Proveedor
-                </button>
-
-                <button
-                  onClick={() => cambiarRol(u.id, "admin")}
-                  style={estilos.botonSecundario}
-                >
-                  Admin
-                </button>
-
-                <button
-                  onClick={() => eliminarUsuario(u.id)}
-                  style={estilos.botonEliminar}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ marginBottom: "40px" }}>
-        <h2 style={estilos.sectionTitle}>
-          {editandoId ? "Editar producto" : "Crear producto"}
-        </h2>
-
-        <form onSubmit={guardarProducto} style={estilos.formulario}>
-          <input
-            name="nombre"
-            placeholder="Nombre"
-            value={formProducto.nombre}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <textarea
-            name="descripcion"
-            placeholder="Descripción"
-            value={formProducto.descripcion}
-            onChange={handleProductoChange}
-            style={{ ...estilos.input, minHeight: "100px" }}
-          />
-
-          <input
-            name="precio"
-            type="number"
-            placeholder="Precio"
-            value={formProducto.precio}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <input
-            name="precio_antes"
-            type="number"
-            placeholder="Precio antes"
-            value={formProducto.precio_antes}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <input
-            name="stock"
-            type="number"
-            placeholder="Stock"
-            value={formProducto.stock}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <input
-            name="categoria"
-            placeholder="Categoría"
-            value={formProducto.categoria}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <select
-            name="tipo_venta"
-            value={formProducto.tipo_venta}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          >
-            <option value="">Tipo de venta</option>
-            <option value="Cuenta Completa">Cuenta Completa</option>
-            <option value="Perfiles">Perfiles</option>
-          </select>
-
-          <input
-            name="duracion"
-            placeholder="Duración (ej: 1 mes, 12 meses)"
-            value={formProducto.duracion}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <input
-            name="proveedor"
-            placeholder="Proveedor"
-            value={formProducto.proveedor}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <input
-            name="stock_texto"
-            placeholder="Texto de stock (ej: Stock disponible, Últimas unidades)"
-            value={formProducto.stock_texto}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <select
-            name="estado_catalogo"
-            value={formProducto.estado_catalogo}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          >
-            <option value="ACTIVO">ACTIVO</option>
-            <option value="LIMITADO">LIMITADO</option>
-            <option value="AGOTADO">AGOTADO</option>
-          </select>
-
-          <input
-            name="badge"
-            placeholder="Etiqueta visual (ej: Más vendido, Premium, Oferta)"
-            value={formProducto.badge}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <select
-            name="accent"
-            value={formProducto.accent}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          >
-            <option value="netflix">Netflix</option>
-            <option value="disney">Disney+</option>
-            <option value="prime">Prime Video</option>
-            <option value="max">Max</option>
-            <option value="spotify">Spotify</option>
-            <option value="youtube">YouTube</option>
-            <option value="crunchy">Crunchyroll</option>
-            <option value="paramount">Paramount+</option>
-            <option value="canva">Canva</option>
-            <option value="office">Microsoft 365</option>
-            <option value="iptv">IPTV</option>
-            <option value="viki">Viki</option>
-          </select>
-
-          <label style={estilos.checkboxLabel}>
-            <input
-              type="checkbox"
-              name="renovable"
-              checked={formProducto.renovable}
-              onChange={handleProductoChange}
-            />
-            Renovable
-          </label>
-
-          <input
-            name="whatsapp"
-            placeholder="WhatsApp"
-            value={formProducto.whatsapp}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          />
-
-          <select
-            name="estado"
-            value={formProducto.estado}
-            onChange={handleProductoChange}
-            style={estilos.input}
-          >
-            <option value="activo">Activo</option>
-            <option value="inactivo">Inactivo</option>
-          </select>
-
-          <label style={estilos.checkboxLabel}>
-            <input
-              type="checkbox"
-              name="publicacion"
-              checked={formProducto.publicacion}
-              onChange={handleProductoChange}
-            />
-            Publicación activa
-          </label>
-
-          <label style={estilos.checkboxLabel}>
-            <input
-              type="checkbox"
-              name="destacado"
-              checked={formProducto.destacado}
-              onChange={handleProductoChange}
-            />
-            Destacado
-          </label>
-
-          <label style={estilos.checkboxLabel}>
-            <input
-              type="checkbox"
-              name="oferta"
-              checked={formProducto.oferta}
-              onChange={handleProductoChange}
-            />
-            Oferta
-          </label>
-
+      <aside className={styles.sidebar}>
+        <div className={styles.brandBox}>
+          <div className={styles.brandMark}>JS</div>
           <div>
-            <label style={estilos.labelArchivo}>Imagen del producto</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setImagenFile(e.target.files?.[0] || null)}
-              style={estilos.input}
-            />
-            {imagenFile && (
-              <p style={estilos.infoTexto}>Archivo seleccionado: {imagenFile.name}</p>
-            )}
-            {subiendoImagen && (
-              <p style={estilos.infoTexto}>Subiendo imagen...</p>
-            )}
+            <p className={styles.brandEyebrow}>Admin panel</p>
+            <h1>Jonas Stream</h1>
           </div>
+        </div>
 
-          <div style={estilos.acciones}>
-            <button type="submit" style={estilos.botonPrincipal}>
-              {editandoId ? "Actualizar producto" : "Crear producto"}
+        <nav className={styles.nav}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setTabActiva(tab.id)}
+              className={`${styles.navButton} ${
+                tabActiva === tab.id ? styles.navButtonActive : ""
+              }`}
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
             </button>
-
-            {editandoId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditandoId(null)
-                  setFormProducto(productoInicial)
-                  setImagenFile(null)
-                }}
-                style={estilos.botonSecundario}
-              >
-                Cancelar edición
-              </button>
-            )}
-          </div>
-        </form>
-      </section>
-
-      <section style={{ marginBottom: "40px" }}>
-        <h2 style={estilos.sectionTitle}>Lista de productos</h2>
-
-        <div style={estilos.filtrosProductos}>
-          <input
-            type="text"
-            placeholder="Buscar producto..."
-            value={busquedaProducto}
-            onChange={(e) => setBusquedaProducto(e.target.value)}
-            style={estilos.input}
-          />
-
-          <select
-            value={filtroEstadoProducto}
-            onChange={(e) => setFiltroEstadoProducto(e.target.value)}
-            style={estilos.input}
-          >
-            <option value="todos">Todos los estados</option>
-            <option value="activo">Activos</option>
-            <option value="inactivo">Inactivos</option>
-          </select>
-
-          <select
-            value={ordenProducto}
-            onChange={(e) => setOrdenProducto(e.target.value)}
-            style={estilos.input}
-          >
-            <option value="recientes">Orden normal</option>
-            <option value="nombre">Nombre A-Z</option>
-            <option value="precio_mayor">Precio mayor a menor</option>
-            <option value="precio_menor">Precio menor a mayor</option>
-          </select>
-        </div>
-
-        <div style={estilos.listaUsuarios}>
-          {productosFiltrados.map((p) => (
-            <div key={p.id} style={estilos.usuarioCard}>
-              <div style={{ marginBottom: "14px" }}>
-                {p.imagen && (
-                  <img
-                    src={p.imagen}
-                    alt={p.nombre}
-                    style={estilos.imagenProducto}
-                  />
-                )}
-
-                <h3 style={{ fontSize: "22px", marginBottom: "8px" }}>
-                  {p.nombre}
-                </h3>
-                <p style={estilos.infoTexto}>Precio: S/ {p.precio}</p>
-                <p style={estilos.infoTexto}>Stock: {p.stock}</p>
-                <p style={estilos.infoTexto}>Categoría: {p.categoria || "-"}</p>
-                <p style={estilos.infoTexto}>
-                  Tipo de venta: {p.tipo_venta || "-"}
-                </p>
-                <p style={estilos.infoTexto}>WhatsApp: {p.whatsapp || "-"}</p>
-                <p style={estilos.infoTexto}>Duración: {p.duracion || "-"}</p>
-                <p style={estilos.infoTexto}>Proveedor: {p.proveedor || "Jonas Stream"}</p>
-                <p style={estilos.infoTexto}>Estado catálogo: {p.estado_catalogo || "-"}</p>
-                <p style={estilos.infoTexto}>Texto stock: {p.stock_texto || "-"}</p>
-                <p style={estilos.infoTexto}>Renovable: {p.renovable ? "Sí" : "No"}</p>
-                <p style={estilos.infoTexto}>Accent: {p.accent || "-"}</p>
-                <p style={estilos.infoTexto}>Estado: {p.estado}</p>
-                <p style={estilos.infoTexto}>
-                  Publicación: {p.publicacion ? "Sí" : "No"} | Destacado:{" "}
-                  {p.destacado ? "Sí" : "No"} | Oferta: {p.oferta ? "Sí" : "No"}
-                </p>
-              </div>
-
-              <div style={estilos.acciones}>
-                <button
-                  onClick={() => editarProducto(p)}
-                  style={estilos.botonSecundario}
-                >
-                  Editar
-                </button>
-
-                <button
-                  onClick={() => eliminarProducto(p.id)}
-                  style={estilos.botonEliminar}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
           ))}
-        </div>
-      </section>
+        </nav>
 
-      <section style={{ marginBottom: "40px" }}>
-        <h2 style={estilos.sectionTitle}>Configuración de tienda</h2>
-
-        <form onSubmit={guardarConfiguracion} style={estilos.formulario}>
-          <input
-            name="nombre_tienda"
-            placeholder="Nombre de la tienda"
-            value={formConfig.nombre_tienda}
-            onChange={handleConfigChange}
-            style={estilos.input}
-          />
-
-          <input
-            name="slogan"
-            placeholder="Slogan"
-            value={formConfig.slogan}
-            onChange={handleConfigChange}
-            style={estilos.input}
-          />
-
-          <input
-            name="banner_titulo"
-            placeholder="Título del banner"
-            value={formConfig.banner_titulo}
-            onChange={handleConfigChange}
-            style={estilos.input}
-          />
-
-          <textarea
-            name="banner_texto"
-            placeholder="Texto del banner"
-            value={formConfig.banner_texto}
-            onChange={handleConfigChange}
-            style={{ ...estilos.input, minHeight: "100px" }}
-          />
-
-          <input
-            name="banner_boton"
-            placeholder="Texto del botón"
-            value={formConfig.banner_boton}
-            onChange={handleConfigChange}
-            style={estilos.input}
-          />
-
-          <input
-            name="whatsapp"
-            placeholder="WhatsApp general"
-            value={formConfig.whatsapp}
-            onChange={handleConfigChange}
-            style={estilos.input}
-          />
-
-          <button type="submit" style={estilos.botonPrincipal}>
-            {guardandoConfig
-              ? "Guardando..."
-              : configId
-              ? "Actualizar configuración"
-              : "Guardar configuración"}
+        <div className={styles.sidebarFooter}>
+          <p>{usuario?.nombre}</p>
+          <span>{usuario?.correo}</span>
+          <button type="button" onClick={cerrarSesion} className={styles.logoutButton}>
+            Cerrar sesión
           </button>
-        </form>
-      </section>
+        </div>
+      </aside>
 
-      <section style={{ marginBottom: "40px" }}>
-        <h2 style={estilos.sectionTitle}>Pedidos recientes</h2>
-
-        {pedidos.length === 0 ? (
-          <div style={estilos.usuarioCard}>
-            <p style={estilos.infoTexto}>No hay pedidos registrados.</p>
+      <section className={styles.content}>
+        <header className={styles.topbar}>
+          <div>
+            <p className={styles.kicker}>Control central</p>
+            <h2>{tabs.find((tab) => tab.id === tabActiva)?.label}</h2>
+            <span>Gestiona productos, usuarios, pedidos y configuración.</span>
           </div>
-        ) : (
-          <div style={estilos.listaUsuarios}>
-            {pedidos.map((pedido) => (
-              <div key={pedido.id} style={estilos.usuarioCard}>
-                <h3 style={{ fontSize: "22px", marginBottom: "10px" }}>
-                  Pedido #{pedido.id.slice(0, 8)}
-                </h3>
 
-                <p style={estilos.infoTexto}>Cliente: {pedido.cliente_nombre}</p>
-                <p style={estilos.infoTexto}>Correo: {pedido.cliente_correo}</p>
-                <p style={estilos.infoTexto}>Total: S/ {pedido.total}</p>
-                <p style={estilos.infoTexto}>
-                  Método de pago: {pedido.metodo_pago}
-                </p>
+          <div className={styles.topbarPill}>
+            <span className={styles.statusDot}></span>
+            Supabase conectado
+          </div>
+        </header>
 
-                <p style={estilos.infoTexto}>
-                  Estado:{" "}
-                  <span
-                    style={{
-                      color:
-                        pedido.estado === "completado"
-                          ? "#7CFFB2"
-                          : pedido.estado === "cancelado"
-                          ? "#FF8B8B"
-                          : "#FFE082",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {pedido.estado}
-                  </span>
-                </p>
+        {tabActiva === "dashboard" && (
+          <div className={styles.sectionStack}>
+            <div className={styles.metricsGrid}>
+              <MetricCard title="Ventas totales" value={`S/ ${ventasTotales.toFixed(2)}`} detail="Pedidos completados" />
+              <MetricCard title="Pedidos pendientes" value={pedidosPendientes} detail={`${totalPedidos} pedidos en total`} />
+              <MetricCard title="Productos activos" value={productosActivos} detail={`${totalProductos} productos registrados`} />
+              <MetricCard title="Usuarios pendientes" value={usuariosPendientes} detail={`${totalUsuarios} usuarios registrados`} />
+            </div>
 
-                <p style={estilos.infoTexto}>
-                  Fecha: {new Date(pedido.created_at).toLocaleString()}
-                </p>
-
-                <div style={{ ...estilos.acciones, marginTop: "14px" }}>
-                  <button
-                    onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")}
-                    style={estilos.botonSecundario}
-                  >
-                    Pendiente
-                  </button>
-
-                  <button
-                    onClick={() => actualizarEstadoPedido(pedido.id, "completado")}
-                    style={estilos.botonSecundario}
-                  >
-                    Completado
-                  </button>
-
-                  <button
-                    onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")}
-                    style={estilos.botonEliminar}
-                  >
-                    Cancelado
+            <div className={styles.dashboardGrid}>
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Actividad</p>
+                    <h3>Pedidos recientes</h3>
+                  </div>
+                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.linkButton}>
+                    Ver todos
                   </button>
                 </div>
-              </div>
-            ))}
+
+                <div className={styles.compactList}>
+                  {pedidosRecientes.length === 0 ? (
+                    <EmptyState title="Sin pedidos" text="Aún no hay pedidos registrados." />
+                  ) : (
+                    pedidosRecientes.map((pedido) => (
+                      <div key={pedido.id} className={styles.compactItem}>
+                        <div>
+                          <strong>{pedido.cliente_nombre}</strong>
+                          <span>#{pedido.id.slice(0, 8)} · {new Date(pedido.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className={styles.compactRight}>
+                          <strong>S/ {pedido.total}</strong>
+                          <StatusBadge estado={pedido.estado} />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </article>
+
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Inventario</p>
+                    <h3>Productos con bajo stock</h3>
+                  </div>
+                  <button type="button" onClick={() => setTabActiva("productos")} className={styles.linkButton}>
+                    Gestionar
+                  </button>
+                </div>
+
+                <div className={styles.compactList}>
+                  {productosBajoStock.length === 0 ? (
+                    <EmptyState title="Stock estable" text="No hay productos críticos por ahora." />
+                  ) : (
+                    productosBajoStock.map((producto) => (
+                      <div key={producto.id} className={styles.compactItem}>
+                        <div>
+                          <strong>{producto.nombre}</strong>
+                          <span>{producto.categoria || "Sin categoría"}</span>
+                        </div>
+                        <div className={styles.stockPill}>{producto.stock} und.</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </article>
+            </div>
           </div>
+        )}
+
+        {tabActiva === "productos" && (
+          <div className={styles.sectionStack}>
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Catálogo</p>
+                  <h3>{editandoId ? "Editar producto" : "Crear producto"}</h3>
+                </div>
+                {editandoId && <span className={styles.editBadge}>Modo edición</span>}
+              </div>
+
+              <form onSubmit={guardarProducto} className={styles.formGrid}>
+                <input name="nombre" placeholder="Nombre" value={formProducto.nombre} onChange={handleProductoChange} className={styles.input} />
+
+                <textarea name="descripcion" placeholder="Descripción" value={formProducto.descripcion} onChange={handleProductoChange} className={`${styles.input} ${styles.textarea}`} />
+
+                <input name="precio" type="number" placeholder="Precio" value={formProducto.precio} onChange={handleProductoChange} className={styles.input} />
+                <input name="precio_antes" type="number" placeholder="Precio antes" value={formProducto.precio_antes} onChange={handleProductoChange} className={styles.input} />
+                <input name="stock" type="number" placeholder="Stock" value={formProducto.stock} onChange={handleProductoChange} className={styles.input} />
+                <input name="categoria" placeholder="Categoría" value={formProducto.categoria} onChange={handleProductoChange} className={styles.input} />
+
+                <select name="tipo_venta" value={formProducto.tipo_venta} onChange={handleProductoChange} className={styles.input}>
+                  <option value="">Tipo de venta</option>
+                  <option value="Cuenta Completa">Cuenta Completa</option>
+                  <option value="Perfiles">Perfiles</option>
+                </select>
+
+                <input name="duracion" placeholder="Duración (ej: 1 mes, 12 meses)" value={formProducto.duracion} onChange={handleProductoChange} className={styles.input} />
+                <input name="proveedor" placeholder="Proveedor" value={formProducto.proveedor} onChange={handleProductoChange} className={styles.input} />
+                <input name="stock_texto" placeholder="Texto de stock" value={formProducto.stock_texto} onChange={handleProductoChange} className={styles.input} />
+
+                <select name="estado_catalogo" value={formProducto.estado_catalogo} onChange={handleProductoChange} className={styles.input}>
+                  <option value="ACTIVO">ACTIVO</option>
+                  <option value="LIMITADO">LIMITADO</option>
+                  <option value="AGOTADO">AGOTADO</option>
+                </select>
+
+                <input name="badge" placeholder="Etiqueta visual" value={formProducto.badge} onChange={handleProductoChange} className={styles.input} />
+
+                <select name="accent" value={formProducto.accent} onChange={handleProductoChange} className={styles.input}>
+                  <option value="netflix">Netflix</option>
+                  <option value="disney">Disney+</option>
+                  <option value="prime">Prime Video</option>
+                  <option value="max">Max</option>
+                  <option value="spotify">Spotify</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="crunchy">Crunchyroll</option>
+                  <option value="paramount">Paramount+</option>
+                  <option value="canva">Canva</option>
+                  <option value="office">Microsoft 365</option>
+                  <option value="iptv">IPTV</option>
+                  <option value="viki">Viki</option>
+                </select>
+
+                <input name="whatsapp" placeholder="WhatsApp" value={formProducto.whatsapp} onChange={handleProductoChange} className={styles.input} />
+
+                <select name="estado" value={formProducto.estado} onChange={handleProductoChange} className={styles.input}>
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                </select>
+
+                <div className={styles.checkGroup}>
+                  <label><input type="checkbox" name="renovable" checked={formProducto.renovable} onChange={handleProductoChange} /> Renovable</label>
+                  <label><input type="checkbox" name="publicacion" checked={formProducto.publicacion} onChange={handleProductoChange} /> Publicación activa</label>
+                  <label><input type="checkbox" name="destacado" checked={formProducto.destacado} onChange={handleProductoChange} /> Destacado</label>
+                  <label><input type="checkbox" name="oferta" checked={formProducto.oferta} onChange={handleProductoChange} /> Oferta</label>
+                </div>
+
+                <div className={styles.fileBox}>
+                  <label>Imagen del producto</label>
+                  <input type="file" accept="image/*" onChange={(e) => setImagenFile(e.target.files?.[0] || null)} className={styles.input} />
+                  {imagenFile && <p>Archivo seleccionado: {imagenFile.name}</p>}
+                  {subiendoImagen && <p>Subiendo imagen...</p>}
+                </div>
+
+                <div className={styles.formActions}>
+                  <button type="submit" className={styles.primaryButton}>
+                    {editandoId ? "Actualizar producto" : "Crear producto"}
+                  </button>
+
+                  {editandoId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditandoId(null)
+                        setFormProducto(productoInicial)
+                        setImagenFile(null)
+                      }}
+                      className={styles.secondaryButton}
+                    >
+                      Cancelar edición
+                    </button>
+                  )}
+                </div>
+              </form>
+            </article>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Productos</p>
+                  <h3>Lista de productos</h3>
+                </div>
+                <span className={styles.countBadge}>{productosFiltrados.length} resultados</span>
+              </div>
+
+              <div className={styles.filtersGrid}>
+                <input type="text" placeholder="Buscar producto..." value={busquedaProducto} onChange={(e) => setBusquedaProducto(e.target.value)} className={styles.input} />
+
+                <select value={filtroEstadoProducto} onChange={(e) => setFiltroEstadoProducto(e.target.value)} className={styles.input}>
+                  <option value="todos">Todos los estados</option>
+                  <option value="activo">Activos</option>
+                  <option value="inactivo">Inactivos</option>
+                </select>
+
+                <select value={ordenProducto} onChange={(e) => setOrdenProducto(e.target.value)} className={styles.input}>
+                  <option value="recientes">Orden normal</option>
+                  <option value="nombre">Nombre A-Z</option>
+                  <option value="precio_mayor">Precio mayor a menor</option>
+                  <option value="precio_menor">Precio menor a mayor</option>
+                </select>
+              </div>
+
+              <div className={styles.productGrid}>
+                {productosFiltrados.map((p) => (
+                  <article key={p.id} className={styles.productCard}>
+                    {p.imagen ? (
+                      <img src={p.imagen} alt={p.nombre} className={styles.productImage} />
+                    ) : (
+                      <div className={styles.productImagePlaceholder}>JS</div>
+                    )}
+
+                    <div className={styles.productBody}>
+                      <div className={styles.productTopline}>
+                        <StatusBadge estado={p.estado} />
+                        {p.oferta && <span className={styles.offerBadge}>Oferta</span>}
+                      </div>
+
+                      <h4>{p.nombre}</h4>
+                      <p>{p.descripcion || "Sin descripción"}</p>
+
+                      <div className={styles.productMeta}>
+                        <span>S/ {p.precio}</span>
+                        <span>Stock: {p.stock}</span>
+                        <span>{p.categoria || "Sin categoría"}</span>
+                        <span>{p.tipo_venta || "Sin tipo"}</span>
+                        <span>{p.duracion || "-"}</span>
+                        <span>{p.proveedor || "Jonas Stream"}</span>
+                        <span>{p.estado_catalogo || "-"}</span>
+                        <span>{p.renovable ? "Renovable" : "No renovable"}</span>
+                      </div>
+
+                      <div className={styles.cardActions}>
+                        <button onClick={() => editarProducto(p)} className={styles.secondaryButton}>Editar</button>
+                        <button onClick={() => eliminarProducto(p.id)} className={styles.dangerButton}>Eliminar</button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </article>
+          </div>
+        )}
+
+        {tabActiva === "pedidos" && (
+          <article className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.kicker}>Ventas</p>
+                <h3>Pedidos recientes</h3>
+              </div>
+              <span className={styles.countBadge}>{pedidos.length} pedidos</span>
+            </div>
+
+            {pedidos.length === 0 ? (
+              <EmptyState title="No hay pedidos" text="Aún no hay pedidos registrados." />
+            ) : (
+              <div className={styles.cardsGrid}>
+                {pedidos.map((pedido) => (
+                  <article key={pedido.id} className={styles.orderCard}>
+                    <div className={styles.cardHeaderLine}>
+                      <h4>Pedido #{pedido.id.slice(0, 8)}</h4>
+                      <StatusBadge estado={pedido.estado} />
+                    </div>
+
+                    <div className={styles.infoGrid}>
+                      <span>Cliente</span><strong>{pedido.cliente_nombre}</strong>
+                      <span>Correo</span><strong>{pedido.cliente_correo}</strong>
+                      <span>Total</span><strong>S/ {pedido.total}</strong>
+                      <span>Método</span><strong>{pedido.metodo_pago}</strong>
+                      <span>Fecha</span><strong>{new Date(pedido.created_at).toLocaleString()}</strong>
+                    </div>
+
+                    <div className={styles.cardActions}>
+                      <button onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>Pendiente</button>
+                      <button onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.secondaryButton}>Completado</button>
+                      <button onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelado</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </article>
+        )}
+
+        {tabActiva === "usuarios" && (
+          <article className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.kicker}>Accesos</p>
+                <h3>Gestión de usuarios</h3>
+              </div>
+              <span className={styles.countBadge}>{usuarios.length} usuarios</span>
+            </div>
+
+            <div className={styles.cardsGrid}>
+              {usuarios.map((u) => (
+                <article key={u.id} className={styles.userCard}>
+                  <div className={styles.avatar}>{u.nombre?.slice(0, 2).toUpperCase() || "US"}</div>
+
+                  <div>
+                    <h4>{u.nombre}</h4>
+                    <p>{u.correo}</p>
+                  </div>
+
+                  <div className={styles.userMeta}>
+                    <span>Rol: <strong>{u.rol}</strong></span>
+                    <span>Estado: <StatusBadge estado={u.estado} /></span>
+                  </div>
+
+                  <div className={styles.cardActions}>
+                    <button onClick={() => actualizarEstado(u.id, "aprobado")} className={styles.secondaryButton}>Aprobar</button>
+                    <button onClick={() => actualizarEstado(u.id, "rechazado")} className={styles.secondaryButton}>Rechazar</button>
+                    <button onClick={() => cambiarRol(u.id, "cliente")} className={styles.secondaryButton}>Cliente</button>
+                    <button onClick={() => cambiarRol(u.id, "proveedor")} className={styles.secondaryButton}>Proveedor</button>
+                    <button onClick={() => cambiarRol(u.id, "admin")} className={styles.secondaryButton}>Admin</button>
+                    <button onClick={() => eliminarUsuario(u.id)} className={styles.dangerButton}>Eliminar</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </article>
+        )}
+
+        {tabActiva === "comprobantes" && (
+          <PlaceholderPanel
+            title="Comprobantes"
+            text="Aquí podrás revisar comprobantes, validar pagos y adjuntar evidencias cuando agregues esa lógica."
+            buttonText="Próximamente"
+          />
+        )}
+
+        {tabActiva === "inventario" && (
+          <PlaceholderPanel
+            title="Inventario inteligente"
+            text="Espacio reservado para movimientos, alertas de stock, proveedores y reposición automática."
+            buttonText="Placeholder"
+          />
+        )}
+
+        {tabActiva === "creditos" && (
+          <PlaceholderPanel
+            title="Créditos"
+            text="Zona preparada para saldos, créditos de proveedores, historial y control financiero."
+            buttonText="Placeholder"
+          />
+        )}
+
+        {tabActiva === "configuracion" && (
+          <article className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.kicker}>Personalización</p>
+                <h3>Configuración de tienda</h3>
+              </div>
+              {configId && <span className={styles.countBadge}>Configuración activa</span>}
+            </div>
+
+            <form onSubmit={guardarConfiguracion} className={styles.formGrid}>
+              <input name="nombre_tienda" placeholder="Nombre de la tienda" value={formConfig.nombre_tienda} onChange={handleConfigChange} className={styles.input} />
+              <input name="slogan" placeholder="Slogan" value={formConfig.slogan} onChange={handleConfigChange} className={styles.input} />
+              <input name="banner_titulo" placeholder="Título del banner" value={formConfig.banner_titulo} onChange={handleConfigChange} className={styles.input} />
+              <textarea name="banner_texto" placeholder="Texto del banner" value={formConfig.banner_texto} onChange={handleConfigChange} className={`${styles.input} ${styles.textarea}`} />
+              <input name="banner_boton" placeholder="Texto del botón" value={formConfig.banner_boton} onChange={handleConfigChange} className={styles.input} />
+              <input name="whatsapp" placeholder="WhatsApp general" value={formConfig.whatsapp} onChange={handleConfigChange} className={styles.input} />
+
+              <div className={styles.formActions}>
+                <button type="submit" className={styles.primaryButton}>
+                  {guardandoConfig
+                    ? "Guardando..."
+                    : configId
+                    ? "Actualizar configuración"
+                    : "Guardar configuración"}
+                </button>
+              </div>
+            </form>
+          </article>
         )}
       </section>
     </main>
   )
 }
 
-const estilos: Record<string, CSSProperties> = {
-  main: {
-    minHeight: "100vh",
-    background:
-      "radial-gradient(circle at top, rgba(0,229,255,0.08), transparent 25%), #030507",
-    color: "white",
-    padding: "40px",
-    position: "relative",
-    overflow: "hidden",
-  },
-  fondoGlow: {
-    position: "absolute",
-    inset: 0,
-    background:
-      "radial-gradient(circle at 20% 20%, rgba(0,251,255,0.06), transparent 30%), radial-gradient(circle at 80% 10%, rgba(0,229,255,0.05), transparent 25%)",
-    pointerEvents: "none",
-  },
-  header: {
-    position: "relative",
-    zIndex: 1,
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "20px",
-    flexWrap: "wrap",
-    marginBottom: "40px",
-  },
-  titulo: {
-    fontSize: "38px",
-    marginBottom: "10px",
-    letterSpacing: "1px",
-    textShadow: "0 0 18px rgba(0,229,255,0.25)",
-  },
-  subtexto: {
-    color: "#c7d7e2",
-    marginBottom: "6px",
-  },
-  sectionTitle: {
-    fontSize: "24px",
-    marginBottom: "18px",
-    color: "#00e5ff",
-    textShadow: "0 0 12px rgba(0,229,255,0.25)",
-  },
-  gridCards: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "18px",
-  },
-  card: {
-    background: "rgba(11, 17, 24, 0.88)",
-    border: "1px solid rgba(0,229,255,0.25)",
-    borderRadius: "18px",
-    padding: "22px",
-    boxShadow: "0 0 20px rgba(0,229,255,0.08)",
-    backdropFilter: "blur(8px)",
-  },
-  cardTitle: {
-    marginBottom: "12px",
-    color: "#dffcff",
-    fontSize: "18px",
-  },
-  cardValue: {
-    fontSize: "38px",
-    fontWeight: "bold",
-    color: "#00fbff",
-    textShadow: "0 0 12px rgba(0,251,255,0.25)",
-  },
-  listaUsuarios: {
-    display: "grid",
-    gap: "18px",
-  },
-  usuarioCard: {
-    background: "rgba(11, 17, 24, 0.88)",
-    border: "1px solid rgba(0,229,255,0.22)",
-    borderRadius: "18px",
-    padding: "22px",
-    boxShadow: "0 0 18px rgba(0,229,255,0.07)",
-    position: "relative",
-    zIndex: 1,
-  },
-  infoTexto: {
-    color: "#d4e3ee",
-    marginBottom: "6px",
-  },
-  acciones: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "10px",
-  },
-  formulario: {
-    display: "grid",
-    gap: "14px",
-    background: "rgba(11, 17, 24, 0.88)",
-    border: "1px solid rgba(0,229,255,0.22)",
-    borderRadius: "18px",
-    padding: "22px",
-    position: "relative",
-    zIndex: 1,
-  },
-  filtrosProductos: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "14px",
-    marginBottom: "20px",
-  },
-  input: {
-    width: "100%",
-    padding: "12px 14px",
-    borderRadius: "10px",
-    border: "1px solid rgba(0,229,255,0.22)",
-    background: "#081018",
-    color: "white",
-    outline: "none",
-  },
-  checkboxLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    color: "#d4e3ee",
-  },
-  labelArchivo: {
-    display: "block",
-    marginBottom: "8px",
-    color: "#d4e3ee",
-  },
-  imagenProducto: {
-    width: "100%",
-    maxWidth: "220px",
-    height: "220px",
-    objectFit: "cover",
-    borderRadius: "14px",
-    border: "1px solid rgba(0,229,255,0.22)",
-    marginBottom: "14px",
-    display: "block",
-  },
-  botonPrincipal: {
-    background: "#00e5ff",
-    color: "#001018",
-    border: "none",
-    borderRadius: "12px",
-    padding: "12px 18px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    boxShadow: "0 0 16px rgba(0,229,255,0.25)",
-  },
-  botonSecundario: {
-    background: "transparent",
-    color: "#00e5ff",
-    border: "1px solid rgba(0,229,255,0.35)",
-    borderRadius: "10px",
-    padding: "10px 14px",
-    fontWeight: "bold",
-    cursor: "pointer",
-  },
-  botonEliminar: {
-    background: "rgba(255, 80, 80, 0.12)",
-    color: "#ff9a9a",
-    border: "1px solid rgba(255, 120, 120, 0.3)",
-    borderRadius: "10px",
-    padding: "10px 14px",
-    fontWeight: "bold",
-    cursor: "pointer",
-  },
+function MetricCard({
+  title,
+  value,
+  detail,
+}: {
+  title: string
+  value: string | number
+  detail: string
+}) {
+  return (
+    <article className={styles.metricCard}>
+      <p>{title}</p>
+      <strong>{value}</strong>
+      <span>{detail}</span>
+    </article>
+  )
+}
+
+function StatusBadge({ estado }: { estado: string }) {
+  const normalized = estado?.toLowerCase()
+
+  return (
+    <span
+      className={`${styles.statusBadge} ${
+        normalized === "completado" || normalized === "aprobado" || normalized === "activo"
+          ? styles.statusSuccess
+          : normalized === "cancelado" || normalized === "rechazado" || normalized === "inactivo"
+          ? styles.statusDanger
+          : styles.statusWarning
+      }`}
+    >
+      {estado}
+    </span>
+  )
+}
+
+function EmptyState({ title, text }: { title: string; text: string }) {
+  return (
+    <div className={styles.emptyState}>
+      <div>✦</div>
+      <h4>{title}</h4>
+      <p>{text}</p>
+    </div>
+  )
+}
+
+function PlaceholderPanel({
+  title,
+  text,
+  buttonText,
+}: {
+  title: string
+  text: string
+  buttonText: string
+}) {
+  return (
+    <article className={`${styles.panel} ${styles.placeholderPanel}`}>
+      <div className={styles.placeholderOrb}>✦</div>
+      <p className={styles.kicker}>Módulo preparado</p>
+      <h3>{title}</h3>
+      <p>{text}</p>
+      <button type="button" className={styles.secondaryButton}>{buttonText}</button>
+    </article>
+  )
 }
