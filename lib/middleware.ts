@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
     const { data: usuario } = await supabase
       .from("usuarios")
       .select("rol,estado")
-      .eq("id", user.id)
+      .or(`id.eq.${user.id},correo.eq.${user.email.toLowerCase()}`)
       .single()
 
     const puedeEntrar =
