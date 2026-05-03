@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -42,6 +43,7 @@ type Producto = {
   estado_catalogo?: string | null
   badge?: string | null
   accent?: string | null
+  created_at?: string | null
 }
 
 type Pedido = {
@@ -52,6 +54,28 @@ type Pedido = {
   estado: string
   metodo_pago: string
   created_at: string
+  comprobante_url?: string | null
+  comprobante?: string | null
+  captura_pago?: string | null
+  voucher_url?: string | null
+  producto_nombre?: string | null
+}
+
+type Comprobante = {
+  id: string
+  pedido_id?: string | null
+  usuario_id?: string | null
+  cliente_nombre?: string | null
+  cliente_correo?: string | null
+  url?: string | null
+  archivo_url?: string | null
+  imagen_url?: string | null
+  comprobante_url?: string | null
+  estado?: string | null
+  metodo_pago?: string | null
+  monto?: number | null
+  detalle?: string | null
+  created_at?: string | null
 }
 
 type AdminLog = {
@@ -74,6 +98,11 @@ type ConfiguracionTienda = {
   banner_boton: string
   whatsapp: string
 }
+
+type MetricTone = "success" | "warning" | "danger" | "info" | "neutral"
+
+type OrdenProducto = "recientes" | "nombre" | "precio_mayor" | "precio_menor" | "stock_menor"
+type OrdenPedido = "recientes" | "monto_mayor" | "monto_menor"
 
 const productoInicial = {
   nombre: "",
@@ -120,6 +149,33 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"]
 
+const estadosPedido = ["todos", "pendiente", "completado", "cancelado"]
+const estadosUsuario = ["todos", "pendiente", "aprobado", "rechazado"]
+const rolesUsuario = ["todos", "cliente", "proveedor", "admin"]
+
+const normalizarTexto = (valor?: string | number | null) => String(valor ?? "").trim().toLowerCase()
+const formatearSoles = (valor: number) => `S/ ${Number(valor || 0).toFixed(2)}`
+const fechaLegible = (fecha?: string | null) => {
+  if (!fecha) return "Sin fecha"
+  const date = new Date(fecha)
+  if (Number.isNaN(date.getTime())) return "Sin fecha"
+  return date.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" })
+}
+const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
+  const posibleComprobante = item as Partial<Pedido & Comprobante>
+
+  return (
+    posibleComprobante.url ||
+    posibleComprobante.archivo_url ||
+    posibleComprobante.imagen_url ||
+    posibleComprobante.comprobante_url ||
+    posibleComprobante.comprobante ||
+    posibleComprobante.captura_pago ||
+    posibleComprobante.voucher_url ||
+    null
+  )
+}
+
 export default function AdminPage() {
   const router = useRouter()
 
@@ -127,6 +183,7 @@ export default function AdminPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [comprobantes, setComprobantes] = useState<Comprobante[]>([])
   const [logs, setLogs] = useState<AdminLog[]>([])
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<TabId>("dashboard")
@@ -135,13 +192,28 @@ export default function AdminPage() {
   const [eventosLive, setEventosLive] = useState<string[]>([])
   const [limiteProductos, setLimiteProductos] = useState(12)
   const [limitePedidos, setLimitePedidos] = useState(12)
+  const [limiteComprobantes, setLimiteComprobantes] = useState(12)
+  const [limiteLogs, setLimiteLogs] = useState(18)
 
   const [formProducto, setFormProducto] = useState(productoInicial)
   const [editandoId, setEditandoId] = useState<string | null>(null)
 
   const [busquedaProducto, setBusquedaProducto] = useState("")
   const [filtroEstadoProducto, setFiltroEstadoProducto] = useState("todos")
-  const [ordenProducto, setOrdenProducto] = useState("recientes")
+  const [filtroStockProducto, setFiltroStockProducto] = useState("todos")
+  const [ordenProducto, setOrdenProducto] = useState<OrdenProducto>("recientes")
+
+  const [busquedaPedido, setBusquedaPedido] = useState("")
+  const [filtroEstadoPedido, setFiltroEstadoPedido] = useState("todos")
+  const [filtroMetodoPago, setFiltroMetodoPago] = useState("todos")
+  const [ordenPedido, setOrdenPedido] = useState<OrdenPedido>("recientes")
+
+  const [busquedaUsuario, setBusquedaUsuario] = useState("")
+  const [filtroEstadoUsuario, setFiltroEstadoUsuario] = useState("todos")
+  const [filtroRolUsuario, setFiltroRolUsuario] = useState("todos")
+
+  const [busquedaHistorial, setBusquedaHistorial] = useState("")
+  const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
 
   const [configId, setConfigId] = useState<string | null>(null)
   const [formConfig, setFormConfig] = useState(configuracionInicial)
@@ -149,8 +221,10 @@ export default function AdminPage() {
 
   const [imagenFile, setImagenFile] = useState<File | null>(null)
   const [subiendoImagen, setSubiendoImagen] = useState(false)
+  const [guardandoProducto, setGuardandoProducto] = useState(false)
+  const [comprobantesDisponibles, setComprobantesDisponibles] = useState(true)
 
-  const reproducirBeep = () => {
+  const reproducirBeep = useCallback(() => {
     try {
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
       const audioContext = new AudioContextClass()
@@ -163,32 +237,88 @@ export default function AdminPage() {
       oscillator.start()
       oscillator.stop(audioContext.currentTime + 0.12)
     } catch {
-      // El navegador puede bloquear audio automático. No afecta el panel.
+      // Algunos navegadores bloquean audio automático. No afecta el panel.
     }
-  }
+  }, [])
 
-  const registrarEvento = (mensaje: string, sonar = false) => {
+  const registrarEvento = useCallback((mensaje: string, sonar = false) => {
     setEventosLive((prev) => [mensaje, ...prev].slice(0, 8))
     if (sonar) reproducirBeep()
-  }
+  }, [reproducirBeep])
 
-  const registrarLog = async (
-  accion: string,
-  entidad: string,
-  entidadId?: string,
-  detalle?: string
-) => {
-  try {
-    await supabase.rpc("log_admin_action", {
-      p_accion: accion.toUpperCase(),
-      p_entidad: entidad,
-      p_entidad_id: entidadId || null,
-      p_detalle: detalle || null,
-    })
-  } catch (err) {
-    console.error("Error log:", err)
-  }
-  }
+  const registrarLog = useCallback(async (
+    accion: string,
+    entidad: string,
+    entidadId?: string,
+    detalle?: string
+  ) => {
+    try {
+      await supabase.rpc("log_admin_action", {
+        p_accion: accion.toUpperCase(),
+        p_entidad: entidad,
+        p_entidad_id: entidadId || null,
+        p_detalle: detalle || null,
+      })
+    } catch (err) {
+      console.error("Error log:", err)
+    }
+  }, [])
+
+  const cargarDatos = useCallback(async (usuarioActual?: Usuario | null) => {
+    setCargando(true)
+
+    const adminActual = usuarioActual ?? usuario
+    const esProveedorActual = adminActual?.rol === "proveedor"
+
+    const usuariosQuery = supabase.from("usuarios").select("*").order("nombre", { ascending: true })
+    const productosQuery = supabase.from("productos").select("*").order("created_at", { ascending: false })
+    const pedidosQuery = supabase.from("pedidos").select("*").order("created_at", { ascending: false })
+
+    if (esProveedorActual && adminActual?.nombre) {
+      productosQuery.eq("proveedor", adminActual.nombre)
+    }
+
+    const [usuariosResult, productosResult, pedidosResult, logsResult, configResult, comprobantesResult] = await Promise.all([
+      esProveedorActual && adminActual?.id ? usuariosQuery.eq("id", adminActual.id) : usuariosQuery,
+      productosQuery,
+      pedidosQuery,
+      supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(80),
+      supabase.from("configuracion_tienda").select("*").order("created_at", { ascending: false }).limit(1),
+      supabase.from("comprobantes").select("*").order("created_at", { ascending: false }).limit(80),
+    ])
+
+    if (usuariosResult.data) setUsuarios(usuariosResult.data as Usuario[])
+    if (productosResult.data) setProductos(productosResult.data as Producto[])
+    if (pedidosResult.data) setPedidos(pedidosResult.data as Pedido[])
+    if (logsResult.data) setLogs(logsResult.data as AdminLog[])
+
+    if (comprobantesResult.error) {
+      setComprobantesDisponibles(false)
+      setComprobantes([])
+    } else {
+      setComprobantesDisponibles(true)
+      setComprobantes((comprobantesResult.data || []) as Comprobante[])
+    }
+
+    if (configResult.data && configResult.data.length > 0) {
+      const config = configResult.data[0] as ConfiguracionTienda
+      setConfigId(config.id)
+      setFormConfig({
+        nombre_tienda: config.nombre_tienda || "",
+        slogan: config.slogan || "",
+        banner_titulo: config.banner_titulo || "",
+        banner_texto: config.banner_texto || "",
+        banner_boton: config.banner_boton || "",
+        whatsapp: config.whatsapp || "",
+      })
+    } else {
+      setConfigId(null)
+      setFormConfig(configuracionInicial)
+    }
+
+    setUltimaActualizacion(new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }))
+    setCargando(false)
+  }, [usuario])
 
   useEffect(() => {
     const validarAcceso = async () => {
@@ -202,8 +332,6 @@ export default function AdminPage() {
         router.push("/login")
         return
       }
-
-      const correoAuth = session.user.email.trim().toLowerCase()
 
       const { data: usuarioData, error: usuarioError } = await supabase
         .from("usuarios")
@@ -238,19 +366,19 @@ export default function AdminPage() {
       }
 
       setUsuario(usuarioParseado)
-      cargarDatos(usuarioParseado)
+      await cargarDatos(usuarioParseado)
     }
 
     validarAcceso()
-  }, [router])
-
+  }, [router, cargarDatos])
 
   useEffect(() => {
     const canal = supabase
       .channel("jonas-stream-admin-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
-        registrarEvento("Nuevo movimiento en pedidos", true)
-        toast.success("Pedidos actualizados en vivo")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, (payload) => {
+        const nuevoEstado = (payload.new as Pedido | undefined)?.estado
+        registrarEvento(nuevoEstado === "completado" ? "Venta completada" : "Movimiento detectado en pedidos", nuevoEstado === "completado")
+        if (nuevoEstado === "completado") toast.success("Venta completada")
         cargarDatos()
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, () => {
@@ -270,81 +398,17 @@ export default function AdminPage() {
     return () => {
       supabase.removeChannel(canal)
     }
-  }, [])
-
-  const cargarDatos = async (usuarioActual = usuario) => {
-    setCargando(true)
-
-    const esProveedor = usuarioActual?.rol === "proveedor"
-
-    const usuariosQuery = supabase.from("usuarios").select("*")
-    const productosQuery = supabase
-      .from("productos")
-      .select("*")
-      .order("created_at", { ascending: false })
-    const pedidosQuery = supabase
-      .from("pedidos")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    if (esProveedor && usuarioActual?.nombre) {
-      productosQuery.eq("proveedor", usuarioActual.nombre)
-    }
-
-    const { data: usuariosData } = esProveedor
-      ? await usuariosQuery.eq("id", usuarioActual.id)
-      : await usuariosQuery
-
-    const { data: productosData } = await productosQuery
-    const { data: pedidosData } = await pedidosQuery
-
-    const { data: logsData } = await supabase
-      .from("admin_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(30)
-
-    const { data: configData } = await supabase
-      .from("configuracion_tienda")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1)
-
-    if (usuariosData) setUsuarios(usuariosData)
-    if (productosData) setProductos(productosData)
-    if (pedidosData) setPedidos(pedidosData)
-    if (logsData) setLogs(logsData as AdminLog[])
-
-    if (configData && configData.length > 0) {
-      const config = configData[0] as ConfiguracionTienda
-      setConfigId(config.id)
-      setFormConfig({
-        nombre_tienda: config.nombre_tienda || "",
-        slogan: config.slogan || "",
-        banner_titulo: config.banner_titulo || "",
-        banner_texto: config.banner_texto || "",
-        banner_boton: config.banner_boton || "",
-        whatsapp: config.whatsapp || "",
-      })
-    } else {
-      setConfigId(null)
-      setFormConfig(configuracionInicial)
-    }
-
-    setUltimaActualizacion(new Date().toLocaleTimeString())
-    setCargando(false)
-  }
+  }, [cargarDatos, registrarEvento])
 
   const actualizarEstado = async (id: string, nuevoEstado: string) => {
-    const { error } = await supabase
-      .from("usuarios")
-      .update({ estado: nuevoEstado })
-      .eq("id", id)
+    const usuarioObjetivo = usuarios.find((u) => u.id === id)
+    const { error } = await supabase.from("usuarios").update({ estado: nuevoEstado }).eq("id", id)
 
     if (!error) {
       setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, estado: nuevoEstado } : u)))
-      registrarEvento(`Usuario actualizado a ${nuevoEstado}`)
+      registrarEvento(`Usuario ${usuarioObjetivo?.nombre || ""} actualizado a ${nuevoEstado}`)
       await registrarLog("actualizar_estado", "usuarios", id, `Estado: ${nuevoEstado}`)
+      toast.success(`Usuario ${nuevoEstado}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo actualizar el estado")
@@ -352,15 +416,13 @@ export default function AdminPage() {
   }
 
   const cambiarRol = async (id: string, nuevoRol: string) => {
-    const { error } = await supabase
-      .from("usuarios")
-      .update({ rol: nuevoRol })
-      .eq("id", id)
+    const { error } = await supabase.from("usuarios").update({ rol: nuevoRol }).eq("id", id)
 
     if (!error) {
       setUsuarios((prev) => prev.map((u) => (u.id === id ? { ...u, rol: nuevoRol } : u)))
       registrarEvento(`Rol actualizado a ${nuevoRol}`)
       await registrarLog("cambiar_rol", "usuarios", id, `Rol: ${nuevoRol}`)
+      toast.success(`Rol actualizado a ${nuevoRol}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo cambiar el rol")
@@ -368,7 +430,7 @@ export default function AdminPage() {
   }
 
   const eliminarUsuario = async (id: string) => {
-    const confirmar = confirm("¿Seguro que quieres eliminar este usuario?")
+    const confirmar = confirm("¿Seguro que quieres eliminar este usuario? Esta acción no se puede deshacer.")
     if (!confirmar) return
 
     const { error } = await supabase.from("usuarios").delete().eq("id", id)
@@ -377,6 +439,7 @@ export default function AdminPage() {
       setUsuarios((prev) => prev.filter((u) => u.id !== id))
       registrarEvento("Usuario eliminado")
       await registrarLog("eliminar", "usuarios", id, "Usuario eliminado")
+      toast.success("Usuario eliminado")
       await cargarDatos()
     } else {
       toast.error("No se pudo eliminar el usuario")
@@ -384,14 +447,11 @@ export default function AdminPage() {
   }
 
   const actualizarEstadoPedido = async (id: string, nuevoEstado: string) => {
-    const { error } = await supabase
-      .from("pedidos")
-      .update({ estado: nuevoEstado })
-      .eq("id", id)
+    const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).eq("id", id)
 
     if (!error) {
       setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: nuevoEstado } : p)))
-      registrarEvento(`Pedido marcado como ${nuevoEstado}`, true)
+      registrarEvento(`Pedido marcado como ${nuevoEstado}`, nuevoEstado === "completado")
       await registrarLog("actualizar_estado", "pedidos", id, `Estado: ${nuevoEstado}`)
       toast.success(`Pedido actualizado a ${nuevoEstado}`)
       await cargarDatos()
@@ -400,9 +460,21 @@ export default function AdminPage() {
     }
   }
 
-  const handleProductoChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const actualizarEstadoComprobante = async (id: string, nuevoEstado: string) => {
+    const { error } = await supabase.from("comprobantes").update({ estado: nuevoEstado }).eq("id", id)
+
+    if (!error) {
+      setComprobantes((prev) => prev.map((c) => (c.id === id ? { ...c, estado: nuevoEstado } : c)))
+      registrarEvento(`Comprobante ${nuevoEstado}`)
+      await registrarLog("actualizar_estado", "comprobantes", id, `Estado: ${nuevoEstado}`)
+      toast.success(`Comprobante ${nuevoEstado}`)
+      await cargarDatos()
+    } else {
+      toast.error("No se pudo actualizar el comprobante")
+    }
+  }
+
+  const handleProductoChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
 
     if (type === "checkbox") {
@@ -418,14 +490,13 @@ export default function AdminPage() {
 
     setSubiendoImagen(true)
 
-    const extension = imagenFile.name.split(".").pop()
-    const nombreArchivo = `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}.${extension}`
+    const extension = imagenFile.name.split(".").pop()?.toLowerCase() || "webp"
+    const nombreArchivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
 
-    const { error: uploadError } = await supabase.storage
-      .from("productos")
-      .upload(nombreArchivo, imagenFile)
+    const { error: uploadError } = await supabase.storage.from("productos").upload(nombreArchivo, imagenFile, {
+      cacheControl: "3600",
+      upsert: false,
+    })
 
     if (uploadError) {
       setSubiendoImagen(false)
@@ -434,7 +505,6 @@ export default function AdminPage() {
     }
 
     const { data } = supabase.storage.from("productos").getPublicUrl(nombreArchivo)
-
     setSubiendoImagen(false)
     return data.publicUrl
   }
@@ -442,94 +512,89 @@ export default function AdminPage() {
   const guardarProducto = async (e: FormEvent) => {
     e.preventDefault()
 
-    if (!formProducto.nombre || !formProducto.precio || !formProducto.stock) {
+    const precio = Number(formProducto.precio)
+    const precioAntes = formProducto.precio_antes ? Number(formProducto.precio_antes) : null
+    const stock = Number(formProducto.stock)
+
+    if (!formProducto.nombre.trim() || !formProducto.precio || !formProducto.stock) {
       toast.error("Completa nombre, precio y stock")
       return
     }
 
-    let imagenUrl: string | null = null
+    if (Number.isNaN(precio) || precio < 0 || Number.isNaN(stock) || stock < 0) {
+      toast.error("Precio y stock deben ser números válidos")
+      return
+    }
 
+    if (precioAntes !== null && (Number.isNaN(precioAntes) || precioAntes < 0)) {
+      toast.error("Precio antes debe ser válido")
+      return
+    }
+
+    setGuardandoProducto(true)
+
+    let imagenUrl: string | null = null
     if (imagenFile) {
       const urlSubida = await subirImagen()
-      if (!urlSubida) return
+      if (!urlSubida) {
+        setGuardandoProducto(false)
+        return
+      }
       imagenUrl = urlSubida
     }
 
-    const payload: {
-      nombre: string
-      descripcion: string
-      precio: number
-      precio_antes: number | null
-      stock: number
-      imagen?: string | null
-      categoria: string
-      tipo_venta: string
-      whatsapp: string
-      estado: string
-      publicacion: boolean
-      destacado: boolean
-      oferta: boolean
-      duracion: string
-      proveedor: string
-      renovable: boolean
-      stock_texto: string
-      estado_catalogo: string
-      badge: string
-      accent: string
-    } = {
-      nombre: formProducto.nombre,
-      descripcion: formProducto.descripcion,
-      precio: Number(formProducto.precio),
-      precio_antes: formProducto.precio_antes ? Number(formProducto.precio_antes) : null,
-      stock: Number(formProducto.stock),
-      categoria: formProducto.categoria,
+    const payload: Partial<Producto> = {
+      nombre: formProducto.nombre.trim(),
+      descripcion: formProducto.descripcion.trim(),
+      precio,
+      precio_antes: precioAntes,
+      stock,
+      categoria: formProducto.categoria.trim(),
       tipo_venta: formProducto.tipo_venta,
-      whatsapp: formProducto.whatsapp,
+      whatsapp: formProducto.whatsapp.trim(),
       estado: formProducto.estado,
       publicacion: formProducto.publicacion,
       destacado: formProducto.destacado,
       oferta: formProducto.oferta,
-      duracion: formProducto.duracion,
-      proveedor: formProducto.proveedor,
+      duracion: formProducto.duracion.trim(),
+      proveedor: formProducto.proveedor.trim(),
       renovable: formProducto.renovable,
-      stock_texto: formProducto.stock_texto,
-      estado_catalogo: formProducto.estado_catalogo,
-      badge: formProducto.badge,
+      stock_texto: formProducto.stock_texto.trim(),
+      estado_catalogo: stock === 0 ? "AGOTADO" : formProducto.estado_catalogo,
+      badge: formProducto.badge.trim(),
       accent: formProducto.accent,
     }
 
-    if (imagenUrl) {
-      payload.imagen = imagenUrl
-    }
+    if (imagenUrl) payload.imagen = imagenUrl
 
     if (editandoId) {
-      const { error } = await supabase
-        .from("productos")
-        .update(payload)
-        .eq("id", editandoId)
+      const { error } = await supabase.from("productos").update(payload).eq("id", editandoId)
 
       if (error) {
         toast.error("No se pudo actualizar el producto")
+        setGuardandoProducto(false)
         return
       }
 
       await registrarLog("actualizar", "productos", editandoId, formProducto.nombre)
       toast.success("Producto actualizado")
     } else {
-      const { error } = await supabase.from("productos").insert([payload])
+      const { data, error } = await supabase.from("productos").insert([payload]).select("id")
 
       if (error) {
         toast.error("No se pudo crear el producto")
+        setGuardandoProducto(false)
         return
       }
 
-      await registrarLog("crear", "productos", undefined, formProducto.nombre)
+      await registrarLog("crear", "productos", data?.[0]?.id, formProducto.nombre)
       toast.success("Producto creado")
     }
 
     setFormProducto(productoInicial)
     setEditandoId(null)
     setImagenFile(null)
+    setGuardandoProducto(false)
     await cargarDatos()
   }
 
@@ -562,7 +627,7 @@ export default function AdminPage() {
   }
 
   const eliminarProducto = async (id: string) => {
-    const confirmar = confirm("¿Seguro que quieres eliminar este producto?")
+    const confirmar = confirm("¿Seguro que quieres eliminar este producto? Esta acción no se puede deshacer.")
     if (!confirmar) return
 
     const { error } = await supabase.from("productos").delete().eq("id", id)
@@ -570,21 +635,15 @@ export default function AdminPage() {
     if (!error) {
       setProductos((prev) => prev.filter((p) => p.id !== id))
       registrarEvento("Producto eliminado")
-      await registrarLog(
-  "ELIMINAR",
-  "producto",
-  id,
-  "Producto eliminado"
-)
+      await registrarLog("eliminar", "productos", id, "Producto eliminado")
+      toast.success("Producto eliminado")
       await cargarDatos()
     } else {
       toast.error("No se pudo eliminar el producto")
     }
   }
 
-  const handleConfigChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleConfigChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormConfig((prev) => ({ ...prev, [name]: value }))
   }
@@ -594,19 +653,16 @@ export default function AdminPage() {
     setGuardandoConfig(true)
 
     const payload = {
-      nombre_tienda: formConfig.nombre_tienda,
-      slogan: formConfig.slogan,
-      banner_titulo: formConfig.banner_titulo,
-      banner_texto: formConfig.banner_texto,
-      banner_boton: formConfig.banner_boton,
-      whatsapp: formConfig.whatsapp,
+      nombre_tienda: formConfig.nombre_tienda.trim(),
+      slogan: formConfig.slogan.trim(),
+      banner_titulo: formConfig.banner_titulo.trim(),
+      banner_texto: formConfig.banner_texto.trim(),
+      banner_boton: formConfig.banner_boton.trim(),
+      whatsapp: formConfig.whatsapp.trim(),
     }
 
     if (configId) {
-      const { error } = await supabase
-        .from("configuracion_tienda")
-        .update(payload)
-        .eq("id", configId)
+      const { error } = await supabase.from("configuracion_tienda").update(payload).eq("id", configId)
 
       if (error) {
         toast.error("No se pudo actualizar la configuración")
@@ -617,10 +673,7 @@ export default function AdminPage() {
       await registrarLog("actualizar", "configuracion_tienda", configId, "Configuración de tienda")
       toast.success("Configuración actualizada")
     } else {
-      const { data, error } = await supabase
-        .from("configuracion_tienda")
-        .insert([payload])
-        .select()
+      const { data, error } = await supabase.from("configuracion_tienda").insert([payload]).select()
 
       if (error) {
         toast.error("No se pudo guardar la configuración")
@@ -628,10 +681,7 @@ export default function AdminPage() {
         return
       }
 
-      if (data && data.length > 0) {
-        setConfigId(data[0].id)
-      }
-
+      if (data && data.length > 0) setConfigId(data[0].id)
       await registrarLog("crear", "configuracion_tienda", undefined, "Configuración de tienda")
       toast.success("Configuración guardada")
     }
@@ -653,95 +703,155 @@ export default function AdminPage() {
   const totalPedidos = pedidos.length
   const pedidosCompletados = pedidos.filter((pedido) => pedido.estado === "completado").length
   const pedidosCancelados = pedidos.filter((pedido) => pedido.estado === "cancelado").length
-  const ventasTotales = pedidos
-    .filter((pedido) => pedido.estado === "completado")
-    .reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
   const pedidosPendientes = pedidos.filter((pedido) => pedido.estado === "pendiente").length
+  const ventasTotales = pedidos.filter((pedido) => pedido.estado === "completado").reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
+  const ingresosPendientes = pedidos.filter((pedido) => pedido.estado === "pendiente").reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
   const usuariosPendientes = usuarios.filter((u) => u.estado === "pendiente").length
-  const pedidosRecientes = pedidos.slice(0, 5)
-  const productosBajoStock = productos.filter((p) => Number(p.stock) <= 3).slice(0, 6)
+  const usuariosAprobados = usuarios.filter((u) => u.estado === "aprobado").length
+  const productosBajoStock = productos.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 3)
+  const productosAgotados = productos.filter((p) => Number(p.stock) <= 0)
+  const productosCriticos = [...productosAgotados, ...productosBajoStock].slice(0, 8)
   const ticketPromedio = pedidosCompletados > 0 ? ventasTotales / pedidosCompletados : 0
   const tasaConversion = totalPedidos > 0 ? Math.round((pedidosCompletados / totalPedidos) * 100) : 0
-  const saludInventario = totalProductos > 0 ? Math.max(0, Math.round(((totalProductos - productosBajoStock.length) / totalProductos) * 100)) : 100
-  const ingresosPendientes = pedidos
-    .filter((pedido) => pedido.estado === "pendiente")
-    .reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
+  const saludInventario = totalProductos > 0 ? Math.max(0, Math.round(((totalProductos - productosCriticos.length) / totalProductos) * 100)) : 100
   const productosDestacados = productos.filter((p) => p.destacado).length
   const productosOferta = productos.filter((p) => p.oferta).length
-  const usuariosAprobados = usuarios.filter((u) => u.estado === "aprobado").length
+  const pedidosConComprobante = pedidos.filter((pedido) => obtenerComprobanteUrl(pedido)).length
+  const comprobantesPendientes = comprobantes.filter((c) => (c.estado || "pendiente") === "pendiente").length
+  const metodosPago = Array.from(new Set(pedidos.map((p) => p.metodo_pago).filter(Boolean)))
+  const entidadesLog = Array.from(new Set(logs.map((log) => log.entidad).filter(Boolean)))
 
   const resultadosGlobales = useMemo(() => {
-    const query = busquedaGlobal.trim().toLowerCase()
+    const query = normalizarTexto(busquedaGlobal)
     if (!query) return []
 
     const productosEncontrados = productos
-      .filter((p) => `${p.nombre} ${p.categoria} ${p.tipo_venta}`.toLowerCase().includes(query))
+      .filter((p) => normalizarTexto(`${p.nombre} ${p.categoria} ${p.tipo_venta} ${p.proveedor}`).includes(query))
       .slice(0, 4)
-      .map((p) => ({ tipo: "Producto", titulo: p.nombre, detalle: `S/ ${p.precio} · Stock ${p.stock}`, tab: "productos" as TabId }))
+      .map((p) => ({ tipo: "Producto", titulo: p.nombre, detalle: `${formatearSoles(p.precio)} · Stock ${p.stock}`, tab: "productos" as TabId }))
 
     const pedidosEncontrados = pedidos
-      .filter((p) => `${p.id} ${p.cliente_nombre} ${p.cliente_correo}`.toLowerCase().includes(query))
+      .filter((p) => normalizarTexto(`${p.id} ${p.cliente_nombre} ${p.cliente_correo} ${p.metodo_pago}`).includes(query))
       .slice(0, 4)
-      .map((p) => ({ tipo: "Pedido", titulo: `#${p.id.slice(0, 8)}`, detalle: `${p.cliente_nombre} · S/ ${p.total}`, tab: "pedidos" as TabId }))
+      .map((p) => ({ tipo: "Pedido", titulo: `#${p.id.slice(0, 8)}`, detalle: `${p.cliente_nombre} · ${formatearSoles(p.total)}`, tab: "pedidos" as TabId }))
 
     const usuariosEncontrados = usuarios
-      .filter((u) => `${u.nombre} ${u.correo} ${u.rol}`.toLowerCase().includes(query))
+      .filter((u) => normalizarTexto(`${u.nombre} ${u.correo} ${u.rol} ${u.estado}`).includes(query))
       .slice(0, 4)
       .map((u) => ({ tipo: "Usuario", titulo: u.nombre, detalle: `${u.correo} · ${u.rol}`, tab: "usuarios" as TabId }))
 
     return [...productosEncontrados, ...pedidosEncontrados, ...usuariosEncontrados].slice(0, 8)
   }, [busquedaGlobal, productos, pedidos, usuarios])
 
-  const productosFiltrados: Producto[] = [...productos]
-    .filter((producto: Producto) => {
-      const texto = `${producto.nombre} ${producto.descripcion} ${producto.categoria} ${producto.tipo_venta}`.toLowerCase()
-      const coincideBusqueda = texto.includes(busquedaProducto.toLowerCase())
-      const coincideEstado =
-        filtroEstadoProducto === "todos" || producto.estado === filtroEstadoProducto
+  const productosFiltrados: Producto[] = useMemo(() => {
+    return [...productos]
+      .filter((producto) => {
+        const texto = normalizarTexto(`${producto.nombre} ${producto.descripcion} ${producto.categoria} ${producto.tipo_venta} ${producto.proveedor}`)
+        const coincideBusqueda = texto.includes(normalizarTexto(busquedaProducto))
+        const coincideEstado = filtroEstadoProducto === "todos" || producto.estado === filtroEstadoProducto
+        const stock = Number(producto.stock || 0)
+        const coincideStock =
+          filtroStockProducto === "todos" ||
+          (filtroStockProducto === "agotado" && stock <= 0) ||
+          (filtroStockProducto === "bajo" && stock > 0 && stock <= 3) ||
+          (filtroStockProducto === "ok" && stock > 3)
 
-      return coincideBusqueda && coincideEstado
+        return coincideBusqueda && coincideEstado && coincideStock
+      })
+      .sort((a, b) => {
+        switch (ordenProducto) {
+          case "nombre":
+            return a.nombre.localeCompare(b.nombre)
+          case "precio_mayor":
+            return Number(b.precio) - Number(a.precio)
+          case "precio_menor":
+            return Number(a.precio) - Number(b.precio)
+          case "stock_menor":
+            return Number(a.stock) - Number(b.stock)
+          default:
+            return 0
+        }
+      })
+  }, [productos, busquedaProducto, filtroEstadoProducto, filtroStockProducto, ordenProducto])
+
+  const pedidosFiltrados: Pedido[] = useMemo(() => {
+    return [...pedidos]
+      .filter((pedido) => {
+        const texto = normalizarTexto(`${pedido.id} ${pedido.cliente_nombre} ${pedido.cliente_correo} ${pedido.metodo_pago} ${pedido.producto_nombre}`)
+        const coincideBusqueda = texto.includes(normalizarTexto(busquedaPedido))
+        const coincideEstado = filtroEstadoPedido === "todos" || pedido.estado === filtroEstadoPedido
+        const coincideMetodo = filtroMetodoPago === "todos" || pedido.metodo_pago === filtroMetodoPago
+        return coincideBusqueda && coincideEstado && coincideMetodo
+      })
+      .sort((a, b) => {
+        switch (ordenPedido) {
+          case "monto_mayor":
+            return Number(b.total) - Number(a.total)
+          case "monto_menor":
+            return Number(a.total) - Number(b.total)
+          default:
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        }
+      })
+  }, [pedidos, busquedaPedido, filtroEstadoPedido, filtroMetodoPago, ordenPedido])
+
+  const usuariosFiltrados = useMemo(() => {
+    return usuarios.filter((u) => {
+      const texto = normalizarTexto(`${u.nombre} ${u.correo} ${u.rol} ${u.estado}`)
+      const coincideBusqueda = texto.includes(normalizarTexto(busquedaUsuario))
+      const coincideEstado = filtroEstadoUsuario === "todos" || u.estado === filtroEstadoUsuario
+      const coincideRol = filtroRolUsuario === "todos" || u.rol === filtroRolUsuario
+      return coincideBusqueda && coincideEstado && coincideRol
     })
-    .sort((a: Producto, b: Producto) => {
-      switch (ordenProducto) {
-        case "nombre":
-          return a.nombre.localeCompare(b.nombre)
-        case "precio_mayor":
-          return b.precio - a.precio
-        case "precio_menor":
-          return a.precio - b.precio
-        default:
-          return 0
-      }
+  }, [usuarios, busquedaUsuario, filtroEstadoUsuario, filtroRolUsuario])
+
+  const comprobantesUnificados = useMemo(() => {
+    if (comprobantes.length > 0) {
+      return comprobantes.map((c) => ({
+        id: c.id,
+        pedidoId: c.pedido_id,
+        cliente: c.cliente_nombre || c.cliente_correo || "Cliente sin nombre",
+        correo: c.cliente_correo || "",
+        monto: Number(c.monto || 0),
+        metodo: c.metodo_pago || "No definido",
+        estado: c.estado || "pendiente",
+        url: obtenerComprobanteUrl(c),
+        fecha: c.created_at,
+        origen: "tabla" as const,
+      }))
+    }
+
+    return pedidos
+      .filter((pedido) => obtenerComprobanteUrl(pedido))
+      .map((pedido) => ({
+        id: pedido.id,
+        pedidoId: pedido.id,
+        cliente: pedido.cliente_nombre,
+        correo: pedido.cliente_correo,
+        monto: Number(pedido.total || 0),
+        metodo: pedido.metodo_pago,
+        estado: pedido.estado,
+        url: obtenerComprobanteUrl(pedido),
+        fecha: pedido.created_at,
+        origen: "pedido" as const,
+      }))
+  }, [comprobantes, pedidos])
+
+  const logsFiltrados = useMemo(() => {
+    return logs.filter((log) => {
+      const texto = normalizarTexto(`${log.accion} ${log.entidad} ${log.detalle} ${log.actor_nombre} ${log.actor_correo}`)
+      const coincideBusqueda = texto.includes(normalizarTexto(busquedaHistorial))
+      const coincideEntidad = filtroEntidadLog === "todos" || log.entidad === filtroEntidadLog
+      return coincideBusqueda && coincideEntidad
     })
+  }, [logs, busquedaHistorial, filtroEntidadLog])
 
   const productosVisibles = productosFiltrados.slice(0, limiteProductos)
-  const pedidosVisibles = pedidos.slice(0, limitePedidos)
+  const pedidosVisibles = pedidosFiltrados.slice(0, limitePedidos)
+  const comprobantesVisibles = comprobantesUnificados.slice(0, limiteComprobantes)
+  const logsVisibles = logsFiltrados.slice(0, limiteLogs)
 
-  
-
-// 🔥 MEJORA NIVEL DIOS: Notificación fuerte en pedidos completados
-useEffect(() => {
-  const canalExtra = supabase
-    .channel("pedidos-completados")
-    .on("postgres_changes",
-      { event: "UPDATE", schema: "public", table: "pedidos" },
-      (payload) => {
-        if (payload.new.estado === "completado") {
-          toast.success("💰 Venta completada")
-          registrarEvento("Venta completada", true)
-        }
-      }
-    )
-    .subscribe()
-
-  return () => {
-    supabase.removeChannel(canalExtra)
-  }
-}, [])
-
-if (cargando) {
-    return <AdminSkeleton />
-  }
+  if (cargando) return <AdminSkeleton />
 
   return (
     <main className={styles.adminShell}>
@@ -762,12 +872,13 @@ if (cargando) {
               key={tab.id}
               type="button"
               onClick={() => setTabActiva(tab.id)}
-              className={`${styles.navButton} ${
-                tabActiva === tab.id ? styles.navButtonActive : ""
-              }`}
+              className={`${styles.navButton} ${tabActiva === tab.id ? styles.navButtonActive : ""}`}
             >
               <span>{tab.icon}</span>
               {tab.label}
+              {tab.id === "pedidos" && pedidosPendientes > 0 && <em>{pedidosPendientes}</em>}
+              {tab.id === "usuarios" && usuariosPendientes > 0 && <em>{usuariosPendientes}</em>}
+              {tab.id === "inventario" && productosCriticos.length > 0 && <em>{productosCriticos.length}</em>}
             </button>
           ))}
         </nav>
@@ -775,6 +886,7 @@ if (cargando) {
         <div className={styles.sidebarFooter}>
           <p>{usuario?.nombre}</p>
           <span>{usuario?.correo}</span>
+          <div className={styles.rolePill}>{usuario?.rol}</div>
           <button type="button" onClick={cerrarSesion} className={styles.logoutButton}>
             Cerrar sesión
           </button>
@@ -786,7 +898,7 @@ if (cargando) {
           <div>
             <p className={styles.kicker}>Control central</p>
             <h2>{tabs.find((tab) => tab.id === tabActiva)?.label}</h2>
-            <span>Gestiona productos, usuarios, pedidos y configuración.</span>
+            <span>Gestiona ventas, catálogo, usuarios, comprobantes e inventario sin tocar RLS todavía.</span>
           </div>
 
           <div className={styles.commandCenter}>
@@ -830,42 +942,40 @@ if (cargando) {
         {tabActiva === "dashboard" && (
           <div className={styles.sectionStack}>
             <div className={styles.metricsGrid}>
-              <MetricCard title="Ventas totales" value={`S/ ${ventasTotales.toFixed(2)}`} detail="Pedidos completados" />
-              <MetricCard title="Pedidos pendientes" value={pedidosPendientes} detail={`${totalPedidos} pedidos en total`} />
-              <MetricCard title="Productos activos" value={productosActivos} detail={`${totalProductos} productos registrados`} />
-              <MetricCard title="Usuarios pendientes" value={usuariosPendientes} detail={`${totalUsuarios} usuarios registrados`} />
-              <MetricCard title="Ticket promedio" value={`S/ ${ticketPromedio.toFixed(2)}`} detail="Promedio completado" />
-              <MetricCard title="Conversión" value={`${tasaConversion}%`} detail={`${pedidosCompletados} completados`} />
-              <MetricCard title="Salud inventario" value={`${saludInventario}%`} detail={`${productosBajoStock.length} alertas de stock`} />
-              <MetricCard title="Cancelados" value={pedidosCancelados} detail="Pedidos perdidos" />
-              <MetricCard title="Pendiente por cobrar" value={`S/ ${ingresosPendientes.toFixed(2)}`} detail="Monto no completado" />
-              <MetricCard title="Destacados" value={productosDestacados} detail={`${productosOferta} productos en oferta`} />
-              <MetricCard title="Usuarios aprobados" value={usuariosAprobados} detail="Comunidad validada" />
+              <MetricCard title="Ventas reales" value={formatearSoles(ventasTotales)} detail="Pedidos completados" tone="success" />
+              <MetricCard title="Pendiente por cobrar" value={formatearSoles(ingresosPendientes)} detail={`${pedidosPendientes} pedidos pendientes`} tone="warning" />
+              <MetricCard title="Ticket promedio" value={formatearSoles(ticketPromedio)} detail="Promedio completado" tone="info" />
+              <MetricCard title="Conversión" value={`${tasaConversion}%`} detail={`${pedidosCompletados} de ${totalPedidos} completados`} tone="success" />
+              <MetricCard title="Productos activos" value={productosActivos} detail={`${totalProductos} productos registrados`} tone="info" />
+              <MetricCard title="Alertas de stock" value={productosCriticos.length} detail={`${productosAgotados.length} agotados · ${productosBajoStock.length} bajos`} tone="danger" />
+              <MetricCard title="Usuarios pendientes" value={usuariosPendientes} detail={`${usuariosAprobados} aprobados`} tone="warning" />
+              <MetricCard title="Comprobantes" value={comprobantesUnificados.length || pedidosConComprobante} detail={`${comprobantesPendientes} pendientes de revisión`} tone="neutral" />
             </div>
 
             <div className={styles.commandGrid}>
               <article className={`${styles.panel} ${styles.heroPanel}`}>
-                <p className={styles.kicker}>Modo Dios</p>
+                <p className={styles.kicker}>Modo pro</p>
                 <h3>Centro de mando Jonas Stream</h3>
-                <p>Resumen ejecutivo para decidir rápido: ventas, stock crítico, usuarios por aprobar y pedidos pendientes.</p>
+                <p>Dashboard conectado a tus datos reales: ventas, stock crítico, usuarios por aprobar, comprobantes y pedidos pendientes.</p>
                 <div className={styles.heroActions}>
                   <button type="button" onClick={() => setTabActiva("productos")} className={styles.primaryButton}>Crear producto</button>
                   <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.secondaryButton}>Ver pedidos</button>
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.secondaryButton}>Alertas stock</button>
                 </div>
               </article>
 
               <article className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <div>
-                    <p className={styles.kicker}>Alertas inteligentes</p>
-                    <h3>Prioridades de hoy</h3>
+                    <p className={styles.kicker}>Prioridad</p>
+                    <h3>Lo urgente</h3>
                   </div>
                 </div>
                 <div className={styles.alertList}>
                   <PriorityItem label="Pedidos pendientes" value={pedidosPendientes} tone="warning" />
+                  <PriorityItem label="Comprobantes por revisar" value={comprobantesPendientes} tone="info" />
                   <PriorityItem label="Usuarios por aprobar" value={usuariosPendientes} tone="success" />
-                  <PriorityItem label="Productos bajo stock" value={productosBajoStock.length} tone="danger" />
-                  <PriorityItem label="Productos activos" value={productosActivos} tone="info" />
+                  <PriorityItem label="Stock crítico" value={productosCriticos.length} tone="danger" />
                 </div>
               </article>
             </div>
@@ -909,23 +1019,21 @@ if (cargando) {
                     <p className={styles.kicker}>Actividad</p>
                     <h3>Pedidos recientes</h3>
                   </div>
-                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.linkButton}>
-                    Ver todos
-                  </button>
+                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.linkButton}>Ver todos</button>
                 </div>
 
                 <div className={styles.compactList}>
-                  {pedidosRecientes.length === 0 ? (
+                  {pedidos.slice(0, 5).length === 0 ? (
                     <EmptyState title="Sin pedidos" text="Aún no hay pedidos registrados." />
                   ) : (
-                    pedidosRecientes.map((pedido) => (
+                    pedidos.slice(0, 5).map((pedido) => (
                       <div key={pedido.id} className={styles.compactItem}>
                         <div>
                           <strong>{pedido.cliente_nombre}</strong>
-                          <span>#{pedido.id.slice(0, 8)} · {new Date(pedido.created_at).toLocaleDateString()}</span>
+                          <span>#{pedido.id.slice(0, 8)} · {fechaLegible(pedido.created_at)}</span>
                         </div>
                         <div className={styles.compactRight}>
-                          <strong>S/ {pedido.total}</strong>
+                          <strong>{formatearSoles(pedido.total)}</strong>
                           <StatusBadge estado={pedido.estado} />
                         </div>
                       </div>
@@ -938,24 +1046,22 @@ if (cargando) {
                 <div className={styles.panelHeader}>
                   <div>
                     <p className={styles.kicker}>Inventario</p>
-                    <h3>Productos con bajo stock</h3>
+                    <h3>Stock crítico</h3>
                   </div>
-                  <button type="button" onClick={() => setTabActiva("productos")} className={styles.linkButton}>
-                    Gestionar
-                  </button>
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.linkButton}>Gestionar</button>
                 </div>
 
                 <div className={styles.compactList}>
-                  {productosBajoStock.length === 0 ? (
+                  {productosCriticos.length === 0 ? (
                     <EmptyState title="Stock estable" text="No hay productos críticos por ahora." />
                   ) : (
-                    productosBajoStock.map((producto) => (
+                    productosCriticos.map((producto) => (
                       <div key={producto.id} className={styles.compactItem}>
                         <div>
                           <strong>{producto.nombre}</strong>
                           <span>{producto.categoria || "Sin categoría"}</span>
                         </div>
-                        <div className={styles.stockPill}>{producto.stock} und.</div>
+                        <div className={Number(producto.stock) <= 0 ? styles.stockPillDanger : styles.stockPill}>{producto.stock} und.</div>
                       </div>
                     ))
                   )}
@@ -972,6 +1078,7 @@ if (cargando) {
                 <div>
                   <p className={styles.kicker}>Catálogo</p>
                   <h3>{editandoId ? "Editar producto" : "Crear producto"}</h3>
+                  <span className={styles.panelHint}>Edición estable con validación de precio, stock, estado visual e imagen.</span>
                 </div>
                 {editandoId && <span className={styles.editBadge}>Modo edición</span>}
               </div>
@@ -981,24 +1088,24 @@ if (cargando) {
                 <div>
                   <p>Vista rápida</p>
                   <h4>{formProducto.nombre || "Nuevo producto premium"}</h4>
-                  <span>S/ {formProducto.precio || "0"} · Stock {formProducto.stock || "0"} · {formProducto.estado_catalogo || "ACTIVO"}</span>
+                  <span>{formatearSoles(Number(formProducto.precio || 0))} · Stock {formProducto.stock || "0"} · {Number(formProducto.stock || 0) <= 0 ? "AGOTADO" : formProducto.estado_catalogo || "ACTIVO"}</span>
                 </div>
               </div>
 
               <form onSubmit={guardarProducto} className={styles.formGrid}>
                 <input name="nombre" placeholder="Nombre" value={formProducto.nombre} onChange={handleProductoChange} className={styles.input} />
-
                 <textarea name="descripcion" placeholder="Descripción" value={formProducto.descripcion} onChange={handleProductoChange} className={`${styles.input} ${styles.textarea}`} />
-
-                <input name="precio" type="number" placeholder="Precio" value={formProducto.precio} onChange={handleProductoChange} className={styles.input} />
-                <input name="precio_antes" type="number" placeholder="Precio antes" value={formProducto.precio_antes} onChange={handleProductoChange} className={styles.input} />
-                <input name="stock" type="number" placeholder="Stock" value={formProducto.stock} onChange={handleProductoChange} className={styles.input} />
+                <input name="precio" type="number" min="0" step="0.01" placeholder="Precio" value={formProducto.precio} onChange={handleProductoChange} className={styles.input} />
+                <input name="precio_antes" type="number" min="0" step="0.01" placeholder="Precio antes" value={formProducto.precio_antes} onChange={handleProductoChange} className={styles.input} />
+                <input name="stock" type="number" min="0" placeholder="Stock" value={formProducto.stock} onChange={handleProductoChange} className={styles.input} />
                 <input name="categoria" placeholder="Categoría" value={formProducto.categoria} onChange={handleProductoChange} className={styles.input} />
 
                 <select name="tipo_venta" value={formProducto.tipo_venta} onChange={handleProductoChange} className={styles.input}>
                   <option value="">Tipo de venta</option>
                   <option value="Cuenta Completa">Cuenta Completa</option>
                   <option value="Perfiles">Perfiles</option>
+                  <option value="Código / Giftcard">Código / Giftcard</option>
+                  <option value="Renovación">Renovación</option>
                 </select>
 
                 <input name="duracion" placeholder="Duración (ej: 1 mes, 12 meses)" value={formProducto.duracion} onChange={handleProductoChange} className={styles.input} />
@@ -1050,8 +1157,8 @@ if (cargando) {
                 </div>
 
                 <div className={styles.formActions}>
-                  <button type="submit" className={styles.primaryButton}>
-                    {editandoId ? "Actualizar producto" : "Crear producto"}
+                  <button type="submit" disabled={guardandoProducto || subiendoImagen} className={styles.primaryButton}>
+                    {guardandoProducto ? "Guardando..." : editandoId ? "Actualizar producto" : "Crear producto"}
                   </button>
 
                   {editandoId && (
@@ -1080,55 +1187,54 @@ if (cargando) {
                 <span className={styles.countBadge}>{productosFiltrados.length} resultados</span>
               </div>
 
-              <div className={styles.filtersGrid}>
+              <div className={styles.filtersGridWide}>
                 <input type="text" placeholder="Buscar producto..." value={busquedaProducto} onChange={(e) => setBusquedaProducto(e.target.value)} className={styles.input} />
-
                 <select value={filtroEstadoProducto} onChange={(e) => setFiltroEstadoProducto(e.target.value)} className={styles.input}>
                   <option value="todos">Todos los estados</option>
                   <option value="activo">Activos</option>
                   <option value="inactivo">Inactivos</option>
                 </select>
-
-                <select value={ordenProducto} onChange={(e) => setOrdenProducto(e.target.value)} className={styles.input}>
-                  <option value="recientes">Orden normal</option>
+                <select value={filtroStockProducto} onChange={(e) => setFiltroStockProducto(e.target.value)} className={styles.input}>
+                  <option value="todos">Todo el stock</option>
+                  <option value="agotado">Agotados</option>
+                  <option value="bajo">Bajo stock</option>
+                  <option value="ok">Stock estable</option>
+                </select>
+                <select value={ordenProducto} onChange={(e) => setOrdenProducto(e.target.value as OrdenProducto)} className={styles.input}>
+                  <option value="recientes">Más recientes</option>
                   <option value="nombre">Nombre A-Z</option>
-                  <option value="precio_mayor">Precio mayor a menor</option>
-                  <option value="precio_menor">Precio menor a mayor</option>
+                  <option value="precio_mayor">Precio mayor</option>
+                  <option value="precio_menor">Precio menor</option>
+                  <option value="stock_menor">Menor stock</option>
                 </select>
               </div>
 
               <div className={styles.productGrid}>
-                {productosVisibles.map((p) => (
-                  <article key={p.id} className={styles.productCard}>
-                    {p.imagen ? (
-                      <img src={p.imagen} alt={p.nombre} className={styles.productImage} />
-                    ) : (
-                      <div className={styles.productImagePlaceholder}>JS</div>
-                    )}
-
+                {productosVisibles.length === 0 ? (
+                  <EmptyState title="Sin productos" text="No hay productos que coincidan con los filtros." />
+                ) : productosVisibles.map((p) => (
+                  <article key={p.id} className={`${styles.productCard} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`}>
+                    {p.imagen ? <img src={p.imagen} alt={p.nombre} className={styles.productImage} /> : <div className={styles.productImagePlaceholder}>JS</div>}
                     <div className={styles.productBody}>
                       <div className={styles.productTopline}>
                         <StatusBadge estado={p.estado} />
                         {p.oferta && <span className={styles.offerBadge}>Oferta</span>}
                       </div>
-
                       <h4>{p.nombre}</h4>
                       <p>{p.descripcion || "Sin descripción"}</p>
-
                       <div className={styles.productMeta}>
-                        <span>S/ {p.precio}</span>
-                        <span>Stock: {p.stock}</span>
+                        <span>{formatearSoles(p.precio)}</span>
+                        <span className={Number(p.stock) <= 3 ? styles.metaDanger : ""}>Stock: {p.stock}</span>
                         <span>{p.categoria || "Sin categoría"}</span>
                         <span>{p.tipo_venta || "Sin tipo"}</span>
                         <span>{p.duracion || "-"}</span>
                         <span>{p.proveedor || "Jonas Stream"}</span>
-                        <span>{p.estado_catalogo || "-"}</span>
+                        <span>{Number(p.stock) <= 0 ? "AGOTADO" : p.estado_catalogo || "-"}</span>
                         <span>{p.renovable ? "Renovable" : "No renovable"}</span>
                       </div>
-
                       <div className={styles.cardActions}>
-                        <button onClick={() => editarProducto(p)} className={styles.secondaryButton}>Editar</button>
-                        <button onClick={() => eliminarProducto(p.id)} className={styles.dangerButton}>Eliminar</button>
+                        <button type="button" onClick={() => editarProducto(p)} className={styles.secondaryButton}>Editar</button>
+                        <button type="button" onClick={() => eliminarProducto(p.id)} className={styles.dangerButton}>Eliminar</button>
                       </div>
                     </div>
                   </article>
@@ -1137,9 +1243,7 @@ if (cargando) {
 
               {productosFiltrados.length > productosVisibles.length && (
                 <div className={styles.loadMoreBox}>
-                  <button type="button" onClick={() => setLimiteProductos((prev) => prev + 12)} className={styles.secondaryButton}>
-                    Cargar más productos
-                  </button>
+                  <button type="button" onClick={() => setLimiteProductos((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más productos</button>
                 </div>
               )}
             </article>
@@ -1151,46 +1255,63 @@ if (cargando) {
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.kicker}>Ventas</p>
-                <h3>Pedidos recientes</h3>
+                <h3>Pedidos</h3>
+                <span className={styles.panelHint}>Filtros por cliente, correo, ID, estado, método de pago y monto.</span>
               </div>
-              <span className={styles.countBadge}>{pedidos.length} pedidos</span>
+              <span className={styles.countBadge}>{pedidosFiltrados.length} pedidos</span>
             </div>
 
-            {pedidos.length === 0 ? (
-              <EmptyState title="No hay pedidos" text="Aún no hay pedidos registrados." />
+            <div className={styles.filtersGridWide}>
+              <input type="text" placeholder="Buscar pedido, cliente o correo..." value={busquedaPedido} onChange={(e) => setBusquedaPedido(e.target.value)} className={styles.input} />
+              <select value={filtroEstadoPedido} onChange={(e) => setFiltroEstadoPedido(e.target.value)} className={styles.input}>
+                {estadosPedido.map((estado) => <option key={estado} value={estado}>{estado === "todos" ? "Todos los estados" : estado}</option>)}
+              </select>
+              <select value={filtroMetodoPago} onChange={(e) => setFiltroMetodoPago(e.target.value)} className={styles.input}>
+                <option value="todos">Todos los pagos</option>
+                {metodosPago.map((metodo) => <option key={metodo} value={metodo}>{metodo}</option>)}
+              </select>
+              <select value={ordenPedido} onChange={(e) => setOrdenPedido(e.target.value as OrdenPedido)} className={styles.input}>
+                <option value="recientes">Más recientes</option>
+                <option value="monto_mayor">Mayor monto</option>
+                <option value="monto_menor">Menor monto</option>
+              </select>
+            </div>
+
+            {pedidosFiltrados.length === 0 ? (
+              <EmptyState title="No hay pedidos" text="No hay pedidos que coincidan con los filtros." />
             ) : (
               <>
-              <div className={styles.cardsGrid}>
-                {pedidosVisibles.map((pedido) => (
-                  <article key={pedido.id} className={styles.orderCard}>
-                    <div className={styles.cardHeaderLine}>
-                      <h4>Pedido #{pedido.id.slice(0, 8)}</h4>
-                      <StatusBadge estado={pedido.estado} />
-                    </div>
-
-                    <div className={styles.infoGrid}>
-                      <span>Cliente</span><strong>{pedido.cliente_nombre}</strong>
-                      <span>Correo</span><strong>{pedido.cliente_correo}</strong>
-                      <span>Total</span><strong>S/ {pedido.total}</strong>
-                      <span>Método</span><strong>{pedido.metodo_pago}</strong>
-                      <span>Fecha</span><strong>{new Date(pedido.created_at).toLocaleString()}</strong>
-                    </div>
-
-                    <div className={styles.cardActions}>
-                      <button onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>Pendiente</button>
-                      <button onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.secondaryButton}>Completado</button>
-                      <button onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelado</button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              {pedidos.length > pedidosVisibles.length && (
-                <div className={styles.loadMoreBox}>
-                  <button type="button" onClick={() => setLimitePedidos((prev) => prev + 12)} className={styles.secondaryButton}>
-                    Cargar más pedidos
-                  </button>
+                <div className={styles.cardsGrid}>
+                  {pedidosVisibles.map((pedido) => {
+                    const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                    return (
+                      <article key={pedido.id} className={styles.orderCard}>
+                        <div className={styles.cardHeaderLine}>
+                          <h4>Pedido #{pedido.id.slice(0, 8)}</h4>
+                          <StatusBadge estado={pedido.estado} />
+                        </div>
+                        <div className={styles.infoGrid}>
+                          <span>Cliente</span><strong>{pedido.cliente_nombre}</strong>
+                          <span>Correo</span><strong>{pedido.cliente_correo}</strong>
+                          <span>Total</span><strong>{formatearSoles(pedido.total)}</strong>
+                          <span>Método</span><strong>{pedido.metodo_pago || "No definido"}</strong>
+                          <span>Fecha</span><strong>{fechaLegible(pedido.created_at)}</strong>
+                          <span>Voucher</span><strong>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Ver comprobante</a> : "Sin comprobante"}</strong>
+                        </div>
+                        <div className={styles.cardActions}>
+                          <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>Pendiente</button>
+                          <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>Completado</button>
+                          <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelado</button>
+                        </div>
+                      </article>
+                    )
+                  })}
                 </div>
-              )}
+                {pedidosFiltrados.length > pedidosVisibles.length && (
+                  <div className={styles.loadMoreBox}>
+                    <button type="button" onClick={() => setLimitePedidos((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más pedidos</button>
+                  </div>
+                )}
               </>
             )}
           </article>
@@ -1202,33 +1323,51 @@ if (cargando) {
               <div>
                 <p className={styles.kicker}>Accesos</p>
                 <h3>Gestión de usuarios</h3>
+                <span className={styles.panelHint}>Aprobar, rechazar y cambiar rol con acciones claras.</span>
               </div>
-              <span className={styles.countBadge}>{usuarios.length} usuarios</span>
+              <span className={styles.countBadge}>{usuariosFiltrados.length} usuarios</span>
+            </div>
+
+            <div className={styles.filtersGridWide}>
+              <input type="text" placeholder="Buscar usuario o correo..." value={busquedaUsuario} onChange={(e) => setBusquedaUsuario(e.target.value)} className={styles.input} />
+              <select value={filtroEstadoUsuario} onChange={(e) => setFiltroEstadoUsuario(e.target.value)} className={styles.input}>
+                {estadosUsuario.map((estado) => <option key={estado} value={estado}>{estado === "todos" ? "Todos los estados" : estado}</option>)}
+              </select>
+              <select value={filtroRolUsuario} onChange={(e) => setFiltroRolUsuario(e.target.value)} className={styles.input}>
+                {rolesUsuario.map((rol) => <option key={rol} value={rol}>{rol === "todos" ? "Todos los roles" : rol}</option>)}
+              </select>
             </div>
 
             <div className={styles.cardsGrid}>
-              {usuarios.map((u) => (
-                <article key={u.id} className={styles.userCard}>
+              {usuariosFiltrados.length === 0 ? (
+                <EmptyState title="Sin usuarios" text="No hay usuarios que coincidan con los filtros." />
+              ) : usuariosFiltrados.map((u) => (
+                <article key={u.id} className={`${styles.userCard} ${u.estado === "pendiente" ? styles.cardWarning : ""}`}>
                   <div className={styles.avatar}>{u.nombre?.slice(0, 2).toUpperCase() || "US"}</div>
-
                   <div>
                     <h4>{u.nombre}</h4>
                     <p>{u.correo}</p>
                   </div>
-
                   <div className={styles.userMeta}>
                     <span>Rol: <strong>{u.rol}</strong></span>
                     <span>Estado: <StatusBadge estado={u.estado} /></span>
                   </div>
-
+                  <div className={styles.actionDivider}>Estado de acceso</div>
                   <div className={styles.cardActions}>
-                    <button onClick={() => actualizarEstado(u.id, "aprobado")} className={styles.secondaryButton}>Aprobar</button>
-                    <button onClick={() => actualizarEstado(u.id, "rechazado")} className={styles.secondaryButton}>Rechazar</button>
-                    <button onClick={() => cambiarRol(u.id, "cliente")} className={styles.secondaryButton}>Cliente</button>
-                    <button onClick={() => cambiarRol(u.id, "proveedor")} className={styles.secondaryButton}>Proveedor</button>
-                    <button onClick={() => cambiarRol(u.id, "admin")} className={styles.secondaryButton}>Admin</button>
-                    <button onClick={() => eliminarUsuario(u.id)} className={styles.dangerButton}>Eliminar</button>
+                    <button type="button" onClick={() => actualizarEstado(u.id, "aprobado")} className={styles.successButton}>Aprobar</button>
+                    <button type="button" onClick={() => actualizarEstado(u.id, "rechazado")} className={styles.dangerButton}>Rechazar</button>
                   </div>
+                  {!esProveedor && (
+                    <>
+                      <div className={styles.actionDivider}>Rol del usuario</div>
+                      <div className={styles.cardActions}>
+                        <button type="button" onClick={() => cambiarRol(u.id, "cliente")} className={styles.secondaryButton}>Cliente</button>
+                        <button type="button" onClick={() => cambiarRol(u.id, "proveedor")} className={styles.secondaryButton}>Proveedor</button>
+                        <button type="button" onClick={() => cambiarRol(u.id, "admin")} className={styles.secondaryButton}>Admin</button>
+                        <button type="button" onClick={() => eliminarUsuario(u.id)} className={styles.dangerGhostButton}>Eliminar</button>
+                      </div>
+                    </>
+                  )}
                 </article>
               ))}
             </div>
@@ -1236,56 +1375,148 @@ if (cargando) {
         )}
 
         {tabActiva === "comprobantes" && (
-          <PlaceholderPanel
-            title="Comprobantes"
-            text="Aquí podrás revisar comprobantes, validar pagos y adjuntar evidencias cuando agregues esa lógica."
-            buttonText="Próximamente"
-          />
+          <article className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.kicker}>Pagos</p>
+                <h3>Comprobantes reales</h3>
+                <span className={styles.panelHint}>Lee la tabla comprobantes si existe; si no, muestra vouchers guardados en pedidos.</span>
+              </div>
+              <span className={styles.countBadge}>{comprobantesUnificados.length} comprobantes</span>
+            </div>
+
+            {!comprobantesDisponibles && (
+              <div className={styles.noticeBox}>
+                No encontré la tabla <strong>comprobantes</strong>. Por ahora este módulo usa URLs de comprobante dentro de pedidos si tus columnas existen.
+              </div>
+            )}
+
+            {comprobantesUnificados.length === 0 ? (
+              <EmptyState title="Sin comprobantes" text="Cuando tus pedidos tengan voucher o actives la tabla comprobantes, aparecerán aquí." />
+            ) : (
+              <>
+                <div className={styles.cardsGrid}>
+                  {comprobantesVisibles.map((comprobante) => (
+                    <article key={comprobante.id} className={styles.orderCard}>
+                      <div className={styles.cardHeaderLine}>
+                        <h4>Comprobante #{comprobante.id.slice(0, 8)}</h4>
+                        <StatusBadge estado={comprobante.estado} />
+                      </div>
+                      <div className={styles.infoGrid}>
+                        <span>Cliente</span><strong>{comprobante.cliente}</strong>
+                        <span>Correo</span><strong>{comprobante.correo || "Sin correo"}</strong>
+                        <span>Monto</span><strong>{formatearSoles(comprobante.monto)}</strong>
+                        <span>Método</span><strong>{comprobante.metodo}</strong>
+                        <span>Fecha</span><strong>{fechaLegible(comprobante.fecha)}</strong>
+                        <span>Archivo</span><strong>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir comprobante</a> : "Sin archivo"}</strong>
+                      </div>
+                      {comprobante.origen === "tabla" && (
+                        <div className={styles.cardActions}>
+                          <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "aprobado")} className={styles.successButton}>Aprobar</button>
+                          <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "observado")} className={styles.secondaryButton}>Observar</button>
+                          <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+                {comprobantesUnificados.length > comprobantesVisibles.length && (
+                  <div className={styles.loadMoreBox}>
+                    <button type="button" onClick={() => setLimiteComprobantes((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más comprobantes</button>
+                  </div>
+                )}
+              </>
+            )}
+          </article>
         )}
 
         {tabActiva === "inventario" && (
-          <PlaceholderPanel
-            title="Inventario inteligente"
-            text="Espacio reservado para movimientos, alertas de stock, proveedores y reposición automática."
-            buttonText="Placeholder"
-          />
+          <div className={styles.sectionStack}>
+            <div className={styles.metricsGridCompact}>
+              <MetricCard title="Stock estable" value={productos.filter((p) => Number(p.stock) > 3).length} detail="Productos sin alerta" tone="success" />
+              <MetricCard title="Bajo stock" value={productosBajoStock.length} detail="1 a 3 unidades" tone="warning" />
+              <MetricCard title="Agotados" value={productosAgotados.length} detail="Reponer urgente" tone="danger" />
+              <MetricCard title="Salud" value={`${saludInventario}%`} detail="Estado general" tone="info" />
+            </div>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Inventario</p>
+                  <h3>Alertas de stock</h3>
+                </div>
+                <button type="button" onClick={() => setTabActiva("productos")} className={styles.linkButton}>Editar productos</button>
+              </div>
+              <div className={styles.listGrid}>
+                {productosCriticos.length === 0 ? (
+                  <EmptyState title="Todo controlado" text="No hay productos agotados ni con bajo stock." />
+                ) : productosCriticos.map((producto) => (
+                  <article key={producto.id} className={styles.rowCard}>
+                    <div>
+                      <h4>{producto.nombre}</h4>
+                      <p>{producto.categoria || "Sin categoría"} · {producto.proveedor || "Jonas Stream"}</p>
+                      <span>{Number(producto.stock) <= 0 ? "Producto agotado" : "Stock bajo: reponer pronto"}</span>
+                    </div>
+                    <div className={styles.rowActions}>
+                      <div className={Number(producto.stock) <= 0 ? styles.stockPillDanger : styles.stockPill}>{producto.stock} und.</div>
+                      <button type="button" onClick={() => editarProducto(producto)} className={styles.secondaryButton}>Editar</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </article>
+          </div>
         )}
 
         {tabActiva === "creditos" && (
           <PlaceholderPanel
             title="Créditos"
-            text="Zona preparada para saldos, créditos de proveedores, historial y control financiero."
-            buttonText="Placeholder"
+            text="Zona preparada para saldos, créditos de proveedores, historial y control financiero. El diseño queda listo para conectar una tabla de créditos después."
+            buttonText="Preparado"
           />
         )}
 
-
         {tabActiva === "historial" && (
           <div className={styles.sectionStack}>
-            <div className={styles.panelHeader}>
-              <div>
-                <p className={styles.kicker}>Auditoría</p>
-                <h3>Historial de actividad</h3>
-                <span>Registra acciones importantes del panel para control interno.</span>
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Auditoría</p>
+                  <h3>Historial de actividad</h3>
+                  <span className={styles.panelHint}>Registros reales desde admin_logs con filtros por entidad y búsqueda.</span>
+                </div>
+                <span className={styles.countBadge}>{logsFiltrados.length} eventos</span>
               </div>
-            </div>
 
-            <div className={styles.listGrid}>
-              {logs.length === 0 ? (
-                <EmptyState title="Sin historial todavía" text="Ejecuta el SQL de admin_logs para activar auditoría persistente." />
-              ) : (
-                logs.map((log) => (
+              <div className={styles.filtersGridCompact}>
+                <input type="text" placeholder="Buscar acción, detalle o actor..." value={busquedaHistorial} onChange={(e) => setBusquedaHistorial(e.target.value)} className={styles.input} />
+                <select value={filtroEntidadLog} onChange={(e) => setFiltroEntidadLog(e.target.value)} className={styles.input}>
+                  <option value="todos">Todas las entidades</option>
+                  {entidadesLog.map((entidad) => <option key={entidad} value={entidad}>{entidad}</option>)}
+                </select>
+              </div>
+
+              <div className={styles.listGrid}>
+                {logsVisibles.length === 0 ? (
+                  <EmptyState title="Sin historial" text="Cuando ejecutes acciones del panel, aparecerán aquí." />
+                ) : logsVisibles.map((log) => (
                   <article key={log.id} className={styles.rowCard}>
                     <div>
                       <h4>{log.accion} · {log.entidad}</h4>
                       <p>{log.detalle || "Sin detalle"}</p>
                       <span>{log.actor_nombre || "Sistema"} · {log.actor_correo || "sin correo"}</span>
                     </div>
-                    <StatusBadge estado={new Date(log.created_at).toLocaleString()} />
+                    <StatusBadge estado={fechaLegible(log.created_at)} />
                   </article>
-                ))
+                ))}
+              </div>
+
+              {logsFiltrados.length > logsVisibles.length && (
+                <div className={styles.loadMoreBox}>
+                  <button type="button" onClick={() => setLimiteLogs((prev) => prev + 18)} className={styles.secondaryButton}>Cargar más historial</button>
+                </div>
               )}
-            </div>
+            </article>
           </div>
         )}
 
@@ -1308,13 +1539,7 @@ if (cargando) {
               <input name="whatsapp" placeholder="WhatsApp general" value={formConfig.whatsapp} onChange={handleConfigChange} className={styles.input} />
 
               <div className={styles.formActions}>
-                <button type="submit" className={styles.primaryButton}>
-                  {guardandoConfig
-                    ? "Guardando..."
-                    : configId
-                    ? "Actualizar configuración"
-                    : "Guardar configuración"}
-                </button>
+                <button type="submit" className={styles.primaryButton}>{guardandoConfig ? "Guardando..." : configId ? "Actualizar configuración" : "Guardar configuración"}</button>
               </div>
             </form>
           </article>
@@ -1328,7 +1553,6 @@ function AdminSkeleton() {
   return (
     <main className={styles.adminShell}>
       <div className={styles.backgroundGlow}></div>
-
       <aside className={styles.sidebar}>
         <div className={styles.brandBox}>
           <div className={styles.brandMark}>JS</div>
@@ -1337,23 +1561,15 @@ function AdminSkeleton() {
             <h1>Jonas Stream</h1>
           </div>
         </div>
-
         <nav className={styles.nav}>
-          {tabs.map((tab) => (
-            <div key={tab.id} className={`${styles.navButton} ${styles.skeletonLine}`}>
-              <span>{tab.icon}</span>
-              {tab.label}
-            </div>
-          ))}
+          {tabs.map((tab) => <div key={tab.id} className={`${styles.navButton} ${styles.skeletonLine}`}><span>{tab.icon}</span>{tab.label}</div>)}
         </nav>
-
         <div className={styles.sidebarFooter}>
           <div className={styles.skeletonTitle}></div>
           <div className={styles.skeletonText}></div>
           <div className={styles.skeletonButton}></div>
         </div>
       </aside>
-
       <section className={styles.content}>
         <header className={styles.topbar}>
           <div>
@@ -1361,32 +1577,14 @@ function AdminSkeleton() {
             <div className={styles.skeletonHeroTitle}></div>
             <div className={styles.skeletonHeroText}></div>
           </div>
-          <div className={styles.topbarPill}>
-            <span className={styles.statusDot}></span>
-            Supabase conectado
-          </div>
+          <div className={styles.topbarPill}><span className={styles.statusDot}></span>Supabase conectado</div>
         </header>
-
         <div className={styles.sectionStack}>
           <div className={styles.metricsGrid}>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <article key={index} className={`${styles.metricCard} ${styles.skeletonCard}`}>
-                <div className={styles.skeletonText}></div>
-                <div className={styles.skeletonNumber}></div>
-                <div className={styles.skeletonTextSmall}></div>
-              </article>
-            ))}
+            {Array.from({ length: 8 }).map((_, index) => <article key={index} className={`${styles.metricCard} ${styles.skeletonCard}`}><div className={styles.skeletonText}></div><div className={styles.skeletonNumber}></div><div className={styles.skeletonTextSmall}></div></article>)}
           </div>
-
           <div className={styles.dashboardGrid}>
-            {Array.from({ length: 2 }).map((_, index) => (
-              <article key={index} className={`${styles.panel} ${styles.skeletonPanel}`}>
-                <div className={styles.skeletonTitle}></div>
-                <div className={styles.skeletonItem}></div>
-                <div className={styles.skeletonItem}></div>
-                <div className={styles.skeletonItem}></div>
-              </article>
-            ))}
+            {Array.from({ length: 2 }).map((_, index) => <article key={index} className={`${styles.panel} ${styles.skeletonPanel}`}><div className={styles.skeletonTitle}></div><div className={styles.skeletonItem}></div><div className={styles.skeletonItem}></div><div className={styles.skeletonItem}></div></article>)}
           </div>
         </div>
       </section>
@@ -1394,17 +1592,17 @@ function AdminSkeleton() {
   )
 }
 
-function MetricCard({
-  title,
-  value,
-  detail,
-}: {
-  title: string
-  value: string | number
-  detail: string
-}) {
+function MetricCard({ title, value, detail, tone = "neutral" }: { title: string; value: string | number; detail: string; tone?: MetricTone }) {
+  const toneClass = {
+    success: styles.metricSuccess,
+    warning: styles.metricWarning,
+    danger: styles.metricDanger,
+    info: styles.metricInfo,
+    neutral: "",
+  }[tone]
+
   return (
-    <article className={styles.metricCard}>
+    <article className={`${styles.metricCard} ${toneClass}`}>
       <p>{title}</p>
       <strong>{value}</strong>
       <span>{detail}</span>
@@ -1413,18 +1611,15 @@ function MetricCard({
 }
 
 function StatusBadge({ estado }: { estado: string }) {
-  const normalized = estado?.toLowerCase()
-
+  const normalized = normalizarTexto(estado)
   return (
-    <span
-      className={`${styles.statusBadge} ${
-        normalized === "completado" || normalized === "aprobado" || normalized === "activo"
-          ? styles.statusSuccess
-          : normalized === "cancelado" || normalized === "rechazado" || normalized === "inactivo"
-          ? styles.statusDanger
-          : styles.statusWarning
-      }`}
-    >
+    <span className={`${styles.statusBadge} ${
+      normalized === "completado" || normalized === "aprobado" || normalized === "activo"
+        ? styles.statusSuccess
+        : normalized === "cancelado" || normalized === "rechazado" || normalized === "inactivo"
+        ? styles.statusDanger
+        : styles.statusWarning
+    }`}>
       {estado}
     </span>
   )
@@ -1447,8 +1642,7 @@ function PriorityItem({ label, value, tone }: { label: string; value: number; to
 }
 
 function ChartBar({ label, value, total }: { label: string; value: number; total: number }) {
-  const width = Math.max(5, Math.round((value / total) * 100))
-
+  const width = value <= 0 ? 0 : Math.max(5, Math.round((value / total) * 100))
   return (
     <div className={styles.chartRow}>
       <div className={styles.chartTopline}>
@@ -1472,11 +1666,7 @@ function EmptyState({ title, text }: { title: string; text: string }) {
   )
 }
 
-type PlaceholderPanelProps = {
-  title: string
-  text: string
-  buttonText: string
-}
+type PlaceholderPanelProps = { title: string; text: string; buttonText: string }
 
 function PlaceholderPanel({ title, text, buttonText }: PlaceholderPanelProps) {
   return (
@@ -1485,9 +1675,7 @@ function PlaceholderPanel({ title, text, buttonText }: PlaceholderPanelProps) {
       <p className={styles.kicker}>Módulo preparado</p>
       <h3>{title}</h3>
       <p>{text}</p>
-      <button type="button" className={styles.secondaryButton}>
-        {buttonText}
-      </button>
+      <button type="button" className={styles.secondaryButton}>{buttonText}</button>
     </article>
   )
 }
