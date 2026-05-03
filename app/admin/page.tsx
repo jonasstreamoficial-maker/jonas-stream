@@ -717,7 +717,29 @@ export default function AdminPage() {
   const productosVisibles = productosFiltrados.slice(0, limiteProductos)
   const pedidosVisibles = pedidos.slice(0, limitePedidos)
 
-  if (cargando) {
+  
+
+// 🔥 MEJORA NIVEL DIOS: Notificación fuerte en pedidos completados
+useEffect(() => {
+  const canalExtra = supabase
+    .channel("pedidos-completados")
+    .on("postgres_changes",
+      { event: "UPDATE", schema: "public", table: "pedidos" },
+      (payload) => {
+        if (payload.new.estado === "completado") {
+          toast.success("💰 Venta completada")
+          registrarEvento("Venta completada", true)
+        }
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(canalExtra)
+  }
+}, [])
+
+if (cargando) {
     return <AdminSkeleton />
   }
 
