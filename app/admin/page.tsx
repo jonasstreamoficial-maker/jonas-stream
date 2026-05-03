@@ -515,14 +515,7 @@ export default function AdminPage() {
     })
 
   if (cargando) {
-    return (
-      <main className={styles.loadingPage}>
-        <div className={styles.loadingCard}>
-          <span className={styles.loader}></span>
-          <p>⚡ Cargando panel admin...</p>
-        </div>
-      </main>
-    )
+    return <AdminSkeleton />
   }
 
   return (
@@ -947,6 +940,76 @@ export default function AdminPage() {
             </form>
           </article>
         )}
+      </section>
+    </main>
+  )
+}
+
+function AdminSkeleton() {
+  return (
+    <main className={styles.adminShell}>
+      <div className={styles.backgroundGlow}></div>
+
+      <aside className={styles.sidebar}>
+        <div className={styles.brandBox}>
+          <div className={styles.brandMark}>JS</div>
+          <div>
+            <p className={styles.brandEyebrow}>Admin panel</p>
+            <h1>Jonas Stream</h1>
+          </div>
+        </div>
+
+        <nav className={styles.nav}>
+          {tabs.map((tab) => (
+            <div key={tab.id} className={`${styles.navButton} ${styles.skeletonLine}`}>
+              <span>{tab.icon}</span>
+              {tab.label}
+            </div>
+          ))}
+        </nav>
+
+        <div className={styles.sidebarFooter}>
+          <div className={styles.skeletonTitle}></div>
+          <div className={styles.skeletonText}></div>
+          <div className={styles.skeletonButton}></div>
+        </div>
+      </aside>
+
+      <section className={styles.content}>
+        <header className={styles.topbar}>
+          <div>
+            <p className={styles.kicker}>Control central</p>
+            <div className={styles.skeletonHeroTitle}></div>
+            <div className={styles.skeletonHeroText}></div>
+          </div>
+          <div className={styles.topbarPill}>
+            <span className={styles.statusDot}></span>
+            Supabase conectado
+          </div>
+        </header>
+
+        <div className={styles.sectionStack}>
+          <div className={styles.metricsGrid}>
+            {Array.from({ length: 4 }).map((_, index) => (
+              <article key={index} className={`${styles.metricCard} ${styles.skeletonCard}`}>
+                <div className={styles.skeletonText}></div>
+                <div className={styles.skeletonNumber}></div>
+                <div className={styles.skeletonTextSmall}></div>
+              </article>
+            ))}
+          </div>
+
+          <div className={styles.dashboardGrid}>
+            {Array.from({ length: 2 }).map((_, index) => (
+              <article key={index} className={`${styles.panel} ${styles.skeletonPanel}`}>
+                <div className={styles.skeletonTitle}></div>
+                <div className={styles.skeletonItem}></div>
+                <div className={styles.skeletonItem}></div>
+                <div className={styles.skeletonItem}></div>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   )
