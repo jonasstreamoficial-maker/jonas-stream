@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -116,6 +117,7 @@ export default function AdminPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<TabId>("dashboard")
+  const [busquedaGlobal, setBusquedaGlobal] = useState("")
 
   const [formProducto, setFormProducto] = useState(productoInicial)
   const [editandoId, setEditandoId] = useState<string | null>(null)
@@ -484,6 +486,8 @@ export default function AdminPage() {
   const totalProductos = productos.length
   const productosActivos = productos.filter((p) => p.estado === "activo").length
   const totalPedidos = pedidos.length
+  const pedidosCompletados = pedidos.filter((pedido) => pedido.estado === "completado").length
+  const pedidosCancelados = pedidos.filter((pedido) => pedido.estado === "cancelado").length
   const ventasTotales = pedidos
     .filter((pedido) => pedido.estado === "completado")
     .reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
@@ -491,6 +495,31 @@ export default function AdminPage() {
   const usuariosPendientes = usuarios.filter((u) => u.estado === "pendiente").length
   const pedidosRecientes = pedidos.slice(0, 5)
   const productosBajoStock = productos.filter((p) => Number(p.stock) <= 3).slice(0, 6)
+  const ticketPromedio = pedidosCompletados > 0 ? ventasTotales / pedidosCompletados : 0
+  const tasaConversion = totalPedidos > 0 ? Math.round((pedidosCompletados / totalPedidos) * 100) : 0
+  const saludInventario = totalProductos > 0 ? Math.max(0, Math.round(((totalProductos - productosBajoStock.length) / totalProductos) * 100)) : 100
+
+  const resultadosGlobales = useMemo(() => {
+    const query = busquedaGlobal.trim().toLowerCase()
+    if (!query) return []
+
+    const productosEncontrados = productos
+      .filter((p) => `${p.nombre} ${p.categoria} ${p.tipo_venta}`.toLowerCase().includes(query))
+      .slice(0, 4)
+      .map((p) => ({ tipo: "Producto", titulo: p.nombre, detalle: `S/ ${p.precio} · Stock ${p.stock}`, tab: "productos" as TabId }))
+
+    const pedidosEncontrados = pedidos
+      .filter((p) => `${p.id} ${p.cliente_nombre} ${p.cliente_correo}`.toLowerCase().includes(query))
+      .slice(0, 4)
+      .map((p) => ({ tipo: "Pedido", titulo: `#${p.id.slice(0, 8)}`, detalle: `${p.cliente_nombre} · S/ ${p.total}`, tab: "pedidos" as TabId }))
+
+    const usuariosEncontrados = usuarios
+      .filter((u) => `${u.nombre} ${u.correo} ${u.rol}`.toLowerCase().includes(query))
+      .slice(0, 4)
+      .map((u) => ({ tipo: "Usuario", titulo: u.nombre, detalle: `${u.correo} · ${u.rol}`, tab: "usuarios" as TabId }))
+
+    return [...productosEncontrados, ...pedidosEncontrados, ...usuariosEncontrados].slice(0, 8)
+  }, [busquedaGlobal, productos, pedidos, usuarios])
 
   const productosFiltrados: Producto[] = [...productos]
     .filter((producto: Producto) => {
@@ -564,9 +593,40 @@ export default function AdminPage() {
             <span>Gestiona productos, usuarios, pedidos y configuración.</span>
           </div>
 
-          <div className={styles.topbarPill}>
-            <span className={styles.statusDot}></span>
-            Supabase conectado
+          <div className={styles.commandCenter}>
+            <div className={styles.searchBox}>
+              <span>⌘</span>
+              <input
+                type="search"
+                placeholder="Buscar producto, pedido o usuario..."
+                value={busquedaGlobal}
+                onChange={(e) => setBusquedaGlobal(e.target.value)}
+              />
+              {resultadosGlobales.length > 0 && (
+                <div className={styles.searchResults}>
+                  {resultadosGlobales.map((item, index) => (
+                    <button
+                      key={`${item.tipo}-${item.titulo}-${index}`}
+                      type="button"
+                      onClick={() => {
+                        setTabActiva(item.tab)
+                        setBusquedaGlobal("")
+                      }}
+                    >
+                      <span>{item.tipo}</span>
+                      <strong>{item.titulo}</strong>
+                      <small>{item.detalle}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button type="button" onClick={cargarDatos} className={styles.refreshButton}>Actualizar</button>
+            <div className={styles.topbarPill}>
+              <span className={styles.statusDot}></span>
+              Supabase conectado
+            </div>
           </div>
         </header>
 
@@ -577,6 +637,37 @@ export default function AdminPage() {
               <MetricCard title="Pedidos pendientes" value={pedidosPendientes} detail={`${totalPedidos} pedidos en total`} />
               <MetricCard title="Productos activos" value={productosActivos} detail={`${totalProductos} productos registrados`} />
               <MetricCard title="Usuarios pendientes" value={usuariosPendientes} detail={`${totalUsuarios} usuarios registrados`} />
+              <MetricCard title="Ticket promedio" value={`S/ ${ticketPromedio.toFixed(2)}`} detail="Promedio completado" />
+              <MetricCard title="Conversión" value={`${tasaConversion}%`} detail={`${pedidosCompletados} completados`} />
+              <MetricCard title="Salud inventario" value={`${saludInventario}%`} detail={`${productosBajoStock.length} alertas de stock`} />
+              <MetricCard title="Cancelados" value={pedidosCancelados} detail="Pedidos perdidos" />
+            </div>
+
+            <div className={styles.commandGrid}>
+              <article className={`${styles.panel} ${styles.heroPanel}`}>
+                <p className={styles.kicker}>Modo Dios</p>
+                <h3>Centro de mando Jonas Stream</h3>
+                <p>Resumen ejecutivo para decidir rápido: ventas, stock crítico, usuarios por aprobar y pedidos pendientes.</p>
+                <div className={styles.heroActions}>
+                  <button type="button" onClick={() => setTabActiva("productos")} className={styles.primaryButton}>Crear producto</button>
+                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.secondaryButton}>Ver pedidos</button>
+                </div>
+              </article>
+
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Alertas inteligentes</p>
+                    <h3>Prioridades de hoy</h3>
+                  </div>
+                </div>
+                <div className={styles.alertList}>
+                  <PriorityItem label="Pedidos pendientes" value={pedidosPendientes} tone="warning" />
+                  <PriorityItem label="Usuarios por aprobar" value={usuariosPendientes} tone="success" />
+                  <PriorityItem label="Productos bajo stock" value={productosBajoStock.length} tone="danger" />
+                  <PriorityItem label="Productos activos" value={productosActivos} tone="info" />
+                </div>
+              </article>
             </div>
 
             <div className={styles.dashboardGrid}>
@@ -651,6 +742,15 @@ export default function AdminPage() {
                   <h3>{editandoId ? "Editar producto" : "Crear producto"}</h3>
                 </div>
                 {editandoId && <span className={styles.editBadge}>Modo edición</span>}
+              </div>
+
+              <div className={styles.productPreviewStrip}>
+                <div className={styles.previewOrb}>{formProducto.nombre?.slice(0, 2).toUpperCase() || "JS"}</div>
+                <div>
+                  <p>Vista rápida</p>
+                  <h4>{formProducto.nombre || "Nuevo producto premium"}</h4>
+                  <span>S/ {formProducto.precio || "0"} · Stock {formProducto.stock || "0"} · {formProducto.estado_catalogo || "ACTIVO"}</span>
+                </div>
               </div>
 
               <form onSubmit={guardarProducto} className={styles.formGrid}>
@@ -1048,6 +1148,15 @@ function StatusBadge({ estado }: { estado: string }) {
     >
       {estado}
     </span>
+  )
+}
+
+function PriorityItem({ label, value, tone }: { label: string; value: number; tone: "success" | "warning" | "danger" | "info" }) {
+  return (
+    <div className={`${styles.priorityItem} ${styles[`priority${tone[0].toUpperCase()}${tone.slice(1)}`]}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   )
 }
 
