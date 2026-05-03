@@ -70,70 +70,79 @@ export default function RegistroPage() {
   const celularCompleto = `${paisSeleccionado.codigo}${celularLimpio}`;
 
   const registrarUsuario = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (cargando) return;
+  if (cargando) return;
 
-    const nombreLimpio = nombre.trim();
-    const correoNormalizado = correo.trim().toLowerCase();
+  const nombreLimpio = nombre.trim();
+  const correoNormalizado = correo.trim().toLowerCase();
 
-    if (nombreLimpio.length < 3) {
-      toast.error("Ingresa tu nombre completo");
-      return;
-    }
+  if (nombreLimpio.length < 3) {
+    toast.error("Ingresa tu nombre completo");
+    return;
+  }
 
-    if (celularLimpio.length < 6) {
-      toast.error("Ingresa un número de celular válido");
-      return;
-    }
+  if (celularLimpio.length < 6) {
+    toast.error("Ingresa un número de celular válido");
+    return;
+  }
 
-    if (contrasena.length < 6) {
-      toast.error("La contraseña debe tener mínimo 6 caracteres");
-      return;
-    }
+  if (contrasena.length < 6) {
+    toast.error("La contraseña debe tener mínimo 6 caracteres");
+    return;
+  }
 
-    if (contrasena !== confirmarContrasena) {
-      toast.error("Las contraseñas no coinciden");
-      return;
-    }
+  if (contrasena !== confirmarContrasena) {
+    toast.error("Las contraseñas no coinciden");
+    return;
+  }
 
-    setCargando(true);
+  setCargando(true);
 
-    const { data: usuarioExistente } = await supabase
-      .from("usuarios")
-      .select("id")
-      .eq("correo", correoNormalizado)
-      .maybeSingle();
+  // 🔥 1. CREAR EN AUTH (IMPORTANTE)
+  const { data, error } = await supabase.auth.signUp({
+    email: correoNormalizado,
+    password: contrasena,
+  });
 
-    if (usuarioExistente) {
-      toast.error("Este correo ya está registrado");
-      setCargando(false);
-      return;
-    }
-
-    const { error } = await supabase.from("usuarios").insert({
-      nombre: nombreLimpio,
-      correo: correoNormalizado,
-      pais: paisSeleccionado.pais,
-      codigo_pais: paisSeleccionado.codigo,
-      celular: celularLimpio,
-      celular_completo: celularCompleto,
-      contrasena,
-      rol: "cliente",
-      estado: "pendiente",
-    });
-
-    if (error) {
-      toast.error("No se pudo registrar la cuenta");
-      setCargando(false);
-      return;
-    }
-
-    toast.success("Registro enviado. Espera la aprobación del administrador.");
-    router.push("/login");
-
+  if (error) {
+    toast.error(error.message);
     setCargando(false);
-  };
+    return;
+  }
+
+  const user = data.user;
+
+  if (!user) {
+    toast.error("No se pudo crear el usuario");
+    setCargando(false);
+    return;
+  }
+
+  // 🔥 2. GUARDAR PERFIL (SIN CONTRASEÑA)
+  const { error: errorPerfil } = await supabase.from("usuarios").insert({
+    id: user.id,
+    nombre: nombreLimpio,
+    correo: correoNormalizado,
+    pais: paisSeleccionado.pais,
+    codigo_pais: paisSeleccionado.codigo,
+    celular: celularLimpio,
+    celular_completo: celularCompleto,
+    rol: "cliente",
+    estado: "pendiente",
+  });
+
+  if (errorPerfil) {
+    toast.error("Usuario creado pero error guardando perfil");
+    setCargando(false);
+    return;
+  }
+
+  toast.success("Registro enviado. Espera aprobación del admin.");
+  router.push("/login");
+
+  setCargando(false);
+};
 
   return (
     <main className={styles.page}>
