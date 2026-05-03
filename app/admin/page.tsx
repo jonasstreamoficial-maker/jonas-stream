@@ -942,6 +942,32 @@ export default function AdminPage() {
           </div>
         </header>
 
+        <section className={styles.proRibbon}>
+          <div className={styles.proRibbonMain}>
+            <span className={styles.proTag}>PRO CONTROL 2.0</span>
+            <strong>Vista ejecutiva activa</strong>
+            <p>Pedidos, stock, comprobantes, usuarios e historial centralizados sin tocar RLS todavía.</p>
+          </div>
+          <div className={styles.proRibbonStats}>
+            <button type="button" onClick={() => setTabActiva("pedidos")}>
+              <span>{pedidosPendientes}</span>
+              Pedidos pendientes
+            </button>
+            <button type="button" onClick={() => setTabActiva("inventario")}>
+              <span>{productosCriticos.length}</span>
+              Stock crítico
+            </button>
+            <button type="button" onClick={() => setTabActiva("comprobantes")}>
+              <span>{comprobantesPendientes}</span>
+              Comprobantes
+            </button>
+            <button type="button" onClick={() => setTabActiva("usuarios")}>
+              <span>{usuariosPendientes}</span>
+              Usuarios por aprobar
+            </button>
+          </div>
+        </section>
+
         {tabActiva === "dashboard" && (
           <div className={styles.sectionStack}>
             <div className={styles.metricsGrid}>
@@ -1264,6 +1290,21 @@ export default function AdminPage() {
               <span className={styles.countBadge}>{pedidosFiltrados.length} pedidos</span>
             </div>
 
+            <div className={styles.miniStatsGrid}>
+              <button type="button" onClick={() => setFiltroEstadoPedido("pendiente")} className={styles.miniStatCard}>
+                <span>Pendientes</span><strong>{pedidosPendientes}</strong><small>{formatearSoles(ingresosPendientes)} por cobrar</small>
+              </button>
+              <button type="button" onClick={() => setFiltroEstadoPedido("completado")} className={styles.miniStatCard}>
+                <span>Completados</span><strong>{pedidosCompletados}</strong><small>{formatearSoles(ventasTotales)} vendido</small>
+              </button>
+              <button type="button" onClick={() => setFiltroEstadoPedido("cancelado")} className={`${styles.miniStatCard} ${styles.miniStatDanger}`}>
+                <span>Cancelados</span><strong>{pedidosCancelados}</strong><small>Revisar pérdidas</small>
+              </button>
+              <button type="button" onClick={() => { setFiltroEstadoPedido("todos"); setBusquedaPedido("") }} className={styles.miniStatCard}>
+                <span>Vista completa</span><strong>{totalPedidos}</strong><small>Limpiar filtros</small>
+              </button>
+            </div>
+
             <div className={styles.filtersGridWide}>
               <input type="text" placeholder="Buscar pedido, cliente o correo..." value={busquedaPedido} onChange={(e) => setBusquedaPedido(e.target.value)} className={styles.input} />
               <select value={filtroEstadoPedido} onChange={(e) => setFiltroEstadoPedido(e.target.value)} className={styles.input}>
@@ -1329,6 +1370,21 @@ export default function AdminPage() {
                 <span className={styles.panelHint}>Aprobar, rechazar y cambiar rol con acciones claras.</span>
               </div>
               <span className={styles.countBadge}>{usuariosFiltrados.length} usuarios</span>
+            </div>
+
+            <div className={styles.miniStatsGrid}>
+              <button type="button" onClick={() => setFiltroEstadoUsuario("pendiente")} className={styles.miniStatCard}>
+                <span>Pendientes</span><strong>{usuariosPendientes}</strong><small>Requieren aprobación</small>
+              </button>
+              <button type="button" onClick={() => setFiltroEstadoUsuario("aprobado")} className={styles.miniStatCard}>
+                <span>Aprobados</span><strong>{usuariosAprobados}</strong><small>Acceso habilitado</small>
+              </button>
+              <button type="button" onClick={() => setFiltroRolUsuario("admin")} className={styles.miniStatCard}>
+                <span>Admins</span><strong>{usuarios.filter((u) => u.rol === "admin").length}</strong><small>Control total</small>
+              </button>
+              <button type="button" onClick={() => { setFiltroEstadoUsuario("todos"); setFiltroRolUsuario("todos"); setBusquedaUsuario("") }} className={styles.miniStatCard}>
+                <span>Total</span><strong>{totalUsuarios}</strong><small>Limpiar filtros</small>
+              </button>
             </div>
 
             <div className={styles.filtersGridWide}>

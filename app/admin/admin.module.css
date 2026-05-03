@@ -1350,3 +1350,176 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* PRO CONTROL 2.0 - mejora visual fuerte para diferenciar el panel */
+.proRibbon {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(520px, 0.9fr);
+  gap: 18px;
+  margin: -6px 0 24px;
+  padding: 18px;
+  border: 1px solid rgba(0, 229, 255, 0.24);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 8% 20%, rgba(0, 229, 255, 0.18), transparent 28%),
+    linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(1, 139, 144, 0.045) 48%, rgba(0, 0, 0, 0.22));
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.34),
+    inset 0 0 50px rgba(0, 229, 255, 0.05);
+  backdrop-filter: blur(18px);
+}
+
+.proRibbonMain {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+}
+
+.proTag {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #001014;
+  background: linear-gradient(135deg, #00e5ff, #7cffb2);
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: 0 0 22px rgba(0, 229, 255, 0.25);
+}
+
+.proRibbonMain strong {
+  color: #ffffff;
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1;
+  text-shadow: 0 0 28px rgba(0, 229, 255, 0.24);
+}
+
+.proRibbonMain p {
+  margin: 0;
+  max-width: 760px;
+  color: #b8d7dc;
+  line-height: 1.55;
+}
+
+.proRibbonStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.proRibbonStats button,
+.miniStatCard {
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.26);
+  color: #dffcff;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s ease;
+  box-shadow: inset 0 0 22px rgba(0, 229, 255, 0.035);
+}
+
+.proRibbonStats button:hover,
+.miniStatCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 229, 255, 0.52);
+  background: rgba(0, 229, 255, 0.09);
+  box-shadow: 0 16px 34px rgba(0, 229, 255, 0.1);
+}
+
+.proRibbonStats button span,
+.miniStatCard strong {
+  display: block;
+  color: #00e5ff;
+  font-size: clamp(22px, 2.6vw, 34px);
+  font-weight: 1000;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.proRibbonStats button {
+  font-weight: 900;
+  color: #a9cbd0;
+}
+
+.miniStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.miniStatCard {
+  display: grid;
+  gap: 5px;
+}
+
+.miniStatCard span {
+  color: #9fcbd1;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.miniStatCard small {
+  color: #bddbe0;
+  font-weight: 750;
+}
+
+.miniStatDanger strong {
+  color: #ff8fa3;
+}
+
+.orderCard,
+.userCard,
+.productCard,
+.rowCard {
+  position: relative;
+}
+
+.orderCard::before,
+.userCard::before,
+.productCard::before,
+.rowCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #00e5ff, transparent);
+  opacity: 0.7;
+}
+
+.successButton {
+  background: rgba(124, 255, 178, 0.1);
+  color: #7cffb2;
+  border: 1px solid rgba(124, 255, 178, 0.32);
+}
+
+.successButton:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1180px) {
+  .proRibbon {
+    grid-template-columns: 1fr;
+  }
+
+  .proRibbonStats,
+  .miniStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .proRibbonStats,
+  .miniStatsGrid {
+    grid-template-columns: 1fr;
+  }
+}
