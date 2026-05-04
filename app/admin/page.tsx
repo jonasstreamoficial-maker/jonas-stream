@@ -242,6 +242,8 @@ export default function AdminPage() {
   const [guardandoProducto, setGuardandoProducto] = useState(false)
   const [comprobantesDisponibles, setComprobantesDisponibles] = useState(true)
   const [sincronizandoInventario, setSincronizandoInventario] = useState(false)
+  const [busquedaInventario, setBusquedaInventario] = useState("")
+  const [filtroInventario, setFiltroInventario] = useState<"todos" | "critico" | "agotado" | "bajo" | "estable">("critico")
 
   const reproducirBeep = useCallback(() => {
     try {
@@ -466,14 +468,80 @@ export default function AdminPage() {
     }
   }
 
+  const calcularEstadoInventario = (stock: number) => ({
+    estado_catalogo: stock <= 0 ? "AGOTADO" : stock <= 3 ? "LIMITADO" : "ACTIVO",
+    publicacion: stock > 0,
+    estado: stock > 0 ? "activo" : "inactivo",
+  })
+
+  const ajustarStockProducto = async (producto: Producto, cantidad: number) => {
+    const stockActual = Number(producto.stock || 0)
+    const nuevoStock = Math.max(0, stockActual + cantidad)
+    const payload = {
+      stock: nuevoStock,
+      ...calcularEstadoInventario(nuevoStock),
+    }
+
+    const { error } = await supabase.from("productos").update(payload).eq("id", producto.id)
+
+    if (error) {
+      toast.error("No se pudo ajustar el stock")
+      return false
+    }
+
+    setProductos((prev) => prev.map((p) => (p.id === producto.id ? { ...p, ...payload } : p)))
+    await registrarLog("ajustar_stock", "productos", producto.id, `${producto.nombre}: ${cantidad > 0 ? "+" : ""}${cantidad} unidad(es). Stock final: ${nuevoStock}`)
+    registrarEvento(`Stock actualizado: ${producto.nombre}`)
+    toast.success(`Stock actualizado: ${producto.nombre}`)
+    return true
+  }
+
+  const descontarStockPorPedido = async (pedido: Pedido) => {
+    if (!pedido.producto_nombre) return false
+
+    const productoMatch = productos.find((producto) => {
+      const productoNombre = normalizarTexto(producto.nombre)
+      const pedidoProducto = normalizarTexto(pedido.producto_nombre)
+      return productoNombre === pedidoProducto || productoNombre.includes(pedidoProducto) || pedidoProducto.includes(productoNombre)
+    })
+
+    if (!productoMatch) {
+      await registrarLog("stock_no_encontrado", "pedidos", pedido.id, `No se encontró producto para descontar: ${pedido.producto_nombre}`)
+      return false
+    }
+
+    const stockActual = Number(productoMatch.stock || 0)
+    const nuevoStock = Math.max(0, stockActual - 1)
+    const payload = {
+      stock: nuevoStock,
+      ...calcularEstadoInventario(nuevoStock),
+    }
+
+    const { error } = await supabase.from("productos").update(payload).eq("id", productoMatch.id)
+
+    if (error) {
+      toast.error("Pedido completado, pero no se pudo descontar stock")
+      return false
+    }
+
+    setProductos((prev) => prev.map((p) => (p.id === productoMatch.id ? { ...p, ...payload } : p)))
+    await registrarLog("descontar_stock", "productos", productoMatch.id, `Pedido #${pedido.id.slice(0, 8)} descontó 1 unidad. Stock final: ${nuevoStock}`)
+    registrarEvento(`Stock descontado: ${productoMatch.nombre}`)
+    return true
+  }
+
   const actualizarEstadoPedido = async (id: string, nuevoEstado: string) => {
+    const pedidoActual = pedidos.find((pedido) => pedido.id === id)
+    const debeDescontarStock = nuevoEstado === "completado" && pedidoActual?.estado !== "completado"
+
     const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).eq("id", id)
 
     if (!error) {
+      if (debeDescontarStock && pedidoActual) await descontarStockPorPedido(pedidoActual)
       setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: nuevoEstado } : p)))
       registrarEvento(`Pedido marcado como ${nuevoEstado}`, nuevoEstado === "completado")
       await registrarLog("actualizar_estado", "pedidos", id, `Estado: ${nuevoEstado}`)
-      toast.success(`Pedido actualizado a ${nuevoEstado}`)
+      toast.success(debeDescontarStock ? `Pedido completado y stock sincronizado` : `Pedido actualizado a ${nuevoEstado}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo actualizar el pedido")
@@ -512,11 +580,18 @@ export default function AdminPage() {
       return
     }
 
+    if (nuevoEstado === "completado") {
+      const pedidosParaDescontar = pedidos.filter((pedido) => ids.includes(pedido.id) && pedido.estado !== "completado")
+      for (const pedido of pedidosParaDescontar) {
+        await descontarStockPorPedido(pedido)
+      }
+    }
+
     setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: nuevoEstado } : pedido))
     setPedidosSeleccionados([])
     registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
     await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
-    toast.success(`${ids.length} pedido(s) actualizados`)
+    toast.success(nuevoEstado === "completado" ? `${ids.length} pedido(s) completados y stock revisado` : `${ids.length} pedido(s) actualizados`)
     setProcesandoMasivo(false)
     await cargarDatos()
   }
@@ -576,21 +651,8 @@ export default function AdminPage() {
   }
 
   const reponerProductoRapido = async (producto: Producto, cantidad = 10) => {
-    const nuevoStock = Number(producto.stock || 0) + cantidad
-    const { error } = await supabase
-      .from("productos")
-      .update({ stock: nuevoStock, estado_catalogo: "ACTIVO", publicacion: true, estado: "activo" })
-      .eq("id", producto.id)
-
-    if (error) {
-      toast.error("No se pudo reponer el producto")
-      return
-    }
-
-    setProductos((prev) => prev.map((p) => p.id === producto.id ? { ...p, stock: nuevoStock, estado_catalogo: "ACTIVO", publicacion: true, estado: "activo" } : p))
-    await registrarLog("reponer", "productos", producto.id, `${producto.nombre}: +${cantidad} unidades`)
-    toast.success(`Stock actualizado: ${producto.nombre}`)
-    await cargarDatos()
+    const ok = await ajustarStockProducto(producto, cantidad)
+    if (ok) await cargarDatos()
   }
 
   const actualizarEstadoComprobante = async (id: string, nuevoEstado: string) => {
@@ -881,6 +943,7 @@ export default function AdminPage() {
   const productosBajoStock = productos.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 3)
   const productosAgotados = productos.filter((p) => Number(p.stock) <= 0)
   const productosCriticos = [...productosAgotados, ...productosBajoStock].slice(0, 8)
+  const productosInventario = [...productosAgotados, ...productosBajoStock, ...productos.filter((p) => Number(p.stock) > 3)]
   const ticketPromedio = pedidosCompletados > 0 ? ventasTotales / pedidosCompletados : 0
   const tasaConversion = totalPedidos > 0 ? Math.round((pedidosCompletados / totalPedidos) * 100) : 0
   const saludInventario = totalProductos > 0 ? Math.max(0, Math.round(((totalProductos - productosCriticos.length) / totalProductos) * 100)) : 100
@@ -945,6 +1008,26 @@ export default function AdminPage() {
         }
       })
   }, [productos, busquedaProducto, filtroEstadoProducto, filtroStockProducto, ordenProducto])
+
+  const productosInventarioFiltrados: Producto[] = useMemo(() => {
+    const query = normalizarTexto(busquedaInventario)
+
+    return productosInventario
+      .filter((producto) => {
+        const stock = Number(producto.stock || 0)
+        const texto = normalizarTexto(`${producto.nombre} ${producto.categoria} ${producto.proveedor} ${producto.estado_catalogo}`)
+        const coincideBusqueda = !query || texto.includes(query)
+        const coincideFiltro =
+          filtroInventario === "todos" ||
+          (filtroInventario === "critico" && stock <= 3) ||
+          (filtroInventario === "agotado" && stock <= 0) ||
+          (filtroInventario === "bajo" && stock > 0 && stock <= 3) ||
+          (filtroInventario === "estable" && stock > 3)
+
+        return coincideBusqueda && coincideFiltro
+      })
+      .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0))
+  }, [productosInventario, busquedaInventario, filtroInventario])
 
   const pedidosFiltrados: Pedido[] = useMemo(() => {
     return [...pedidos]
@@ -2129,6 +2212,31 @@ export default function AdminPage() {
 
         {tabActiva === "inventario" && (
           <div className={styles.sectionStack}>
+            <section className={styles.inventoryHeroPro}>
+              <div>
+                <span className={styles.proTag}>FASE 6 · INVENTARIO AUTO</span>
+                <h3>Centro de stock inteligente</h3>
+                <p>
+                  Controla agotados, bajo stock, reposiciones rápidas y descuento automático al completar pedidos
+                  cuando el producto del pedido coincide con el catálogo.
+                </p>
+              </div>
+              <div className={styles.inventoryHeroStats}>
+                <button type="button" onClick={() => setFiltroInventario("agotado")}>
+                  <strong>{productosAgotados.length}</strong>
+                  <span>Agotados</span>
+                </button>
+                <button type="button" onClick={() => setFiltroInventario("bajo")}>
+                  <strong>{productosBajoStock.length}</strong>
+                  <span>Bajo stock</span>
+                </button>
+                <button type="button" onClick={() => setFiltroInventario("estable")}>
+                  <strong>{productos.filter((p) => Number(p.stock) > 3).length}</strong>
+                  <span>Estables</span>
+                </button>
+              </div>
+            </section>
+
             <div className={styles.metricsGridCompact}>
               <MetricCard title="Stock estable" value={productos.filter((p) => Number(p.stock) > 3).length} detail="Productos sin alerta" tone="success" />
               <MetricCard title="Bajo stock" value={productosBajoStock.length} detail="1 a 3 unidades" tone="warning" />
@@ -2136,46 +2244,90 @@ export default function AdminPage() {
               <MetricCard title="Salud" value={`${saludInventario}%`} detail="Estado general" tone="info" />
             </div>
 
-            <article className={`${styles.panel} ${styles.autoInventoryPanel}`}>
+            <article className={`${styles.panel} ${styles.autoInventoryPanel} ${styles.autoInventoryPanelPro}`}>
               <div>
                 <p className={styles.kicker}>Automatización</p>
                 <h3>Inventario automático</h3>
-                <p>Sincroniza estados visuales: stock 0 pasa a AGOTADO y se oculta de publicación; stock 1-3 pasa a LIMITADO.</p>
+                <p>
+                  Sincroniza estados visuales: stock 0 pasa a AGOTADO y se oculta; stock 1-3 pasa a LIMITADO;
+                  stock mayor a 3 queda ACTIVO. Al completar pedidos, el panel intenta descontar 1 unidad por coincidencia de nombre.
+                </p>
               </div>
               <div className={styles.autoInventoryActions}>
                 <button type="button" disabled={sincronizandoInventario} onClick={sincronizarInventarioAutomatico} className={styles.primaryButton}>
                   {sincronizandoInventario ? "Sincronizando..." : "Sincronizar inventario"}
                 </button>
-                <button type="button" onClick={() => { setFiltroStockProducto("bajo"); setTabActiva("productos") }} className={styles.secondaryButton}>Ver bajo stock</button>
-                <button type="button" onClick={() => { setFiltroStockProducto("agotado"); setTabActiva("productos") }} className={styles.dangerButton}>Ver agotados</button>
+                <button type="button" onClick={() => { setFiltroInventario("critico"); setBusquedaInventario("") }} className={styles.secondaryButton}>Ver críticos</button>
+                <button type="button" onClick={() => { setFiltroStockProducto("agotado"); setTabActiva("productos") }} className={styles.dangerButton}>Editar agotados</button>
               </div>
             </article>
 
             <article className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <p className={styles.kicker}>Inventario</p>
-                  <h3>Alertas de stock</h3>
+                  <p className={styles.kicker}>Operación</p>
+                  <h3>Control de inventario</h3>
+                  <span className={styles.panelHint}>Filtra, repone, descuenta o edita productos sin salir del módulo.</span>
                 </div>
-                <button type="button" onClick={() => setTabActiva("productos")} className={styles.linkButton}>Editar productos</button>
+                <span className={styles.countBadge}>{productosInventarioFiltrados.length} productos</span>
               </div>
-              <div className={styles.listGrid}>
-                {productosCriticos.length === 0 ? (
-                  <EmptyState title="Todo controlado" text="No hay productos agotados ni con bajo stock." />
-                ) : productosCriticos.map((producto) => (
-                  <article key={producto.id} className={`${styles.rowCard} ${Number(producto.stock) <= 0 ? styles.cardDanger : styles.cardWarning}`}>
-                    <div>
-                      <h4>{producto.nombre}</h4>
-                      <p>{producto.categoria || "Sin categoría"} · {producto.proveedor || "Jonas Stream"}</p>
-                      <span>{Number(producto.stock) <= 0 ? "Producto agotado: ocultar o reponer" : "Stock bajo: reponer pronto"}</span>
-                    </div>
-                    <div className={styles.rowActions}>
-                      <div className={Number(producto.stock) <= 0 ? styles.stockPillDanger : styles.stockPill}>{producto.stock} und.</div>
-                      <button type="button" onClick={() => reponerProductoRapido(producto, 10)} className={styles.successButton}>+10 stock</button>
-                      <button type="button" onClick={() => editarProducto(producto)} className={styles.secondaryButton}>Editar</button>
-                    </div>
-                  </article>
-                ))}
+
+              <div className={styles.inventoryToolbarPro}>
+                <input
+                  type="text"
+                  placeholder="Buscar producto, categoría o proveedor..."
+                  value={busquedaInventario}
+                  onChange={(e) => setBusquedaInventario(e.target.value)}
+                  className={styles.input}
+                />
+                <div className={styles.toggleGroup}>
+                  <button type="button" onClick={() => setFiltroInventario("critico")} className={filtroInventario === "critico" ? styles.toggleActive : ""}>Críticos</button>
+                  <button type="button" onClick={() => setFiltroInventario("agotado")} className={filtroInventario === "agotado" ? styles.toggleActive : ""}>Agotados</button>
+                  <button type="button" onClick={() => setFiltroInventario("bajo")} className={filtroInventario === "bajo" ? styles.toggleActive : ""}>Bajo</button>
+                  <button type="button" onClick={() => setFiltroInventario("estable")} className={filtroInventario === "estable" ? styles.toggleActive : ""}>Estable</button>
+                  <button type="button" onClick={() => setFiltroInventario("todos")} className={filtroInventario === "todos" ? styles.toggleActive : ""}>Todo</button>
+                </div>
+              </div>
+
+              <div className={styles.inventoryGridPro}>
+                {productosInventarioFiltrados.length === 0 ? (
+                  <EmptyState title="Sin productos" text="No hay productos que coincidan con el filtro de inventario." />
+                ) : productosInventarioFiltrados.map((producto) => {
+                  const stock = Number(producto.stock || 0)
+                  const esAgotado = stock <= 0
+                  const esBajo = stock > 0 && stock <= 3
+                  const porcentajeStock = Math.min(100, Math.max(0, (stock / 10) * 100))
+
+                  return (
+                    <article key={producto.id} className={`${styles.inventoryCardPro} ${esAgotado ? styles.inventoryCardDanger : esBajo ? styles.inventoryCardWarning : ""}`}>
+                      <div className={styles.inventoryCardTop}>
+                        <div>
+                          <span className={styles.inventoryLabel}>{producto.categoria || "Sin categoría"}</span>
+                          <h4>{producto.nombre}</h4>
+                          <p>{producto.proveedor || "Jonas Stream"} · {producto.estado_catalogo || "ACTIVO"}</p>
+                        </div>
+                        <div className={esAgotado ? styles.stockPillDanger : esBajo ? styles.stockPill : styles.stockPillOk}>{stock} und.</div>
+                      </div>
+
+                      <div className={styles.stockMeter}>
+                        <span style={{ width: `${porcentajeStock}%` }}></span>
+                      </div>
+
+                      <div className={styles.inventoryStatusLine}>
+                        <strong>{esAgotado ? "Reponer ahora" : esBajo ? "Stock limitado" : "Inventario estable"}</strong>
+                        <small>{producto.publicacion ? "Publicado" : "Oculto"}</small>
+                      </div>
+
+                      <div className={styles.inventoryQuickActions}>
+                        <button type="button" onClick={() => ajustarStockProducto(producto, -1)} className={styles.dangerGhostButton}>-1</button>
+                        <button type="button" onClick={() => ajustarStockProducto(producto, 1)} className={styles.secondaryButton}>+1</button>
+                        <button type="button" onClick={() => ajustarStockProducto(producto, 5)} className={styles.secondaryButton}>+5</button>
+                        <button type="button" onClick={() => reponerProductoRapido(producto, 10)} className={styles.successButton}>+10</button>
+                        <button type="button" onClick={() => editarProducto(producto)} className={styles.primaryButton}>Editar</button>
+                      </div>
+                    </article>
+                  )
+                })}
               </div>
             </article>
           </div>
