@@ -1523,3 +1523,140 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Pulido Mega Dios: herramientas reales para pedidos, comprobantes y tablas */
+.toolbarInline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: -4px 0 18px;
+}
+
+.toggleGroup {
+  display: inline-flex;
+  padding: 4px;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.toggleGroup button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 13px;
+  color: #9fcbd1;
+  background: transparent;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.toggleGroup .toggleActive {
+  color: #001014;
+  background: linear-gradient(135deg, var(--cyan), var(--cyan-soft));
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.22);
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(0, 229, 255, 0.16);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.proTable {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.proTable th,
+.proTable td {
+  padding: 14px 15px;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.1);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.proTable th {
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.055);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 950;
+}
+
+.proTable td {
+  color: #e9feff;
+  font-weight: 760;
+}
+
+.proTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.proTable small {
+  display: block;
+  margin-top: 5px;
+  color: #8fb5bc;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.proTable a {
+  color: var(--cyan);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+.tableActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tableActions button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.mutedText {
+  color: #789ba2;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filtersGridWide {
+  grid-template-columns: minmax(220px, 1.3fr) repeat(4, minmax(140px, 0.75fr));
+}
+
+@media (max-width: 1100px) {
+  .filtersGridWide {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .toolbarInline {
+    align-items: stretch;
+  }
+
+  .toggleGroup {
+    width: 100%;
+  }
+
+  .toggleGroup button {
+    flex: 1;
+  }
+
+  .filtersGridWide {
+    grid-template-columns: 1fr;
+  }
+}

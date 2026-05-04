@@ -208,11 +208,16 @@ export default function AdminPage() {
   const [busquedaPedido, setBusquedaPedido] = useState("")
   const [filtroEstadoPedido, setFiltroEstadoPedido] = useState("todos")
   const [filtroMetodoPago, setFiltroMetodoPago] = useState("todos")
+  const [filtroComprobantePedido, setFiltroComprobantePedido] = useState("todos")
   const [ordenPedido, setOrdenPedido] = useState<OrdenPedido>("recientes")
+  const [vistaPedidos, setVistaPedidos] = useState<"tarjetas" | "tabla">("tarjetas")
 
   const [busquedaUsuario, setBusquedaUsuario] = useState("")
   const [filtroEstadoUsuario, setFiltroEstadoUsuario] = useState("todos")
   const [filtroRolUsuario, setFiltroRolUsuario] = useState("todos")
+
+  const [busquedaComprobante, setBusquedaComprobante] = useState("")
+  const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
 
   const [busquedaHistorial, setBusquedaHistorial] = useState("")
   const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
@@ -719,6 +724,8 @@ export default function AdminPage() {
   const saludInventario = totalProductos > 0 ? Math.max(0, Math.round(((totalProductos - productosCriticos.length) / totalProductos) * 100)) : 100
   const productosDestacados = productos.filter((p) => p.destacado).length
   const productosOferta = productos.filter((p) => p.oferta).length
+  const productosSinImagen = productos.filter((p) => !p.imagen).length
+  const productosInactivos = productos.filter((p) => p.estado === "inactivo").length
   const pedidosConComprobante = pedidos.filter((pedido) => obtenerComprobanteUrl(pedido)).length
   const comprobantesPendientes = comprobantes.filter((c) => (c.estado || "pendiente") === "pendiente").length
   const metodosPago = Array.from(new Set(pedidos.map((p) => p.metodo_pago).filter(Boolean)))
@@ -781,10 +788,15 @@ export default function AdminPage() {
     return [...pedidos]
       .filter((pedido) => {
         const texto = normalizarTexto(`${pedido.id} ${pedido.cliente_nombre} ${pedido.cliente_correo} ${pedido.metodo_pago} ${pedido.producto_nombre}`)
+        const comprobanteUrl = obtenerComprobanteUrl(pedido)
         const coincideBusqueda = texto.includes(normalizarTexto(busquedaPedido))
         const coincideEstado = filtroEstadoPedido === "todos" || pedido.estado === filtroEstadoPedido
         const coincideMetodo = filtroMetodoPago === "todos" || pedido.metodo_pago === filtroMetodoPago
-        return coincideBusqueda && coincideEstado && coincideMetodo
+        const coincideComprobante =
+          filtroComprobantePedido === "todos" ||
+          (filtroComprobantePedido === "con" && Boolean(comprobanteUrl)) ||
+          (filtroComprobantePedido === "sin" && !comprobanteUrl)
+        return coincideBusqueda && coincideEstado && coincideMetodo && coincideComprobante
       })
       .sort((a, b) => {
         switch (ordenPedido) {
@@ -796,7 +808,7 @@ export default function AdminPage() {
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         }
       })
-  }, [pedidos, busquedaPedido, filtroEstadoPedido, filtroMetodoPago, ordenPedido])
+  }, [pedidos, busquedaPedido, filtroEstadoPedido, filtroMetodoPago, filtroComprobantePedido, ordenPedido])
 
   const usuariosFiltrados = useMemo(() => {
     return usuarios.filter((u) => {
@@ -840,6 +852,15 @@ export default function AdminPage() {
       }))
   }, [comprobantes, pedidos])
 
+  const comprobantesFiltrados = useMemo(() => {
+    return comprobantesUnificados.filter((comprobante) => {
+      const texto = normalizarTexto(`${comprobante.id} ${comprobante.pedidoId} ${comprobante.cliente} ${comprobante.correo} ${comprobante.metodo} ${comprobante.estado}`)
+      const coincideBusqueda = texto.includes(normalizarTexto(busquedaComprobante))
+      const coincideEstado = filtroEstadoComprobante === "todos" || comprobante.estado === filtroEstadoComprobante
+      return coincideBusqueda && coincideEstado
+    })
+  }, [comprobantesUnificados, busquedaComprobante, filtroEstadoComprobante])
+
   const logsFiltrados = useMemo(() => {
     return logs.filter((log) => {
       const texto = normalizarTexto(`${log.accion} ${log.entidad} ${log.detalle} ${log.actor_nombre} ${log.actor_correo}`)
@@ -851,7 +872,7 @@ export default function AdminPage() {
 
   const productosVisibles = productosFiltrados.slice(0, limiteProductos)
   const pedidosVisibles = pedidosFiltrados.slice(0, limitePedidos)
-  const comprobantesVisibles = comprobantesUnificados.slice(0, limiteComprobantes)
+  const comprobantesVisibles = comprobantesFiltrados.slice(0, limiteComprobantes)
   const logsVisibles = logsFiltrados.slice(0, limiteLogs)
 
   if (cargando) return <AdminSkeleton />
@@ -1216,6 +1237,21 @@ export default function AdminPage() {
                 <span className={styles.countBadge}>{productosFiltrados.length} resultados</span>
               </div>
 
+              <div className={styles.miniStatsGrid}>
+                <button type="button" onClick={() => { setFiltroEstadoProducto("activo"); setFiltroStockProducto("todos") }} className={styles.miniStatCard}>
+                  <span>Activos</span><strong>{productosActivos}</strong><small>Publicables en catálogo</small>
+                </button>
+                <button type="button" onClick={() => setFiltroStockProducto("bajo")} className={styles.miniStatCard}>
+                  <span>Bajo stock</span><strong>{productosBajoStock.length}</strong><small>Reponer pronto</small>
+                </button>
+                <button type="button" onClick={() => setFiltroStockProducto("agotado")} className={`${styles.miniStatCard} ${styles.miniStatDanger}`}>
+                  <span>Agotados</span><strong>{productosAgotados.length}</strong><small>Ocultar o reponer</small>
+                </button>
+                <button type="button" onClick={() => { setFiltroEstadoProducto("todos"); setFiltroStockProducto("todos"); setBusquedaProducto("") }} className={styles.miniStatCard}>
+                  <span>Sin imagen</span><strong>{productosSinImagen}</strong><small>{productosInactivos} inactivos</small>
+                </button>
+              </div>
+
               <div className={styles.filtersGridWide}>
                 <input type="text" placeholder="Buscar producto..." value={busquedaProducto} onChange={(e) => setBusquedaProducto(e.target.value)} className={styles.input} />
                 <select value={filtroEstadoProducto} onChange={(e) => setFiltroEstadoProducto(e.target.value)} className={styles.input}>
@@ -1314,6 +1350,11 @@ export default function AdminPage() {
                 <option value="todos">Todos los pagos</option>
                 {metodosPago.map((metodo) => <option key={metodo} value={metodo}>{metodo}</option>)}
               </select>
+              <select value={filtroComprobantePedido} onChange={(e) => setFiltroComprobantePedido(e.target.value)} className={styles.input}>
+                <option value="todos">Todos los comprobantes</option>
+                <option value="con">Con comprobante</option>
+                <option value="sin">Sin comprobante</option>
+              </select>
               <select value={ordenPedido} onChange={(e) => setOrdenPedido(e.target.value as OrdenPedido)} className={styles.input}>
                 <option value="recientes">Más recientes</option>
                 <option value="monto_mayor">Mayor monto</option>
@@ -1321,36 +1362,85 @@ export default function AdminPage() {
               </select>
             </div>
 
+            <div className={styles.toolbarInline}>
+              <button type="button" onClick={() => { setBusquedaPedido(""); setFiltroEstadoPedido("todos"); setFiltroMetodoPago("todos"); setFiltroComprobantePedido("todos"); setOrdenPedido("recientes") }} className={styles.secondaryButton}>
+                Limpiar filtros
+              </button>
+              <div className={styles.toggleGroup}>
+                <button type="button" onClick={() => setVistaPedidos("tarjetas")} className={vistaPedidos === "tarjetas" ? styles.toggleActive : ""}>Tarjetas</button>
+                <button type="button" onClick={() => setVistaPedidos("tabla")} className={vistaPedidos === "tabla" ? styles.toggleActive : ""}>Tabla</button>
+              </div>
+            </div>
+
             {pedidosFiltrados.length === 0 ? (
               <EmptyState title="No hay pedidos" text="No hay pedidos que coincidan con los filtros." />
             ) : (
               <>
-                <div className={styles.cardsGrid}>
-                  {pedidosVisibles.map((pedido) => {
-                    const comprobanteUrl = obtenerComprobanteUrl(pedido)
-                    return (
-                      <article key={pedido.id} className={styles.orderCard}>
-                        <div className={styles.cardHeaderLine}>
-                          <h4>Pedido #{pedido.id.slice(0, 8)}</h4>
-                          <StatusBadge estado={pedido.estado} />
-                        </div>
-                        <div className={styles.infoGrid}>
-                          <span>Cliente</span><strong>{pedido.cliente_nombre}</strong>
-                          <span>Correo</span><strong>{pedido.cliente_correo}</strong>
-                          <span>Total</span><strong>{formatearSoles(pedido.total)}</strong>
-                          <span>Método</span><strong>{pedido.metodo_pago || "No definido"}</strong>
-                          <span>Fecha</span><strong>{fechaLegible(pedido.created_at)}</strong>
-                          <span>Voucher</span><strong>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Ver comprobante</a> : "Sin comprobante"}</strong>
-                        </div>
-                        <div className={styles.cardActions}>
-                          <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>Pendiente</button>
-                          <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>Completado</button>
-                          <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelado</button>
-                        </div>
-                      </article>
-                    )
-                  })}
-                </div>
+                {vistaPedidos === "tabla" ? (
+                  <div className={styles.tableWrap}>
+                    <table className={styles.proTable}>
+                      <thead>
+                        <tr>
+                          <th>Pedido</th>
+                          <th>Cliente</th>
+                          <th>Total</th>
+                          <th>Pago</th>
+                          <th>Estado</th>
+                          <th>Comprobante</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pedidosVisibles.map((pedido) => {
+                          const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                          return (
+                            <tr key={pedido.id}>
+                              <td><strong>#{pedido.id.slice(0, 8)}</strong><small>{fechaLegible(pedido.created_at)}</small></td>
+                              <td><strong>{pedido.cliente_nombre}</strong><small>{pedido.cliente_correo}</small></td>
+                              <td>{formatearSoles(pedido.total)}</td>
+                              <td>{pedido.metodo_pago || "No definido"}</td>
+                              <td><StatusBadge estado={pedido.estado} /></td>
+                              <td>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.mutedText}>Sin voucher</span>}</td>
+                              <td>
+                                <div className={styles.tableActions}>
+                                  <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>OK</button>
+                                  <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelar</button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className={styles.cardsGrid}>
+                    {pedidosVisibles.map((pedido) => {
+                      const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                      return (
+                        <article key={pedido.id} className={styles.orderCard}>
+                          <div className={styles.cardHeaderLine}>
+                            <h4>Pedido #{pedido.id.slice(0, 8)}</h4>
+                            <StatusBadge estado={pedido.estado} />
+                          </div>
+                          <div className={styles.infoGrid}>
+                            <span>Cliente</span><strong>{pedido.cliente_nombre}</strong>
+                            <span>Correo</span><strong>{pedido.cliente_correo}</strong>
+                            <span>Total</span><strong>{formatearSoles(pedido.total)}</strong>
+                            <span>Método</span><strong>{pedido.metodo_pago || "No definido"}</strong>
+                            <span>Fecha</span><strong>{fechaLegible(pedido.created_at)}</strong>
+                            <span>Voucher</span><strong>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Ver comprobante</a> : "Sin comprobante"}</strong>
+                          </div>
+                          <div className={styles.cardActions}>
+                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>Pendiente</button>
+                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>Completado</button>
+                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelado</button>
+                          </div>
+                        </article>
+                      )
+                    })}
+                  </div>
+                )}
                 {pedidosFiltrados.length > pedidosVisibles.length && (
                   <div className={styles.loadMoreBox}>
                     <button type="button" onClick={() => setLimitePedidos((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más pedidos</button>
@@ -1441,7 +1531,7 @@ export default function AdminPage() {
                 <h3>Comprobantes reales</h3>
                 <span className={styles.panelHint}>Lee la tabla comprobantes si existe; si no, muestra vouchers guardados en pedidos.</span>
               </div>
-              <span className={styles.countBadge}>{comprobantesUnificados.length} comprobantes</span>
+              <span className={styles.countBadge}>{comprobantesFiltrados.length} comprobantes</span>
             </div>
 
             {!comprobantesDisponibles && (
@@ -1450,7 +1540,34 @@ export default function AdminPage() {
               </div>
             )}
 
-            {comprobantesUnificados.length === 0 ? (
+            <div className={styles.miniStatsGrid}>
+              <button type="button" onClick={() => setFiltroEstadoComprobante("pendiente")} className={styles.miniStatCard}>
+                <span>Pendientes</span><strong>{comprobantesUnificados.filter((c) => c.estado === "pendiente").length}</strong><small>Revisar pago</small>
+              </button>
+              <button type="button" onClick={() => setFiltroEstadoComprobante("aprobado")} className={styles.miniStatCard}>
+                <span>Aprobados</span><strong>{comprobantesUnificados.filter((c) => c.estado === "aprobado" || c.estado === "completado").length}</strong><small>Pago validado</small>
+              </button>
+              <button type="button" onClick={() => setFiltroEstadoComprobante("rechazado")} className={`${styles.miniStatCard} ${styles.miniStatDanger}`}>
+                <span>Rechazados</span><strong>{comprobantesUnificados.filter((c) => c.estado === "rechazado").length}</strong><small>Revisar cliente</small>
+              </button>
+              <button type="button" onClick={() => { setFiltroEstadoComprobante("todos"); setBusquedaComprobante("") }} className={styles.miniStatCard}>
+                <span>Total</span><strong>{comprobantesUnificados.length}</strong><small>Limpiar filtros</small>
+              </button>
+            </div>
+
+            <div className={styles.filtersGridCompact}>
+              <input type="text" placeholder="Buscar cliente, correo, pedido o método..." value={busquedaComprobante} onChange={(e) => setBusquedaComprobante(e.target.value)} className={styles.input} />
+              <select value={filtroEstadoComprobante} onChange={(e) => setFiltroEstadoComprobante(e.target.value)} className={styles.input}>
+                <option value="todos">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="aprobado">Aprobado</option>
+                <option value="completado">Completado</option>
+                <option value="observado">Observado</option>
+                <option value="rechazado">Rechazado</option>
+              </select>
+            </div>
+
+            {comprobantesFiltrados.length === 0 ? (
               <EmptyState title="Sin comprobantes" text="Cuando tus pedidos tengan voucher o actives la tabla comprobantes, aparecerán aquí." />
             ) : (
               <>
@@ -1479,7 +1596,7 @@ export default function AdminPage() {
                     </article>
                   ))}
                 </div>
-                {comprobantesUnificados.length > comprobantesVisibles.length && (
+                {comprobantesFiltrados.length > comprobantesVisibles.length && (
                   <div className={styles.loadMoreBox}>
                     <button type="button" onClick={() => setLimiteComprobantes((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más comprobantes</button>
                   </div>
