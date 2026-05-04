@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [contrasena, setContrasena] = useState("");
   const [cargando, setCargando] = useState(false);
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
+  const [mensajeDebug, setMensajeDebug] = useState<string | null>(null);
 
   const iniciarSesion = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,82 +35,111 @@ export default function LoginPage() {
     if (cargando) return;
 
     setCargando(true);
+    setMensajeDebug(null);
 
     const correoNormalizado = correo.trim().toLowerCase();
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: correoNormalizado,
-      password: contrasena,
-    });
+    try {
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: correoNormalizado,
+          password: contrasena,
+        });
 
-    if (authError || !authData.user) {
-      toast.error("Correo o contraseña incorrectos");
-      setCargando(false);
-      return;
-    }
+      if (authError || !authData.user) {
+        const detalle =
+          authError?.message || "Supabase Auth no devolvió usuario";
+        setMensajeDebug(`ERROR AUTH: ${detalle}`);
+        toast.error("Correo o contraseña incorrectos");
+        setCargando(false);
+        return;
+      }
 
-    const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
 
-    if (!sessionData.session) {
-      toast.error("No se pudo confirmar la sesión. Intenta otra vez.");
-      setCargando(false);
-      return;
-    }
+      if (sessionError || !sessionData.session) {
+        const detalle =
+          sessionError?.message ||
+          "La sesión no quedó guardada en el navegador";
+        setMensajeDebug(`ERROR SESIÓN: ${detalle}`);
+        toast.error("No se pudo confirmar la sesión. Intenta otra vez.");
+        setCargando(false);
+        return;
+      }
 
-    const { data, error } = await supabase
-      .from("usuarios")
-      .select("id,nombre,correo,rol,estado")
-      .eq("id", authData.user.id)
-      .maybeSingle();
+      const { data, error } = await supabase
+        .from("usuarios")
+        .select("id,nombre,correo,rol,estado")
+        .eq("id", authData.user.id)
+        .maybeSingle();
 
-    if (error || !data) {
-      await supabase.auth.signOut();
-      toast.error("Usuario no encontrado en la tabla usuarios");
-      setCargando(false);
-      return;
-    }
+      if (error || !data) {
+        const detalle =
+          error?.message ||
+          `No existe usuario público para ${authData.user.id}`;
+        setMensajeDebug(`ERROR USUARIOS: ${detalle}`);
+        await supabase.auth.signOut();
+        toast.error("Usuario no encontrado en la tabla usuarios");
+        setCargando(false);
+        return;
+      }
 
-    const usuario = data as Usuario;
+      const usuario = data as Usuario;
 
-    if (usuario.estado === "pendiente") {
-      await supabase.auth.signOut();
-      toast("Tu cuenta está pendiente de aprobación");
-      setCargando(false);
-      return;
-    }
+      if (usuario.estado === "pendiente") {
+        setMensajeDebug(
+          "CUENTA PENDIENTE: el usuario existe pero no está aprobado.",
+        );
+        await supabase.auth.signOut();
+        toast("Tu cuenta está pendiente de aprobación");
+        setCargando(false);
+        return;
+      }
 
-    if (usuario.estado === "rechazado") {
-      await supabase.auth.signOut();
-      toast.error("Tu cuenta fue rechazada");
-      setCargando(false);
-      return;
-    }
+      if (usuario.estado === "rechazado") {
+        setMensajeDebug("CUENTA RECHAZADA: el usuario está bloqueado.");
+        await supabase.auth.signOut();
+        toast.error("Tu cuenta fue rechazada");
+        setCargando(false);
+        return;
+      }
 
-    if (usuario.estado !== "aprobado" && usuario.estado !== "activo") {
-      await supabase.auth.signOut();
-      toast.error("Tu cuenta no está habilitada");
-      setCargando(false);
-      return;
-    }
+      if (usuario.estado !== "aprobado" && usuario.estado !== "activo") {
+        setMensajeDebug(
+          `CUENTA NO HABILITADA: estado actual ${usuario.estado}`,
+        );
+        await supabase.auth.signOut();
+        toast.error("Tu cuenta no está habilitada");
+        setCargando(false);
+        return;
+      }
 
-    localStorage.setItem("usuario", JSON.stringify(usuario));
+      localStorage.setItem("usuario", JSON.stringify(usuario));
+      localStorage.setItem("jonas_login_ok", new Date().toISOString());
 
-    toast.success("Bienvenido 🚀");
+      toast.success("Bienvenido 🚀");
 
-    if (usuario.rol === "admin") {
-      router.replace("/admin");
+      const destino =
+        usuario.rol === "admin"
+          ? "/admin"
+          : usuario.rol === "proveedor"
+            ? "/proveedor"
+            : "/cliente";
+
+      router.replace(destino);
       router.refresh();
-      return;
-    }
 
-    if (usuario.rol === "proveedor") {
-      router.replace("/proveedor");
-      router.refresh();
-      return;
+      window.setTimeout(() => {
+        window.location.assign(destino);
+      }, 350);
+    } catch (error) {
+      const detalle =
+        error instanceof Error ? error.message : "Error desconocido";
+      setMensajeDebug(`ERROR GENERAL: ${detalle}`);
+      toast.error("Error al iniciar sesión");
+      setCargando(false);
     }
-
-    router.replace("/cliente");
-    router.refresh();
   };
 
   return (
@@ -119,11 +149,17 @@ export default function LoginPage() {
       <div className={styles.gridOverlay} />
 
       <div className={styles.sideBrand}>JONAS STREAM</div>
-      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>JONAS STREAM</div>
+      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>
+        JONAS STREAM
+      </div>
 
       <header className={styles.topbarWrap}>
         <div className={styles.topbar}>
-          <Link href="/" className={styles.brandBlock} aria-label="Ir al inicio">
+          <Link
+            href="/"
+            className={styles.brandBlock}
+            aria-label="Ir al inicio"
+          >
             <strong>JONAS STREAM</strong>
             <span>ACCESO OFICIAL</span>
           </Link>
@@ -134,7 +170,9 @@ export default function LoginPage() {
             </Link>
 
             <a
-              href={buildWhatsAppLink("Hola Jonas Stream, necesito ayuda con mi acceso.")}
+              href={buildWhatsAppLink(
+                "Hola Jonas Stream, necesito ayuda con mi acceso.",
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.topLinkPrimary}
@@ -155,7 +193,8 @@ export default function LoginPage() {
           </h1>
 
           <p className={styles.heroText}>
-            Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo de cuenta.
+            Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo
+            de cuenta.
           </p>
 
           <div className={styles.accessGrid} aria-label="Accesos disponibles">
@@ -176,7 +215,8 @@ export default function LoginPage() {
           </div>
 
           <p className={styles.panelNote}>
-            Si tu cuenta está pendiente, espera la aprobación o comunícate con soporte.
+            Si tu cuenta está pendiente, espera la aprobación o comunícate con
+            soporte.
           </p>
         </div>
 
@@ -223,14 +263,41 @@ export default function LoginPage() {
                 type="button"
                 className={styles.passwordToggle}
                 onClick={() => setMostrarContrasena((prev) => !prev)}
-                aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-label={
+                  mostrarContrasena
+                    ? "Ocultar contraseña"
+                    : "Mostrar contraseña"
+                }
               >
                 {mostrarContrasena ? "OCULTAR" : "VER"}
               </button>
             </div>
           </div>
 
-          <button type="submit" disabled={cargando} className={styles.submitButton}>
+          {mensajeDebug && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "12px 14px",
+                borderRadius: 16,
+                border: "1px solid rgba(255, 143, 163, 0.38)",
+                background: "rgba(255, 143, 163, 0.1)",
+                color: "#ffd7df",
+                fontSize: 12,
+                fontWeight: 800,
+                lineHeight: 1.5,
+                wordBreak: "break-word",
+              }}
+            >
+              {mensajeDebug}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={cargando}
+            className={styles.submitButton}
+          >
             {cargando ? "Ingresando..." : "Entrar al panel"}
           </button>
 
@@ -247,7 +314,6 @@ export default function LoginPage() {
       <footer className={styles.footerWrap}>
         <div className={styles.footerLegal}>
           © 2026 Jonas Stream. Todos los derechos reservados.
-
           <div className={styles.footerLinks}>
             <Link href="/terminos">Términos y Condiciones</Link>
             <span className={styles.footerSeparator}>•</span>

@@ -344,14 +344,48 @@ export default function AdminPage() {
 
   useEffect(() => {
     const validarAcceso = async () => {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession()
+      const leerUsuarioLocal = () => {
+        try {
+          const guardado = localStorage.getItem("usuario")
+          if (!guardado) return null
+          return JSON.parse(guardado) as Usuario
+        } catch {
+          return null
+        }
+      }
+
+      const usuarioLocal = leerUsuarioLocal()
+
+      const usarUsuarioLocalTemporal = async () => {
+        if (!usuarioLocal) return false
+        const rolPermitido = usuarioLocal.rol === "admin" || usuarioLocal.rol === "proveedor"
+        const estadoPermitido = usuarioLocal.estado === "aprobado" || usuarioLocal.estado === "activo"
+        if (!rolPermitido || !estadoPermitido) return false
+
+        usuarioRef.current = usuarioLocal
+        setUsuario(usuarioLocal)
+        await cargarDatos(usuarioLocal, true)
+        return true
+      }
+
+      let session = null
+      let sessionError = null
+
+      for (let intento = 0; intento < 4; intento += 1) {
+        const resultado = await supabase.auth.getSession()
+        session = resultado.data.session
+        sessionError = resultado.error
+
+        if (session?.user?.email) break
+        await new Promise((resolve) => window.setTimeout(resolve, 300))
+      }
 
       if (sessionError || !session?.user?.email) {
+        const accesoLocal = await usarUsuarioLocalTemporal()
+        if (accesoLocal) return
+
         localStorage.removeItem("usuario")
-        router.push("/login")
+        router.replace("/login")
         return
       }
 
@@ -359,36 +393,41 @@ export default function AdminPage() {
         .from("usuarios")
         .select("id,nombre,correo,rol,estado")
         .eq("id", session.user.id)
-        .single()
+        .maybeSingle()
 
       if (usuarioError || !usuarioData) {
+        const accesoLocal = await usarUsuarioLocalTemporal()
+        if (accesoLocal) return
+
         await supabase.auth.signOut()
         localStorage.removeItem("usuario")
         toast.error("Tu usuario no existe en la tabla usuarios")
-        router.push("/login")
+        router.replace("/login")
         return
       }
 
       const usuarioParseado = usuarioData as Usuario
       const rolPermitido = usuarioParseado.rol === "admin" || usuarioParseado.rol === "proveedor"
+      const estadoPermitido = usuarioParseado.estado === "aprobado" || usuarioParseado.estado === "activo"
 
       if (!rolPermitido || usuarioParseado.estado === "rechazado") {
         await supabase.auth.signOut()
         localStorage.removeItem("usuario")
-        router.push("/login")
+        router.replace("/login")
         return
       }
 
-      if (usuarioParseado.estado === "pendiente") {
+      if (!estadoPermitido) {
         await supabase.auth.signOut()
         localStorage.removeItem("usuario")
         toast("Tu cuenta está pendiente de aprobación")
-        router.push("/login")
+        router.replace("/login")
         return
       }
 
       usuarioRef.current = usuarioParseado
       setUsuario(usuarioParseado)
+      localStorage.setItem("usuario", JSON.stringify(usuarioParseado))
       await cargarDatos(usuarioParseado, true)
     }
 
