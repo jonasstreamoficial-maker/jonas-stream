@@ -225,7 +225,7 @@ export default function AdminPage() {
   const [busquedaUsuario, setBusquedaUsuario] = useState("")
   const [filtroEstadoUsuario, setFiltroEstadoUsuario] = useState("todos")
   const [filtroRolUsuario, setFiltroRolUsuario] = useState("todos")
-  const [vistaUsuarios, setVistaUsuarios] = useState<"tarjetas" | "tabla">("tarjetas")
+  const [vistaUsuarios, setVistaUsuarios] = useState<"tarjetas" | "tabla">("tabla")
 
   const [busquedaComprobante, setBusquedaComprobante] = useState("")
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
@@ -549,6 +549,25 @@ export default function AdminPage() {
     }
   }
 
+  const eliminarPedido = async (id: string) => {
+    const pedidoObjetivo = pedidos.find((pedido) => pedido.id === id)
+    const confirmar = confirm(`¿Eliminar pedido #${id.slice(0, 8)}? Esta acción no se puede deshacer.`)
+    if (!confirmar) return
+
+    const { error } = await supabase.from("pedidos").delete().eq("id", id)
+
+    if (!error) {
+      setPedidos((prev) => prev.filter((pedido) => pedido.id !== id))
+      setPedidosSeleccionados((prev) => prev.filter((pedidoId) => pedidoId !== id))
+      registrarEvento(`Pedido #${id.slice(0, 8)} eliminado`)
+      await registrarLog("eliminar", "pedidos", id, `Pedido eliminado${pedidoObjetivo?.cliente_nombre ? ` · ${pedidoObjetivo.cliente_nombre}` : ""}`)
+      toast.success("Pedido eliminado")
+      await cargarDatos()
+    } else {
+      toast.error("No se pudo eliminar el pedido")
+    }
+  }
+
   const alternarPedidoSeleccionado = (id: string) => {
     setPedidosSeleccionados((prev) => prev.includes(id) ? prev.filter((pedidoId) => pedidoId !== id) : [...prev, id])
   }
@@ -593,6 +612,34 @@ export default function AdminPage() {
     registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
     await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
     toast.success(nuevoEstado === "completado" ? `${ids.length} pedido(s) completados y stock revisado` : `${ids.length} pedido(s) actualizados`)
+    setProcesandoMasivo(false)
+    await cargarDatos()
+  }
+
+  const eliminarPedidosSeleccionados = async () => {
+    if (pedidosSeleccionados.length === 0) {
+      toast.error("Selecciona al menos un pedido")
+      return
+    }
+
+    const confirmar = confirm(`¿Eliminar ${pedidosSeleccionados.length} pedido(s)? Esta acción no se puede deshacer.`)
+    if (!confirmar) return
+
+    setProcesandoMasivo(true)
+    const ids = [...pedidosSeleccionados]
+    const { error } = await supabase.from("pedidos").delete().in("id", ids)
+
+    if (error) {
+      toast.error("No se pudieron eliminar los pedidos seleccionados")
+      setProcesandoMasivo(false)
+      return
+    }
+
+    setPedidos((prev) => prev.filter((pedido) => !ids.includes(pedido.id)))
+    setPedidosSeleccionados([])
+    registrarEvento(`${ids.length} pedido(s) eliminados`)
+    await registrarLog("eliminar_masivo", "pedidos", undefined, `${ids.length} pedidos eliminados`)
+    toast.success(`${ids.length} pedido(s) eliminados`)
     setProcesandoMasivo(false)
     await cargarDatos()
   }
@@ -1921,6 +1968,7 @@ export default function AdminPage() {
                 </button>
                 <button type="button" disabled={procesandoMasivo || pedidosSeleccionados.length === 0} onClick={() => actualizarPedidosMasivo("completado")} className={styles.successButton}>Completar lote</button>
                 <button type="button" disabled={procesandoMasivo || pedidosSeleccionados.length === 0} onClick={() => actualizarPedidosMasivo("cancelado")} className={styles.dangerButton}>Cancelar lote</button>
+                <button type="button" disabled={procesandoMasivo || pedidosSeleccionados.length === 0} onClick={eliminarPedidosSeleccionados} className={styles.dangerGhostButton}>Eliminar lote</button>
                 <button type="button" onClick={() => setPedidosSeleccionados([])} className={styles.dangerGhostButton}>Limpiar selección</button>
               </div>
               <div className={styles.toggleGroup}>
@@ -1978,6 +2026,7 @@ export default function AdminPage() {
                                 <div className={styles.tableActions}>
                                   <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>OK</button>
                                   <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelar</button>
+                                  <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar</button>
                                 </div>
                               </td>
                             </tr>
@@ -2042,6 +2091,7 @@ export default function AdminPage() {
                             <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>⏳ Pendiente</button>
                             <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>✔ Completar</button>
                             <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>✖ Cancelar</button>
+                            <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar pedido</button>
                           </div>
                         </article>
                       )
@@ -2069,7 +2119,7 @@ export default function AdminPage() {
                   Esta pantalla queda lista para operar con más claridad y menos riesgo.
                 </p>
                 <div className={styles.usersHeroActions}>
-                  <button type="button" onClick={() => { setFiltroEstadoUsuario("pendiente"); setVistaUsuarios("tarjetas") }} className={styles.primaryButton}>Revisar pendientes</button>
+                  <button type="button" onClick={() => { setFiltroEstadoUsuario("pendiente"); setVistaUsuarios("tabla") }} className={styles.primaryButton}>Revisar pendientes</button>
                   <button type="button" onClick={() => { setFiltroRolUsuario("proveedor"); setVistaUsuarios("tabla") }} className={styles.secondaryButton}>Ver proveedores</button>
                   <button type="button" onClick={() => { setFiltroRolUsuario("admin"); setVistaUsuarios("tabla") }} className={styles.secondaryButton}>Ver admins</button>
                 </div>
@@ -2131,8 +2181,8 @@ export default function AdminPage() {
                 </div>
                 <div className={styles.toggleGroup}>
                   <button type="button" onClick={() => { setBusquedaUsuario(""); setFiltroEstadoUsuario("todos"); setFiltroRolUsuario("todos") }} className={styles.toggleUtility}>Limpiar filtros</button>
+                  <button type="button" onClick={() => setVistaUsuarios("tabla")} className={vistaUsuarios === "tabla" ? styles.toggleActive : ""}>Lista</button>
                   <button type="button" onClick={() => setVistaUsuarios("tarjetas")} className={vistaUsuarios === "tarjetas" ? styles.toggleActive : ""}>Tarjetas</button>
-                  <button type="button" onClick={() => setVistaUsuarios("tabla")} className={vistaUsuarios === "tabla" ? styles.toggleActive : ""}>Tabla</button>
                 </div>
               </div>
 
@@ -2159,6 +2209,7 @@ export default function AdminPage() {
                         <th>Estado</th>
                         <th>Acceso</th>
                         {!esProveedor && <th>Roles</th>}
+                        {!esProveedor && <th>Eliminar</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -2184,6 +2235,11 @@ export default function AdminPage() {
                                 <button type="button" onClick={() => cambiarRol(u.id, "proveedor")} className={styles.secondaryButton}>Proveedor</button>
                                 <button type="button" onClick={() => cambiarRol(u.id, "admin")} className={styles.secondaryButton}>Admin</button>
                               </div>
+                            </td>
+                          )}
+                          {!esProveedor && (
+                            <td>
+                              <button type="button" onClick={() => eliminarUsuario(u.id)} className={styles.dangerGhostButton}>Eliminar</button>
                             </td>
                           )}
                         </tr>

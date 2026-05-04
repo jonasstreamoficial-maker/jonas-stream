@@ -4411,3 +4411,37 @@
     min-height: auto;
   }
 }
+
+
+/* AJUSTE PRO - pedidos con eliminación y usuarios en lista */
+.proTable .dangerGhostButton,
+.proTable .dangerButton,
+.proTable .successButton,
+.proTable .secondaryButton {
+  min-height: 32px;
+  padding: 7px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.proTable td:last-child {
+  min-width: 110px;
+}
+
+.tableActions {
+  align-items: center;
+}
+
+.userPendingRow td {
+  background: rgba(255, 224, 130, 0.045);
+}
+
+.userRejectedRow td {
+  background: rgba(255, 143, 163, 0.045);
+}
+
+@media (max-width: 720px) {
+  .proTable {
+    min-width: 980px;
+  }
+}

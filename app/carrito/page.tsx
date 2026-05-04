@@ -223,15 +223,20 @@ export default function CarritoPage() {
 
       setProcesandoPedido(true);
 
-      const productosPedido = carrito.map((producto) => ({
-        nombre: producto.nombre,
-        cantidad: producto.cantidad,
-        precio: Number(producto.precio || 0),
-        subtotal: Number(producto.precio || 0) * producto.cantidad,
-      }));
-
-      const pedido = await crearPedido("pendiente");
+      const pedido = await crearPedido(metodoPago, totalFinal, descuento);
       const comprobanteUrl = await subirComprobante(pedido.id);
+
+      const { error: comprobantePedidoError } = await supabase
+        .from("pedidos")
+        .update({ comprobante_url: comprobanteUrl })
+        .eq("id", pedido.id);
+
+      if (comprobantePedidoError) {
+        console.error("ERROR GUARDANDO COMPROBANTE EN PEDIDO:", comprobantePedidoError);
+        throw new Error(
+          comprobantePedidoError.message || "El comprobante subió, pero no se pudo guardar en el pedido"
+        );
+      }
 
       // 🔥 AGRUPAR PRODUCTOS POR TIPO
       // Detecta "Cuenta completa", "cuenta completa", "CUENTA", etc.
@@ -282,9 +287,7 @@ ${productosTexto}
 
       const whatsappUrl = buildWhatsAppLink(mensajeWhatsApp);
 
-      setTimeout(() => {
-        window.location.assign(whatsappUrl);
-      }, 350);
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
       cargarCarrito();
       setCodigoCupon("");
@@ -294,9 +297,8 @@ ${productosTexto}
       setComprobante(null);
       setPreviewComprobante(null);
     } catch (error) {
-      console.error("Error creando pedido:", error);
-      const mensaje =
-        error instanceof Error ? error.message : "Ocurrió un error al crear el pedido";
+      console.error("ERROR REAL CREANDO PEDIDO:", error);
+      const mensaje = error instanceof Error ? error.message : "Ocurrió un error al crear el pedido";
       toast.error(mensaje);
     } finally {
       setProcesandoPedido(false);
