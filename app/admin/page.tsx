@@ -1528,9 +1528,36 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Productos</p>
                   <h3>Lista de productos</h3>
+                  <span className={styles.panelHint}>Control comercial del catálogo con alertas, estado visual y acciones rápidas.</span>
                 </div>
                 <span className={styles.countBadge}>{productosFiltrados.length} resultados</span>
               </div>
+
+              <section className={styles.productOpsPanel}>
+                <div className={styles.productOpsMain}>
+                  <span className={styles.proTag}>PRODUCTOS PRO</span>
+                  <h4>Catálogo listo para vender</h4>
+                  <p>Detecta productos agotados, ofertas, publicaciones activas y artículos sin imagen antes de que afecten la tienda.</p>
+                </div>
+                <div className={styles.productOpsStats}>
+                  <button type="button" onClick={() => { setFiltroEstadoProducto("activo"); setFiltroStockProducto("todos") }}>
+                    <strong>{productosActivos}</strong>
+                    <span>Activos</span>
+                  </button>
+                  <button type="button" onClick={() => setFiltroStockProducto("agotado")}>
+                    <strong>{productosAgotados.length}</strong>
+                    <span>Agotados</span>
+                  </button>
+                  <button type="button" onClick={() => setFiltroStockProducto("bajo")}>
+                    <strong>{productosBajoStock.length}</strong>
+                    <span>Bajo stock</span>
+                  </button>
+                  <button type="button" onClick={() => { setFiltroEstadoProducto("todos"); setFiltroStockProducto("todos"); setBusquedaProducto("") }}>
+                    <strong>{productosSinImagen}</strong>
+                    <span>Sin imagen</span>
+                  </button>
+                </div>
+              </section>
 
               <div className={styles.miniStatsGrid}>
                 <button type="button" onClick={() => { setFiltroEstadoProducto("activo"); setFiltroStockProducto("todos") }} className={styles.miniStatCard}>
@@ -1573,15 +1600,24 @@ export default function AdminPage() {
                 {productosVisibles.length === 0 ? (
                   <EmptyState title="Sin productos" text="No hay productos que coincidan con los filtros." />
                 ) : productosVisibles.map((p) => (
-                  <article key={p.id} className={`${styles.productCard} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`}>
+                  <article key={p.id} className={`${styles.productCard} ${styles.productCardPro} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`}>
                     {p.imagen ? <img src={p.imagen} alt={p.nombre} className={styles.productImage} /> : <div className={styles.productImagePlaceholder}>JS</div>}
                     <div className={styles.productBody}>
                       <div className={styles.productTopline}>
                         <StatusBadge estado={p.estado} />
-                        {p.oferta && <span className={styles.offerBadge}>Oferta</span>}
+                        <div className={styles.productStateCluster}>
+                          {Number(p.stock) <= 0 && <span className={styles.badgeDanger}>Agotado</span>}
+                          {Number(p.stock) > 0 && Number(p.stock) <= 3 && <span className={styles.badgeWarning}>Bajo stock</span>}
+                          {p.destacado && <span className={styles.badgeInfo}>Destacado</span>}
+                          {p.oferta && <span className={styles.offerBadge}>Oferta</span>}
+                        </div>
                       </div>
                       <h4>{p.nombre}</h4>
                       <p>{p.descripcion || "Sin descripción"}</p>
+                      <div className={styles.productHealthLine}>
+                        <span>{p.publicacion ? "Publicado" : "Oculto"}</span>
+                        <strong>{Number(p.stock) <= 0 ? "Reponer ahora" : Number(p.stock) <= 3 ? "Stock limitado" : "Stock estable"}</strong>
+                      </div>
                       <div className={styles.productMeta}>
                         <span>{formatearSoles(p.precio)}</span>
                         <span className={Number(p.stock) <= 3 ? styles.metaDanger : ""}>Stock: {p.stock}</span>
@@ -1594,6 +1630,7 @@ export default function AdminPage() {
                       </div>
                       <div className={styles.cardActions}>
                         <button type="button" onClick={() => editarProducto(p)} className={styles.secondaryButton}>Editar</button>
+                        <button type="button" onClick={() => reponerProductoRapido(p)} className={styles.successButton}>+10 stock</button>
                         <button type="button" onClick={() => eliminarProducto(p.id)} className={styles.dangerButton}>Eliminar</button>
                       </div>
                     </div>

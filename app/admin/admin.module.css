@@ -2941,3 +2941,216 @@
     padding: 16px;
   }
 }
+
+/* FASE 5/9 - Productos PRO Jonas Stream */
+.productOpsPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr);
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 8% 18%, rgba(0, 251, 255, 0.16), transparent 32%),
+    linear-gradient(135deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.58));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.12), inset 0 0 36px rgba(0, 251, 255, 0.045);
+  overflow: hidden;
+  position: relative;
+}
+
+.productOpsPanel::after {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -110px;
+  top: -120px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 251, 255, 0.14), transparent 62%);
+  pointer-events: none;
+}
+
+.productOpsMain,
+.productOpsStats {
+  position: relative;
+  z-index: 1;
+}
+
+.productOpsMain {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+}
+
+.productOpsMain h4 {
+  margin: 0;
+  color: #ECFFFF;
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1;
+  text-shadow: 0 0 28px rgba(0, 251, 255, 0.18);
+}
+
+.productOpsMain p {
+  margin: 0;
+  max-width: 720px;
+  color: #9BC8CB;
+  line-height: 1.6;
+}
+
+.productOpsStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.productOpsStats button {
+  min-height: 96px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #ECFFFF;
+  cursor: pointer;
+  text-align: left;
+  transition: 0.18s ease;
+  box-shadow: inset 0 0 24px rgba(0, 251, 255, 0.035);
+}
+
+.productOpsStats button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 251, 255, 0.52);
+  background: rgba(1, 231, 239, 0.09);
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.14);
+}
+
+.productOpsStats strong {
+  color: #00FBFF;
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(0, 251, 255, 0.22);
+}
+
+.productOpsStats span {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.productCardPro {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(0, 251, 255, 0.075), transparent 38%),
+    rgba(3, 19, 22, 0.78);
+}
+
+.productCardPro::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.08), transparent 38%);
+  opacity: 0;
+  transition: 0.18s ease;
+}
+
+.productCardPro:hover::after {
+  opacity: 1;
+}
+
+.productStateCluster {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.productHealthLine {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.productHealthLine span {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.productHealthLine strong {
+  color: #00FBFF;
+  font-size: 13px;
+}
+
+.badgeDanger,
+.badgeWarning,
+.badgeInfo,
+.badgeOk {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.badgeDanger {
+  color: #ffb3c0;
+  background: rgba(255, 92, 122, 0.12);
+  border: 1px solid rgba(255, 92, 122, 0.32);
+}
+
+.badgeWarning {
+  color: #ffe082;
+  background: rgba(255, 224, 130, 0.12);
+  border: 1px solid rgba(255, 224, 130, 0.3);
+}
+
+.badgeInfo {
+  color: #00FBFF;
+  background: rgba(1, 231, 239, 0.1);
+  border: 1px solid rgba(1, 231, 239, 0.28);
+}
+
+.badgeOk {
+  color: #7cffb2;
+  background: rgba(124, 255, 178, 0.1);
+  border: 1px solid rgba(124, 255, 178, 0.25);
+}
+
+@media (max-width: 1180px) {
+  .productOpsPanel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .productOpsStats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .productHealthLine,
+  .productTopline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
