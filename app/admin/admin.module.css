@@ -2610,3 +2610,334 @@
     text-align: left;
   }
 }
+
+
+/* FASE 4/9 - Comprobantes PRO Jonas Stream */
+.paymentHeroPro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 8% 20%, rgba(0, 251, 255, 0.18), transparent 30%),
+    linear-gradient(135deg, rgba(3, 19, 22, 0.86), rgba(7, 27, 30, 0.48));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.13), inset 0 0 50px rgba(0, 251, 255, 0.045);
+  backdrop-filter: blur(18px);
+}
+
+.paymentHeroCopy h3 {
+  margin: 10px 0 12px;
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 0.98;
+  text-shadow: 0 0 40px rgba(0, 251, 255, 0.2);
+}
+
+.paymentHeroCopy p {
+  max-width: 780px;
+  margin: 0;
+  color: #9BC8CB;
+  line-height: 1.65;
+}
+
+.paymentHeroPanel {
+  padding: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  border-radius: 26px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 34px rgba(0, 251, 255, 0.04);
+}
+
+.paymentHeroPanel p,
+.paymentHeroPanel span {
+  margin: 0;
+  color: #9BC8CB;
+  font-weight: 800;
+}
+
+.paymentHeroPanel strong {
+  display: block;
+  margin: 8px 0;
+  color: #00FBFF;
+  font-size: clamp(44px, 6vw, 76px);
+  line-height: 0.9;
+  text-shadow: 0 0 40px rgba(0, 251, 255, 0.22);
+}
+
+.paymentStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.paymentStatCard {
+  min-height: 128px;
+  padding: 16px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.08), rgba(3, 19, 22, 0.72));
+  color: #ECFFFF;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s ease;
+  box-shadow: inset 0 0 26px rgba(0, 251, 255, 0.035);
+}
+
+.paymentStatCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 251, 255, 0.48);
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.12), inset 0 0 26px rgba(0, 251, 255, 0.05);
+}
+
+.paymentStatCard span {
+  color: #9BC8CB;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.paymentStatCard strong {
+  display: block;
+  margin: 8px 0 6px;
+  color: #00FBFF;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.paymentStatCard small {
+  color: #9BC8CB;
+  font-weight: 800;
+}
+
+.paymentStatDanger strong {
+  color: #ff8fa3;
+}
+
+.reviewGridPro {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  gap: 18px;
+}
+
+.reviewCardPro {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.82fr) minmax(0, 1.18fr);
+  overflow: hidden;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 28px;
+  background: rgba(3, 19, 22, 0.78);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28), inset 0 0 34px rgba(0, 251, 255, 0.04);
+  position: relative;
+}
+
+.reviewCardPro::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #01E7EF, transparent);
+  box-shadow: 0 0 24px rgba(0, 251, 255, 0.4);
+}
+
+.reviewPending {
+  border-color: rgba(255, 224, 130, 0.32);
+}
+
+.reviewNoFile {
+  border-color: rgba(255, 143, 163, 0.36);
+}
+
+.reviewMediaPro {
+  min-height: 330px;
+  background:
+    radial-gradient(circle at center, rgba(1, 231, 239, 0.14), transparent 58%),
+    #000000;
+  border-right: 1px solid rgba(1, 231, 239, 0.12);
+}
+
+.reviewMediaPro a,
+.reviewMediaPro img {
+  width: 100%;
+  height: 100%;
+  min-height: 330px;
+  display: block;
+}
+
+.reviewMediaPro a {
+  position: relative;
+  color: #001014;
+  text-decoration: none;
+}
+
+.reviewMediaPro img {
+  object-fit: cover;
+  filter: saturate(1.05) contrast(1.04);
+}
+
+.reviewMediaPro a span {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #01E7EF, #00FBFF);
+  color: #001014;
+  font-weight: 950;
+  text-align: center;
+  box-shadow: 0 0 25px rgba(0, 251, 255, 0.18);
+}
+
+.reviewPlaceholderPro {
+  min-height: 330px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: #9BC8CB;
+}
+
+.reviewPlaceholderPro strong {
+  color: #ff8fa3;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.reviewPlaceholderPro small {
+  max-width: 220px;
+  line-height: 1.5;
+}
+
+.reviewBodyPro {
+  padding: 20px;
+}
+
+.reviewTopline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.reviewTopline h4 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.reviewAmountBox {
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.reviewAmountBox span,
+.reviewAmountBox small {
+  display: block;
+  color: #9BC8CB;
+  font-weight: 850;
+}
+
+.reviewAmountBox strong {
+  display: block;
+  margin: 5px 0;
+  color: #00FBFF;
+  font-size: 34px;
+  line-height: 1;
+  text-shadow: 0 0 25px rgba(0, 251, 255, 0.14);
+}
+
+.reviewChecklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.checkOk,
+.checkWarn,
+.checkBad,
+.badgeOk,
+.badgeInfo,
+.badgeWarning,
+.badgeDanger {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.checkOk,
+.badgeOk {
+  color: #7cffb2;
+  background: rgba(124, 255, 178, 0.1);
+  border: 1px solid rgba(124, 255, 178, 0.24);
+}
+
+.checkWarn,
+.badgeWarning {
+  color: #ffe082;
+  background: rgba(255, 224, 130, 0.1);
+  border: 1px solid rgba(255, 224, 130, 0.24);
+}
+
+.checkBad,
+.badgeDanger {
+  color: #ff8fa3;
+  background: rgba(255, 143, 163, 0.1);
+  border: 1px solid rgba(255, 143, 163, 0.26);
+}
+
+.badgeInfo {
+  color: #00FBFF;
+  background: rgba(0, 251, 255, 0.09);
+  border: 1px solid rgba(0, 251, 255, 0.22);
+}
+
+.reviewActionsPro {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.8fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1100px) {
+  .paymentHeroPro,
+  .reviewCardPro {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reviewMediaPro {
+    border-right: 0;
+    border-bottom: 1px solid rgba(1, 231, 239, 0.12);
+  }
+}
+
+@media (max-width: 720px) {
+  .paymentStatsGrid,
+  .reviewGridPro,
+  .reviewActionsPro {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentHeroPro,
+  .reviewBodyPro {
+    padding: 16px;
+  }
+}

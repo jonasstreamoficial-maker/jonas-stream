@@ -607,6 +607,43 @@ export default function AdminPage() {
     }
   }
 
+  const resolverComprobantePro = async (
+    comprobante: { id: string; pedidoId?: string | null; origen: "tabla" | "pedido" },
+    nuevoEstado: string
+  ) => {
+    const estadoPedido =
+      nuevoEstado === "aprobado" || nuevoEstado === "completado"
+        ? "completado"
+        : nuevoEstado === "rechazado"
+        ? "cancelado"
+        : "pendiente"
+
+    if (comprobante.origen === "tabla") {
+      const { error } = await supabase.from("comprobantes").update({ estado: nuevoEstado }).eq("id", comprobante.id)
+
+      if (error) {
+        toast.error("No se pudo actualizar el comprobante")
+        return
+      }
+
+      setComprobantes((prev) => prev.map((c) => (c.id === comprobante.id ? { ...c, estado: nuevoEstado } : c)))
+      await registrarLog("actualizar_estado", "comprobantes", comprobante.id, `Estado: ${nuevoEstado}`)
+    }
+
+    if (comprobante.pedidoId) {
+      const { error: pedidoError } = await supabase.from("pedidos").update({ estado: estadoPedido }).eq("id", comprobante.pedidoId)
+
+      if (!pedidoError) {
+        setPedidos((prev) => prev.map((p) => (p.id === comprobante.pedidoId ? { ...p, estado: estadoPedido } : p)))
+        await registrarLog("actualizar_por_comprobante", "pedidos", comprobante.pedidoId, `Comprobante ${nuevoEstado}`)
+      }
+    }
+
+    registrarEvento(`Comprobante ${nuevoEstado}`, nuevoEstado === "aprobado" || nuevoEstado === "completado")
+    toast.success(`Comprobante ${nuevoEstado}`)
+    await cargarDatos()
+  }
+
   const handleProductoChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
 
@@ -1841,147 +1878,216 @@ export default function AdminPage() {
         )}
 
         {tabActiva === "comprobantes" && (
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <p className={styles.kicker}>Pagos</p>
-                <h3>Comprobantes reales</h3>
-                <span className={styles.panelHint}>Lee la tabla comprobantes si existe; si no, muestra vouchers guardados en pedidos.</span>
+          <div className={styles.sectionStack}>
+            <section className={styles.paymentHeroPro}>
+              <div className={styles.paymentHeroCopy}>
+                <span className={styles.proTag}>COMPROBANTES PRO</span>
+                <h3>Centro de revisión de pagos</h3>
+                <p>
+                  Valida vouchers, revisa cliente, monto, método y estado del pedido desde una sola pantalla. Si apruebas un comprobante, el pedido queda listo para completar.
+                </p>
+                <div className={styles.dashboardHeroActions}>
+                  <button type="button" onClick={() => setFiltroEstadoComprobante("pendiente")} className={styles.primaryButton}>Revisar pendientes</button>
+                  <button type="button" onClick={() => setVistaComprobantes("revision")} className={styles.secondaryButton}>Vista revisión</button>
+                  <button type="button" onClick={() => setVistaComprobantes("tabla")} className={styles.secondaryButton}>Vista tabla</button>
+                </div>
               </div>
-              <span className={styles.countBadge}>{comprobantesFiltrados.length} comprobantes</span>
-            </div>
 
-            {!comprobantesDisponibles && (
-              <div className={styles.noticeBox}>
-                No encontré la tabla <strong>comprobantes</strong>. Por ahora este módulo usa URLs de comprobante dentro de pedidos si tus columnas existen.
+              <div className={styles.paymentHeroPanel}>
+                <p>Pagos en revisión</p>
+                <strong>{comprobantesUnificados.filter((c) => c.estado === "pendiente").length}</strong>
+                <span>{formatearSoles(comprobantesUnificados.filter((c) => c.estado === "pendiente").reduce((acc, item) => acc + Number(item.monto || 0), 0))} pendientes por validar</span>
+                <div className={styles.moneySplitGrid}>
+                  <div>
+                    <small>Aprobados</small>
+                    <b>{comprobantesUnificados.filter((c) => c.estado === "aprobado" || c.estado === "completado").length}</b>
+                  </div>
+                  <div>
+                    <small>Sin archivo</small>
+                    <b>{comprobantesUnificados.filter((c) => !c.url).length}</b>
+                  </div>
+                </div>
               </div>
-            )}
+            </section>
 
-            <div className={styles.miniStatsGrid}>
-              <button type="button" onClick={() => setFiltroEstadoComprobante("pendiente")} className={styles.miniStatCard}>
-                <span>Pendientes</span><strong>{comprobantesUnificados.filter((c) => c.estado === "pendiente").length}</strong><small>Revisar pago</small>
-              </button>
-              <button type="button" onClick={() => setFiltroEstadoComprobante("aprobado")} className={styles.miniStatCard}>
-                <span>Aprobados</span><strong>{comprobantesUnificados.filter((c) => c.estado === "aprobado" || c.estado === "completado").length}</strong><small>Pago validado</small>
-              </button>
-              <button type="button" onClick={() => setFiltroEstadoComprobante("rechazado")} className={`${styles.miniStatCard} ${styles.miniStatDanger}`}>
-                <span>Rechazados</span><strong>{comprobantesUnificados.filter((c) => c.estado === "rechazado").length}</strong><small>Revisar cliente</small>
-              </button>
-              <button type="button" onClick={() => { setFiltroEstadoComprobante("todos"); setBusquedaComprobante("") }} className={styles.miniStatCard}>
-                <span>Total</span><strong>{comprobantesUnificados.length}</strong><small>Limpiar filtros</small>
-              </button>
-            </div>
-
-            <div className={styles.filtersGridCompact}>
-              <input type="text" placeholder="Buscar cliente, correo, pedido o método..." value={busquedaComprobante} onChange={(e) => setBusquedaComprobante(e.target.value)} className={styles.input} />
-              <select value={filtroEstadoComprobante} onChange={(e) => setFiltroEstadoComprobante(e.target.value)} className={styles.input}>
-                <option value="todos">Todos los estados</option>
-                <option value="pendiente">Pendiente</option>
-                <option value="aprobado">Aprobado</option>
-                <option value="completado">Completado</option>
-                <option value="observado">Observado</option>
-                <option value="rechazado">Rechazado</option>
-              </select>
-            </div>
-
-            <div className={styles.toolbarInline}>
-              <div className={styles.bulkInfo}>
-                <strong>{comprobantesFiltrados.length}</strong>
-                <span>en revisión · {formatearSoles(comprobantesFiltrados.reduce((acc, item) => acc + Number(item.monto || 0), 0))}</span>
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Pagos</p>
+                  <h3>Comprobantes reales</h3>
+                  <span className={styles.panelHint}>Lee la tabla comprobantes si existe; si no, muestra vouchers guardados en pedidos.</span>
+                </div>
+                <span className={styles.countBadge}>{comprobantesFiltrados.length} comprobantes</span>
               </div>
-              <div className={styles.toggleGroup}>
-                <button type="button" onClick={() => setVistaComprobantes("revision")} className={vistaComprobantes === "revision" ? styles.toggleActive : ""}>Revisión</button>
-                <button type="button" onClick={() => setVistaComprobantes("tabla")} className={vistaComprobantes === "tabla" ? styles.toggleActive : ""}>Tabla</button>
-              </div>
-            </div>
 
-            {comprobantesFiltrados.length === 0 ? (
-              <EmptyState title="Sin comprobantes" text="Cuando tus pedidos tengan voucher o actives la tabla comprobantes, aparecerán aquí." />
-            ) : (
-              <>
-                {vistaComprobantes === "tabla" ? (
-                  <div className={styles.tableWrap}>
-                    <table className={styles.proTable}>
-                      <thead>
-                        <tr>
-                          <th>Comprobante</th>
-                          <th>Cliente</th>
-                          <th>Monto</th>
-                          <th>Método</th>
-                          <th>Estado</th>
-                          <th>Archivo</th>
-                          <th>Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {comprobantesVisibles.map((comprobante) => (
-                          <tr key={comprobante.id}>
-                            <td><strong>#{comprobante.id.slice(0, 8)}</strong><small>{fechaLegible(comprobante.fecha)}</small></td>
-                            <td><strong>{comprobante.cliente}</strong><small>{comprobante.correo || "Sin correo"}</small></td>
-                            <td>{formatearSoles(comprobante.monto)}</td>
-                            <td>{comprobante.metodo}</td>
-                            <td><StatusBadge estado={comprobante.estado} /></td>
-                            <td>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.mutedText}>Sin archivo</span>}</td>
-                            <td>
-                              {comprobante.origen === "tabla" ? (
-                                <div className={styles.tableActions}>
-                                  <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "aprobado")} className={styles.successButton}>OK</button>
-                                  <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "observado")} className={styles.secondaryButton}>Obs</button>
-                                  <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "rechazado")} className={styles.dangerButton}>No</button>
-                                </div>
-                              ) : <span className={styles.mutedText}>Desde pedido</span>}
-                            </td>
+              {!comprobantesDisponibles && (
+                <div className={styles.noticeBox}>
+                  No encontré la tabla <strong>comprobantes</strong>. Por ahora este módulo usa URLs de comprobante dentro de pedidos si tus columnas existen.
+                </div>
+              )}
+
+              <div className={styles.paymentStatsGrid}>
+                <button type="button" onClick={() => setFiltroEstadoComprobante("pendiente")} className={styles.paymentStatCard}>
+                  <span>Pendientes</span>
+                  <strong>{comprobantesUnificados.filter((c) => c.estado === "pendiente").length}</strong>
+                  <small>{formatearSoles(comprobantesUnificados.filter((c) => c.estado === "pendiente").reduce((acc, item) => acc + Number(item.monto || 0), 0))}</small>
+                </button>
+                <button type="button" onClick={() => setFiltroEstadoComprobante("aprobado")} className={styles.paymentStatCard}>
+                  <span>Aprobados</span>
+                  <strong>{comprobantesUnificados.filter((c) => c.estado === "aprobado" || c.estado === "completado").length}</strong>
+                  <small>Pagos listos para entrega</small>
+                </button>
+                <button type="button" onClick={() => setFiltroEstadoComprobante("observado")} className={styles.paymentStatCard}>
+                  <span>Observados</span>
+                  <strong>{comprobantesUnificados.filter((c) => c.estado === "observado").length}</strong>
+                  <small>Necesitan revisión manual</small>
+                </button>
+                <button type="button" onClick={() => setFiltroEstadoComprobante("rechazado")} className={`${styles.paymentStatCard} ${styles.paymentStatDanger}`}>
+                  <span>Rechazados</span>
+                  <strong>{comprobantesUnificados.filter((c) => c.estado === "rechazado").length}</strong>
+                  <small>Revisar con cliente</small>
+                </button>
+              </div>
+
+              <div className={styles.filtersGridCompact}>
+                <input type="text" placeholder="Buscar cliente, correo, pedido o método..." value={busquedaComprobante} onChange={(e) => setBusquedaComprobante(e.target.value)} className={styles.input} />
+                <select value={filtroEstadoComprobante} onChange={(e) => setFiltroEstadoComprobante(e.target.value)} className={styles.input}>
+                  <option value="todos">Todos los estados</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="aprobado">Aprobado</option>
+                  <option value="completado">Completado</option>
+                  <option value="observado">Observado</option>
+                  <option value="rechazado">Rechazado</option>
+                </select>
+              </div>
+
+              <div className={styles.toolbarInline}>
+                <div className={styles.bulkInfo}>
+                  <strong>{comprobantesFiltrados.length}</strong>
+                  <span>filtrados · {formatearSoles(comprobantesFiltrados.reduce((acc, item) => acc + Number(item.monto || 0), 0))}</span>
+                </div>
+                <div className={styles.bulkActions}>
+                  <button type="button" onClick={() => { setFiltroEstadoComprobante("todos"); setBusquedaComprobante("") }} className={styles.secondaryButton}>Limpiar filtros</button>
+                  <button type="button" onClick={() => { setFiltroEstadoComprobante("pendiente"); setVistaComprobantes("revision") }} className={styles.primaryButton}>Cola pendiente</button>
+                </div>
+                <div className={styles.toggleGroup}>
+                  <button type="button" onClick={() => setVistaComprobantes("revision")} className={vistaComprobantes === "revision" ? styles.toggleActive : ""}>Revisión</button>
+                  <button type="button" onClick={() => setVistaComprobantes("tabla")} className={vistaComprobantes === "tabla" ? styles.toggleActive : ""}>Tabla</button>
+                </div>
+              </div>
+
+              {comprobantesFiltrados.length === 0 ? (
+                <EmptyState title="Sin comprobantes" text="Cuando tus pedidos tengan voucher o actives la tabla comprobantes, aparecerán aquí." />
+              ) : (
+                <>
+                  {vistaComprobantes === "tabla" ? (
+                    <div className={styles.tableWrap}>
+                      <table className={styles.proTable}>
+                        <thead>
+                          <tr>
+                            <th>Comprobante</th>
+                            <th>Cliente</th>
+                            <th>Monto</th>
+                            <th>Método</th>
+                            <th>Estado</th>
+                            <th>Origen</th>
+                            <th>Archivo</th>
+                            <th>Acciones</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className={styles.reviewGrid}>
-                    {comprobantesVisibles.map((comprobante) => (
-                      <article key={comprobante.id} className={styles.reviewCard}>
-                        <div className={styles.reviewMedia}>
-                          {comprobante.url ? (
-                            <a href={comprobante.url} target="_blank" rel="noreferrer">
-                              <img src={comprobante.url} alt={`Comprobante ${comprobante.id.slice(0, 8)}`} />
-                            </a>
-                          ) : (
-                            <div className={styles.reviewPlaceholder}>Sin archivo</div>
-                          )}
-                        </div>
-                        <div className={styles.reviewBody}>
-                          <div className={styles.cardHeaderLine}>
-                            <h4>Comprobante #{comprobante.id.slice(0, 8)}</h4>
-                            <StatusBadge estado={comprobante.estado} />
-                          </div>
-                          <div className={styles.infoGrid}>
-                            <span>Cliente</span><strong>{comprobante.cliente}</strong>
-                            <span>Correo</span><strong>{comprobante.correo || "Sin correo"}</strong>
-                            <span>Monto</span><strong>{formatearSoles(comprobante.monto)}</strong>
-                            <span>Método</span><strong>{comprobante.metodo}</strong>
-                            <span>Fecha</span><strong>{fechaLegible(comprobante.fecha)}</strong>
-                            <span>Archivo</span><strong>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir grande</a> : "Sin archivo"}</strong>
-                          </div>
-                          {comprobante.origen === "tabla" && (
-                            <div className={styles.cardActions}>
-                              <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "aprobado")} className={styles.successButton}>Aprobar</button>
-                              <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "observado")} className={styles.secondaryButton}>Observar</button>
-                              <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                        </thead>
+                        <tbody>
+                          {comprobantesVisibles.map((comprobante) => (
+                            <tr key={comprobante.id}>
+                              <td><strong>#{comprobante.id.slice(0, 8)}</strong><small>{fechaLegible(comprobante.fecha)}</small></td>
+                              <td><strong>{comprobante.cliente}</strong><small>{comprobante.correo || "Sin correo"}</small></td>
+                              <td>{formatearSoles(comprobante.monto)}</td>
+                              <td>{comprobante.metodo}</td>
+                              <td><StatusBadge estado={comprobante.estado} /></td>
+                              <td><span className={comprobante.origen === "tabla" ? styles.badgeInfo : styles.badgeOk}>{comprobante.origen === "tabla" ? "Tabla" : "Pedido"}</span></td>
+                              <td>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.badgeWarning}>Sin archivo</span>}</td>
+                              <td>
+                                <div className={styles.tableActions}>
+                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar</button>
+                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "observado")} className={styles.secondaryButton}>Observar</button>
+                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className={styles.reviewGridPro}>
+                      {comprobantesVisibles.map((comprobante) => {
+                        const estadoCritico = comprobante.estado === "pendiente" || comprobante.estado === "observado"
+                        const sinArchivo = !comprobante.url
+
+                        return (
+                          <article key={comprobante.id} className={`${styles.reviewCardPro} ${estadoCritico ? styles.reviewPending : ""} ${sinArchivo ? styles.reviewNoFile : ""}`}>
+                            <div className={styles.reviewMediaPro}>
+                              {comprobante.url ? (
+                                <a href={comprobante.url} target="_blank" rel="noreferrer">
+                                  <img src={comprobante.url} alt={`Comprobante ${comprobante.id.slice(0, 8)}`} />
+                                  <span>Abrir comprobante</span>
+                                </a>
+                              ) : (
+                                <div className={styles.reviewPlaceholderPro}>
+                                  <strong>Sin archivo</strong>
+                                  <small>El cliente todavía no adjuntó voucher o la URL no existe.</small>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-                {comprobantesFiltrados.length > comprobantesVisibles.length && (
-                  <div className={styles.loadMoreBox}>
-                    <button type="button" onClick={() => setLimiteComprobantes((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más comprobantes</button>
-                  </div>
-                )}
-              </>
-            )}
-          </article>
+
+                            <div className={styles.reviewBodyPro}>
+                              <div className={styles.reviewTopline}>
+                                <div>
+                                  <p className={styles.kicker}>Revisión de pago</p>
+                                  <h4>#{comprobante.id.slice(0, 8)}</h4>
+                                </div>
+                                <StatusBadge estado={comprobante.estado} />
+                              </div>
+
+                              <div className={styles.reviewAmountBox}>
+                                <span>Monto declarado</span>
+                                <strong>{formatearSoles(comprobante.monto)}</strong>
+                                <small>{comprobante.metodo || "Método no definido"}</small>
+                              </div>
+
+                              <div className={styles.infoGrid}>
+                                <span>Cliente</span><strong>{comprobante.cliente}</strong>
+                                <span>Correo</span><strong>{comprobante.correo || "Sin correo"}</strong>
+                                <span>Pedido</span><strong>{comprobante.pedidoId ? `#${comprobante.pedidoId.slice(0, 8)}` : "Sin pedido vinculado"}</strong>
+                                <span>Fecha</span><strong>{fechaLegible(comprobante.fecha)}</strong>
+                                <span>Origen</span><strong>{comprobante.origen === "tabla" ? "Tabla comprobantes" : "Pedido con voucher"}</strong>
+                              </div>
+
+                              <div className={styles.reviewChecklist}>
+                                <span className={comprobante.url ? styles.checkOk : styles.checkBad}>{comprobante.url ? "Archivo visible" : "Sin archivo"}</span>
+                                <span className={Number(comprobante.monto || 0) > 0 ? styles.checkOk : styles.checkWarn}>{Number(comprobante.monto || 0) > 0 ? "Monto válido" : "Monto por confirmar"}</span>
+                                <span className={comprobante.pedidoId ? styles.checkOk : styles.checkWarn}>{comprobante.pedidoId ? "Pedido vinculado" : "Sin pedido"}</span>
+                              </div>
+
+                              <div className={styles.reviewActionsPro}>
+                                <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar pago</button>
+                                <button type="button" onClick={() => resolverComprobantePro(comprobante, "observado")} className={styles.secondaryButton}>Observar</button>
+                                <button type="button" onClick={() => resolverComprobantePro(comprobante, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                              </div>
+                            </div>
+                          </article>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {comprobantesFiltrados.length > comprobantesVisibles.length && (
+                    <div className={styles.loadMoreBox}>
+                      <button type="button" onClick={() => setLimiteComprobantes((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más comprobantes</button>
+                    </div>
+                  )}
+                </>
+              )}
+            </article>
+          </div>
         )}
 
         {tabActiva === "inventario" && (
