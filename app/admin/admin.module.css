@@ -2440,3 +2440,173 @@
     width: 100%;
   }
 }
+
+
+/* FASE 3/9 - Pedidos PRO Jonas Stream */
+.orderCardPro {
+  overflow: hidden;
+  border-color: rgba(1, 231, 239, 0.22);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(0, 251, 255, 0.08), transparent 34%),
+    rgba(3, 19, 22, 0.78);
+}
+
+.orderCardTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.orderHeroLine {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.orderHeroLine span {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(155, 200, 203, 0.82);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.orderHeroLine h4 {
+  margin: 0;
+  color: #ECFFFF;
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.05;
+}
+
+.orderHeroLine > strong {
+  color: #00FBFF;
+  font-size: clamp(22px, 2.4vw, 32px);
+  line-height: 1;
+  text-align: right;
+  text-shadow: 0 0 25px rgba(0, 251, 255, 0.22);
+  white-space: nowrap;
+}
+
+.orderSignalStrip,
+.tablePriorityStack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 14px;
+}
+
+.tablePriorityStack {
+  margin: 0;
+}
+
+.badgeDanger,
+.badgeWarning,
+.badgeInfo,
+.badgeOk {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badgeDanger {
+  color: #ffd7df;
+  background: rgba(255, 143, 163, 0.14);
+  border: 1px solid rgba(255, 143, 163, 0.34);
+  box-shadow: 0 0 18px rgba(255, 143, 163, 0.12);
+}
+
+.badgeWarning {
+  color: #fff0b5;
+  background: rgba(255, 224, 130, 0.12);
+  border: 1px solid rgba(255, 224, 130, 0.32);
+  box-shadow: 0 0 18px rgba(255, 224, 130, 0.1);
+}
+
+.badgeInfo {
+  color: #001014;
+  background: linear-gradient(135deg, #01E7EF, #00FBFF);
+  border: 1px solid rgba(0, 251, 255, 0.42);
+  box-shadow: 0 0 18px rgba(0, 251, 255, 0.18);
+}
+
+.badgeOk {
+  color: #7cffb2;
+  background: rgba(124, 255, 178, 0.1);
+  border: 1px solid rgba(124, 255, 178, 0.26);
+}
+
+.orderVoucherBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+  padding: 13px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.orderVoucherBox span {
+  color: rgba(155, 200, 203, 0.82);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.orderVoucherBox a {
+  color: #00FBFF;
+  font-weight: 950;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 251, 255, 0.45);
+}
+
+.orderVoucherBox strong {
+  color: #ffe082;
+  font-size: 13px;
+}
+
+.orderUrgent {
+  border-color: rgba(255, 143, 163, 0.46) !important;
+  box-shadow: 0 0 40px rgba(255, 143, 163, 0.1), inset 0 0 34px rgba(255, 143, 163, 0.045) !important;
+}
+
+.orderWarning {
+  border-color: rgba(255, 224, 130, 0.34) !important;
+}
+
+.orderHighValue {
+  border-color: rgba(0, 251, 255, 0.42) !important;
+  box-shadow: 0 0 40px rgba(0, 251, 255, 0.12), inset 0 0 34px rgba(0, 251, 255, 0.045) !important;
+}
+
+.orderCardPro .cardActions button {
+  flex: 1 1 130px;
+}
+
+@media (max-width: 720px) {
+  .orderHeroLine,
+  .orderVoucherBox {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .orderHeroLine > strong {
+    text-align: left;
+  }
+}

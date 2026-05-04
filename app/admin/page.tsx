@@ -1655,6 +1655,7 @@ export default function AdminPage() {
                           <th>Total</th>
                           <th>Pago</th>
                           <th>Estado</th>
+                          <th>Prioridad</th>
                           <th>Comprobante</th>
                           <th>Acciones</th>
                         </tr>
@@ -1662,6 +1663,10 @@ export default function AdminPage() {
                       <tbody>
                         {pedidosVisibles.map((pedido) => {
                           const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                          const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
+                          const esUrgente = pedido.estado === "pendiente" && horasDesdeCreacion >= 24
+                          const sinComprobante = !comprobanteUrl
+                          const altoValor = Number(pedido.total || 0) >= 100
                           return (
                             <tr key={pedido.id} className={pedidosSeleccionados.includes(pedido.id) ? styles.rowSelected : ""}>
                               <td className={styles.checkColumn}><input type="checkbox" aria-label={`Seleccionar pedido ${pedido.id.slice(0, 8)}`} checked={pedidosSeleccionados.includes(pedido.id)} onChange={() => alternarPedidoSeleccionado(pedido.id)} /></td>
@@ -1670,6 +1675,14 @@ export default function AdminPage() {
                               <td>{formatearSoles(pedido.total)}</td>
                               <td>{pedido.metodo_pago || "No definido"}</td>
                               <td><StatusBadge estado={pedido.estado} /></td>
+                              <td>
+                                <div className={styles.tablePriorityStack}>
+                                  {esUrgente && <span className={styles.badgeDanger}>Urgente</span>}
+                                  {sinComprobante && <span className={styles.badgeWarning}>Sin pago</span>}
+                                  {altoValor && <span className={styles.badgeInfo}>Alto valor</span>}
+                                  {!esUrgente && !sinComprobante && !altoValor && <span className={styles.badgeOk}>OK</span>}
+                                </div>
+                              </td>
                               <td>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.mutedText}>Sin voucher</span>}</td>
                               <td>
                                 <div className={styles.tableActions}>
@@ -1687,28 +1700,58 @@ export default function AdminPage() {
                   <div className={styles.cardsGrid}>
                     {pedidosVisibles.map((pedido) => {
                       const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                      const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
+                      const esPendiente = pedido.estado === "pendiente"
+                      const esUrgente = esPendiente && horasDesdeCreacion >= 24
+                      const sinComprobante = !comprobanteUrl
+                      const altoValor = Number(pedido.total || 0) >= 100
+                      const cardEstadoClase = esUrgente ? styles.orderUrgent : sinComprobante ? styles.orderWarning : altoValor ? styles.orderHighValue : ""
+
                       return (
-                        <article key={pedido.id} className={`${styles.orderCard} ${pedidosSeleccionados.includes(pedido.id) ? styles.cardSelected : ""}`}>
-                          <label className={styles.selectionBadge}>
-                            <input type="checkbox" checked={pedidosSeleccionados.includes(pedido.id)} onChange={() => alternarPedidoSeleccionado(pedido.id)} />
-                            Seleccionar
-                          </label>
-                          <div className={styles.cardHeaderLine}>
-                            <h4>Pedido #{pedido.id.slice(0, 8)}</h4>
+                        <article key={pedido.id} className={`${styles.orderCard} ${styles.orderCardPro} ${cardEstadoClase} ${pedidosSeleccionados.includes(pedido.id) ? styles.cardSelected : ""}`}>
+                          <div className={styles.orderCardTopline}>
+                            <label className={styles.selectionBadge}>
+                              <input type="checkbox" checked={pedidosSeleccionados.includes(pedido.id)} onChange={() => alternarPedidoSeleccionado(pedido.id)} />
+                              Seleccionar
+                            </label>
                             <StatusBadge estado={pedido.estado} />
                           </div>
+
+                          <div className={styles.orderHeroLine}>
+                            <div>
+                              <span>Pedido #{pedido.id.slice(0, 8)}</span>
+                              <h4>{pedido.cliente_nombre}</h4>
+                            </div>
+                            <strong>{formatearSoles(pedido.total)}</strong>
+                          </div>
+
+                          <div className={styles.orderSignalStrip}>
+                            {esUrgente && <span className={styles.badgeDanger}>URGENTE +24H</span>}
+                            {sinComprobante && <span className={styles.badgeWarning}>SIN PAGO</span>}
+                            {altoValor && <span className={styles.badgeInfo}>ALTO VALOR</span>}
+                            {!esUrgente && !sinComprobante && !altoValor && <span className={styles.badgeOk}>CONTROLADO</span>}
+                          </div>
+
                           <div className={styles.infoGrid}>
-                            <span>Cliente</span><strong>{pedido.cliente_nombre}</strong>
                             <span>Correo</span><strong>{pedido.cliente_correo}</strong>
-                            <span>Total</span><strong>{formatearSoles(pedido.total)}</strong>
                             <span>Método</span><strong>{pedido.metodo_pago || "No definido"}</strong>
                             <span>Fecha</span><strong>{fechaLegible(pedido.created_at)}</strong>
-                            <span>Voucher</span><strong>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Ver comprobante</a> : "Sin comprobante"}</strong>
+                            <span>Tiempo</span><strong>{horasDesdeCreacion < 1 ? "Hace menos de 1h" : `Hace ${Math.floor(horasDesdeCreacion)}h`}</strong>
                           </div>
+
+                          <div className={styles.orderVoucherBox}>
+                            <span>Comprobante</span>
+                            {comprobanteUrl ? (
+                              <a href={comprobanteUrl} target="_blank" rel="noreferrer">Abrir voucher</a>
+                            ) : (
+                              <strong>Sin comprobante adjunto</strong>
+                            )}
+                          </div>
+
                           <div className={styles.cardActions}>
-                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>Pendiente</button>
-                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>Completado</button>
-                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelado</button>
+                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>⏳ Pendiente</button>
+                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>✔ Completar</button>
+                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>✖ Cancelar</button>
                           </div>
                         </article>
                       )
