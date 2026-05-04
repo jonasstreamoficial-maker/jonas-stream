@@ -1146,44 +1146,122 @@ export default function AdminPage() {
 
         {tabActiva === "dashboard" && (
           <div className={styles.sectionStack}>
-            <div className={styles.metricsGrid}>
-              <MetricCard title="Ventas reales" value={formatearSoles(ventasTotales)} detail="Pedidos completados" tone="success" />
-              <MetricCard title="Pendiente por cobrar" value={formatearSoles(ingresosPendientes)} detail={`${pedidosPendientes} pedidos pendientes`} tone="warning" />
-              <MetricCard title="Ticket promedio" value={formatearSoles(ticketPromedio)} detail="Promedio completado" tone="info" />
-              <MetricCard title="Conversión" value={`${tasaConversion}%`} detail={`${pedidosCompletados} de ${totalPedidos} completados`} tone="success" />
-              <MetricCard title="Productos activos" value={productosActivos} detail={`${totalProductos} productos registrados`} tone="info" />
-              <MetricCard title="Alertas de stock" value={productosCriticos.length} detail={`${productosAgotados.length} agotados · ${productosBajoStock.length} bajos`} tone="danger" />
-              <MetricCard title="Usuarios pendientes" value={usuariosPendientes} detail={`${usuariosAprobados} aprobados`} tone="warning" />
-              <MetricCard title="Comprobantes" value={comprobantesUnificados.length || pedidosConComprobante} detail={`${comprobantesPendientes} pendientes de revisión`} tone="neutral" />
-            </div>
-
-            <div className={styles.commandGrid}>
-              <article className={`${styles.panel} ${styles.heroPanel}`}>
-                <p className={styles.kicker}>Modo pro</p>
-                <h3>Centro de mando Jonas Stream</h3>
-                <p>Dashboard conectado a tus datos reales: ventas, stock crítico, usuarios por aprobar, comprobantes y pedidos pendientes.</p>
-                <div className={styles.heroActions}>
-                  <button type="button" onClick={() => setTabActiva("productos")} className={styles.primaryButton}>Crear producto</button>
-                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.secondaryButton}>Ver pedidos</button>
-                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.secondaryButton}>Alertas stock</button>
+            <section className={styles.dashboardHeroPro}>
+              <div className={styles.dashboardHeroCopy}>
+                <span className={styles.proTag}>DASHBOARD PRO</span>
+                <h3>Centro de decisiones Jonas Stream</h3>
+                <p>
+                  Revisa de un vistazo dinero cobrado, dinero pendiente, pedidos por atender,
+                  stock crítico y comprobantes que necesitan validación.
+                </p>
+                <div className={styles.dashboardHeroActions}>
+                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.primaryButton}>Atender pedidos</button>
+                  <button type="button" onClick={() => setTabActiva("comprobantes")} className={styles.secondaryButton}>Validar pagos</button>
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.secondaryButton}>Ver stock crítico</button>
                 </div>
-              </article>
+              </div>
 
-              <article className={styles.panel}>
-                <div className={styles.panelHeader}>
+              <div className={styles.dashboardHeroMoney}>
+                <p>Ingreso confirmado</p>
+                <strong>{formatearSoles(ventasTotales)}</strong>
+                <span>{pedidosCompletados} pedidos completados · Ticket {formatearSoles(ticketPromedio)}</span>
+                <div className={styles.moneySplitGrid}>
                   <div>
-                    <p className={styles.kicker}>Prioridad</p>
-                    <h3>Lo urgente</h3>
+                    <small>Por cobrar</small>
+                    <b>{formatearSoles(ingresosPendientes)}</b>
+                  </div>
+                  <div>
+                    <small>Conversión</small>
+                    <b>{tasaConversion}%</b>
                   </div>
                 </div>
-                <div className={styles.alertList}>
-                  <PriorityItem label="Pedidos pendientes" value={pedidosPendientes} tone="warning" />
-                  <PriorityItem label="Comprobantes por revisar" value={comprobantesPendientes} tone="info" />
-                  <PriorityItem label="Usuarios por aprobar" value={usuariosPendientes} tone="success" />
-                  <PriorityItem label="Stock crítico" value={productosCriticos.length} tone="danger" />
+              </div>
+            </section>
+
+            <div className={styles.metricsGridPro}>
+              <MetricCard title="Ventas reales" value={formatearSoles(ventasTotales)} detail="Pedidos completados" tone="success" />
+              <MetricCard title="Pendiente por cobrar" value={formatearSoles(ingresosPendientes)} detail={`${pedidosPendientes} pedidos pendientes`} tone="warning" />
+              <MetricCard title="Pedidos activos" value={totalPedidos} detail={`${pedidosCompletados} completados · ${pedidosCancelados} cancelados`} tone="info" />
+              <MetricCard title="Stock crítico" value={productosCriticos.length} detail={`${productosAgotados.length} agotados · ${productosBajoStock.length} bajos`} tone="danger" />
+              <MetricCard title="Comprobantes" value={comprobantesUnificados.length || pedidosConComprobante} detail={`${comprobantesPendientes} pendientes de revisión`} tone="neutral" />
+              <MetricCard title="Usuarios pendientes" value={usuariosPendientes} detail={`${usuariosAprobados} aprobados`} tone="warning" />
+              <MetricCard title="Catálogo activo" value={productosActivos} detail={`${productosOferta} en oferta · ${productosDestacados} destacados`} tone="info" />
+              <MetricCard title="Salud inventario" value={`${saludInventario}%`} detail={`${totalProductos} productos registrados`} tone="success" />
+            </div>
+
+            <section className={styles.decisionGrid}>
+              <article className={`${styles.panel} ${styles.decisionPanel}`}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Acción rápida</p>
+                    <h3>Prioridades de hoy</h3>
+                    <span className={styles.panelHint}>Ataca primero lo que mueve ventas o bloquea entregas.</span>
+                  </div>
+                </div>
+
+                <div className={styles.decisionCards}>
+                  <button type="button" onClick={() => { setTabActiva("pedidos"); setFiltroEstadoPedido("pendiente") }} className={styles.decisionCard}>
+                    <span className={styles.decisionIcon}>◉</span>
+                    <div>
+                      <strong>{pedidosPendientes} pedidos pendientes</strong>
+                      <small>{formatearSoles(ingresosPendientes)} esperando confirmación</small>
+                    </div>
+                  </button>
+                  <button type="button" onClick={() => { setTabActiva("comprobantes"); setFiltroEstadoComprobante("pendiente") }} className={styles.decisionCard}>
+                    <span className={styles.decisionIcon}>▤</span>
+                    <div>
+                      <strong>{comprobantesPendientes} comprobantes</strong>
+                      <small>Revisar pagos antes de entregar</small>
+                    </div>
+                  </button>
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={`${styles.decisionCard} ${styles.decisionDanger}`}>
+                    <span className={styles.decisionIcon}>▦</span>
+                    <div>
+                      <strong>{productosCriticos.length} alertas de stock</strong>
+                      <small>{productosAgotados.length} agotados y {productosBajoStock.length} bajo stock</small>
+                    </div>
+                  </button>
+                  <button type="button" onClick={() => { setTabActiva("usuarios"); setFiltroEstadoUsuario("pendiente") }} className={styles.decisionCard}>
+                    <span className={styles.decisionIcon}>◎</span>
+                    <div>
+                      <strong>{usuariosPendientes} usuarios por aprobar</strong>
+                      <small>Controla accesos y roles</small>
+                    </div>
+                  </button>
                 </div>
               </article>
-            </div>
+
+              <article className={`${styles.panel} ${styles.healthPanel}`}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Salud operacional</p>
+                    <h3>Semáforo del negocio</h3>
+                  </div>
+                </div>
+                <div className={styles.healthList}>
+                  <div className={styles.healthItem}>
+                    <span>Ventas</span>
+                    <strong>{ventasTotales > 0 ? "Activo" : "Sin ventas"}</strong>
+                    <em className={ventasTotales > 0 ? styles.healthOk : styles.healthWarn}></em>
+                  </div>
+                  <div className={styles.healthItem}>
+                    <span>Pagos</span>
+                    <strong>{comprobantesPendientes > 0 ? "Revisar" : "Limpio"}</strong>
+                    <em className={comprobantesPendientes > 0 ? styles.healthWarn : styles.healthOk}></em>
+                  </div>
+                  <div className={styles.healthItem}>
+                    <span>Stock</span>
+                    <strong>{productosCriticos.length > 0 ? "Crítico" : "Estable"}</strong>
+                    <em className={productosCriticos.length > 0 ? styles.healthDanger : styles.healthOk}></em>
+                  </div>
+                  <div className={styles.healthItem}>
+                    <span>Usuarios</span>
+                    <strong>{usuariosPendientes > 0 ? "Pendiente" : "Controlado"}</strong>
+                    <em className={usuariosPendientes > 0 ? styles.healthWarn : styles.healthOk}></em>
+                  </div>
+                </div>
+              </article>
+            </section>
 
             <div className={styles.analyticsGrid}>
               <article className={styles.panel}>
@@ -1191,7 +1269,9 @@ export default function AdminPage() {
                   <div>
                     <p className={styles.kicker}>Analytics</p>
                     <h3>Embudo de pedidos</h3>
+                    <span className={styles.panelHint}>Mide rápido cuánto se convierte y qué falta cerrar.</span>
                   </div>
+                  <span className={styles.countBadge}>{tasaConversion}% conversión</span>
                 </div>
                 <div className={styles.barChart}>
                   <ChartBar label="Completados" value={pedidosCompletados} total={Math.max(totalPedidos, 1)} />
@@ -1205,6 +1285,7 @@ export default function AdminPage() {
                   <div>
                     <p className={styles.kicker}>Live center</p>
                     <h3>Eventos en vivo</h3>
+                    <span className={styles.panelHint}>Movimiento reciente del panel.</span>
                   </div>
                 </div>
                 <div className={styles.liveList}>
@@ -1217,12 +1298,13 @@ export default function AdminPage() {
               </article>
             </div>
 
-            <div className={styles.dashboardGrid}>
+            <div className={styles.dashboardGridPro}>
               <article className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <div>
                     <p className={styles.kicker}>Actividad</p>
                     <h3>Pedidos recientes</h3>
+                    <span className={styles.panelHint}>Últimos movimientos de venta.</span>
                   </div>
                   <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.linkButton}>Ver todos</button>
                 </div>
@@ -1232,7 +1314,7 @@ export default function AdminPage() {
                     <EmptyState title="Sin pedidos" text="Aún no hay pedidos registrados." />
                   ) : (
                     pedidos.slice(0, 5).map((pedido) => (
-                      <div key={pedido.id} className={styles.compactItem}>
+                      <button key={pedido.id} type="button" onClick={() => setTabActiva("pedidos")} className={styles.dashboardListButton}>
                         <div>
                           <strong>{pedido.cliente_nombre}</strong>
                           <span>#{pedido.id.slice(0, 8)} · {fechaLegible(pedido.created_at)}</span>
@@ -1241,7 +1323,7 @@ export default function AdminPage() {
                           <strong>{formatearSoles(pedido.total)}</strong>
                           <StatusBadge estado={pedido.estado} />
                         </div>
-                      </div>
+                      </button>
                     ))
                   )}
                 </div>
@@ -1252,6 +1334,7 @@ export default function AdminPage() {
                   <div>
                     <p className={styles.kicker}>Inventario</p>
                     <h3>Stock crítico</h3>
+                    <span className={styles.panelHint}>Productos que pueden bloquear ventas.</span>
                   </div>
                   <button type="button" onClick={() => setTabActiva("inventario")} className={styles.linkButton}>Gestionar</button>
                 </div>
@@ -1261,16 +1344,36 @@ export default function AdminPage() {
                     <EmptyState title="Stock estable" text="No hay productos críticos por ahora." />
                   ) : (
                     productosCriticos.map((producto) => (
-                      <div key={producto.id} className={styles.compactItem}>
+                      <button key={producto.id} type="button" onClick={() => editarProducto(producto)} className={styles.dashboardListButton}>
                         <div>
                           <strong>{producto.nombre}</strong>
-                          <span>{producto.categoria || "Sin categoría"}</span>
+                          <span>{producto.categoria || "Sin categoría"} · {producto.proveedor || "Jonas Stream"}</span>
                         </div>
                         <div className={Number(producto.stock) <= 0 ? styles.stockPillDanger : styles.stockPill}>{producto.stock} und.</div>
-                      </div>
+                      </button>
                     ))
                   )}
                 </div>
+              </article>
+
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Auditoría</p>
+                    <h3>Última acción</h3>
+                    <span className={styles.panelHint}>Control interno del panel.</span>
+                  </div>
+                  <button type="button" onClick={() => setTabActiva("historial")} className={styles.linkButton}>Historial</button>
+                </div>
+                {logs.length === 0 ? (
+                  <EmptyState title="Sin historial" text="Las acciones del panel aparecerán aquí." />
+                ) : (
+                  <div className={styles.auditPreview}>
+                    <strong>{logs[0].accion} · {logs[0].entidad}</strong>
+                    <p>{logs[0].detalle || "Sin detalle"}</p>
+                    <span>{logs[0].actor_nombre || "Sistema"} · {fechaLegible(logs[0].created_at)}</span>
+                  </div>
+                )}
               </article>
             </div>
           </div>
