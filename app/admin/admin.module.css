@@ -3389,3 +3389,242 @@
     width: 100%;
   }
 }
+
+
+/* FASE 7/9 - Usuarios PRO Jonas Stream */
+.usersHeroPro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(0, 251, 255, 0.15), transparent 30%),
+    radial-gradient(circle at 90% 15%, rgba(1, 139, 144, 0.2), transparent 30%),
+    linear-gradient(135deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.58));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.14), inset 0 0 46px rgba(0, 251, 255, 0.045);
+  overflow: hidden;
+  position: relative;
+}
+
+.usersHeroPro::after {
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: -125px;
+  bottom: -145px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 251, 255, 0.14), transparent 62%);
+  pointer-events: none;
+}
+
+.usersHeroCopy,
+.usersHeroStats {
+  position: relative;
+  z-index: 1;
+}
+
+.usersHeroCopy {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+}
+
+.usersHeroCopy h3 {
+  max-width: 760px;
+  margin: 0;
+  color: #ECFFFF;
+  font-size: clamp(32px, 4vw, 56px);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 40px rgba(0, 251, 255, 0.18);
+}
+
+.usersHeroCopy p {
+  max-width: 760px;
+  margin: 0;
+  color: #9BC8CB;
+  line-height: 1.65;
+}
+
+.usersHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.usersHeroStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.usersHeroStats div {
+  padding: 16px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.26);
+  box-shadow: inset 0 0 24px rgba(0, 251, 255, 0.04);
+}
+
+.usersHeroStats span {
+  display: block;
+  color: #9BC8CB;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.usersHeroStats strong {
+  display: block;
+  color: #00FBFF;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1;
+  text-shadow: 0 0 25px rgba(0, 251, 255, 0.2);
+}
+
+.usersHeroStats small {
+  display: block;
+  margin-top: 8px;
+  color: #9BC8CB;
+  font-weight: 750;
+}
+
+.userRiskPanel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  background: rgba(1, 231, 239, 0.07);
+  color: #dffcff;
+  font-weight: 850;
+}
+
+.userRiskPanel strong {
+  color: #00FBFF;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.userRiskPanel span {
+  color: #9BC8CB;
+  font-size: 13px;
+}
+
+.userCardPro {
+  overflow: hidden;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.userCardTopline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.userStateStack {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.roleChip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  background: rgba(1, 231, 239, 0.075);
+  color: #00FBFF;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.userAccessSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.userAccessSummary div {
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.userAccessSummary span {
+  display: block;
+  margin-bottom: 5px;
+  color: #789ba2;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.userAccessSummary strong {
+  color: #ECFFFF;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.roleActionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.roleActionGrid button {
+  width: 100%;
+}
+
+.roleActiveButton {
+  color: #001014 !important;
+  background: linear-gradient(135deg, #01E7EF, #00FBFF) !important;
+  border-color: transparent !important;
+  box-shadow: 0 0 18px rgba(0, 251, 255, 0.18) !important;
+}
+
+.userPendingRow td {
+  background: rgba(255, 224, 130, 0.035);
+}
+
+.userRejectedRow td {
+  background: rgba(255, 143, 163, 0.035);
+}
+
+@media (max-width: 1100px) {
+  .usersHeroPro {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .usersHeroStats,
+  .userAccessSummary,
+  .roleActionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .userRiskPanel {
+    width: 100%;
+    align-items: flex-start;
+    border-radius: 18px;
+  }
+}

@@ -225,6 +225,7 @@ export default function AdminPage() {
   const [busquedaUsuario, setBusquedaUsuario] = useState("")
   const [filtroEstadoUsuario, setFiltroEstadoUsuario] = useState("todos")
   const [filtroRolUsuario, setFiltroRolUsuario] = useState("todos")
+  const [vistaUsuarios, setVistaUsuarios] = useState<"tarjetas" | "tabla">("tarjetas")
 
   const [busquedaComprobante, setBusquedaComprobante] = useState("")
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
@@ -940,6 +941,10 @@ export default function AdminPage() {
   const ingresosPendientes = pedidos.filter((pedido) => pedido.estado === "pendiente").reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
   const usuariosPendientes = usuarios.filter((u) => u.estado === "pendiente").length
   const usuariosAprobados = usuarios.filter((u) => u.estado === "aprobado").length
+  const usuariosRechazados = usuarios.filter((u) => u.estado === "rechazado").length
+  const usuariosAdmin = usuarios.filter((u) => u.rol === "admin").length
+  const usuariosProveedor = usuarios.filter((u) => u.rol === "proveedor").length
+  const usuariosCliente = usuarios.filter((u) => u.rol === "cliente").length
   const productosBajoStock = productos.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 3)
   const productosAgotados = productos.filter((p) => Number(p.stock) <= 0)
   const productosCriticos = [...productosAgotados, ...productosBajoStock].slice(0, 8)
@@ -1926,75 +1931,198 @@ export default function AdminPage() {
         )}
 
         {tabActiva === "usuarios" && (
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <p className={styles.kicker}>Accesos</p>
-                <h3>Gestión de usuarios</h3>
-                <span className={styles.panelHint}>Aprobar, rechazar y cambiar rol con acciones claras.</span>
+          <div className={styles.sectionStack}>
+            <section className={styles.usersHeroPro}>
+              <div className={styles.usersHeroCopy}>
+                <span className={styles.proTag}>USUARIOS PRO</span>
+                <h3>Control de accesos Jonas Stream</h3>
+                <p>
+                  Aprueba registros, separa clientes/proveedores/admins y detecta accesos pendientes sin tocar RLS todavía.
+                  Esta pantalla queda lista para operar con más claridad y menos riesgo.
+                </p>
+                <div className={styles.usersHeroActions}>
+                  <button type="button" onClick={() => { setFiltroEstadoUsuario("pendiente"); setVistaUsuarios("tarjetas") }} className={styles.primaryButton}>Revisar pendientes</button>
+                  <button type="button" onClick={() => { setFiltroRolUsuario("proveedor"); setVistaUsuarios("tabla") }} className={styles.secondaryButton}>Ver proveedores</button>
+                  <button type="button" onClick={() => { setFiltroRolUsuario("admin"); setVistaUsuarios("tabla") }} className={styles.secondaryButton}>Ver admins</button>
+                </div>
               </div>
-              <span className={styles.countBadge}>{usuariosFiltrados.length} usuarios</span>
-            </div>
 
-            <div className={styles.miniStatsGrid}>
-              <button type="button" onClick={() => setFiltroEstadoUsuario("pendiente")} className={styles.miniStatCard}>
-                <span>Pendientes</span><strong>{usuariosPendientes}</strong><small>Requieren aprobación</small>
-              </button>
-              <button type="button" onClick={() => setFiltroEstadoUsuario("aprobado")} className={styles.miniStatCard}>
-                <span>Aprobados</span><strong>{usuariosAprobados}</strong><small>Acceso habilitado</small>
-              </button>
-              <button type="button" onClick={() => setFiltroRolUsuario("admin")} className={styles.miniStatCard}>
-                <span>Admins</span><strong>{usuarios.filter((u) => u.rol === "admin").length}</strong><small>Control total</small>
-              </button>
-              <button type="button" onClick={() => { setFiltroEstadoUsuario("todos"); setFiltroRolUsuario("todos"); setBusquedaUsuario("") }} className={styles.miniStatCard}>
-                <span>Total</span><strong>{totalUsuarios}</strong><small>Limpiar filtros</small>
-              </button>
-            </div>
+              <div className={styles.usersHeroStats}>
+                <div>
+                  <span>Pendientes</span>
+                  <strong>{usuariosPendientes}</strong>
+                  <small>requieren decisión</small>
+                </div>
+                <div>
+                  <span>Aprobados</span>
+                  <strong>{usuariosAprobados}</strong>
+                  <small>con acceso activo</small>
+                </div>
+                <div>
+                  <span>Admins</span>
+                  <strong>{usuariosAdmin}</strong>
+                  <small>control total</small>
+                </div>
+                <div>
+                  <span>Rechazados</span>
+                  <strong>{usuariosRechazados}</strong>
+                  <small>sin acceso</small>
+                </div>
+              </div>
+            </section>
 
-            <div className={styles.filtersGridWide}>
-              <input type="text" placeholder="Buscar usuario o correo..." value={busquedaUsuario} onChange={(e) => setBusquedaUsuario(e.target.value)} className={styles.input} />
-              <select value={filtroEstadoUsuario} onChange={(e) => setFiltroEstadoUsuario(e.target.value)} className={styles.input}>
-                {estadosUsuario.map((estado) => <option key={estado} value={estado}>{estado === "todos" ? "Todos los estados" : estado}</option>)}
-              </select>
-              <select value={filtroRolUsuario} onChange={(e) => setFiltroRolUsuario(e.target.value)} className={styles.input}>
-                {rolesUsuario.map((rol) => <option key={rol} value={rol}>{rol === "todos" ? "Todos los roles" : rol}</option>)}
-              </select>
-            </div>
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Accesos</p>
+                  <h3>Gestión de usuarios</h3>
+                  <span className={styles.panelHint}>Aprobar, rechazar y cambiar rol con acciones más claras y vista tabla/tarjetas.</span>
+                </div>
+                <span className={styles.countBadge}>{usuariosFiltrados.length} usuarios</span>
+              </div>
 
-            <div className={styles.cardsGrid}>
+              <div className={styles.miniStatsGrid}>
+                <button type="button" onClick={() => setFiltroEstadoUsuario("pendiente")} className={styles.miniStatCard}>
+                  <span>Pendientes</span><strong>{usuariosPendientes}</strong><small>Requieren aprobación</small>
+                </button>
+                <button type="button" onClick={() => setFiltroEstadoUsuario("aprobado")} className={styles.miniStatCard}>
+                  <span>Aprobados</span><strong>{usuariosAprobados}</strong><small>Acceso habilitado</small>
+                </button>
+                <button type="button" onClick={() => setFiltroRolUsuario("proveedor")} className={styles.miniStatCard}>
+                  <span>Proveedores</span><strong>{usuariosProveedor}</strong><small>Gestionan catálogo</small>
+                </button>
+                <button type="button" onClick={() => { setFiltroEstadoUsuario("todos"); setFiltroRolUsuario("todos"); setBusquedaUsuario("") }} className={styles.miniStatCard}>
+                  <span>Total</span><strong>{totalUsuarios}</strong><small>{usuariosCliente} clientes · {usuariosAdmin} admins</small>
+                </button>
+              </div>
+
+              <div className={styles.toolbarInline}>
+                <div className={styles.userRiskPanel}>
+                  <strong>{usuariosPendientes}</strong>
+                  <span>usuarios esperando revisión · {usuariosRechazados} rechazados · {usuariosAdmin} admins</span>
+                </div>
+                <div className={styles.toggleGroup}>
+                  <button type="button" onClick={() => { setBusquedaUsuario(""); setFiltroEstadoUsuario("todos"); setFiltroRolUsuario("todos") }} className={styles.toggleUtility}>Limpiar filtros</button>
+                  <button type="button" onClick={() => setVistaUsuarios("tarjetas")} className={vistaUsuarios === "tarjetas" ? styles.toggleActive : ""}>Tarjetas</button>
+                  <button type="button" onClick={() => setVistaUsuarios("tabla")} className={vistaUsuarios === "tabla" ? styles.toggleActive : ""}>Tabla</button>
+                </div>
+              </div>
+
+              <div className={styles.filtersGridWide}>
+                <input type="text" placeholder="Buscar usuario, correo, rol o estado..." value={busquedaUsuario} onChange={(e) => setBusquedaUsuario(e.target.value)} className={styles.input} />
+                <select value={filtroEstadoUsuario} onChange={(e) => setFiltroEstadoUsuario(e.target.value)} className={styles.input}>
+                  {estadosUsuario.map((estado) => <option key={estado} value={estado}>{estado === "todos" ? "Todos los estados" : estado}</option>)}
+                </select>
+                <select value={filtroRolUsuario} onChange={(e) => setFiltroRolUsuario(e.target.value)} className={styles.input}>
+                  {rolesUsuario.map((rol) => <option key={rol} value={rol}>{rol === "todos" ? "Todos los roles" : rol}</option>)}
+                </select>
+              </div>
+
               {usuariosFiltrados.length === 0 ? (
                 <EmptyState title="Sin usuarios" text="No hay usuarios que coincidan con los filtros." />
-              ) : usuariosFiltrados.map((u) => (
-                <article key={u.id} className={`${styles.userCard} ${u.estado === "pendiente" ? styles.cardWarning : ""}`}>
-                  <div className={styles.avatar}>{u.nombre?.slice(0, 2).toUpperCase() || "US"}</div>
-                  <div>
-                    <h4>{u.nombre}</h4>
-                    <p>{u.correo}</p>
-                  </div>
-                  <div className={styles.userMeta}>
-                    <span>Rol: <strong>{u.rol}</strong></span>
-                    <span>Estado: <StatusBadge estado={u.estado} /></span>
-                  </div>
-                  <div className={styles.actionDivider}>Estado de acceso</div>
-                  <div className={styles.cardActions}>
-                    <button type="button" onClick={() => actualizarEstado(u.id, "aprobado")} className={styles.successButton}>Aprobar</button>
-                    <button type="button" onClick={() => actualizarEstado(u.id, "rechazado")} className={styles.dangerButton}>Rechazar</button>
-                  </div>
-                  {!esProveedor && (
-                    <>
-                      <div className={styles.actionDivider}>Rol del usuario</div>
-                      <div className={styles.cardActions}>
-                        <button type="button" onClick={() => cambiarRol(u.id, "cliente")} className={styles.secondaryButton}>Cliente</button>
-                        <button type="button" onClick={() => cambiarRol(u.id, "proveedor")} className={styles.secondaryButton}>Proveedor</button>
-                        <button type="button" onClick={() => cambiarRol(u.id, "admin")} className={styles.secondaryButton}>Admin</button>
-                        <button type="button" onClick={() => eliminarUsuario(u.id)} className={styles.dangerGhostButton}>Eliminar</button>
-                      </div>
-                    </>
-                  )}
-                </article>
-              ))}
-            </div>
-          </article>
+              ) : vistaUsuarios === "tabla" ? (
+                <div className={styles.tableWrap}>
+                  <table className={styles.proTable}>
+                    <thead>
+                      <tr>
+                        <th>Usuario</th>
+                        <th>Correo</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Acceso</th>
+                        {!esProveedor && <th>Roles</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usuariosFiltrados.map((u) => (
+                        <tr key={u.id} className={u.estado === "pendiente" ? styles.userPendingRow : u.estado === "rechazado" ? styles.userRejectedRow : ""}>
+                          <td>
+                            <strong>{u.nombre || "Usuario sin nombre"}</strong>
+                            <small>ID {u.id.slice(0, 8)}</small>
+                          </td>
+                          <td>{u.correo}</td>
+                          <td><span className={styles.roleChip}>{u.rol}</span></td>
+                          <td><StatusBadge estado={u.estado} /></td>
+                          <td>
+                            <div className={styles.tableActions}>
+                              <button type="button" onClick={() => actualizarEstado(u.id, "aprobado")} className={styles.successButton}>Aprobar</button>
+                              <button type="button" onClick={() => actualizarEstado(u.id, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                            </div>
+                          </td>
+                          {!esProveedor && (
+                            <td>
+                              <div className={styles.tableActions}>
+                                <button type="button" onClick={() => cambiarRol(u.id, "cliente")} className={styles.secondaryButton}>Cliente</button>
+                                <button type="button" onClick={() => cambiarRol(u.id, "proveedor")} className={styles.secondaryButton}>Proveedor</button>
+                                <button type="button" onClick={() => cambiarRol(u.id, "admin")} className={styles.secondaryButton}>Admin</button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className={styles.cardsGrid}>
+                  {usuariosFiltrados.map((u) => {
+                    const iniciales = u.nombre?.slice(0, 2).toUpperCase() || "US"
+                    const esPendiente = u.estado === "pendiente"
+                    const esRechazado = u.estado === "rechazado"
+                    const esAdmin = u.rol === "admin"
+
+                    return (
+                      <article key={u.id} className={`${styles.userCard} ${styles.userCardPro} ${esPendiente ? styles.cardWarning : ""} ${esRechazado ? styles.cardDanger : ""}`}>
+                        <div className={styles.userCardTopline}>
+                          <div className={styles.avatar}>{iniciales}</div>
+                          <div className={styles.userStateStack}>
+                            <StatusBadge estado={u.estado} />
+                            <span className={styles.roleChip}>{u.rol}</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4>{u.nombre || "Usuario sin nombre"}</h4>
+                          <p>{u.correo}</p>
+                        </div>
+
+                        <div className={styles.userAccessSummary}>
+                          <div>
+                            <span>Estado</span>
+                            <strong>{esPendiente ? "Revisión necesaria" : esRechazado ? "Acceso bloqueado" : "Acceso habilitado"}</strong>
+                          </div>
+                          <div>
+                            <span>Nivel</span>
+                            <strong>{esAdmin ? "Control total" : u.rol === "proveedor" ? "Gestión catálogo" : "Cliente"}</strong>
+                          </div>
+                        </div>
+
+                        {esPendiente && <div className={styles.noticeBox}>Este usuario está esperando aprobación. Revísalo antes de entregar acceso.</div>}
+
+                        <div className={styles.actionDivider}>Estado de acceso</div>
+                        <div className={styles.cardActions}>
+                          <button type="button" onClick={() => actualizarEstado(u.id, "aprobado")} className={styles.successButton}>✅ Aprobar</button>
+                          <button type="button" onClick={() => actualizarEstado(u.id, "rechazado")} className={styles.dangerButton}>⛔ Rechazar</button>
+                        </div>
+
+                        {!esProveedor && (
+                          <>
+                            <div className={styles.actionDivider}>Rol del usuario</div>
+                            <div className={styles.roleActionGrid}>
+                              <button type="button" onClick={() => cambiarRol(u.id, "cliente")} className={`${styles.secondaryButton} ${u.rol === "cliente" ? styles.roleActiveButton : ""}`}>Cliente</button>
+                              <button type="button" onClick={() => cambiarRol(u.id, "proveedor")} className={`${styles.secondaryButton} ${u.rol === "proveedor" ? styles.roleActiveButton : ""}`}>Proveedor</button>
+                              <button type="button" onClick={() => cambiarRol(u.id, "admin")} className={`${styles.secondaryButton} ${u.rol === "admin" ? styles.roleActiveButton : ""}`}>Admin</button>
+                            </div>
+                            <button type="button" onClick={() => eliminarUsuario(u.id)} className={styles.dangerGhostButton}>Eliminar usuario</button>
+                          </>
+                        )}
+                      </article>
+                    )
+                  })}
+                </div>
+              )}
+            </article>
+          </div>
         )}
 
         {tabActiva === "comprobantes" && (
