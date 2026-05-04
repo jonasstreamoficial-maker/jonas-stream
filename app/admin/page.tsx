@@ -1135,6 +1135,46 @@ export default function AdminPage() {
     return texto.includes("eliminar") || texto.includes("actualizar") || texto.includes("crear") || texto.includes("sincronizar") || texto.includes("stock")
   }) || logs[0]
 
+  const inicioHoy = new Date()
+  inicioHoy.setHours(0, 0, 0, 0)
+
+  const pedidosHoy = pedidos.filter((pedido) => {
+    const fecha = new Date(pedido.created_at)
+    return !Number.isNaN(fecha.getTime()) && fecha >= inicioHoy
+  })
+  const ventasHoy = pedidosHoy
+    .filter((pedido) => pedido.estado === "completado")
+    .reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
+  const pedidosUrgentes = pedidos.filter((pedido) => {
+    const creado = new Date(pedido.created_at).getTime()
+    const viejo = !Number.isNaN(creado) && Date.now() - creado > 1000 * 60 * 60 * 24
+    return pedido.estado === "pendiente" && (viejo || !obtenerComprobanteUrl(pedido))
+  })
+  const pedidosSinPago = pedidos.filter((pedido) => pedido.estado === "pendiente" && !obtenerComprobanteUrl(pedido))
+  const productosCriticosTotal = productosAgotados.length + productosBajoStock.length
+  const productosDisponibles = productos.filter((producto) => Number(producto.stock || 0) > 3).length
+  const comprobantesPendientesDashboard = comprobantesUnificados.filter((comprobante) => comprobante.estado === "pendiente").length
+  const actividadHoyTotal = pedidosHoy.length + logsHoy
+  const productoMasMovido = (() => {
+    const contador = new Map<string, number>()
+    pedidos
+      .filter((pedido) => pedido.estado === "completado" && pedido.producto_nombre)
+      .forEach((pedido) => {
+        const nombre = pedido.producto_nombre || "Producto"
+        contador.set(nombre, (contador.get(nombre) || 0) + 1)
+      })
+
+    return Array.from(contador.entries()).sort((a, b) => b[1] - a[1])[0] || null
+  })()
+  const prioridadPrincipal =
+    pedidosUrgentes.length > 0
+      ? "Atender pedidos urgentes"
+      : comprobantesPendientesDashboard > 0
+      ? "Revisar comprobantes"
+      : productosCriticosTotal > 0
+      ? "Reponer inventario"
+      : "Operación estable"
+
   const productosVisibles = productosFiltrados.slice(0, limiteProductos)
   const pedidosVisibles = pedidosFiltrados.slice(0, limitePedidos)
   const pedidosVisiblesIds = pedidosVisibles.map((pedido) => pedido.id)
@@ -1286,26 +1326,66 @@ export default function AdminPage() {
 
         {tabActiva === "dashboard" && (
           <div className={styles.sectionStack}>
-            <section className={styles.dashboardHeroPro}>
-              <div className={styles.dashboardHeroCopy}>
-                <span className={styles.proTag}>DASHBOARD PRO</span>
-                <h3>Centro de decisiones Jonas Stream</h3>
+            <section className={styles.dashboardCommandHero}>
+              <div className={styles.commandHeroMain}>
+                <span className={styles.proTag}>DASHBOARD PRO PULIDO</span>
+                <h3>Centro de mando Jonas Stream</h3>
                 <p>
-                  Revisa de un vistazo dinero cobrado, dinero pendiente, pedidos por atender,
-                  stock crítico y comprobantes que necesitan validación.
+                  Entra, mira el estado real del negocio y actúa en segundos: ventas, pagos,
+                  pedidos urgentes, usuarios pendientes y stock crítico en un solo lugar.
                 </p>
+
+                <div className={styles.commandHeroFocus}>
+                  <span>Prioridad actual</span>
+                  <strong>{prioridadPrincipal}</strong>
+                  <small>
+                    {pedidosUrgentes.length > 0
+                      ? `${pedidosUrgentes.length} pedido(s) requieren atención inmediata.`
+                      : comprobantesPendientesDashboard > 0
+                      ? `${comprobantesPendientesDashboard} pago(s) necesitan validación.`
+                      : productosCriticosTotal > 0
+                      ? `${productosCriticosTotal} producto(s) están en nivel crítico.`
+                      : "No hay bloqueos críticos ahora mismo."}
+                  </small>
+                </div>
+
                 <div className={styles.dashboardHeroActions}>
-                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.primaryButton}>Atender pedidos</button>
-                  <button type="button" onClick={() => setTabActiva("comprobantes")} className={styles.secondaryButton}>Validar pagos</button>
-                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.secondaryButton}>Ver stock crítico</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTabActiva("pedidos")
+                      setFiltroEstadoPedido("pendiente")
+                    }}
+                    className={styles.primaryButton}
+                  >
+                    Atender pendientes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTabActiva("comprobantes")
+                      setFiltroEstadoComprobante("pendiente")
+                    }}
+                    className={styles.secondaryButton}
+                  >
+                    Revisar pagos
+                  </button>
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.secondaryButton}>
+                    Ver stock crítico
+                  </button>
                 </div>
               </div>
 
-              <div className={styles.dashboardHeroMoney}>
+              <div className={styles.commandMoneyCard}>
                 <p>Ingreso confirmado</p>
                 <strong>{formatearSoles(ventasTotales)}</strong>
-                <span>{pedidosCompletados} pedidos completados · Ticket {formatearSoles(ticketPromedio)}</span>
-                <div className={styles.moneySplitGrid}>
+                <span>{pedidosCompletados} ventas completadas · Ticket {formatearSoles(ticketPromedio)}</span>
+
+                <div className={styles.commandMoneyGrid}>
+                  <div>
+                    <small>Hoy</small>
+                    <b>{formatearSoles(ventasHoy)}</b>
+                  </div>
                   <div>
                     <small>Por cobrar</small>
                     <b>{formatearSoles(ingresosPendientes)}</b>
@@ -1314,150 +1394,182 @@ export default function AdminPage() {
                     <small>Conversión</small>
                     <b>{tasaConversion}%</b>
                   </div>
+                  <div>
+                    <small>Salud stock</small>
+                    <b>{saludInventario}%</b>
+                  </div>
                 </div>
               </div>
             </section>
 
+            <section className={styles.dashboardAlertGrid}>
+              <button
+                type="button"
+                onClick={() => {
+                  setTabActiva("pedidos")
+                  setFiltroEstadoPedido("pendiente")
+                }}
+                className={`${styles.alertActionCard} ${pedidosUrgentes.length > 0 ? styles.alertCardDanger : ""}`}
+              >
+                <span>◉</span>
+                <div>
+                  <strong>{pedidosUrgentes.length}</strong>
+                  <p>Pedidos urgentes</p>
+                  <small>{pedidosSinPago.length} sin comprobante visible</small>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTabActiva("comprobantes")
+                  setFiltroEstadoComprobante("pendiente")
+                }}
+                className={`${styles.alertActionCard} ${comprobantesPendientesDashboard > 0 ? styles.alertCardWarning : ""}`}
+              >
+                <span>▤</span>
+                <div>
+                  <strong>{comprobantesPendientesDashboard}</strong>
+                  <p>Pagos por validar</p>
+                  <small>Evita entregar sin revisar</small>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTabActiva("inventario")}
+                className={`${styles.alertActionCard} ${productosCriticosTotal > 0 ? styles.alertCardDanger : ""}`}
+              >
+                <span>▦</span>
+                <div>
+                  <strong>{productosCriticosTotal}</strong>
+                  <p>Alertas de stock</p>
+                  <small>{productosAgotados.length} agotados · {productosBajoStock.length} bajos</small>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTabActiva("usuarios")
+                  setFiltroEstadoUsuario("pendiente")
+                }}
+                className={`${styles.alertActionCard} ${usuariosPendientes > 0 ? styles.alertCardWarning : ""}`}
+              >
+                <span>◎</span>
+                <div>
+                  <strong>{usuariosPendientes}</strong>
+                  <p>Usuarios pendientes</p>
+                  <small>{usuariosAprobados} aprobados · {usuariosRechazados} rechazados</small>
+                </div>
+              </button>
+            </section>
+
             <div className={styles.metricsGridPro}>
-              <MetricCard title="Ventas reales" value={formatearSoles(ventasTotales)} detail="Pedidos completados" tone="success" />
-              <MetricCard title="Pendiente por cobrar" value={formatearSoles(ingresosPendientes)} detail={`${pedidosPendientes} pedidos pendientes`} tone="warning" />
-              <MetricCard title="Pedidos activos" value={totalPedidos} detail={`${pedidosCompletados} completados · ${pedidosCancelados} cancelados`} tone="info" />
-              <MetricCard title="Stock crítico" value={productosCriticos.length} detail={`${productosAgotados.length} agotados · ${productosBajoStock.length} bajos`} tone="danger" />
-              <MetricCard title="Comprobantes" value={comprobantesUnificados.length || pedidosConComprobante} detail={`${comprobantesPendientes} pendientes de revisión`} tone="neutral" />
-              <MetricCard title="Usuarios pendientes" value={usuariosPendientes} detail={`${usuariosAprobados} aprobados`} tone="warning" />
-              <MetricCard title="Catálogo activo" value={productosActivos} detail={`${productosOferta} en oferta · ${productosDestacados} destacados`} tone="info" />
-              <MetricCard title="Salud inventario" value={`${saludInventario}%`} detail={`${totalProductos} productos registrados`} tone="success" />
+              <MetricCard title="Ventas reales" value={formatearSoles(ventasTotales)} detail={`${formatearSoles(ventasHoy)} vendido hoy`} tone="success" />
+              <MetricCard title="Por cobrar" value={formatearSoles(ingresosPendientes)} detail={`${pedidosPendientes} pedidos pendientes`} tone="warning" />
+              <MetricCard title="Pedidos hoy" value={pedidosHoy.length} detail={`${pedidosUrgentes.length} urgentes detectados`} tone="info" />
+              <MetricCard title="Stock crítico" value={productosCriticosTotal} detail={`${productosDisponibles} productos estables`} tone="danger" />
+              <MetricCard title="Comprobantes" value={comprobantesUnificados.length || pedidosConComprobante} detail={`${comprobantesPendientesDashboard} pendientes`} tone="neutral" />
+              <MetricCard title="Usuarios" value={totalUsuarios} detail={`${usuariosPendientes} pendientes · ${usuariosAdmin} admin`} tone="info" />
+              <MetricCard title="Catálogo activo" value={productosActivos} detail={`${productosOferta} ofertas · ${productosDestacados} destacados`} tone="success" />
+              <MetricCard title="Actividad hoy" value={actividadHoyTotal} detail={`${logsHoy} acciones registradas`} tone="neutral" />
             </div>
 
-            <section className={styles.decisionGrid}>
-              <article className={`${styles.panel} ${styles.decisionPanel}`}>
+            <section className={styles.dashboardDecisionMatrix}>
+              <article className={`${styles.panel} ${styles.nextActionsPanel}`}>
                 <div className={styles.panelHeader}>
                   <div>
-                    <p className={styles.kicker}>Acción rápida</p>
-                    <h3>Prioridades de hoy</h3>
-                    <span className={styles.panelHint}>Ataca primero lo que mueve ventas o bloquea entregas.</span>
+                    <p className={styles.kicker}>Siguiente acción</p>
+                    <h3>Qué hacer primero</h3>
+                    <span className={styles.panelHint}>Ordenado por impacto operativo: dinero, entrega y stock.</span>
                   </div>
                 </div>
 
-                <div className={styles.decisionCards}>
-                  <button type="button" onClick={() => { setTabActiva("pedidos"); setFiltroEstadoPedido("pendiente") }} className={styles.decisionCard}>
-                    <span className={styles.decisionIcon}>◉</span>
+                <div className={styles.nextActionList}>
+                  <button type="button" onClick={() => { setTabActiva("pedidos"); setFiltroEstadoPedido("pendiente") }} className={styles.nextActionItem}>
+                    <em className={pedidosUrgentes.length > 0 ? styles.actionPulseDanger : styles.actionPulseOk}></em>
                     <div>
-                      <strong>{pedidosPendientes} pedidos pendientes</strong>
-                      <small>{formatearSoles(ingresosPendientes)} esperando confirmación</small>
+                      <strong>Atender pedidos pendientes</strong>
+                      <span>{pedidosPendientes} pendientes · {formatearSoles(ingresosPendientes)} por confirmar</span>
                     </div>
+                    <b>Ir</b>
                   </button>
-                  <button type="button" onClick={() => { setTabActiva("comprobantes"); setFiltroEstadoComprobante("pendiente") }} className={styles.decisionCard}>
-                    <span className={styles.decisionIcon}>▤</span>
+
+                  <button type="button" onClick={() => { setTabActiva("comprobantes"); setFiltroEstadoComprobante("pendiente") }} className={styles.nextActionItem}>
+                    <em className={comprobantesPendientesDashboard > 0 ? styles.actionPulseWarning : styles.actionPulseOk}></em>
                     <div>
-                      <strong>{comprobantesPendientes} comprobantes</strong>
-                      <small>Revisar pagos antes de entregar</small>
+                      <strong>Validar comprobantes</strong>
+                      <span>{comprobantesPendientesDashboard} pagos pendientes de revisión</span>
                     </div>
+                    <b>Ir</b>
                   </button>
-                  <button type="button" onClick={() => setTabActiva("inventario")} className={`${styles.decisionCard} ${styles.decisionDanger}`}>
-                    <span className={styles.decisionIcon}>▦</span>
+
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.nextActionItem}>
+                    <em className={productosCriticosTotal > 0 ? styles.actionPulseDanger : styles.actionPulseOk}></em>
                     <div>
-                      <strong>{productosCriticos.length} alertas de stock</strong>
-                      <small>{productosAgotados.length} agotados y {productosBajoStock.length} bajo stock</small>
+                      <strong>Controlar inventario</strong>
+                      <span>{productosAgotados.length} agotados · {productosBajoStock.length} bajo stock</span>
                     </div>
-                  </button>
-                  <button type="button" onClick={() => { setTabActiva("usuarios"); setFiltroEstadoUsuario("pendiente") }} className={styles.decisionCard}>
-                    <span className={styles.decisionIcon}>◎</span>
-                    <div>
-                      <strong>{usuariosPendientes} usuarios por aprobar</strong>
-                      <small>Controla accesos y roles</small>
-                    </div>
+                    <b>Ir</b>
                   </button>
                 </div>
               </article>
 
-              <article className={`${styles.panel} ${styles.healthPanel}`}>
+              <article className={`${styles.panel} ${styles.businessSnapshotPanel}`}>
                 <div className={styles.panelHeader}>
                   <div>
-                    <p className={styles.kicker}>Salud operacional</p>
-                    <h3>Semáforo del negocio</h3>
+                    <p className={styles.kicker}>Snapshot</p>
+                    <h3>Lectura rápida</h3>
+                    <span className={styles.panelHint}>Resumen para decidir sin entrar a cada módulo.</span>
                   </div>
                 </div>
-                <div className={styles.healthList}>
-                  <div className={styles.healthItem}>
-                    <span>Ventas</span>
-                    <strong>{ventasTotales > 0 ? "Activo" : "Sin ventas"}</strong>
-                    <em className={ventasTotales > 0 ? styles.healthOk : styles.healthWarn}></em>
+
+                <div className={styles.snapshotGrid}>
+                  <div>
+                    <span>Producto más movido</span>
+                    <strong>{productoMasMovido ? productoMasMovido[0] : "Sin ventas aún"}</strong>
+                    <small>{productoMasMovido ? `${productoMasMovido[1]} venta(s) completadas` : "Cuando haya ventas, aparecerá aquí."}</small>
                   </div>
-                  <div className={styles.healthItem}>
-                    <span>Pagos</span>
-                    <strong>{comprobantesPendientes > 0 ? "Revisar" : "Limpio"}</strong>
-                    <em className={comprobantesPendientes > 0 ? styles.healthWarn : styles.healthOk}></em>
+                  <div>
+                    <span>Riesgo operativo</span>
+                    <strong>{pedidosUrgentes.length + productosCriticosTotal + comprobantesPendientesDashboard}</strong>
+                    <small>Suma de urgencias visibles</small>
                   </div>
-                  <div className={styles.healthItem}>
-                    <span>Stock</span>
-                    <strong>{productosCriticos.length > 0 ? "Crítico" : "Estable"}</strong>
-                    <em className={productosCriticos.length > 0 ? styles.healthDanger : styles.healthOk}></em>
+                  <div>
+                    <span>Usuarios activos</span>
+                    <strong>{usuariosAprobados}</strong>
+                    <small>{usuariosProveedor} proveedores · {usuariosCliente} clientes</small>
                   </div>
-                  <div className={styles.healthItem}>
-                    <span>Usuarios</span>
-                    <strong>{usuariosPendientes > 0 ? "Pendiente" : "Controlado"}</strong>
-                    <em className={usuariosPendientes > 0 ? styles.healthWarn : styles.healthOk}></em>
+                  <div>
+                    <span>Historial crítico</span>
+                    <strong>{logsCriticos}</strong>
+                    <small>{logsSistema} acciones de sistema</small>
                   </div>
                 </div>
               </article>
             </section>
-
-            <div className={styles.analyticsGrid}>
-              <article className={styles.panel}>
-                <div className={styles.panelHeader}>
-                  <div>
-                    <p className={styles.kicker}>Analytics</p>
-                    <h3>Embudo de pedidos</h3>
-                    <span className={styles.panelHint}>Mide rápido cuánto se convierte y qué falta cerrar.</span>
-                  </div>
-                  <span className={styles.countBadge}>{tasaConversion}% conversión</span>
-                </div>
-                <div className={styles.barChart}>
-                  <ChartBar label="Completados" value={pedidosCompletados} total={Math.max(totalPedidos, 1)} />
-                  <ChartBar label="Pendientes" value={pedidosPendientes} total={Math.max(totalPedidos, 1)} />
-                  <ChartBar label="Cancelados" value={pedidosCancelados} total={Math.max(totalPedidos, 1)} />
-                </div>
-              </article>
-
-              <article className={styles.panel}>
-                <div className={styles.panelHeader}>
-                  <div>
-                    <p className={styles.kicker}>Live center</p>
-                    <h3>Eventos en vivo</h3>
-                    <span className={styles.panelHint}>Movimiento reciente del panel.</span>
-                  </div>
-                </div>
-                <div className={styles.liveList}>
-                  {eventosLive.length === 0 ? (
-                    <EmptyState title="Escuchando cambios" text="Los movimientos nuevos aparecerán aquí en tiempo real." />
-                  ) : (
-                    eventosLive.map((evento, index) => <div key={`${evento}-${index}`} className={styles.liveItem}>{evento}</div>)
-                  )}
-                </div>
-              </article>
-            </div>
 
             <div className={styles.dashboardGridPro}>
               <article className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <div>
-                    <p className={styles.kicker}>Actividad</p>
-                    <h3>Pedidos recientes</h3>
-                    <span className={styles.panelHint}>Últimos movimientos de venta.</span>
+                    <p className={styles.kicker}>Cola de trabajo</p>
+                    <h3>Pedidos que mirar primero</h3>
+                    <span className={styles.panelHint}>Priorizados por pendiente, antigüedad y comprobante.</span>
                   </div>
-                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.linkButton}>Ver todos</button>
+                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.linkButton}>Ver pedidos</button>
                 </div>
 
                 <div className={styles.compactList}>
-                  {pedidos.slice(0, 5).length === 0 ? (
+                  {(pedidosUrgentes.length > 0 ? pedidosUrgentes : pedidos.slice(0, 5)).slice(0, 5).length === 0 ? (
                     <EmptyState title="Sin pedidos" text="Aún no hay pedidos registrados." />
                   ) : (
-                    pedidos.slice(0, 5).map((pedido) => (
+                    (pedidosUrgentes.length > 0 ? pedidosUrgentes : pedidos.slice(0, 5)).slice(0, 5).map((pedido) => (
                       <button key={pedido.id} type="button" onClick={() => setTabActiva("pedidos")} className={styles.dashboardListButton}>
                         <div>
                           <strong>{pedido.cliente_nombre}</strong>
-                          <span>#{pedido.id.slice(0, 8)} · {fechaLegible(pedido.created_at)}</span>
+                          <span>#{pedido.id.slice(0, 8)} · {pedido.producto_nombre || "Producto no definido"}</span>
                         </div>
                         <div className={styles.compactRight}>
                           <strong>{formatearSoles(pedido.total)}</strong>
@@ -1473,8 +1585,8 @@ export default function AdminPage() {
                 <div className={styles.panelHeader}>
                   <div>
                     <p className={styles.kicker}>Inventario</p>
-                    <h3>Stock crítico</h3>
-                    <span className={styles.panelHint}>Productos que pueden bloquear ventas.</span>
+                    <h3>Stock que puede frenar ventas</h3>
+                    <span className={styles.panelHint}>Reposición rápida desde inventario.</span>
                   </div>
                   <button type="button" onClick={() => setTabActiva("inventario")} className={styles.linkButton}>Gestionar</button>
                 </div>
@@ -1500,18 +1612,19 @@ export default function AdminPage() {
                 <div className={styles.panelHeader}>
                   <div>
                     <p className={styles.kicker}>Auditoría</p>
-                    <h3>Última acción</h3>
+                    <h3>Última acción importante</h3>
                     <span className={styles.panelHint}>Control interno del panel.</span>
                   </div>
                   <button type="button" onClick={() => setTabActiva("historial")} className={styles.linkButton}>Historial</button>
                 </div>
-                {logs.length === 0 ? (
+                {!ultimaAccionImportante ? (
                   <EmptyState title="Sin historial" text="Las acciones del panel aparecerán aquí." />
                 ) : (
-                  <div className={styles.auditPreview}>
-                    <strong>{logs[0].accion} · {logs[0].entidad}</strong>
-                    <p>{logs[0].detalle || "Sin detalle"}</p>
-                    <span>{logs[0].actor_nombre || "Sistema"} · {fechaLegible(logs[0].created_at)}</span>
+                  <div className={styles.auditPreviewPro}>
+                    <span>{ultimaAccionImportante.entidad}</span>
+                    <strong>{ultimaAccionImportante.accion}</strong>
+                    <p>{ultimaAccionImportante.detalle || "Sin detalle"}</p>
+                    <small>{ultimaAccionImportante.actor_nombre || "Sistema"} · {fechaLegible(ultimaAccionImportante.created_at)}</small>
                   </div>
                 )}
               </article>
@@ -2650,148 +2763,28 @@ export default function AdminPage() {
         )}
 
         {tabActiva === "configuracion" && (
-          <div className={styles.sectionStack}>
-            <section className={styles.configHeroPro}>
-              <div className={styles.configHeroCopy}>
-                <span className={styles.proTag}>FASE 9 · CONFIGURACIÓN PRO</span>
-                <h3>Centro de marca Jonas Stream</h3>
-                <p>Controla la identidad pública de la tienda: nombre, slogan, banner principal, llamada a la acción y WhatsApp comercial.</p>
-                <div className={styles.configHeroActions}>
-                  <button type="button" onClick={() => setTabActiva("productos")} className={styles.secondaryButton}>Revisar catálogo</button>
-                  <button type="button" onClick={() => setTabActiva("historial")} className={styles.secondaryButton}>Ver auditoría</button>
-                  {formConfig.whatsapp && (
-                    <a
-                      href={`https://wa.me/${formConfig.whatsapp.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={styles.primaryButton}
-                    >
-                      Probar WhatsApp
-                    </a>
-                  )}
-                </div>
+          <article className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.kicker}>Personalización</p>
+                <h3>Configuración de tienda</h3>
               </div>
-
-              <div className={styles.configPreviewCard}>
-                <p>Preview tienda</p>
-                <strong>{formConfig.nombre_tienda || "Jonas Stream"}</strong>
-                <span>{formConfig.slogan || "Streaming premium al instante"}</span>
-                <div className={styles.configPreviewBanner}>
-                  <small>{formConfig.banner_titulo || "Tu entretenimiento, más simple"}</small>
-                  <em>{formConfig.banner_texto || "Configura el banner principal para mostrar una propuesta clara y vendible."}</em>
-                  <b>{formConfig.banner_boton || "Comprar ahora"}</b>
-                </div>
-              </div>
-            </section>
-
-            <div className={styles.configStatsGrid}>
-              <button type="button" className={styles.configStatCard}>
-                <span>Identidad</span>
-                <strong>{formConfig.nombre_tienda ? "OK" : "Falta"}</strong>
-                <small>Nombre y slogan de marca</small>
-              </button>
-              <button type="button" className={styles.configStatCard}>
-                <span>Banner</span>
-                <strong>{formConfig.banner_titulo && formConfig.banner_texto ? "OK" : "Falta"}</strong>
-                <small>Mensaje principal de venta</small>
-              </button>
-              <button type="button" className={styles.configStatCard}>
-                <span>CTA</span>
-                <strong>{formConfig.banner_boton ? "OK" : "Falta"}</strong>
-                <small>Texto del botón principal</small>
-              </button>
-              <button type="button" className={`${styles.configStatCard} ${!formConfig.whatsapp ? styles.configStatWarning : ""}`}>
-                <span>WhatsApp</span>
-                <strong>{formConfig.whatsapp ? "OK" : "Falta"}</strong>
-                <small>Canal comercial general</small>
-              </button>
+              {configId && <span className={styles.countBadge}>Configuración activa</span>}
             </div>
 
-            <section className={styles.configGridPro}>
-              <article className={styles.panel}>
-                <div className={styles.panelHeader}>
-                  <div>
-                    <p className={styles.kicker}>Personalización</p>
-                    <h3>Configuración de tienda</h3>
-                    <span className={styles.panelHint}>Guarda los textos públicos de la marca sin tocar seguridad ni RLS todavía.</span>
-                  </div>
-                  {configId ? <span className={styles.countBadge}>Configuración activa</span> : <span className={styles.countBadge}>Nueva configuración</span>}
-                </div>
+            <form onSubmit={guardarConfiguracion} className={styles.formGrid}>
+              <input name="nombre_tienda" placeholder="Nombre de la tienda" value={formConfig.nombre_tienda} onChange={handleConfigChange} className={styles.input} />
+              <input name="slogan" placeholder="Slogan" value={formConfig.slogan} onChange={handleConfigChange} className={styles.input} />
+              <input name="banner_titulo" placeholder="Título del banner" value={formConfig.banner_titulo} onChange={handleConfigChange} className={styles.input} />
+              <textarea name="banner_texto" placeholder="Texto del banner" value={formConfig.banner_texto} onChange={handleConfigChange} className={`${styles.input} ${styles.textarea}`} />
+              <input name="banner_boton" placeholder="Texto del botón" value={formConfig.banner_boton} onChange={handleConfigChange} className={styles.input} />
+              <input name="whatsapp" placeholder="WhatsApp general" value={formConfig.whatsapp} onChange={handleConfigChange} className={styles.input} />
 
-                <form onSubmit={guardarConfiguracion} className={styles.formGrid}>
-                  <div className={styles.fieldGroup}>
-                    <label>Nombre de la tienda</label>
-                    <input name="nombre_tienda" placeholder="Jonas Stream" value={formConfig.nombre_tienda} onChange={handleConfigChange} className={styles.input} />
-                  </div>
-
-                  <div className={styles.fieldGroup}>
-                    <label>Slogan</label>
-                    <input name="slogan" placeholder="Streaming premium al instante" value={formConfig.slogan} onChange={handleConfigChange} className={styles.input} />
-                  </div>
-
-                  <div className={styles.fieldGroup}>
-                    <label>Título del banner</label>
-                    <input name="banner_titulo" placeholder="Tu entretenimiento empieza aquí" value={formConfig.banner_titulo} onChange={handleConfigChange} className={styles.input} />
-                  </div>
-
-                  <div className={styles.fieldGroup}>
-                    <label>Texto del botón</label>
-                    <input name="banner_boton" placeholder="Comprar ahora" value={formConfig.banner_boton} onChange={handleConfigChange} className={styles.input} />
-                  </div>
-
-                  <div className={`${styles.fieldGroup} ${styles.fieldGroupFull}`}>
-                    <label>Texto del banner</label>
-                    <textarea name="banner_texto" placeholder="Describe la propuesta principal de Jonas Stream de forma clara y vendedora." value={formConfig.banner_texto} onChange={handleConfigChange} className={`${styles.input} ${styles.textarea}`} />
-                  </div>
-
-                  <div className={`${styles.fieldGroup} ${styles.fieldGroupFull}`}>
-                    <label>WhatsApp general</label>
-                    <input name="whatsapp" placeholder="51999999999" value={formConfig.whatsapp} onChange={handleConfigChange} className={styles.input} />
-                    <p>Usa formato internacional sin espacios para que el botón de WhatsApp funcione correctamente.</p>
-                  </div>
-
-                  <div className={styles.formActions}>
-                    <button type="submit" disabled={guardandoConfig} className={styles.primaryButton}>{guardandoConfig ? "Guardando..." : configId ? "Actualizar configuración" : "Guardar configuración"}</button>
-                    <button type="button" onClick={() => cargarDatos()} className={styles.secondaryButton}>Recargar datos</button>
-                  </div>
-                </form>
-              </article>
-
-              <aside className={styles.configChecklist}>
-                <div className={styles.panelHeader}>
-                  <div>
-                    <p className={styles.kicker}>Checklist</p>
-                    <h3>Lista antes de publicar</h3>
-                    <span className={styles.panelHint}>Validación rápida para que la tienda se vea seria.</span>
-                  </div>
-                </div>
-
-                <div className={styles.configChecklistItems}>
-                  <div className={formConfig.nombre_tienda ? styles.checkItemOk : styles.checkItemPending}>
-                    <strong>Nombre visible</strong>
-                    <span>{formConfig.nombre_tienda ? "Listo" : "Agrega el nombre comercial"}</span>
-                  </div>
-                  <div className={formConfig.slogan ? styles.checkItemOk : styles.checkItemPending}>
-                    <strong>Slogan claro</strong>
-                    <span>{formConfig.slogan ? "Listo" : "Agrega una frase corta"}</span>
-                  </div>
-                  <div className={formConfig.banner_titulo && formConfig.banner_texto ? styles.checkItemOk : styles.checkItemPending}>
-                    <strong>Banner completo</strong>
-                    <span>{formConfig.banner_titulo && formConfig.banner_texto ? "Listo" : "Completa título y descripción"}</span>
-                  </div>
-                  <div className={formConfig.whatsapp ? styles.checkItemOk : styles.checkItemPending}>
-                    <strong>Contacto comercial</strong>
-                    <span>{formConfig.whatsapp ? "WhatsApp configurado" : "Agrega WhatsApp general"}</span>
-                  </div>
-                </div>
-
-                <div className={styles.configNoteBox}>
-                  <strong>Paleta oficial activa</strong>
-                  <p>Cyan neón, negro petróleo, glass oscuro y glow controlado se mantienen como identidad visual del panel.</p>
-                </div>
-              </aside>
-            </section>
-          </div>
+              <div className={styles.formActions}>
+                <button type="submit" className={styles.primaryButton}>{guardandoConfig ? "Guardando..." : configId ? "Actualizar configuración" : "Guardar configuración"}</button>
+              </div>
+            </form>
+          </article>
         )}
       </section>
     </main>
