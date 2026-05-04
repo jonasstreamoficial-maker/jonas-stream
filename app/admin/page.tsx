@@ -2650,28 +2650,148 @@ export default function AdminPage() {
         )}
 
         {tabActiva === "configuracion" && (
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <p className={styles.kicker}>Personalización</p>
-                <h3>Configuración de tienda</h3>
+          <div className={styles.sectionStack}>
+            <section className={styles.configHeroPro}>
+              <div className={styles.configHeroCopy}>
+                <span className={styles.proTag}>FASE 9 · CONFIGURACIÓN PRO</span>
+                <h3>Centro de marca Jonas Stream</h3>
+                <p>Controla la identidad pública de la tienda: nombre, slogan, banner principal, llamada a la acción y WhatsApp comercial.</p>
+                <div className={styles.configHeroActions}>
+                  <button type="button" onClick={() => setTabActiva("productos")} className={styles.secondaryButton}>Revisar catálogo</button>
+                  <button type="button" onClick={() => setTabActiva("historial")} className={styles.secondaryButton}>Ver auditoría</button>
+                  {formConfig.whatsapp && (
+                    <a
+                      href={`https://wa.me/${formConfig.whatsapp.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={styles.primaryButton}
+                    >
+                      Probar WhatsApp
+                    </a>
+                  )}
+                </div>
               </div>
-              {configId && <span className={styles.countBadge}>Configuración activa</span>}
+
+              <div className={styles.configPreviewCard}>
+                <p>Preview tienda</p>
+                <strong>{formConfig.nombre_tienda || "Jonas Stream"}</strong>
+                <span>{formConfig.slogan || "Streaming premium al instante"}</span>
+                <div className={styles.configPreviewBanner}>
+                  <small>{formConfig.banner_titulo || "Tu entretenimiento, más simple"}</small>
+                  <em>{formConfig.banner_texto || "Configura el banner principal para mostrar una propuesta clara y vendible."}</em>
+                  <b>{formConfig.banner_boton || "Comprar ahora"}</b>
+                </div>
+              </div>
+            </section>
+
+            <div className={styles.configStatsGrid}>
+              <button type="button" className={styles.configStatCard}>
+                <span>Identidad</span>
+                <strong>{formConfig.nombre_tienda ? "OK" : "Falta"}</strong>
+                <small>Nombre y slogan de marca</small>
+              </button>
+              <button type="button" className={styles.configStatCard}>
+                <span>Banner</span>
+                <strong>{formConfig.banner_titulo && formConfig.banner_texto ? "OK" : "Falta"}</strong>
+                <small>Mensaje principal de venta</small>
+              </button>
+              <button type="button" className={styles.configStatCard}>
+                <span>CTA</span>
+                <strong>{formConfig.banner_boton ? "OK" : "Falta"}</strong>
+                <small>Texto del botón principal</small>
+              </button>
+              <button type="button" className={`${styles.configStatCard} ${!formConfig.whatsapp ? styles.configStatWarning : ""}`}>
+                <span>WhatsApp</span>
+                <strong>{formConfig.whatsapp ? "OK" : "Falta"}</strong>
+                <small>Canal comercial general</small>
+              </button>
             </div>
 
-            <form onSubmit={guardarConfiguracion} className={styles.formGrid}>
-              <input name="nombre_tienda" placeholder="Nombre de la tienda" value={formConfig.nombre_tienda} onChange={handleConfigChange} className={styles.input} />
-              <input name="slogan" placeholder="Slogan" value={formConfig.slogan} onChange={handleConfigChange} className={styles.input} />
-              <input name="banner_titulo" placeholder="Título del banner" value={formConfig.banner_titulo} onChange={handleConfigChange} className={styles.input} />
-              <textarea name="banner_texto" placeholder="Texto del banner" value={formConfig.banner_texto} onChange={handleConfigChange} className={`${styles.input} ${styles.textarea}`} />
-              <input name="banner_boton" placeholder="Texto del botón" value={formConfig.banner_boton} onChange={handleConfigChange} className={styles.input} />
-              <input name="whatsapp" placeholder="WhatsApp general" value={formConfig.whatsapp} onChange={handleConfigChange} className={styles.input} />
+            <section className={styles.configGridPro}>
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Personalización</p>
+                    <h3>Configuración de tienda</h3>
+                    <span className={styles.panelHint}>Guarda los textos públicos de la marca sin tocar seguridad ni RLS todavía.</span>
+                  </div>
+                  {configId ? <span className={styles.countBadge}>Configuración activa</span> : <span className={styles.countBadge}>Nueva configuración</span>}
+                </div>
 
-              <div className={styles.formActions}>
-                <button type="submit" className={styles.primaryButton}>{guardandoConfig ? "Guardando..." : configId ? "Actualizar configuración" : "Guardar configuración"}</button>
-              </div>
-            </form>
-          </article>
+                <form onSubmit={guardarConfiguracion} className={styles.formGrid}>
+                  <div className={styles.fieldGroup}>
+                    <label>Nombre de la tienda</label>
+                    <input name="nombre_tienda" placeholder="Jonas Stream" value={formConfig.nombre_tienda} onChange={handleConfigChange} className={styles.input} />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <label>Slogan</label>
+                    <input name="slogan" placeholder="Streaming premium al instante" value={formConfig.slogan} onChange={handleConfigChange} className={styles.input} />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <label>Título del banner</label>
+                    <input name="banner_titulo" placeholder="Tu entretenimiento empieza aquí" value={formConfig.banner_titulo} onChange={handleConfigChange} className={styles.input} />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <label>Texto del botón</label>
+                    <input name="banner_boton" placeholder="Comprar ahora" value={formConfig.banner_boton} onChange={handleConfigChange} className={styles.input} />
+                  </div>
+
+                  <div className={`${styles.fieldGroup} ${styles.fieldGroupFull}`}>
+                    <label>Texto del banner</label>
+                    <textarea name="banner_texto" placeholder="Describe la propuesta principal de Jonas Stream de forma clara y vendedora." value={formConfig.banner_texto} onChange={handleConfigChange} className={`${styles.input} ${styles.textarea}`} />
+                  </div>
+
+                  <div className={`${styles.fieldGroup} ${styles.fieldGroupFull}`}>
+                    <label>WhatsApp general</label>
+                    <input name="whatsapp" placeholder="51999999999" value={formConfig.whatsapp} onChange={handleConfigChange} className={styles.input} />
+                    <p>Usa formato internacional sin espacios para que el botón de WhatsApp funcione correctamente.</p>
+                  </div>
+
+                  <div className={styles.formActions}>
+                    <button type="submit" disabled={guardandoConfig} className={styles.primaryButton}>{guardandoConfig ? "Guardando..." : configId ? "Actualizar configuración" : "Guardar configuración"}</button>
+                    <button type="button" onClick={() => cargarDatos()} className={styles.secondaryButton}>Recargar datos</button>
+                  </div>
+                </form>
+              </article>
+
+              <aside className={styles.configChecklist}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Checklist</p>
+                    <h3>Lista antes de publicar</h3>
+                    <span className={styles.panelHint}>Validación rápida para que la tienda se vea seria.</span>
+                  </div>
+                </div>
+
+                <div className={styles.configChecklistItems}>
+                  <div className={formConfig.nombre_tienda ? styles.checkItemOk : styles.checkItemPending}>
+                    <strong>Nombre visible</strong>
+                    <span>{formConfig.nombre_tienda ? "Listo" : "Agrega el nombre comercial"}</span>
+                  </div>
+                  <div className={formConfig.slogan ? styles.checkItemOk : styles.checkItemPending}>
+                    <strong>Slogan claro</strong>
+                    <span>{formConfig.slogan ? "Listo" : "Agrega una frase corta"}</span>
+                  </div>
+                  <div className={formConfig.banner_titulo && formConfig.banner_texto ? styles.checkItemOk : styles.checkItemPending}>
+                    <strong>Banner completo</strong>
+                    <span>{formConfig.banner_titulo && formConfig.banner_texto ? "Listo" : "Completa título y descripción"}</span>
+                  </div>
+                  <div className={formConfig.whatsapp ? styles.checkItemOk : styles.checkItemPending}>
+                    <strong>Contacto comercial</strong>
+                    <span>{formConfig.whatsapp ? "WhatsApp configurado" : "Agrega WhatsApp general"}</span>
+                  </div>
+                </div>
+
+                <div className={styles.configNoteBox}>
+                  <strong>Paleta oficial activa</strong>
+                  <p>Cyan neón, negro petróleo, glass oscuro y glow controlado se mantienen como identidad visual del panel.</p>
+                </div>
+              </aside>
+            </section>
+          </div>
         )}
       </section>
     </main>
