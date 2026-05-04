@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +22,7 @@ function buildWhatsAppLink(message: string) {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -46,7 +48,13 @@ export default function LoginPage() {
       return;
     }
 
-    await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    if (!sessionData.session) {
+      toast.error("No se pudo confirmar la sesión. Intenta otra vez.");
+      setCargando(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("usuarios")
@@ -89,16 +97,19 @@ export default function LoginPage() {
     toast.success("Bienvenido 🚀");
 
     if (usuario.rol === "admin") {
-      window.location.href = "/admin";
+      router.replace("/admin");
+      router.refresh();
       return;
     }
 
     if (usuario.rol === "proveedor") {
-      window.location.href = "/proveedor";
+      router.replace("/proveedor");
+      router.refresh();
       return;
     }
 
-    window.location.href = "/cliente";
+    router.replace("/cliente");
+    router.refresh();
   };
 
   return (

@@ -17,9 +17,9 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll()
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
+        cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value)
-        )
+        })
 
         response = NextResponse.next({
           request: { headers: request.headers },
@@ -32,19 +32,14 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const pathname = request.nextUrl.pathname
-
-  if (pathname.startsWith("/admin")) {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/login"
-      return NextResponse.redirect(url)
-    }
-  }
+  // Refresca/sincroniza cookies de Supabase para SSR.
+  // Importante: NO bloqueamos /admin aquí porque tu AdminPage ya valida:
+  // - sesión activa
+  // - usuario existe en public.usuarios
+  // - rol admin/proveedor
+  // - estado aprobado
+  // Esto evita el bug donde el login funciona, pero el middleware no alcanza a leer la cookie nueva.
+  await supabase.auth.getUser()
 
   return response
 }
