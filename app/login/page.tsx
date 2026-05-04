@@ -72,7 +72,7 @@ export default function LoginPage() {
         .from("usuarios")
         .select("id,nombre,correo,rol,estado")
         .eq("id", authData.user.id)
-        .maybeSingle();
+        .single();
 
       if (error || !data) {
         const detalle =
