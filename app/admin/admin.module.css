@@ -5,14 +5,14 @@
 .adminShell,
 .loadingPage {
   --bg-deep: #000000;
-  --bg-panel: rgba(3, 19, 22, 0.72);
+  --bg-panel: rgba(3, 19, 22, 0.78);
   --bg-panel-strong: rgba(0, 12, 14, 0.92);
-  --cyan: #00e5ff;
-  --cyan-soft: #01e7ef;
-  --cyan-dark: #018b90;
-  --text-main: #ffffff;
+  --cyan: #01E7EF;
+  --cyan-soft: #00FBFF;
+  --cyan-dark: #018B90;
+  --text-main: #ECFFFF;
   --text-soft: #c8faff;
-  --text-muted: #9dbdc3;
+  --text-muted: #9BC8CB;
   --text-dim: #6f949b;
   --success: #7cffb2;
   --warning: #ffe082;
@@ -1852,5 +1852,251 @@
   .bulkActions button,
   .autoInventoryActions button {
     width: 100%;
+  }
+}
+
+
+/* FASE 1/9 - Sidebar Jonas Stream pulida */
+.sidebar {
+  width: 290px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(3, 19, 22, 0.94), rgba(0, 0, 0, 0.96));
+  border-right: 1px solid rgba(1, 231, 239, 0.18);
+  box-shadow: 18px 0 60px rgba(0, 0, 0, 0.28), inset -1px 0 0 rgba(0, 251, 255, 0.06);
+}
+
+.brandBox {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(1, 231, 239, 0.24);
+  background: linear-gradient(135deg, rgba(3, 19, 22, 0.88), rgba(7, 27, 30, 0.74));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.12), inset 0 0 28px rgba(0, 251, 255, 0.045);
+}
+
+.brandBox::after {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  right: -72px;
+  top: -92px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 251, 255, 0.18), transparent 62%);
+  pointer-events: none;
+}
+
+.brandMark {
+  background: linear-gradient(135deg, #01E7EF, #00FBFF 48%, #018B90);
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.24), 0 0 40px rgba(0, 251, 255, 0.14);
+}
+
+.nav {
+  gap: 16px;
+  padding-right: 4px;
+}
+
+.nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(1, 231, 239, 0.22);
+}
+
+.navGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.navGroupTitle {
+  margin: 0 0 2px 10px;
+  color: rgba(155, 200, 203, 0.68);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.navGroupItems {
+  display: grid;
+  gap: 7px;
+}
+
+.navButton {
+  min-height: 48px;
+  padding: 12px 13px;
+  border-radius: 18px;
+  color: #9BC8CB;
+  background: linear-gradient(135deg, rgba(3, 19, 22, 0.18), rgba(7, 27, 30, 0.04));
+}
+
+.navButton strong {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.navIcon {
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  color: #01E7EF !important;
+  background: rgba(1, 231, 239, 0.055);
+  border: 1px solid rgba(1, 231, 239, 0.08);
+  font-size: 13px;
+  text-shadow: 0 0 12px rgba(0, 251, 255, 0.35);
+}
+
+.navButton:hover {
+  color: #ECFFFF;
+  border-color: rgba(1, 231, 239, 0.24);
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.12), rgba(1, 139, 144, 0.08));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.11);
+}
+
+.navButtonActive {
+  color: #ECFFFF;
+  border-color: rgba(0, 251, 255, 0.58);
+  background:
+    radial-gradient(circle at 0% 50%, rgba(0, 251, 255, 0.22), transparent 34%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.17), rgba(3, 19, 22, 0.64));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.18), inset 0 0 26px rgba(0, 251, 255, 0.055);
+}
+
+.navButtonActive::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 11px;
+  bottom: 11px;
+  width: 3px;
+  border-radius: 999px;
+  background: #00FBFF;
+  box-shadow: 0 0 18px rgba(0, 251, 255, 0.72);
+}
+
+.navButtonActive .navIcon {
+  color: #000000 !important;
+  background: linear-gradient(135deg, #01E7EF, #00FBFF);
+  border-color: transparent;
+  box-shadow: 0 0 18px rgba(0, 251, 255, 0.22);
+  text-shadow: none;
+}
+
+.navButton em {
+  min-width: 24px;
+  height: 24px;
+  background: rgba(255, 143, 163, 0.18);
+  border-color: rgba(255, 143, 163, 0.42);
+  color: #ffd7df;
+  box-shadow: 0 0 14px rgba(255, 143, 163, 0.18);
+  font-weight: 950;
+}
+
+.sidebarFooter {
+  border-color: rgba(1, 231, 239, 0.22);
+  background: linear-gradient(135deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.72));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.09), inset 0 0 24px rgba(0, 251, 255, 0.035);
+}
+
+.userMiniCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.userMiniAvatar {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 16px;
+  color: #000000;
+  background: linear-gradient(135deg, #01E7EF, #00FBFF 55%, #018B90);
+  font-weight: 950;
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.2);
+}
+
+.sidebarFooter .userMiniCard p {
+  margin: 0 0 4px;
+  color: #ECFFFF;
+}
+
+.sidebarFooter .userMiniCard span {
+  margin: 0;
+  color: #9BC8CB;
+}
+
+.sidebarFooterMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.sessionPill {
+  position: relative;
+  padding: 6px 10px 6px 22px;
+  border-radius: 999px;
+  color: #7cffb2;
+  background: rgba(124, 255, 178, 0.08);
+  border: 1px solid rgba(124, 255, 178, 0.18);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sessionPill::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: #7cffb2;
+  box-shadow: 0 0 12px rgba(124, 255, 178, 0.7);
+}
+
+.rolePill {
+  margin: 0;
+  color: #00FBFF;
+  border-color: rgba(1, 231, 239, 0.28);
+  background: rgba(1, 231, 239, 0.08);
+}
+
+.logoutButton {
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.14), rgba(1, 139, 144, 0.16));
+  border-color: rgba(1, 231, 239, 0.28);
+  color: #ECFFFF;
+  box-shadow: inset 0 0 18px rgba(0, 251, 255, 0.04);
+}
+
+.logoutButton:hover {
+  border-color: rgba(0, 251, 255, 0.52);
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.16);
+}
+
+@media (max-width: 1100px) {
+  .sidebar {
+    width: auto;
+  }
+
+  .nav {
+    gap: 14px;
+  }
+
+  .navGroupItems {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   }
 }

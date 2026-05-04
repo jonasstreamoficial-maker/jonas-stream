@@ -150,6 +150,14 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"]
 
+
+const navGroups: { title: string; items: TabId[] }[] = [
+  { title: "Inicio", items: ["dashboard"] },
+  { title: "Operación", items: ["pedidos", "comprobantes", "inventario"] },
+  { title: "Gestión", items: ["productos", "usuarios", "creditos"] },
+  { title: "Sistema", items: ["historial", "configuracion"] },
+]
+
 const estadosPedido = ["todos", "pendiente", "completado", "cancelado"]
 const estadosUsuario = ["todos", "pendiente", "aprobado", "rechazado"]
 const rolesUsuario = ["todos", "cliente", "proveedor", "admin"]
@@ -1011,26 +1019,53 @@ export default function AdminPage() {
         </div>
 
         <nav className={styles.nav}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setTabActiva(tab.id)}
-              className={`${styles.navButton} ${tabActiva === tab.id ? styles.navButtonActive : ""}`}
-            >
-              <span>{tab.icon}</span>
-              {tab.label}
-              {tab.id === "pedidos" && pedidosPendientes > 0 && <em>{pedidosPendientes}</em>}
-              {tab.id === "usuarios" && usuariosPendientes > 0 && <em>{usuariosPendientes}</em>}
-              {tab.id === "inventario" && productosCriticos.length > 0 && <em>{productosCriticos.length}</em>}
-            </button>
+          {navGroups.map((group) => (
+            <div key={group.title} className={styles.navGroup}>
+              <p className={styles.navGroupTitle}>{group.title}</p>
+              <div className={styles.navGroupItems}>
+                {group.items.map((tabId) => {
+                  const tab = tabs.find((item) => item.id === tabId)
+                  if (!tab) return null
+
+                  const badgeValue =
+                    tab.id === "pedidos"
+                      ? pedidosPendientes
+                      : tab.id === "usuarios"
+                      ? usuariosPendientes
+                      : tab.id === "inventario"
+                      ? productosCriticos.length
+                      : 0
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setTabActiva(tab.id)}
+                      className={`${styles.navButton} ${tabActiva === tab.id ? styles.navButtonActive : ""}`}
+                    >
+                      <span className={styles.navIcon}>{tab.icon}</span>
+                      <strong>{tab.label}</strong>
+                      {badgeValue > 0 && <em>{badgeValue}</em>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           ))}
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <p>{usuario?.nombre}</p>
-          <span>{usuario?.correo}</span>
-          <div className={styles.rolePill}>{usuario?.rol}</div>
+          <div className={styles.userMiniCard}>
+            <div className={styles.userMiniAvatar}>{usuario?.nombre?.slice(0, 2).toUpperCase() || "JS"}</div>
+            <div>
+              <p>{usuario?.nombre}</p>
+              <span>{usuario?.correo}</span>
+            </div>
+          </div>
+          <div className={styles.sidebarFooterMeta}>
+            <div className={styles.rolePill}>{usuario?.rol}</div>
+            <div className={styles.sessionPill}>Online</div>
+          </div>
           <button type="button" onClick={cerrarSesion} className={styles.logoutButton}>
             Cerrar sesión
           </button>
@@ -1951,7 +1986,18 @@ function AdminSkeleton() {
           </div>
         </div>
         <nav className={styles.nav}>
-          {tabs.map((tab) => <div key={tab.id} className={`${styles.navButton} ${styles.skeletonLine}`}><span>{tab.icon}</span>{tab.label}</div>)}
+          {navGroups.map((group) => (
+            <div key={group.title} className={styles.navGroup}>
+              <p className={styles.navGroupTitle}>{group.title}</p>
+              <div className={styles.navGroupItems}>
+                {group.items.map((tabId) => {
+                  const tab = tabs.find((item) => item.id === tabId)
+                  if (!tab) return null
+                  return <div key={tab.id} className={`${styles.navButton} ${styles.skeletonLine}`}><span className={styles.navIcon}>{tab.icon}</span><strong>{tab.label}</strong></div>
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
         <div className={styles.sidebarFooter}>
           <div className={styles.skeletonTitle}></div>
