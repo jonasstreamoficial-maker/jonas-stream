@@ -210,7 +210,9 @@ export default function AdminPage() {
   const [filtroMetodoPago, setFiltroMetodoPago] = useState("todos")
   const [filtroComprobantePedido, setFiltroComprobantePedido] = useState("todos")
   const [ordenPedido, setOrdenPedido] = useState<OrdenPedido>("recientes")
-  const [vistaPedidos, setVistaPedidos] = useState<"tarjetas" | "tabla">("tarjetas")
+  const [vistaPedidos, setVistaPedidos] = useState<"tarjetas" | "tabla">("tabla")
+  const [pedidosSeleccionados, setPedidosSeleccionados] = useState<string[]>([])
+  const [procesandoMasivo, setProcesandoMasivo] = useState(false)
 
   const [busquedaUsuario, setBusquedaUsuario] = useState("")
   const [filtroEstadoUsuario, setFiltroEstadoUsuario] = useState("todos")
@@ -218,6 +220,7 @@ export default function AdminPage() {
 
   const [busquedaComprobante, setBusquedaComprobante] = useState("")
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
+  const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("revision")
 
   const [busquedaHistorial, setBusquedaHistorial] = useState("")
   const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
@@ -230,6 +233,7 @@ export default function AdminPage() {
   const [subiendoImagen, setSubiendoImagen] = useState(false)
   const [guardandoProducto, setGuardandoProducto] = useState(false)
   const [comprobantesDisponibles, setComprobantesDisponibles] = useState(true)
+  const [sincronizandoInventario, setSincronizandoInventario] = useState(false)
 
   const reproducirBeep = useCallback(() => {
     try {
@@ -466,6 +470,119 @@ export default function AdminPage() {
     } else {
       toast.error("No se pudo actualizar el pedido")
     }
+  }
+
+  const alternarPedidoSeleccionado = (id: string) => {
+    setPedidosSeleccionados((prev) => prev.includes(id) ? prev.filter((pedidoId) => pedidoId !== id) : [...prev, id])
+  }
+
+  const seleccionarPedidosVisibles = (ids: string[]) => {
+    setPedidosSeleccionados((prev) => {
+      const visiblesSet = new Set(ids)
+      const todosVisiblesSeleccionados = ids.length > 0 && ids.every((id) => prev.includes(id))
+      if (todosVisiblesSeleccionados) return prev.filter((id) => !visiblesSet.has(id))
+      return Array.from(new Set([...prev, ...ids]))
+    })
+  }
+
+  const actualizarPedidosMasivo = async (nuevoEstado: string) => {
+    if (pedidosSeleccionados.length === 0) {
+      toast.error("Selecciona al menos un pedido")
+      return
+    }
+
+    const confirmar = confirm(`¿Actualizar ${pedidosSeleccionados.length} pedido(s) a ${nuevoEstado}?`)
+    if (!confirmar) return
+
+    setProcesandoMasivo(true)
+    const ids = [...pedidosSeleccionados]
+    const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).in("id", ids)
+
+    if (error) {
+      toast.error("No se pudieron actualizar los pedidos seleccionados")
+      setProcesandoMasivo(false)
+      return
+    }
+
+    setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: nuevoEstado } : pedido))
+    setPedidosSeleccionados([])
+    registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
+    await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
+    toast.success(`${ids.length} pedido(s) actualizados`)
+    setProcesandoMasivo(false)
+    await cargarDatos()
+  }
+
+  const sincronizarInventarioAutomatico = async () => {
+    if (productos.length === 0) {
+      toast.error("No hay productos para sincronizar")
+      return
+    }
+
+    const agotados = productos.filter((p) => Number(p.stock) <= 0)
+    const bajos = productos.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 3)
+
+    if (agotados.length === 0 && bajos.length === 0) {
+      toast.success("Inventario estable: no hay ajustes automáticos")
+      return
+    }
+
+    const confirmar = confirm(`Inventario automático aplicará: ${agotados.length} agotado(s) y ${bajos.length} limitado(s). ¿Continuar?`)
+    if (!confirmar) return
+
+    setSincronizandoInventario(true)
+
+    const operaciones = []
+    if (agotados.length > 0) {
+      operaciones.push(
+        supabase
+          .from("productos")
+          .update({ estado_catalogo: "AGOTADO", publicacion: false })
+          .in("id", agotados.map((p) => p.id))
+      )
+    }
+
+    if (bajos.length > 0) {
+      operaciones.push(
+        supabase
+          .from("productos")
+          .update({ estado_catalogo: "LIMITADO" })
+          .in("id", bajos.map((p) => p.id))
+      )
+    }
+
+    const resultados = await Promise.all(operaciones)
+    const fallo = resultados.find((resultado) => resultado.error)
+
+    if (fallo?.error) {
+      toast.error("No se pudo sincronizar todo el inventario")
+      setSincronizandoInventario(false)
+      return
+    }
+
+    await registrarLog("sincronizar", "productos", undefined, `Inventario automático: ${agotados.length} agotados, ${bajos.length} limitados`)
+    registrarEvento("Inventario automático sincronizado")
+    toast.success("Inventario automático sincronizado")
+    setSincronizandoInventario(false)
+    await cargarDatos()
+  }
+
+  const reponerProductoRapido = async (producto: Producto, cantidad = 10) => {
+    const nuevoStock = Number(producto.stock || 0) + cantidad
+    const { error } = await supabase
+      .from("productos")
+      .update({ stock: nuevoStock, estado_catalogo: "ACTIVO", publicacion: true, estado: "activo" })
+      .eq("id", producto.id)
+
+    if (error) {
+      toast.error("No se pudo reponer el producto")
+      return
+    }
+
+    setProductos((prev) => prev.map((p) => p.id === producto.id ? { ...p, stock: nuevoStock, estado_catalogo: "ACTIVO", publicacion: true, estado: "activo" } : p))
+    await registrarLog("reponer", "productos", producto.id, `${producto.nombre}: +${cantidad} unidades`)
+    toast.success(`Stock actualizado: ${producto.nombre}`)
+    await cargarDatos()
   }
 
   const actualizarEstadoComprobante = async (id: string, nuevoEstado: string) => {
@@ -872,6 +989,9 @@ export default function AdminPage() {
 
   const productosVisibles = productosFiltrados.slice(0, limiteProductos)
   const pedidosVisibles = pedidosFiltrados.slice(0, limitePedidos)
+  const pedidosVisiblesIds = pedidosVisibles.map((pedido) => pedido.id)
+  const pedidosSeleccionadosVisibles = pedidosVisiblesIds.filter((id) => pedidosSeleccionados.includes(id)).length
+  const totalSeleccionado = pedidos.filter((pedido) => pedidosSeleccionados.includes(pedido.id)).reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
   const comprobantesVisibles = comprobantesFiltrados.slice(0, limiteComprobantes)
   const logsVisibles = logsFiltrados.slice(0, limiteLogs)
 
@@ -1363,10 +1483,20 @@ export default function AdminPage() {
             </div>
 
             <div className={styles.toolbarInline}>
-              <button type="button" onClick={() => { setBusquedaPedido(""); setFiltroEstadoPedido("todos"); setFiltroMetodoPago("todos"); setFiltroComprobantePedido("todos"); setOrdenPedido("recientes") }} className={styles.secondaryButton}>
-                Limpiar filtros
-              </button>
+              <div className={styles.bulkInfo}>
+                <strong>{pedidosSeleccionados.length}</strong>
+                <span>seleccionados · {formatearSoles(totalSeleccionado)}</span>
+              </div>
+              <div className={styles.bulkActions}>
+                <button type="button" onClick={() => seleccionarPedidosVisibles(pedidosVisiblesIds)} className={styles.secondaryButton}>
+                  {pedidosSeleccionadosVisibles === pedidosVisiblesIds.length && pedidosVisiblesIds.length > 0 ? "Quitar visibles" : "Seleccionar visibles"}
+                </button>
+                <button type="button" disabled={procesandoMasivo || pedidosSeleccionados.length === 0} onClick={() => actualizarPedidosMasivo("completado")} className={styles.successButton}>Completar lote</button>
+                <button type="button" disabled={procesandoMasivo || pedidosSeleccionados.length === 0} onClick={() => actualizarPedidosMasivo("cancelado")} className={styles.dangerButton}>Cancelar lote</button>
+                <button type="button" onClick={() => setPedidosSeleccionados([])} className={styles.dangerGhostButton}>Limpiar selección</button>
+              </div>
               <div className={styles.toggleGroup}>
+                <button type="button" onClick={() => { setBusquedaPedido(""); setFiltroEstadoPedido("todos"); setFiltroMetodoPago("todos"); setFiltroComprobantePedido("todos"); setOrdenPedido("recientes") }} className={styles.toggleUtility}>Limpiar filtros</button>
                 <button type="button" onClick={() => setVistaPedidos("tarjetas")} className={vistaPedidos === "tarjetas" ? styles.toggleActive : ""}>Tarjetas</button>
                 <button type="button" onClick={() => setVistaPedidos("tabla")} className={vistaPedidos === "tabla" ? styles.toggleActive : ""}>Tabla</button>
               </div>
@@ -1381,6 +1511,7 @@ export default function AdminPage() {
                     <table className={styles.proTable}>
                       <thead>
                         <tr>
+                          <th className={styles.checkColumn}><input type="checkbox" aria-label="Seleccionar pedidos visibles" checked={pedidosVisiblesIds.length > 0 && pedidosVisiblesIds.every((id) => pedidosSeleccionados.includes(id))} onChange={() => seleccionarPedidosVisibles(pedidosVisiblesIds)} /></th>
                           <th>Pedido</th>
                           <th>Cliente</th>
                           <th>Total</th>
@@ -1394,7 +1525,8 @@ export default function AdminPage() {
                         {pedidosVisibles.map((pedido) => {
                           const comprobanteUrl = obtenerComprobanteUrl(pedido)
                           return (
-                            <tr key={pedido.id}>
+                            <tr key={pedido.id} className={pedidosSeleccionados.includes(pedido.id) ? styles.rowSelected : ""}>
+                              <td className={styles.checkColumn}><input type="checkbox" aria-label={`Seleccionar pedido ${pedido.id.slice(0, 8)}`} checked={pedidosSeleccionados.includes(pedido.id)} onChange={() => alternarPedidoSeleccionado(pedido.id)} /></td>
                               <td><strong>#{pedido.id.slice(0, 8)}</strong><small>{fechaLegible(pedido.created_at)}</small></td>
                               <td><strong>{pedido.cliente_nombre}</strong><small>{pedido.cliente_correo}</small></td>
                               <td>{formatearSoles(pedido.total)}</td>
@@ -1418,7 +1550,11 @@ export default function AdminPage() {
                     {pedidosVisibles.map((pedido) => {
                       const comprobanteUrl = obtenerComprobanteUrl(pedido)
                       return (
-                        <article key={pedido.id} className={styles.orderCard}>
+                        <article key={pedido.id} className={`${styles.orderCard} ${pedidosSeleccionados.includes(pedido.id) ? styles.cardSelected : ""}`}>
+                          <label className={styles.selectionBadge}>
+                            <input type="checkbox" checked={pedidosSeleccionados.includes(pedido.id)} onChange={() => alternarPedidoSeleccionado(pedido.id)} />
+                            Seleccionar
+                          </label>
                           <div className={styles.cardHeaderLine}>
                             <h4>Pedido #{pedido.id.slice(0, 8)}</h4>
                             <StatusBadge estado={pedido.estado} />
@@ -1567,35 +1703,96 @@ export default function AdminPage() {
               </select>
             </div>
 
+            <div className={styles.toolbarInline}>
+              <div className={styles.bulkInfo}>
+                <strong>{comprobantesFiltrados.length}</strong>
+                <span>en revisión · {formatearSoles(comprobantesFiltrados.reduce((acc, item) => acc + Number(item.monto || 0), 0))}</span>
+              </div>
+              <div className={styles.toggleGroup}>
+                <button type="button" onClick={() => setVistaComprobantes("revision")} className={vistaComprobantes === "revision" ? styles.toggleActive : ""}>Revisión</button>
+                <button type="button" onClick={() => setVistaComprobantes("tabla")} className={vistaComprobantes === "tabla" ? styles.toggleActive : ""}>Tabla</button>
+              </div>
+            </div>
+
             {comprobantesFiltrados.length === 0 ? (
               <EmptyState title="Sin comprobantes" text="Cuando tus pedidos tengan voucher o actives la tabla comprobantes, aparecerán aquí." />
             ) : (
               <>
-                <div className={styles.cardsGrid}>
-                  {comprobantesVisibles.map((comprobante) => (
-                    <article key={comprobante.id} className={styles.orderCard}>
-                      <div className={styles.cardHeaderLine}>
-                        <h4>Comprobante #{comprobante.id.slice(0, 8)}</h4>
-                        <StatusBadge estado={comprobante.estado} />
-                      </div>
-                      <div className={styles.infoGrid}>
-                        <span>Cliente</span><strong>{comprobante.cliente}</strong>
-                        <span>Correo</span><strong>{comprobante.correo || "Sin correo"}</strong>
-                        <span>Monto</span><strong>{formatearSoles(comprobante.monto)}</strong>
-                        <span>Método</span><strong>{comprobante.metodo}</strong>
-                        <span>Fecha</span><strong>{fechaLegible(comprobante.fecha)}</strong>
-                        <span>Archivo</span><strong>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir comprobante</a> : "Sin archivo"}</strong>
-                      </div>
-                      {comprobante.origen === "tabla" && (
-                        <div className={styles.cardActions}>
-                          <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "aprobado")} className={styles.successButton}>Aprobar</button>
-                          <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "observado")} className={styles.secondaryButton}>Observar</button>
-                          <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                {vistaComprobantes === "tabla" ? (
+                  <div className={styles.tableWrap}>
+                    <table className={styles.proTable}>
+                      <thead>
+                        <tr>
+                          <th>Comprobante</th>
+                          <th>Cliente</th>
+                          <th>Monto</th>
+                          <th>Método</th>
+                          <th>Estado</th>
+                          <th>Archivo</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {comprobantesVisibles.map((comprobante) => (
+                          <tr key={comprobante.id}>
+                            <td><strong>#{comprobante.id.slice(0, 8)}</strong><small>{fechaLegible(comprobante.fecha)}</small></td>
+                            <td><strong>{comprobante.cliente}</strong><small>{comprobante.correo || "Sin correo"}</small></td>
+                            <td>{formatearSoles(comprobante.monto)}</td>
+                            <td>{comprobante.metodo}</td>
+                            <td><StatusBadge estado={comprobante.estado} /></td>
+                            <td>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.mutedText}>Sin archivo</span>}</td>
+                            <td>
+                              {comprobante.origen === "tabla" ? (
+                                <div className={styles.tableActions}>
+                                  <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "aprobado")} className={styles.successButton}>OK</button>
+                                  <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "observado")} className={styles.secondaryButton}>Obs</button>
+                                  <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "rechazado")} className={styles.dangerButton}>No</button>
+                                </div>
+                              ) : <span className={styles.mutedText}>Desde pedido</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className={styles.reviewGrid}>
+                    {comprobantesVisibles.map((comprobante) => (
+                      <article key={comprobante.id} className={styles.reviewCard}>
+                        <div className={styles.reviewMedia}>
+                          {comprobante.url ? (
+                            <a href={comprobante.url} target="_blank" rel="noreferrer">
+                              <img src={comprobante.url} alt={`Comprobante ${comprobante.id.slice(0, 8)}`} />
+                            </a>
+                          ) : (
+                            <div className={styles.reviewPlaceholder}>Sin archivo</div>
+                          )}
                         </div>
-                      )}
-                    </article>
-                  ))}
-                </div>
+                        <div className={styles.reviewBody}>
+                          <div className={styles.cardHeaderLine}>
+                            <h4>Comprobante #{comprobante.id.slice(0, 8)}</h4>
+                            <StatusBadge estado={comprobante.estado} />
+                          </div>
+                          <div className={styles.infoGrid}>
+                            <span>Cliente</span><strong>{comprobante.cliente}</strong>
+                            <span>Correo</span><strong>{comprobante.correo || "Sin correo"}</strong>
+                            <span>Monto</span><strong>{formatearSoles(comprobante.monto)}</strong>
+                            <span>Método</span><strong>{comprobante.metodo}</strong>
+                            <span>Fecha</span><strong>{fechaLegible(comprobante.fecha)}</strong>
+                            <span>Archivo</span><strong>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir grande</a> : "Sin archivo"}</strong>
+                          </div>
+                          {comprobante.origen === "tabla" && (
+                            <div className={styles.cardActions}>
+                              <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "aprobado")} className={styles.successButton}>Aprobar</button>
+                              <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "observado")} className={styles.secondaryButton}>Observar</button>
+                              <button type="button" onClick={() => actualizarEstadoComprobante(comprobante.id, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                            </div>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
                 {comprobantesFiltrados.length > comprobantesVisibles.length && (
                   <div className={styles.loadMoreBox}>
                     <button type="button" onClick={() => setLimiteComprobantes((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más comprobantes</button>
@@ -1615,6 +1812,21 @@ export default function AdminPage() {
               <MetricCard title="Salud" value={`${saludInventario}%`} detail="Estado general" tone="info" />
             </div>
 
+            <article className={`${styles.panel} ${styles.autoInventoryPanel}`}>
+              <div>
+                <p className={styles.kicker}>Automatización</p>
+                <h3>Inventario automático</h3>
+                <p>Sincroniza estados visuales: stock 0 pasa a AGOTADO y se oculta de publicación; stock 1-3 pasa a LIMITADO.</p>
+              </div>
+              <div className={styles.autoInventoryActions}>
+                <button type="button" disabled={sincronizandoInventario} onClick={sincronizarInventarioAutomatico} className={styles.primaryButton}>
+                  {sincronizandoInventario ? "Sincronizando..." : "Sincronizar inventario"}
+                </button>
+                <button type="button" onClick={() => { setFiltroStockProducto("bajo"); setTabActiva("productos") }} className={styles.secondaryButton}>Ver bajo stock</button>
+                <button type="button" onClick={() => { setFiltroStockProducto("agotado"); setTabActiva("productos") }} className={styles.dangerButton}>Ver agotados</button>
+              </div>
+            </article>
+
             <article className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
@@ -1627,14 +1839,15 @@ export default function AdminPage() {
                 {productosCriticos.length === 0 ? (
                   <EmptyState title="Todo controlado" text="No hay productos agotados ni con bajo stock." />
                 ) : productosCriticos.map((producto) => (
-                  <article key={producto.id} className={styles.rowCard}>
+                  <article key={producto.id} className={`${styles.rowCard} ${Number(producto.stock) <= 0 ? styles.cardDanger : styles.cardWarning}`}>
                     <div>
                       <h4>{producto.nombre}</h4>
                       <p>{producto.categoria || "Sin categoría"} · {producto.proveedor || "Jonas Stream"}</p>
-                      <span>{Number(producto.stock) <= 0 ? "Producto agotado" : "Stock bajo: reponer pronto"}</span>
+                      <span>{Number(producto.stock) <= 0 ? "Producto agotado: ocultar o reponer" : "Stock bajo: reponer pronto"}</span>
                     </div>
                     <div className={styles.rowActions}>
                       <div className={Number(producto.stock) <= 0 ? styles.stockPillDanger : styles.stockPill}>{producto.stock} und.</div>
+                      <button type="button" onClick={() => reponerProductoRapido(producto, 10)} className={styles.successButton}>+10 stock</button>
                       <button type="button" onClick={() => editarProducto(producto)} className={styles.secondaryButton}>Editar</button>
                     </div>
                   </article>
