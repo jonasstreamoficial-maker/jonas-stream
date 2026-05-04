@@ -3628,3 +3628,388 @@
     border-radius: 18px;
   }
 }
+
+
+/* FASE 8/9 - Historial PRO Jonas Stream */
+.auditHeroPro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(0, 251, 255, 0.16), transparent 30%),
+    radial-gradient(circle at 92% 12%, rgba(1, 139, 144, 0.18), transparent 28%),
+    linear-gradient(135deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.62));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.12), inset 0 0 46px rgba(0, 251, 255, 0.045);
+  overflow: hidden;
+  position: relative;
+}
+
+.auditHeroPro::after {
+  content: "";
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  right: -120px;
+  bottom: -160px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 251, 255, 0.15), transparent 62%);
+  pointer-events: none;
+}
+
+.auditHeroCopy,
+.auditHeroPanel {
+  position: relative;
+  z-index: 1;
+}
+
+.auditHeroCopy {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+}
+
+.auditHeroCopy h3 {
+  max-width: 780px;
+  margin: 0;
+  color: #ECFFFF;
+  font-size: clamp(34px, 4.5vw, 60px);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 40px rgba(0, 251, 255, 0.18);
+}
+
+.auditHeroCopy p {
+  max-width: 780px;
+  margin: 0;
+  color: #9BC8CB;
+  line-height: 1.65;
+  font-size: 15px;
+}
+
+.auditHeroPanel {
+  min-height: 250px;
+  display: grid;
+  align-content: center;
+  padding: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  border-radius: 26px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 34px rgba(0, 251, 255, 0.055);
+}
+
+.auditHeroPanel p {
+  margin: 0 0 10px;
+  color: #9BC8CB;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+}
+
+.auditHeroPanel strong {
+  display: block;
+  color: #00FBFF;
+  font-size: clamp(40px, 5vw, 66px);
+  line-height: 1;
+  text-shadow: 0 0 40px rgba(0, 251, 255, 0.24);
+}
+
+.auditHeroPanel > span {
+  display: block;
+  margin-top: 12px;
+  color: #9BC8CB;
+  line-height: 1.45;
+}
+
+.auditStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.auditStatCard {
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.26);
+  color: #dffcff;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s ease;
+  box-shadow: inset 0 0 22px rgba(0, 251, 255, 0.035);
+}
+
+.auditStatCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 251, 255, 0.52);
+  background: rgba(1, 231, 239, 0.09);
+  box-shadow: 0 16px 34px rgba(1, 231, 239, 0.1);
+}
+
+.auditStatCard span {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.auditStatCard strong {
+  display: block;
+  color: #00FBFF;
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 1000;
+  line-height: 1;
+  margin: 8px 0;
+}
+
+.auditStatCard small {
+  color: #bddbe0;
+  font-weight: 750;
+}
+
+.auditStatDanger strong {
+  color: #ff8fa3;
+}
+
+.auditFocusCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid rgba(0, 251, 255, 0.22);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 8% 20%, rgba(0, 251, 255, 0.12), transparent 28%),
+    rgba(0, 0, 0, 0.24);
+  box-shadow: inset 0 0 28px rgba(0, 251, 255, 0.035);
+}
+
+.auditFocusCard h4 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  color: #ECFFFF;
+}
+
+.auditFocusCard span,
+.auditFocusMeta small,
+.auditFocusMeta em {
+  color: #9BC8CB;
+}
+
+.auditFocusMeta {
+  display: grid;
+  gap: 5px;
+  text-align: right;
+}
+
+.auditFocusMeta strong {
+  color: #00FBFF;
+}
+
+.auditFocusMeta em {
+  font-style: normal;
+  font-size: 12px;
+}
+
+.auditEntityChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.auditEntityChips button {
+  min-height: 34px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: rgba(1, 231, 239, 0.06);
+  color: #9BC8CB;
+  cursor: pointer;
+  font-weight: 900;
+  transition: 0.18s ease;
+}
+
+.auditEntityChips button:hover,
+.auditEntityChips .auditChipActive {
+  color: #001014;
+  border-color: transparent;
+  background: linear-gradient(135deg, #01E7EF, #00FBFF);
+  box-shadow: 0 0 18px rgba(0, 251, 255, 0.18);
+}
+
+.auditTimeline {
+  position: relative;
+  display: grid;
+  gap: 14px;
+}
+
+.auditTimeline::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(0, 251, 255, 0.42), rgba(0, 251, 255, 0.03));
+}
+
+.auditTimelineItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.auditTimelineMarker {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+.auditTimelineMarker span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #001014;
+  background: linear-gradient(135deg, #01E7EF, #00FBFF 55%, #018B90);
+  font-size: 12px;
+  font-weight: 1000;
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.18);
+}
+
+.auditTimelineBody {
+  padding: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 24px;
+  background: rgba(0, 0, 0, 0.24);
+  box-shadow: inset 0 0 28px rgba(0, 251, 255, 0.035);
+}
+
+.auditTimelineDanger .auditTimelineBody {
+  border-color: rgba(255, 143, 163, 0.34);
+  background: rgba(255, 143, 163, 0.055);
+}
+
+.auditTimelineStock .auditTimelineBody {
+  border-color: rgba(255, 224, 130, 0.26);
+}
+
+.auditTimelineTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.auditTimelineTop h4 {
+  margin: 0 0 6px;
+  color: #ECFFFF;
+  font-size: 18px;
+}
+
+.auditTimelineTop p {
+  margin: 0;
+  color: #9BC8CB;
+  line-height: 1.55;
+}
+
+.auditBadges {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.auditMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.auditMetaGrid div {
+  padding: 10px;
+  border: 1px solid rgba(1, 231, 239, 0.12);
+  border-radius: 16px;
+  background: rgba(1, 231, 239, 0.045);
+}
+
+.auditMetaGrid span {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(155, 200, 203, 0.82);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auditMetaGrid strong {
+  color: #ECFFFF;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.badgeOk {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #7cffb2;
+  background: rgba(124, 255, 178, 0.1);
+  border: 1px solid rgba(124, 255, 178, 0.24);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+@media (max-width: 1180px) {
+  .auditHeroPro,
+  .auditFocusCard {
+    grid-template-columns: 1fr;
+  }
+
+  .auditFocusMeta {
+    text-align: left;
+  }
+
+  .auditStatsGrid,
+  .auditMetaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .auditStatsGrid,
+  .auditMetaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .auditTimelineItem {
+    grid-template-columns: 1fr;
+  }
+
+  .auditTimeline::before,
+  .auditTimelineMarker {
+    display: none;
+  }
+
+  .auditTimelineTop {
+    flex-direction: column;
+  }
+
+  .auditBadges {
+    justify-content: flex-start;
+  }
+}

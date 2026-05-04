@@ -1120,6 +1120,21 @@ export default function AdminPage() {
     })
   }, [logs, busquedaHistorial, filtroEntidadLog])
 
+  const hoy = new Date()
+  const logsHoy = logs.filter((log) => {
+    const fecha = new Date(log.created_at)
+    return !Number.isNaN(fecha.getTime()) && fecha.toDateString() === hoy.toDateString()
+  }).length
+  const logsCriticos = logs.filter((log) => {
+    const texto = normalizarTexto(`${log.accion} ${log.entidad} ${log.detalle}`)
+    return texto.includes("eliminar") || texto.includes("rechaz") || texto.includes("error") || texto.includes("cancel") || texto.includes("agotado") || texto.includes("stock_no_encontrado")
+  }).length
+  const logsSistema = logs.filter((log) => normalizarTexto(log.entidad).includes("configuracion") || normalizarTexto(log.entidad).includes("admin_logs")).length
+  const ultimaAccionImportante = logs.find((log) => {
+    const texto = normalizarTexto(`${log.accion} ${log.detalle}`)
+    return texto.includes("eliminar") || texto.includes("actualizar") || texto.includes("crear") || texto.includes("sincronizar") || texto.includes("stock")
+  }) || logs[0]
+
   const productosVisibles = productosFiltrados.slice(0, limiteProductos)
   const pedidosVisibles = pedidosFiltrados.slice(0, limitePedidos)
   const pedidosVisiblesIds = pedidosVisibles.map((pedido) => pedido.id)
@@ -2471,38 +2486,159 @@ export default function AdminPage() {
 
         {tabActiva === "historial" && (
           <div className={styles.sectionStack}>
+            <section className={styles.auditHeroPro}>
+              <div className={styles.auditHeroCopy}>
+                <span className={styles.proTag}>FASE 8 · HISTORIAL PRO</span>
+                <h3>Centro de auditoría operativa</h3>
+                <p>
+                  Revisa acciones reales del panel, filtra por entidad, detecta movimientos críticos
+                  y valida quién hizo cada cambio antes de avanzar a seguridad/RLS.
+                </p>
+                <div className={styles.dashboardHeroActions}>
+                  <button type="button" onClick={() => { setFiltroEntidadLog("todos"); setBusquedaHistorial("") }} className={styles.primaryButton}>Ver todo</button>
+                  <button type="button" onClick={() => setBusquedaHistorial("eliminar")} className={styles.secondaryButton}>Auditar eliminados</button>
+                  <button type="button" onClick={() => setBusquedaHistorial("stock")} className={styles.secondaryButton}>Auditar stock</button>
+                </div>
+              </div>
+
+              <div className={styles.auditHeroPanel}>
+                <p>Eventos registrados</p>
+                <strong>{logs.length}</strong>
+                <span>{logsHoy} acciones de hoy · {logsCriticos} eventos críticos detectados</span>
+                <div className={styles.moneySplitGrid}>
+                  <div>
+                    <small>Entidades</small>
+                    <b>{entidadesLog.length}</b>
+                  </div>
+                  <div>
+                    <small>Sistema</small>
+                    <b>{logsSistema}</b>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <article className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
                   <p className={styles.kicker}>Auditoría</p>
                   <h3>Historial de actividad</h3>
-                  <span className={styles.panelHint}>Registros reales desde admin_logs con filtros por entidad y búsqueda.</span>
+                  <span className={styles.panelHint}>Registros reales desde admin_logs con filtros por entidad, búsqueda y lectura tipo timeline.</span>
                 </div>
                 <span className={styles.countBadge}>{logsFiltrados.length} eventos</span>
               </div>
 
-              <div className={styles.filtersGridCompact}>
-                <input type="text" placeholder="Buscar acción, detalle o actor..." value={busquedaHistorial} onChange={(e) => setBusquedaHistorial(e.target.value)} className={styles.input} />
+              <div className={styles.auditStatsGrid}>
+                <button type="button" onClick={() => { setFiltroEntidadLog("todos"); setBusquedaHistorial("") }} className={styles.auditStatCard}>
+                  <span>Total logs</span>
+                  <strong>{logs.length}</strong>
+                  <small>Todos los movimientos</small>
+                </button>
+                <button type="button" onClick={() => setBusquedaHistorial("eliminar")} className={`${styles.auditStatCard} ${styles.auditStatDanger}`}>
+                  <span>Críticos</span>
+                  <strong>{logsCriticos}</strong>
+                  <small>Eliminar / rechazar / errores</small>
+                </button>
+                <button type="button" onClick={() => setBusquedaHistorial("stock")} className={styles.auditStatCard}>
+                  <span>Inventario</span>
+                  <strong>{logs.filter((log) => normalizarTexto(`${log.accion} ${log.detalle}`).includes("stock")).length}</strong>
+                  <small>Reposiciones y descuentos</small>
+                </button>
+                <button type="button" onClick={() => setBusquedaHistorial("actualizar")} className={styles.auditStatCard}>
+                  <span>Actualizaciones</span>
+                  <strong>{logs.filter((log) => normalizarTexto(log.accion).includes("actualizar")).length}</strong>
+                  <small>Cambios de estado y edición</small>
+                </button>
+              </div>
+
+              {ultimaAccionImportante && (
+                <section className={styles.auditFocusCard}>
+                  <div>
+                    <p className={styles.kicker}>Última acción importante</p>
+                    <h4>{ultimaAccionImportante.accion} · {ultimaAccionImportante.entidad}</h4>
+                    <span>{ultimaAccionImportante.detalle || "Sin detalle registrado"}</span>
+                  </div>
+                  <div className={styles.auditFocusMeta}>
+                    <strong>{ultimaAccionImportante.actor_nombre || "Sistema"}</strong>
+                    <small>{ultimaAccionImportante.actor_correo || "sin correo"}</small>
+                    <em>{fechaLegible(ultimaAccionImportante.created_at)}</em>
+                  </div>
+                </section>
+              )}
+
+              <div className={styles.filtersGridWide}>
+                <input type="text" placeholder="Buscar acción, detalle, actor o correo..." value={busquedaHistorial} onChange={(e) => setBusquedaHistorial(e.target.value)} className={styles.input} />
                 <select value={filtroEntidadLog} onChange={(e) => setFiltroEntidadLog(e.target.value)} className={styles.input}>
                   <option value="todos">Todas las entidades</option>
                   {entidadesLog.map((entidad) => <option key={entidad} value={entidad}>{entidad}</option>)}
                 </select>
+                <button type="button" onClick={() => { setBusquedaHistorial(""); setFiltroEntidadLog("todos") }} className={styles.secondaryButton}>Limpiar filtros</button>
+                <button type="button" onClick={() => cargarDatos()} className={styles.primaryButton}>Actualizar logs</button>
               </div>
 
-              <div className={styles.listGrid}>
-                {logsVisibles.length === 0 ? (
-                  <EmptyState title="Sin historial" text="Cuando ejecutes acciones del panel, aparecerán aquí." />
-                ) : logsVisibles.map((log) => (
-                  <article key={log.id} className={styles.rowCard}>
-                    <div>
-                      <h4>{log.accion} · {log.entidad}</h4>
-                      <p>{log.detalle || "Sin detalle"}</p>
-                      <span>{log.actor_nombre || "Sistema"} · {log.actor_correo || "sin correo"}</span>
-                    </div>
-                    <StatusBadge estado={fechaLegible(log.created_at)} />
-                  </article>
+              <div className={styles.auditEntityChips}>
+                <button type="button" onClick={() => setFiltroEntidadLog("todos")} className={filtroEntidadLog === "todos" ? styles.auditChipActive : ""}>Todas</button>
+                {entidadesLog.slice(0, 10).map((entidad) => (
+                  <button key={entidad} type="button" onClick={() => setFiltroEntidadLog(entidad)} className={filtroEntidadLog === entidad ? styles.auditChipActive : ""}>
+                    {entidad}
+                  </button>
                 ))}
               </div>
+
+              {logsVisibles.length === 0 ? (
+                <EmptyState title="Sin historial" text="Cuando ejecutes acciones del panel, aparecerán aquí." />
+              ) : (
+                <div className={styles.auditTimeline}>
+                  {logsVisibles.map((log, index) => {
+                    const textoCritico = normalizarTexto(`${log.accion} ${log.entidad} ${log.detalle}`)
+                    const esCritico = textoCritico.includes("eliminar") || textoCritico.includes("rechaz") || textoCritico.includes("error") || textoCritico.includes("cancel") || textoCritico.includes("stock_no_encontrado")
+                    const esStock = textoCritico.includes("stock") || textoCritico.includes("inventario") || textoCritico.includes("reponer")
+                    const esCreacion = textoCritico.includes("crear")
+
+                    return (
+                      <article key={log.id} className={`${styles.auditTimelineItem} ${esCritico ? styles.auditTimelineDanger : ""} ${esStock ? styles.auditTimelineStock : ""}`}>
+                        <div className={styles.auditTimelineMarker}>
+                          <span>{index + 1}</span>
+                        </div>
+
+                        <div className={styles.auditTimelineBody}>
+                          <div className={styles.auditTimelineTop}>
+                            <div>
+                              <h4>{log.accion} · {log.entidad}</h4>
+                              <p>{log.detalle || "Sin detalle registrado"}</p>
+                            </div>
+                            <div className={styles.auditBadges}>
+                              {esCritico && <span className={styles.badgeDanger}>Crítico</span>}
+                              {esStock && <span className={styles.badgeWarning}>Stock</span>}
+                              {esCreacion && <span className={styles.badgeOk}>Creación</span>}
+                              <StatusBadge estado={fechaLegible(log.created_at)} />
+                            </div>
+                          </div>
+
+                          <div className={styles.auditMetaGrid}>
+                            <div>
+                              <span>Actor</span>
+                              <strong>{log.actor_nombre || "Sistema"}</strong>
+                            </div>
+                            <div>
+                              <span>Correo</span>
+                              <strong>{log.actor_correo || "sin correo"}</strong>
+                            </div>
+                            <div>
+                              <span>Entidad ID</span>
+                              <strong>{log.entidad_id ? `#${log.entidad_id.slice(0, 8)}` : "No vinculado"}</strong>
+                            </div>
+                            <div>
+                              <span>Fecha</span>
+                              <strong>{fechaLegible(log.created_at)}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              )}
 
               {logsFiltrados.length > logsVisibles.length && (
                 <div className={styles.loadMoreBox}>
