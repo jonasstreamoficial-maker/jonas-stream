@@ -188,6 +188,7 @@ const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
 export default function AdminPage() {
   const router = useRouter()
 
+  const [autorizado, setAutorizado] = useState(false)
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const usuarioRef = useRef<Usuario | null>(null)
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -343,98 +344,49 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    const validarAcceso = async () => {
-      const leerUsuarioLocal = () => {
-        try {
-          const guardado = localStorage.getItem("usuario")
-          if (!guardado) return null
-          return JSON.parse(guardado) as Usuario
-        } catch {
-          return null
-        }
-      }
+    const validarAdmin = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser()
 
-      const usuarioLocal = leerUsuarioLocal()
-
-      const usarUsuarioLocalTemporal = async () => {
-        if (!usuarioLocal) return false
-        const rolPermitido = usuarioLocal.rol === "admin" || usuarioLocal.rol === "proveedor"
-        const estadoPermitido = usuarioLocal.estado === "aprobado" || usuarioLocal.estado === "activo"
-        if (!rolPermitido || !estadoPermitido) return false
-
-        usuarioRef.current = usuarioLocal
-        setUsuario(usuarioLocal)
-        await cargarDatos(usuarioLocal, true)
-        return true
-      }
-
-      let session = null
-      let sessionError = null
-
-      for (let intento = 0; intento < 4; intento += 1) {
-        const resultado = await supabase.auth.getSession()
-        session = resultado.data.session
-        sessionError = resultado.error
-
-        if (session?.user?.email) break
-        await new Promise((resolve) => window.setTimeout(resolve, 300))
-      }
-
-      if (sessionError || !session?.user?.email) {
-        const accesoLocal = await usarUsuarioLocalTemporal()
-        if (accesoLocal) return
-
-        localStorage.removeItem("usuario")
+      if (error || !user) {
         router.replace("/login")
         return
       }
 
-      const { data: usuarioData, error: usuarioError } = await supabase
+      const { data: usuario, error: errorUsuario } = await supabase
         .from("usuarios")
         .select("id,nombre,correo,rol,estado")
-        .eq("id", session.user.id)
-        .maybeSingle()
+        .eq("id", user.id)
+        .single()
 
-      if (usuarioError || !usuarioData) {
-        const accesoLocal = await usarUsuarioLocalTemporal()
-        if (accesoLocal) return
-
+      if (
+        errorUsuario ||
+        !usuario ||
+        usuario.rol !== "admin" ||
+        (usuario.estado !== "aprobado" &&
+          usuario.estado !== "activo")
+      ) {
         await supabase.auth.signOut()
-        localStorage.removeItem("usuario")
-        toast.error("Tu usuario no existe en la tabla usuarios")
         router.replace("/login")
         return
       }
 
-      const usuarioParseado = usuarioData as Usuario
-      const rolPermitido = usuarioParseado.rol === "admin" || usuarioParseado.rol === "proveedor"
-      const estadoPermitido = usuarioParseado.estado === "aprobado" || usuarioParseado.estado === "activo"
-
-      if (!rolPermitido || usuarioParseado.estado === "rechazado") {
-        await supabase.auth.signOut()
-        localStorage.removeItem("usuario")
-        router.replace("/login")
-        return
-      }
-
-      if (!estadoPermitido) {
-        await supabase.auth.signOut()
-        localStorage.removeItem("usuario")
-        toast("Tu cuenta está pendiente de aprobación")
-        router.replace("/login")
-        return
-      }
+      const usuarioParseado = usuario as Usuario
 
       usuarioRef.current = usuarioParseado
       setUsuario(usuarioParseado)
-      localStorage.setItem("usuario", JSON.stringify(usuarioParseado))
+      setAutorizado(true)
       await cargarDatos(usuarioParseado, true)
     }
 
-    validarAcceso()
+    validarAdmin()
   }, [router, cargarDatos])
 
   useEffect(() => {
+    if (!autorizado) return
+
     const canal = supabase
       .channel("jonas-stream-admin-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, (payload) => {
@@ -460,7 +412,7 @@ export default function AdminPage() {
     return () => {
       supabase.removeChannel(canal)
     }
-  }, [cargarDatos, registrarEvento])
+  }, [autorizado, cargarDatos, registrarEvento])
 
   const actualizarEstado = async (id: string, nuevoEstado: string) => {
     const usuarioObjetivo = usuarios.find((u) => u.id === id)
@@ -1268,6 +1220,10 @@ export default function AdminPage() {
   const totalSeleccionado = pedidos.filter((pedido) => pedidosSeleccionados.includes(pedido.id)).reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
   const comprobantesVisibles = comprobantesFiltrados.slice(0, limiteComprobantes)
   const logsVisibles = logsFiltrados.slice(0, limiteLogs)
+
+  if (!autorizado) {
+    return null
+  }
 
   if (cargando) return <AdminSkeleton />
 
