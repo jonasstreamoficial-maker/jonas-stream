@@ -60,6 +60,7 @@ type Pedido = {
   captura_pago?: string | null
   voucher_url?: string | null
   producto_nombre?: string | null
+  cantidad?: number | null
 }
 
 type Comprobante = {
@@ -546,31 +547,96 @@ export default function AdminPage() {
     const productoMatch = productos.find((producto) => {
       const productoNombre = normalizarTexto(producto.nombre)
       const pedidoProducto = normalizarTexto(pedido.producto_nombre)
-      return productoNombre === pedidoProducto || productoNombre.includes(pedidoProducto) || pedidoProducto.includes(productoNombre)
+
+      return (
+        productoNombre === pedidoProducto ||
+        productoNombre.includes(pedidoProducto) ||
+        pedidoProducto.includes(productoNombre)
+      )
     })
 
     if (!productoMatch) {
-      await registrarLog("stock_no_encontrado", "pedidos", pedido.id, `No se encontró producto para descontar: ${pedido.producto_nombre}`)
+      await registrarLog(
+        "stock_no_encontrado",
+        "pedidos",
+        pedido.id,
+        `No se encontró producto para descontar: ${pedido.producto_nombre}`
+      )
+
       return false
     }
+
+    const cantidadComprada = Math.max(1, Number(pedido.cantidad || 1))
 
     const stockActual = Number(productoMatch.stock || 0)
-    const nuevoStock = Math.max(0, stockActual - 1)
-    const payload = {
-      stock: nuevoStock,
-      ...calcularEstadoInventario(nuevoStock),
+
+    const nuevoStock = Math.max(
+      0,
+      stockActual - cantidadComprada
+    )
+
+    let nuevoEstado = "activo"
+
+    if (nuevoStock <= 0) {
+      nuevoEstado = "agotado"
+    } else if (nuevoStock <= 3) {
+      nuevoEstado = "limitado"
     }
 
-    const { error } = await supabase.from("productos").update(payload).eq("id", productoMatch.id)
+    const payload = {
+      stock: nuevoStock,
+      estado: nuevoEstado,
+    }
+
+    const { error } = await supabase
+      .from("productos")
+      .update(payload)
+      .eq("id", productoMatch.id)
 
     if (error) {
-      toast.error("Pedido completado, pero no se pudo descontar stock")
+      toast.error(
+        "Pedido completado, pero no se pudo descontar stock"
+      )
+
       return false
     }
 
-    setProductos((prev) => prev.map((p) => (p.id === productoMatch.id ? { ...p, ...payload } : p)))
-    await registrarLog("descontar_stock", "productos", productoMatch.id, `Pedido #${pedido.id.slice(0, 8)} descontó 1 unidad. Stock final: ${nuevoStock}`)
-    registrarEvento(`Stock descontado: ${productoMatch.nombre}`)
+    setProductos((prev) =>
+      prev.map((p) =>
+        p.id === productoMatch.id
+          ? {
+              ...p,
+              ...payload,
+            }
+          : p
+      )
+    )
+
+    await registrarLog(
+      "descontar_stock",
+      "productos",
+      productoMatch.id,
+      `Pedido #${pedido.id.slice(0, 8)} descontó ${cantidadComprada} unidad(es). Stock final: ${nuevoStock}`
+    )
+
+    registrarEvento(
+      `Stock descontado: ${productoMatch.nombre}`
+    )
+
+    if (nuevoStock <= 0) {
+      toast.error(
+        `${productoMatch.nombre} quedó AGOTADO`
+      )
+    } else if (nuevoStock <= 3) {
+      toast(
+        `${productoMatch.nombre} tiene stock bajo`
+      )
+    } else {
+      toast.success(
+        `Stock actualizado correctamente`
+      )
+    }
+
     return true
   }
 
