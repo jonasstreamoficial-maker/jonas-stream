@@ -13,6 +13,7 @@ type Usuario = {
   id: string;
   nombre: string;
   correo: string;
+  contrasena: string;
   rol: string;
   estado: string;
 };
@@ -23,100 +24,69 @@ function buildWhatsAppLink(message: string) {
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [cargando, setCargando] = useState(false);
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
-  const [mensajeDebug, setMensajeDebug] = useState<string | null>(null);
 
-  const iniciarSesion = async (e: React.FormEvent<HTMLFormElement>) => {
+  const iniciarSesion = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
 
     if (cargando) return;
 
     setCargando(true);
-    setMensajeDebug(null);
-
-    const correoNormalizado = correo.trim().toLowerCase();
 
     try {
-      const { data: authData, error: authError } =
-        await supabase.auth.signInWithPassword({
-          email: correoNormalizado,
-          password: contrasena,
-        });
-
-      if (authError || !authData.user) {
-        const detalle =
-          authError?.message || "Supabase Auth no devolvió usuario";
-        setMensajeDebug(`ERROR AUTH: ${detalle}`);
-        toast.error("Correo o contraseña incorrectos");
-        setCargando(false);
-        return;
-      }
-
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.getSession();
-
-      if (sessionError || !sessionData.session) {
-        const detalle =
-          sessionError?.message ||
-          "La sesión no quedó guardada en el navegador";
-        setMensajeDebug(`ERROR SESIÓN: ${detalle}`);
-        toast.error("No se pudo confirmar la sesión. Intenta otra vez.");
-        setCargando(false);
-        return;
-      }
+      const correoNormalizado = correo.trim().toLowerCase();
 
       const { data, error } = await supabase
         .from("usuarios")
-        .select("id,nombre,correo,rol,estado")
-        .eq("id", authData.user.id)
+        .select("*")
+        .eq("correo", correoNormalizado)
         .single();
 
       if (error || !data) {
-        const detalle =
-          error?.message ||
-          `No existe usuario público para ${authData.user.id}`;
-        setMensajeDebug(`ERROR USUARIOS: ${detalle}`);
-        await supabase.auth.signOut();
-        toast.error("Usuario no encontrado en la tabla usuarios");
+        toast.error("Usuario no encontrado");
         setCargando(false);
         return;
       }
 
       const usuario = data as Usuario;
 
+      if (usuario.contrasena !== contrasena) {
+        toast.error("Contraseña incorrecta");
+        setCargando(false);
+        return;
+      }
+
       if (usuario.estado === "pendiente") {
-        setMensajeDebug(
-          "CUENTA PENDIENTE: el usuario existe pero no está aprobado.",
-        );
-        await supabase.auth.signOut();
         toast("Tu cuenta está pendiente de aprobación");
         setCargando(false);
         return;
       }
 
       if (usuario.estado === "rechazado") {
-        setMensajeDebug("CUENTA RECHAZADA: el usuario está bloqueado.");
-        await supabase.auth.signOut();
         toast.error("Tu cuenta fue rechazada");
         setCargando(false);
         return;
       }
 
-      if (usuario.estado !== "aprobado" && usuario.estado !== "activo") {
-        setMensajeDebug(
-          `CUENTA NO HABILITADA: estado actual ${usuario.estado}`,
-        );
-        await supabase.auth.signOut();
+      if (
+        usuario.estado !== "aprobado" &&
+        usuario.estado !== "activo"
+      ) {
         toast.error("Tu cuenta no está habilitada");
         setCargando(false);
         return;
       }
 
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      localStorage.setItem("jonas_login_ok", new Date().toISOString());
+      localStorage.setItem(
+        "usuario",
+        JSON.stringify(usuario),
+      );
 
       toast.success("Bienvenido 🚀");
 
@@ -124,22 +94,16 @@ export default function LoginPage() {
         usuario.rol === "admin"
           ? "/admin"
           : usuario.rol === "proveedor"
-            ? "/proveedor"
-            : "/cliente";
+          ? "/proveedor"
+          : "/cliente";
 
-      router.replace(destino);
-      router.refresh();
-
-      window.setTimeout(() => {
-        window.location.assign(destino);
-      }, 350);
+      router.push(destino);
     } catch (error) {
-      const detalle =
-        error instanceof Error ? error.message : "Error desconocido";
-      setMensajeDebug(`ERROR GENERAL: ${detalle}`);
+      console.error(error);
       toast.error("Error al iniciar sesión");
-      setCargando(false);
     }
+
+    setCargando(false);
   };
 
   return (
@@ -197,7 +161,7 @@ export default function LoginPage() {
             de cuenta.
           </p>
 
-          <div className={styles.accessGrid} aria-label="Accesos disponibles">
+          <div className={styles.accessGrid}>
             <div className={styles.accessCard}>
               <span>CLIENTE</span>
               <strong>Consulta tus pedidos y servicios activos.</strong>
@@ -220,17 +184,28 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={iniciarSesion} className={styles.loginCard}>
+        <form
+          onSubmit={iniciarSesion}
+          className={styles.loginCard}
+        >
           <div className={styles.cardGlow} />
 
           <div className={styles.formHeader}>
-            <span className={styles.formKicker}>CUENTA JONAS STREAM</span>
+            <span className={styles.formKicker}>
+              CUENTA JONAS STREAM
+            </span>
+
             <h2>Iniciar sesión</h2>
-            <p>Ingresa con tu correo y contraseña registrados.</p>
+
+            <p>
+              Ingresa con tu correo y contraseña registrados.
+            </p>
           </div>
 
           <div className={styles.inputGroup}>
-            <label htmlFor="correo">Correo electrónico</label>
+            <label htmlFor="correo">
+              Correo electrónico
+            </label>
 
             <div className={styles.inputWrap}>
               <input
@@ -239,34 +214,37 @@ export default function LoginPage() {
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
                 placeholder="tunombre@correo.com"
-                autoComplete="email"
                 required
               />
             </div>
           </div>
 
           <div className={styles.inputGroup}>
-            <label htmlFor="contrasena">Contraseña</label>
+            <label htmlFor="contrasena">
+              Contraseña
+            </label>
 
-            <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
+            <div
+              className={`${styles.inputWrap} ${styles.passwordWrap}`}
+            >
               <input
                 id="contrasena"
-                type={mostrarContrasena ? "text" : "password"}
+                type={
+                  mostrarContrasena ? "text" : "password"
+                }
                 value={contrasena}
-                onChange={(e) => setContrasena(e.target.value)}
+                onChange={(e) =>
+                  setContrasena(e.target.value)
+                }
                 placeholder="Ingresa tu contraseña"
-                autoComplete="current-password"
                 required
               />
 
               <button
                 type="button"
                 className={styles.passwordToggle}
-                onClick={() => setMostrarContrasena((prev) => !prev)}
-                aria-label={
-                  mostrarContrasena
-                    ? "Ocultar contraseña"
-                    : "Mostrar contraseña"
+                onClick={() =>
+                  setMostrarContrasena((prev) => !prev)
                 }
               >
                 {mostrarContrasena ? "OCULTAR" : "VER"}
@@ -274,39 +252,27 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {mensajeDebug && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "12px 14px",
-                borderRadius: 16,
-                border: "1px solid rgba(255, 143, 163, 0.38)",
-                background: "rgba(255, 143, 163, 0.1)",
-                color: "#ffd7df",
-                fontSize: 12,
-                fontWeight: 800,
-                lineHeight: 1.5,
-                wordBreak: "break-word",
-              }}
-            >
-              {mensajeDebug}
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={cargando}
             className={styles.submitButton}
           >
-            {cargando ? "Ingresando..." : "Entrar al panel"}
+            {cargando
+              ? "Ingresando..."
+              : "Entrar al panel"}
           </button>
 
           <div className={styles.formFooter}>
-            <Link href="/" className={styles.secondaryLink}>
+            <Link
+              href="/"
+              className={styles.secondaryLink}
+            >
               Volver al inicio
             </Link>
 
-            <span>Acceso exclusivo para usuarios registrados.</span>
+            <span>
+              Acceso exclusivo para usuarios registrados.
+            </span>
           </div>
         </form>
       </section>
@@ -314,10 +280,19 @@ export default function LoginPage() {
       <footer className={styles.footerWrap}>
         <div className={styles.footerLegal}>
           © 2026 Jonas Stream. Todos los derechos reservados.
+
           <div className={styles.footerLinks}>
-            <Link href="/terminos">Términos y Condiciones</Link>
-            <span className={styles.footerSeparator}>•</span>
-            <Link href="/privacidad">Política de Privacidad</Link>
+            <Link href="/terminos">
+              Términos y Condiciones
+            </Link>
+
+            <span className={styles.footerSeparator}>
+              •
+            </span>
+
+            <Link href="/privacidad">
+              Política de Privacidad
+            </Link>
           </div>
         </div>
       </footer>
