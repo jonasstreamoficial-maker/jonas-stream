@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import styles from "./cliente.module.css";
 
 type Usuario = {
   id: string;
@@ -76,11 +77,7 @@ function formatDate(value?: string | null) {
   if (!value) return "Sin fecha";
   const date = value.includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
-  return date.toLocaleDateString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return date.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function getDiasRestantes(fecha?: string | null) {
@@ -95,13 +92,13 @@ function getDiasRestantes(fecha?: string | null) {
 
 function estadoPedidoClass(estado?: string | null) {
   const value = String(estado || "pendiente").toLowerCase();
-  if (value === "completado" || value === "entregado" || value === "pagado") {
-    return "border-emerald-400/40 bg-emerald-400/10 text-emerald-300";
-  }
-  if (value === "cancelado" || value === "rechazado") {
-    return "border-red-400/40 bg-red-400/10 text-red-300";
-  }
-  return "border-yellow-400/40 bg-yellow-400/10 text-yellow-300";
+  if (value === "completado" || value === "entregado" || value === "pagado") return styles.statusOk;
+  if (value === "cancelado" || value === "rechazado") return styles.statusBad;
+  return styles.statusWait;
+}
+
+function uniqueById<T extends { id: string }>(items: T[]) {
+  return Array.from(new Map(items.map((item) => [item.id, item])).values());
 }
 
 export default function ClientePage() {
@@ -138,7 +135,7 @@ export default function ClientePage() {
         .from("usuarios")
         .select("id,nombre,correo,rol,estado,celular,celular_completo")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       const usuarioFinal: Usuario =
         usuarioData || {
@@ -151,48 +148,54 @@ export default function ClientePage() {
 
       setUsuario(usuarioFinal);
 
-      const [pedidosResult, cuentasResult, creditosResult] = await Promise.all([
-        supabase
-          .from("pedidos")
-          .select("*")
-          .eq("usuario_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("cuentas_producto")
-          .select("*")
-          .eq("usuario_id", user.id)
-          .order("cliente_fin", { ascending: true }),
-        supabase
-          .from("creditos")
-          .select("*")
-          .eq("usuario_id", user.id)
-          .order("created_at", { ascending: false }),
+      const correoUsuario = usuarioFinal.correo || user.email || "";
+      const pedidosQuery = correoUsuario
+        ? `usuario_id.eq.${user.id},cliente_correo.eq.${correoUsuario}`
+        : `usuario_id.eq.${user.id}`;
+
+      const [pedidosResult, creditosResult] = await Promise.all([
+        supabase.from("pedidos").select("*").or(pedidosQuery).order("created_at", { ascending: false }),
+        supabase.from("creditos").select("*").eq("usuario_id", user.id).order("created_at", { ascending: false }),
       ]);
 
       const pedidosData = (pedidosResult.data || []) as Pedido[];
-      const cuentasData = (cuentasResult.data || []) as CuentaProducto[];
       const creditosData = (creditosResult.data || []) as Credito[];
-
       setPedidos(pedidosData);
-      setCuentas(cuentasData);
       setCreditos(creditosData);
 
-      const pedidoIds = pedidosData.map((pedido) => pedido.id);
-      const productoIdsFromCuentas = cuentasData.map((cuenta) => cuenta.producto_id).filter(Boolean);
+      const pedidoIds = pedidosData.map((pedido) => pedido.id).filter(Boolean);
+
+      let cuentasPorUsuario: CuentaProducto[] = [];
+      const { data: cuentasUsuarioData } = await supabase
+        .from("cuentas_producto")
+        .select("*")
+        .eq("usuario_id", user.id)
+        .order("cliente_fin", { ascending: true });
+      cuentasPorUsuario = (cuentasUsuarioData || []) as CuentaProducto[];
+
+      let cuentasPorPedido: CuentaProducto[] = [];
+      if (pedidoIds.length > 0) {
+        const { data: cuentasPedidoData } = await supabase
+          .from("cuentas_producto")
+          .select("*")
+          .in("pedido_id", pedidoIds)
+          .order("cliente_fin", { ascending: true });
+        cuentasPorPedido = (cuentasPedidoData || []) as CuentaProducto[];
+      }
+
+      const cuentasData = uniqueById([...cuentasPorUsuario, ...cuentasPorPedido]);
+      setCuentas(cuentasData);
 
       let itemsData: PedidoItem[] = [];
       if (pedidoIds.length > 0) {
-        const { data } = await supabase
-          .from("pedido_items")
-          .select("*")
-          .in("pedido_id", pedidoIds);
+        const { data } = await supabase.from("pedido_items").select("*").in("pedido_id", pedidoIds);
         itemsData = (data || []) as PedidoItem[];
       }
       setPedidoItems(itemsData);
 
       const productoIds = Array.from(
         new Set([
-          ...productoIdsFromCuentas,
+          ...cuentasData.map((cuenta) => cuenta.producto_id).filter(Boolean),
           ...itemsData.map((item) => item.producto_id).filter(Boolean),
         ] as string[]),
       );
@@ -218,9 +221,7 @@ export default function ClientePage() {
     .filter((credito) => String(credito.estado || "activo").toLowerCase() === "activo")
     .reduce((acc, credito) => acc + Number(credito.saldo || 0), 0);
 
-  const productoPorId = useMemo(() => {
-    return new Map(productos.map((producto) => [producto.id, producto]));
-  }, [productos]);
+  const productoPorId = useMemo(() => new Map(productos.map((producto) => [producto.id, producto])), [productos]);
 
   const itemsPorPedido = useMemo(() => {
     const map = new Map<string, PedidoItem[]>();
@@ -232,17 +233,16 @@ export default function ClientePage() {
     return map;
   }, [pedidoItems]);
 
+  const cuentasActivas = cuentas.filter((cuenta) => String(cuenta.estado || "").toLowerCase() === "entregada");
+
   const proximosVencimientos = useMemo(() => {
-    return cuentas
-      .filter((cuenta) => String(cuenta.estado || "").toLowerCase() === "entregada")
+    return cuentasActivas
       .filter((cuenta) => {
         const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
         return dias !== null && dias <= 7;
       })
       .slice(0, 5);
-  }, [cuentas]);
-
-  const cuentasActivas = cuentas.filter((cuenta) => String(cuenta.estado || "").toLowerCase() === "entregada");
+  }, [cuentasActivas]);
 
   const menu: { id: SectionId; label: string; icon: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: "⌂" },
@@ -264,83 +264,65 @@ export default function ClientePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#020617] text-white flex items-center justify-center">
-        <div className="rounded-3xl border border-cyan-400/20 bg-white/5 px-8 py-6 shadow-[0_0_40px_rgba(34,211,238,0.18)] backdrop-blur-xl">
-          <div className="h-10 w-10 mx-auto mb-4 rounded-full border-2 border-cyan-300 border-t-transparent animate-spin" />
-          <p className="text-cyan-100 tracking-wide">Cargando tu panel...</p>
+      <main className={styles.loadingPage}>
+        <div className={styles.loadingCard}>
+          <div className={styles.loader} />
+          <p>Cargando tu panel...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#000000] text-white overflow-hidden">
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute top-1/3 -right-32 h-96 w-96 rounded-full bg-[#018B90]/25 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-cyan-300/10 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(1,231,239,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(1,231,239,.35)_1px,transparent_1px)] [background-size:42px_42px]" />
-      </div>
+    <main className={styles.page}>
+      <div className={styles.bgGlowOne} />
+      <div className={styles.bgGlowTwo} />
+      <div className={styles.gridOverlay} />
 
-      <div className="relative z-10 flex flex-col lg:flex-row min-h-screen">
-        <aside className="lg:w-72 border-b lg:border-b-0 lg:border-r border-cyan-400/10 bg-white/[0.04] backdrop-blur-2xl">
-          <div className="p-6">
-            <Link href="/" className="block mb-8 no-underline">
-              <h1 className="text-2xl font-black tracking-[0.08em]">
-                JONAS <span className="text-cyan-300 drop-shadow-[0_0_12px_rgba(34,211,238,0.8)]">STREAM</span>
-              </h1>
-              <p className="text-xs text-cyan-100/60 mt-1 tracking-[0.28em] uppercase">Panel Cliente</p>
-            </Link>
+      <div className={styles.shell}>
+        <aside className={styles.sidebar}>
+          <Link href="/" className={styles.brandBlock}>
+            <strong>JONAS STREAM</strong>
+            <span>Panel Cliente</span>
+          </Link>
 
-            <nav className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-3">
-              {menu.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition-all duration-300 ${
-                    activeSection === item.id
-                      ? "bg-cyan-400/15 text-cyan-200 border border-cyan-300/40 shadow-[0_0_24px_rgba(34,211,238,0.20)]"
-                      : "bg-white/[0.03] text-white/70 border border-white/5 hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-cyan-100"
-                  }`}
-                >
-                  <span className="text-lg text-cyan-300">{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </nav>
+          <nav className={styles.nav}>
+            {menu.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveSection(item.id)}
+                className={`${styles.navButton} ${activeSection === item.id ? styles.navButtonActive : ""}`}
+              >
+                <span>{item.icon}</span>
+                <strong>{item.label}</strong>
+              </button>
+            ))}
+          </nav>
 
-            <div className="mt-8 rounded-3xl border border-cyan-400/15 bg-black/25 p-4">
-              <p className="text-sm font-black text-cyan-100 truncate">{nombre}</p>
-              <p className="text-xs text-white/45 truncate">{usuario?.correo || "Cliente Jonas Stream"}</p>
-              <div className="mt-3 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-300 w-fit uppercase">
-                {usuario?.estado || "activo"}
-              </div>
-            </div>
+          <div className={styles.userCardMini}>
+            <strong>{nombre}</strong>
+            <span>{usuario?.correo || "Cliente Jonas Stream"}</span>
+            <em>{usuario?.estado || "activo"}</em>
           </div>
         </aside>
 
-        <section className="flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="mb-8 rounded-[28px] border border-cyan-400/15 bg-white/[0.04] p-6 backdrop-blur-xl shadow-[0_0_40px_rgba(34,211,238,0.08)]">
-            <p className="text-cyan-200/80 text-sm font-black uppercase tracking-[0.18em]">Bienvenido de vuelta</p>
-            <h2 className="mt-2 text-3xl sm:text-5xl font-black tracking-tight">
-              Hola, <span className="text-cyan-300">{nombre}</span>
-            </h2>
-            <p className="mt-3 text-white/55 text-sm leading-7 max-w-3xl">
-              Gestiona tus compras, accesos entregados, vencimientos y créditos desde un solo lugar.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link href="/tienda" className="rounded-2xl bg-cyan-400 px-5 py-3 font-black text-black no-underline shadow-[0_0_24px_rgba(34,211,238,0.35)]">
-                Ir a tienda
-              </Link>
-              <Link href="/carrito" className="rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-5 py-3 font-black text-cyan-100 no-underline">
-                Ver carrito
-              </Link>
+        <section className={styles.content}>
+          <div className={styles.heroPanel}>
+            <span className={styles.kicker}>Bienvenido de vuelta</span>
+            <h1>
+              Hola, <span>{nombre}</span>
+            </h1>
+            <p>Gestiona tus compras, accesos entregados, vencimientos y créditos desde un solo lugar.</p>
+            <div className={styles.heroActions}>
+              <Link href="/tienda">Ir a tienda</Link>
+              <Link href="/carrito">Ver carrito</Link>
             </div>
           </div>
 
           {activeSection === "dashboard" && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={styles.sectionStack}>
+              <div className={styles.statsGrid}>
                 <StatCard title="Saldo disponible" value={formatMoney(saldo)} subtitle="Créditos Jonas Stream" />
                 <StatCard title="Accesos activos" value={String(cuentasActivas.length)} subtitle="Cuentas entregadas" />
                 <StatCard title="Por vencer" value={String(proximosVencimientos.length)} subtitle="En los próximos 7 días" />
@@ -350,7 +332,7 @@ export default function ClientePage() {
                 {proximosVencimientos.length === 0 ? (
                   <EmptyText text="No tienes vencimientos próximos." />
                 ) : (
-                  <div className="space-y-3">
+                  <div className={styles.listStack}>
                     {proximosVencimientos.map((cuenta) => (
                       <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} />
                     ))}
@@ -365,7 +347,7 @@ export default function ClientePage() {
               {pedidos.length === 0 ? (
                 <EmptyText text="Aún no tienes compras registradas." />
               ) : (
-                <div className="space-y-3">
+                <div className={styles.listStack}>
                   {pedidos.map((pedido) => {
                     const items = itemsPorPedido.get(pedido.id) || [];
                     const nombres = items
@@ -373,20 +355,15 @@ export default function ClientePage() {
                       .join(", ");
 
                     return (
-                      <div key={pedido.id} className="rounded-2xl border border-white/10 bg-black/20 p-4 hover:border-cyan-300/30 transition">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                          <div>
-                            <h3 className="font-black text-white">Pedido #{pedido.id.slice(0, 8)}</h3>
-                            <p className="text-sm text-cyan-100/70 mt-1">{nombres || "Pedido Jonas Stream"}</p>
-                            <p className="text-xs text-white/45 mt-1">{formatDate(pedido.created_at)} · {pedido.metodo_pago || "Sin método"}</p>
-                          </div>
-
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-cyan-200 font-black">{formatMoney(pedido.total)}</span>
-                            <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${estadoPedidoClass(pedido.estado)}`}>
-                              {pedido.estado || "pendiente"}
-                            </span>
-                          </div>
+                      <div key={pedido.id} className={styles.orderItem}>
+                        <div>
+                          <h3>Pedido #{pedido.id.slice(0, 8)}</h3>
+                          <p>{nombres || "Pedido Jonas Stream"}</p>
+                          <small>{formatDate(pedido.created_at)} · {pedido.metodo_pago || "Sin método"}</small>
+                        </div>
+                        <div className={styles.orderRight}>
+                          <strong>{formatMoney(pedido.total)}</strong>
+                          <span className={`${styles.statusBadge} ${estadoPedidoClass(pedido.estado)}`}>{pedido.estado || "pendiente"}</span>
                         </div>
                       </div>
                     );
@@ -401,7 +378,7 @@ export default function ClientePage() {
               {cuentasActivas.length === 0 ? (
                 <EmptyText text="Todavía no tienes accesos entregados. Compra con créditos o espera que el admin apruebe tu pedido normal." />
               ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div className={styles.accessGrid}>
                   {cuentasActivas.map((cuenta) => {
                     const producto = productoPorId.get(cuenta.producto_id);
                     const textoCopiar = [
@@ -412,25 +389,21 @@ export default function ClientePage() {
                     ].join("\n");
 
                     return (
-                      <div key={cuenta.id} className="rounded-3xl border border-cyan-400/15 bg-black/25 p-5 shadow-[0_0_24px_rgba(34,211,238,0.06)] hover:border-cyan-300/35 hover:-translate-y-1 transition-all duration-300">
-                        <div className="flex items-start justify-between gap-4 mb-4">
+                      <div key={cuenta.id} className={styles.accessCard}>
+                        <div className={styles.accessTop}>
                           <div>
-                            <h3 className="text-xl font-black text-cyan-100">{producto?.nombre || "Producto"}</h3>
-                            <p className="text-xs text-white/45 uppercase tracking-wider">{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</p>
+                            <h3>{producto?.nombre || "Producto"}</h3>
+                            <p>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</p>
                           </div>
-                          <span className="rounded-full bg-emerald-400/10 border border-emerald-300/30 px-3 py-1 text-xs text-emerald-300 font-black uppercase">Activo</span>
+                          <span>Activo</span>
                         </div>
 
-                        <div className="space-y-3 text-sm">
-                          <InfoRow label="Correo" value={cuenta.correo || "No disponible"} />
-                          <InfoRow label="Contraseña" value={cuenta.clave || "No disponible"} />
-                          <InfoRow label="Inicio" value={formatDate(cuenta.cliente_inicio)} />
-                          <InfoRow label="Vencimiento" value={formatDate(cuenta.cliente_fin || cuenta.fecha_fin)} />
-                        </div>
+                        <InfoRow label="Correo" value={cuenta.correo || "No disponible"} />
+                        <InfoRow label="Contraseña" value={cuenta.clave || "No disponible"} />
+                        <InfoRow label="Inicio" value={formatDate(cuenta.cliente_inicio)} />
+                        <InfoRow label="Vencimiento" value={formatDate(cuenta.cliente_fin || cuenta.fecha_fin)} />
 
-                        <button onClick={() => copiarTexto(textoCopiar)} className="mt-4 w-full rounded-2xl bg-cyan-400 px-5 py-3 font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.24)] hover:bg-cyan-300 transition">
-                          Copiar datos
-                        </button>
+                        <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>Copiar datos</button>
                       </div>
                     );
                   })}
@@ -444,7 +417,7 @@ export default function ClientePage() {
               {cuentasActivas.length === 0 ? (
                 <EmptyText text="No tienes productos con vencimiento." />
               ) : (
-                <div className="space-y-3">
+                <div className={styles.listStack}>
                   {cuentasActivas.map((cuenta) => (
                     <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} showButton />
                   ))}
@@ -455,22 +428,22 @@ export default function ClientePage() {
 
           {activeSection === "creditos" && (
             <GlassCard title="Créditos">
-              <div className="mb-6 rounded-3xl border border-cyan-300/20 bg-cyan-400/10 p-6">
-                <p className="text-white/50 text-sm">Saldo actual</p>
-                <h3 className="text-4xl font-black text-cyan-200 mt-1">{formatMoney(saldo)}</h3>
+              <div className={styles.creditHero}>
+                <span>Saldo actual</span>
+                <strong>{formatMoney(saldo)}</strong>
               </div>
 
               {creditos.length === 0 ? (
                 <EmptyText text="No tienes créditos asignados todavía." />
               ) : (
-                <div className="space-y-3">
+                <div className={styles.listStack}>
                   {creditos.map((credito) => (
-                    <div key={credito.id} className="rounded-2xl border border-white/10 bg-black/20 p-4 flex items-center justify-between gap-3">
+                    <div key={credito.id} className={styles.creditRow}>
                       <div>
-                        <p className="font-black">Créditos Jonas Stream</p>
-                        <p className="text-xs text-white/45">Estado: {credito.estado || "activo"}</p>
+                        <strong>Créditos Jonas Stream</strong>
+                        <span>Estado: {credito.estado || "activo"}</span>
                       </div>
-                      <span className="text-cyan-200 font-black">{formatMoney(credito.saldo)}</span>
+                      <em>{formatMoney(credito.saldo)}</em>
                     </div>
                   ))}
                 </div>
@@ -480,15 +453,10 @@ export default function ClientePage() {
 
           {activeSection === "telegram" && (
             <GlassCard title="Telegram">
-              <div className="rounded-3xl border border-cyan-300/20 bg-black/25 p-6">
-                <h3 className="text-2xl font-black text-cyan-100">Vincula tu Telegram</h3>
-                <p className="text-white/50 mt-2 text-sm max-w-2xl leading-7">
-                  Recibe avisos de compras, accesos y vencimientos directamente en Telegram. Esta sección queda lista para conectar tu bot más adelante.
-                </p>
-
-                <button className="mt-6 rounded-2xl bg-cyan-400 px-5 py-3 font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.35)] hover:scale-[1.02] hover:bg-cyan-300 transition">
-                  Vincular Telegram
-                </button>
+              <div className={styles.telegramBox}>
+                <h3>Vincula tu Telegram</h3>
+                <p>Recibe avisos de compras, accesos y vencimientos directamente en Telegram. Esta sección queda lista para conectar tu bot más adelante.</p>
+                <button type="button" className={styles.primaryButton}>Vincular Telegram</button>
               </div>
             </GlassCard>
           )}
@@ -500,32 +468,32 @@ export default function ClientePage() {
 
 function StatCard({ title, value, subtitle }: { title: string; value: string; subtitle: string }) {
   return (
-    <div className="rounded-3xl border border-cyan-400/15 bg-white/[0.04] p-5 backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.06)] hover:border-cyan-300/35 hover:-translate-y-1 transition-all duration-300">
-      <p className="text-sm text-white/50">{title}</p>
-      <h3 className="mt-2 text-3xl font-black text-cyan-200">{value}</h3>
-      <p className="mt-1 text-xs text-white/40">{subtitle}</p>
+    <div className={styles.statCard}>
+      <p>{title}</p>
+      <strong>{value}</strong>
+      <span>{subtitle}</span>
     </div>
   );
 }
 
 function GlassCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-3xl border border-cyan-400/15 bg-white/[0.04] p-5 sm:p-6 backdrop-blur-xl shadow-[0_0_35px_rgba(34,211,238,0.08)]">
-      <h2 className="mb-5 text-2xl font-black text-cyan-100 uppercase tracking-wide">{title}</h2>
+    <div className={styles.panel}>
+      <h2>{title}</h2>
       {children}
     </div>
   );
 }
 
 function EmptyText({ text }: { text: string }) {
-  return <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-center text-white/45">{text}</div>;
+  return <div className={styles.emptyState}>{text}</div>;
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-      <p className="text-xs text-white/40">{label}</p>
-      <p className="mt-1 font-semibold text-white break-all">{value}</p>
+    <div className={styles.infoRow}>
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
@@ -536,22 +504,14 @@ function VencimientoItem({ cuenta, producto, showButton = false }: { cuenta: Cue
   const warning = dias !== null && dias > 2 && dias <= 7;
 
   return (
-    <div className={`rounded-2xl border p-4 transition hover:-translate-y-1 ${danger ? "border-red-400/35 bg-red-500/10" : warning ? "border-yellow-400/35 bg-yellow-500/10" : "border-cyan-400/15 bg-black/20"}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h3 className="font-black text-white">{producto?.nombre || "Producto"}</h3>
-          <p className="text-sm text-white/50">
-            {dias === null ? "Sin fecha de vencimiento" : dias < 0 ? `Venció hace ${Math.abs(dias)} día(s)` : `Vence en ${dias} día(s)`}
-          </p>
-          <p className="text-xs text-cyan-100/60 mt-1">Vencimiento: {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</p>
-        </div>
-
-        {showButton && (
-          <Link href="/tienda" className="rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-200 hover:bg-cyan-400 hover:text-black transition no-underline text-center">
-            Renovar
-          </Link>
-        )}
+    <div className={`${styles.expireItem} ${danger ? styles.expireDanger : warning ? styles.expireWarning : ""}`}>
+      <div>
+        <h3>{producto?.nombre || "Producto"}</h3>
+        <p>{dias === null ? "Sin fecha de vencimiento" : dias < 0 ? `Venció hace ${Math.abs(dias)} día(s)` : `Vence en ${dias} día(s)`}</p>
+        <small>Vencimiento: {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</small>
       </div>
+
+      {showButton && <Link href="/tienda">Renovar</Link>}
     </div>
   );
 }
