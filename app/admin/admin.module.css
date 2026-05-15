@@ -5811,3 +5811,78 @@
 .adminMetaDanger strong {
   color: #ff8fa3;
 }
+
+
+/* Módulo Cuentas completas - Jonas Stream */
+.accountsHeroPro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(460px, 0.95fr);
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 8% 10%, rgba(124, 255, 178, 0.11), transparent 30%),
+    radial-gradient(circle at 92% 10%, rgba(0, 251, 255, 0.14), transparent 28%),
+    linear-gradient(135deg, rgba(3, 19, 22, 0.88), rgba(7, 27, 30, 0.62));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.12), inset 0 0 46px rgba(0, 251, 255, 0.045);
+  overflow: hidden;
+  position: relative;
+}
+
+.accountsHeroPro::after {
+  content: "";
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  right: -130px;
+  bottom: -170px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 251, 255, 0.13), transparent 62%);
+  pointer-events: none;
+}
+
+.fieldWithLabel {
+  display: grid;
+  gap: 8px;
+}
+
+.fieldWithLabel span {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.accountAccessBox {
+  display: grid;
+  gap: 6px;
+  min-width: 190px;
+}
+
+.accountAccessBox span {
+  color: #ECFFFF;
+  font-weight: 900;
+  word-break: break-all;
+}
+
+.accountAccessBox code {
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #00FBFF;
+  background: rgba(1, 231, 239, 0.08);
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-weight: 850;
+  word-break: break-all;
+}
+
+@media (max-width: 1180px) {
+  .accountsHeroPro {
+    grid-template-columns: 1fr;
+  }
+}
