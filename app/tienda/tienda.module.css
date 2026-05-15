@@ -1511,3 +1511,427 @@
     min-height: 190px !important;
   }
 }
+
+
+/* ==========================================================
+   CARTAS TIENDA SINCRONIZADAS CON VER PRECIOS / ADMIN
+   Solo ajusta las cards: mantiene carrito, comprar, filtros y layout.
+   ========================================================== */
+
+.productCard {
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 18px !important;
+  border-radius: 26px !important;
+  border: 1px solid rgba(1, 231, 239, 0.2) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.075), transparent 32%),
+    linear-gradient(180deg, rgba(3, 19, 22, 0.92), rgba(0, 10, 12, 0.98)) !important;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.34),
+    inset 0 0 34px rgba(0, 251, 255, 0.035) !important;
+}
+
+.productCard::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  width: 3px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(180deg, #00fbff, transparent) !important;
+  opacity: 0.72 !important;
+}
+
+.productCard:hover {
+  transform: translateY(-5px) !important;
+  border-color: rgba(0, 251, 255, 0.34) !important;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.38),
+    0 0 28px rgba(1, 231, 239, 0.1),
+    inset 0 0 34px rgba(0, 251, 255, 0.045) !important;
+}
+
+.productTop {
+  padding: 0 !important;
+}
+
+.productBadges {
+  position: relative !important;
+  z-index: 4 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 0 0 12px !important;
+}
+
+.categoryBadge,
+.typeBadge {
+  min-height: 30px !important;
+  padding: 7px 11px !important;
+  border-radius: 999px !important;
+  font-size: 0.72rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.categoryBadge {
+  color: #00fbff !important;
+  background: rgba(1, 231, 239, 0.1) !important;
+  border: 1px solid rgba(1, 231, 239, 0.35) !important;
+  box-shadow: 0 0 16px rgba(1, 231, 239, 0.08) !important;
+}
+
+.typeBadge {
+  color: #ecffff !important;
+  background: rgba(124, 255, 178, 0.11) !important;
+  border: 1px solid rgba(124, 255, 178, 0.32) !important;
+  box-shadow: 0 0 16px rgba(124, 255, 178, 0.06) !important;
+}
+
+.typeProfile {
+  background: rgba(1, 231, 239, 0.08) !important;
+  border-color: rgba(1, 231, 239, 0.32) !important;
+}
+
+.typeAccount {
+  background: rgba(124, 255, 178, 0.11) !important;
+  border-color: rgba(124, 255, 178, 0.32) !important;
+}
+
+.favoriteButton {
+  top: 76px !important;
+  right: 28px !important;
+  z-index: 7 !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(1, 231, 239, 0.24) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 0 18px rgba(1, 231, 239, 0.08) !important;
+}
+
+.productVisual {
+  position: relative !important;
+  z-index: 2 !important;
+  min-height: 220px !important;
+  height: 220px !important;
+  margin: 0 !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  background:
+    radial-gradient(circle at center, rgba(1, 231, 239, 0.12), transparent 55%),
+    #020a0c !important;
+  border: 1px solid rgba(1, 231, 239, 0.11) !important;
+}
+
+.productImage {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.productBody {
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 18px 0 0 !important;
+}
+
+.productTitle {
+  margin: 0 0 8px !important;
+  color: #ecffff !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 1.42rem !important;
+  line-height: 1.12 !important;
+  font-weight: 950 !important;
+  text-align: center !important;
+  letter-spacing: -0.03em !important;
+  text-transform: uppercase !important;
+}
+
+.productSubtitle {
+  min-height: 0 !important;
+  margin: 0 0 16px !important;
+  color: #9bc8cb !important;
+  font-size: 0.98rem !important;
+  line-height: 1.45 !important;
+  text-align: center !important;
+}
+
+.stockBar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  min-height: 38px !important;
+  padding: 8px 12px !important;
+  margin: 0 0 16px !important;
+  border-radius: 999px !important;
+  background: rgba(1, 231, 239, 0.06) !important;
+  border: 1px solid rgba(1, 231, 239, 0.26) !important;
+}
+
+.stockBar span {
+  color: #9bc8cb !important;
+  font-size: 0.78rem !important;
+  font-weight: 950 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+}
+
+.stockBar strong {
+  color: #ecffff !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+}
+
+.stockActive {
+  background: rgba(124, 255, 178, 0.075) !important;
+  border-color: rgba(124, 255, 178, 0.38) !important;
+}
+
+.stockActive span,
+.stockActive strong {
+  color: #7cffb2 !important;
+}
+
+.stockLimited {
+  background: rgba(255, 224, 130, 0.09) !important;
+  border-color: rgba(255, 224, 130, 0.42) !important;
+}
+
+.stockLimited span,
+.stockLimited strong {
+  color: #ffe082 !important;
+}
+
+.stockSoldOut {
+  background: rgba(255, 143, 163, 0.09) !important;
+  border-color: rgba(255, 143, 163, 0.42) !important;
+}
+
+.stockSoldOut span,
+.stockSoldOut strong {
+  color: #ff8fa3 !important;
+}
+
+.metaGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+}
+
+.metaCard {
+  min-height: 68px !important;
+  padding: 12px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(1, 231, 239, 0.14) !important;
+  background: rgba(0, 0, 0, 0.28) !important;
+}
+
+.metaCard span {
+  display: block !important;
+  margin-bottom: 6px !important;
+  color: #9bc8cb !important;
+  font-size: 0.68rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.11em !important;
+  text-transform: uppercase !important;
+}
+
+.metaCard strong {
+  display: block !important;
+  color: #ecffff !important;
+  font-size: 0.88rem !important;
+  line-height: 1.28 !important;
+  font-weight: 900 !important;
+}
+
+.metaCardSuccess {
+  border-color: rgba(124, 255, 178, 0.28) !important;
+  background: rgba(124, 255, 178, 0.055) !important;
+}
+
+.metaCardSuccess strong {
+  color: #7cffb2 !important;
+}
+
+.statusRow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+}
+
+.statusBadge {
+  min-height: 32px !important;
+  padding: 7px 10px !important;
+  border-radius: 999px !important;
+  font-size: 0.76rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0 !important;
+}
+
+.statusActive {
+  color: #7cffb2 !important;
+  background: rgba(124, 255, 178, 0.1) !important;
+  border: 1px solid rgba(124, 255, 178, 0.25) !important;
+}
+
+.statusLimited {
+  color: #ffe082 !important;
+  background: rgba(255, 224, 130, 0.1) !important;
+  border: 1px solid rgba(255, 224, 130, 0.25) !important;
+}
+
+.statusSoldOut {
+  color: #ff8fa3 !important;
+  background: rgba(255, 143, 163, 0.1) !important;
+  border: 1px solid rgba(255, 143, 163, 0.25) !important;
+}
+
+.stockText {
+  color: #9bc8cb !important;
+  font-size: 0.82rem !important;
+  font-weight: 850 !important;
+  text-align: right !important;
+}
+
+.priceGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+}
+
+.priceCard {
+  min-height: 70px !important;
+  padding: 13px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(1, 231, 239, 0.16) !important;
+  background: rgba(0, 0, 0, 0.42) !important;
+  box-shadow: inset 0 0 18px rgba(0, 251, 255, 0.04) !important;
+}
+
+.priceCard small {
+  display: block !important;
+  color: #00fbff !important;
+  font-size: 0.68rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.12em !important;
+  margin-bottom: 6px !important;
+}
+
+.priceCard strong {
+  display: block !important;
+  color: #00fbff !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 1.22rem !important;
+  line-height: 1.1 !important;
+  font-weight: 950 !important;
+}
+
+.priceCard em {
+  display: block !important;
+  margin-top: 5px !important;
+  color: #6f949b !important;
+  font-size: 0.75rem !important;
+  font-style: normal !important;
+  text-decoration: line-through !important;
+}
+
+.cardActions {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+}
+
+.buyButton {
+  width: 100% !important;
+  min-height: 52px !important;
+  border-radius: 16px !important;
+  color: #001014 !important;
+  background: linear-gradient(135deg, #01e7ef, #00fbff 45%, #018b90) !important;
+  border: 0 !important;
+  box-shadow: 0 0 24px rgba(0, 251, 255, 0.22) !important;
+  font-size: 0.95rem !important;
+  font-weight: 950 !important;
+}
+
+.buyButton:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 0 30px rgba(0, 251, 255, 0.3) !important;
+}
+
+.whatsappButton {
+  display: none !important;
+}
+
+@media (max-width: 1500px) {
+  .catalogGrid {
+    grid-template-columns: repeat(2, minmax(280px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .productCard {
+    padding: 18px !important;
+  }
+
+  .productVisual {
+    min-height: 218px !important;
+    height: 218px !important;
+  }
+
+  .metaGrid,
+  .priceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .statusRow {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+  }
+
+  .stockText {
+    text-align: right !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .productCard {
+    padding: 16px !important;
+  }
+
+  .productVisual {
+    min-height: 190px !important;
+    height: 190px !important;
+  }
+
+  .categoryBadge,
+  .typeBadge {
+    font-size: 0.64rem !important;
+    padding: 7px 9px !important;
+  }
+
+  .productTitle {
+    font-size: 1.2rem !important;
+  }
+
+  .metaCard {
+    padding: 10px !important;
+  }
+
+  .priceCard strong {
+    font-size: 1.08rem !important;
+  }
+}
