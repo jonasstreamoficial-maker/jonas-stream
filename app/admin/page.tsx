@@ -100,6 +100,14 @@ type ConfiguracionTienda = {
   whatsapp: string
 }
 
+type Credito = {
+  id: string
+  usuario_id: string
+  saldo: number
+  estado: string
+  created_at?: string | null
+}
+
 type MetricTone = "success" | "warning" | "danger" | "info" | "neutral"
 
 type OrdenProducto = "recientes" | "nombre" | "precio_mayor" | "precio_menor" | "stock_menor"
@@ -196,6 +204,7 @@ export default function AdminPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [comprobantes, setComprobantes] = useState<Comprobante[]>([])
   const [logs, setLogs] = useState<AdminLog[]>([])
+  const [creditos, setCreditos] = useState<Credito[]>([])
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<TabId>("dashboard")
   const [busquedaGlobal, setBusquedaGlobal] = useState("")
@@ -234,6 +243,12 @@ export default function AdminPage() {
 
   const [busquedaHistorial, setBusquedaHistorial] = useState("")
   const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
+
+  const [busquedaCredito, setBusquedaCredito] = useState("")
+  const [filtroEstadoCredito, setFiltroEstadoCredito] = useState("todos")
+  const [formCredito, setFormCredito] = useState({ usuario_id: "", saldo: "", estado: "activo" })
+  const [editandoCreditoId, setEditandoCreditoId] = useState<string | null>(null)
+  const [guardandoCredito, setGuardandoCredito] = useState(false)
 
   const [configId, setConfigId] = useState<string | null>(null)
   const [formConfig, setFormConfig] = useState(configuracionInicial)
@@ -301,19 +316,21 @@ export default function AdminPage() {
       productosQuery.eq("proveedor", adminActual.nombre)
     }
 
-    const [usuariosResult, productosResult, pedidosResult, logsResult, configResult, comprobantesResult] = await Promise.all([
+    const [usuariosResult, productosResult, pedidosResult, logsResult, configResult, comprobantesResult, creditosResult] = await Promise.all([
       esProveedorActual && adminActual?.id ? usuariosQuery.eq("id", adminActual.id) : usuariosQuery,
       productosQuery,
       pedidosQuery,
       supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(80),
       supabase.from("configuracion_tienda").select("*").order("created_at", { ascending: false }).limit(1),
       supabase.from("comprobantes").select("*").order("created_at", { ascending: false }).limit(80),
+      supabase.from("creditos").select("*").order("created_at", { ascending: false }).limit(120),
     ])
 
     if (usuariosResult.data) setUsuarios(usuariosResult.data as Usuario[])
     if (productosResult.data) setProductos(productosResult.data as Producto[])
     if (pedidosResult.data) setPedidos(pedidosResult.data as Pedido[])
     if (logsResult.data) setLogs(logsResult.data as AdminLog[])
+    if (!creditosResult.error && creditosResult.data) setCreditos(creditosResult.data as Credito[])
 
     if (comprobantesResult.error) {
       setComprobantesDisponibles(false)
@@ -405,6 +422,10 @@ export default function AdminPage() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "admin_logs" }, () => {
         registrarEvento("Nuevo registro en historial")
+        cargarDatos()
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "creditos" }, () => {
+        registrarEvento("Movimiento detectado en créditos")
         cargarDatos()
       })
       .subscribe()
@@ -914,6 +935,96 @@ export default function AdminPage() {
     }
   }
 
+  const handleCreditoChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormCredito((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const limpiarFormularioCredito = () => {
+    setFormCredito({ usuario_id: "", saldo: "", estado: "activo" })
+    setEditandoCreditoId(null)
+  }
+
+  const guardarCredito = async (e: FormEvent) => {
+    e.preventDefault()
+
+    const saldo = Number(formCredito.saldo)
+
+    if (!formCredito.usuario_id) {
+      toast.error("Selecciona un usuario")
+      return
+    }
+
+    if (Number.isNaN(saldo) || saldo < 0) {
+      toast.error("El saldo debe ser un número válido")
+      return
+    }
+
+    setGuardandoCredito(true)
+
+    const payload = {
+      usuario_id: formCredito.usuario_id,
+      saldo,
+      estado: formCredito.estado || "activo",
+    }
+
+    if (editandoCreditoId) {
+      const { error } = await supabase.from("creditos").update(payload).eq("id", editandoCreditoId)
+
+      if (error) {
+        toast.error("No se pudo actualizar el crédito")
+        setGuardandoCredito(false)
+        return
+      }
+
+      await registrarLog("actualizar", "creditos", editandoCreditoId, `Saldo: ${formatearSoles(saldo)} · Estado: ${payload.estado}`)
+      toast.success("Crédito actualizado")
+    } else {
+      const { data, error } = await supabase.from("creditos").insert([payload]).select("id")
+
+      if (error) {
+        toast.error("No se pudo crear el crédito")
+        setGuardandoCredito(false)
+        return
+      }
+
+      await registrarLog("crear", "creditos", data?.[0]?.id, `Saldo inicial: ${formatearSoles(saldo)}`)
+      toast.success("Crédito creado")
+    }
+
+    limpiarFormularioCredito()
+    setGuardandoCredito(false)
+    await cargarDatos()
+  }
+
+  const editarCredito = (credito: Credito) => {
+    setEditandoCreditoId(credito.id)
+    setFormCredito({
+      usuario_id: credito.usuario_id,
+      saldo: String(credito.saldo ?? 0),
+      estado: credito.estado || "activo",
+    })
+    setTabActiva("creditos")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const eliminarCredito = async (credito: Credito) => {
+    const confirmar = confirm(`¿Eliminar crédito #${credito.id.slice(0, 8)}? Esta acción no se puede deshacer.`)
+    if (!confirmar) return
+
+    const { error } = await supabase.from("creditos").delete().eq("id", credito.id)
+
+    if (error) {
+      toast.error("No se pudo eliminar el crédito")
+      return
+    }
+
+    setCreditos((prev) => prev.filter((item) => item.id !== credito.id))
+    await registrarLog("eliminar", "creditos", credito.id, `Crédito eliminado: ${formatearSoles(Number(credito.saldo || 0))}`)
+    toast.success("Crédito eliminado")
+    await cargarDatos()
+  }
+
   const handleConfigChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormConfig((prev) => ({ ...prev, [name]: value }))
@@ -998,6 +1109,13 @@ export default function AdminPage() {
   const comprobantesPendientes = comprobantes.filter((c) => (c.estado || "pendiente") === "pendiente").length
   const metodosPago = Array.from(new Set(pedidos.map((p) => p.metodo_pago).filter(Boolean)))
   const entidadesLog = Array.from(new Set(logs.map((log) => log.entidad).filter(Boolean)))
+  const usuariosParaCredito = usuarios.filter((u) => u.estado === "aprobado" || u.estado === "activo")
+  const obtenerUsuarioPorId = (usuarioId: string) => usuarios.find((u) => u.id === usuarioId)
+  const totalSaldoCreditos = creditos.reduce((acc, credito) => acc + Number(credito.saldo || 0), 0)
+  const creditosActivos = creditos.filter((credito) => normalizarTexto(credito.estado) === "activo").length
+  const creditosBloqueados = creditos.filter((credito) => ["bloqueado", "suspendido", "inactivo"].includes(normalizarTexto(credito.estado))).length
+  const creditosSinSaldo = creditos.filter((credito) => Number(credito.saldo || 0) <= 0).length
+  const saldoPromedioCredito = creditos.length > 0 ? totalSaldoCreditos / creditos.length : 0
 
   const resultadosGlobales = useMemo(() => {
     const query = normalizarTexto(busquedaGlobal)
@@ -1157,6 +1275,18 @@ export default function AdminPage() {
       return coincideBusqueda && coincideEntidad
     })
   }, [logs, busquedaHistorial, filtroEntidadLog])
+
+  const creditosFiltrados = useMemo(() => {
+    const query = normalizarTexto(busquedaCredito)
+
+    return creditos.filter((credito) => {
+      const usuarioCredito = obtenerUsuarioPorId(credito.usuario_id)
+      const texto = normalizarTexto(`${credito.id} ${credito.estado} ${credito.saldo} ${usuarioCredito?.nombre} ${usuarioCredito?.correo} ${usuarioCredito?.rol}`)
+      const coincideBusqueda = !query || texto.includes(query)
+      const coincideEstado = filtroEstadoCredito === "todos" || normalizarTexto(credito.estado) === filtroEstadoCredito
+      return coincideBusqueda && coincideEstado
+    })
+  }, [creditos, usuarios, busquedaCredito, filtroEstadoCredito])
 
   const hoy = new Date()
   const logsHoy = logs.filter((log) => {
@@ -2641,11 +2771,197 @@ export default function AdminPage() {
         )}
 
         {tabActiva === "creditos" && (
-          <PlaceholderPanel
-            title="Créditos"
-            text="Zona preparada para saldos, créditos de proveedores, historial y control financiero. El diseño queda listo para conectar una tabla de créditos después."
-            buttonText="Preparado"
-          />
+          <div className={styles.sectionStack}>
+            <section className={styles.usersHeroPro}>
+              <div className={styles.usersHeroCopy}>
+                <span className={styles.proTag}>CRÉDITOS PRO</span>
+                <h3>Centro financiero Jonas Stream</h3>
+                <p>
+                  Administra saldos internos por usuario, controla créditos activos, bloquea cuentas con riesgo
+                  y deja trazabilidad en el historial del panel sin salir del ecosistema Supabase.
+                </p>
+                <div className={styles.usersHeroActions}>
+                  <button type="button" onClick={() => { setFiltroEstadoCredito("activo"); setBusquedaCredito("") }} className={styles.primaryButton}>Ver activos</button>
+                  <button type="button" onClick={() => { setFiltroEstadoCredito("bloqueado"); setBusquedaCredito("") }} className={styles.secondaryButton}>Ver bloqueados</button>
+                  <button type="button" onClick={limpiarFormularioCredito} className={styles.secondaryButton}>Nuevo crédito</button>
+                </div>
+              </div>
+
+              <div className={styles.usersHeroStats}>
+                <div>
+                  <span>Saldo total</span>
+                  <strong>{formatearSoles(totalSaldoCreditos)}</strong>
+                  <small>{creditos.length} registros financieros</small>
+                </div>
+                <div>
+                  <span>Activos</span>
+                  <strong>{creditosActivos}</strong>
+                  <small>usuarios con crédito habilitado</small>
+                </div>
+                <div>
+                  <span>Promedio</span>
+                  <strong>{formatearSoles(saldoPromedioCredito)}</strong>
+                  <small>saldo medio por cuenta</small>
+                </div>
+                <div>
+                  <span>Alertas</span>
+                  <strong>{creditosBloqueados + creditosSinSaldo}</strong>
+                  <small>{creditosBloqueados} bloqueados · {creditosSinSaldo} sin saldo</small>
+                </div>
+              </div>
+            </section>
+
+            <div className={styles.metricsGridCompact}>
+              <MetricCard title="Saldo total" value={formatearSoles(totalSaldoCreditos)} detail={`${creditos.length} crédito(s) registrados`} tone="success" />
+              <MetricCard title="Créditos activos" value={creditosActivos} detail="Disponibles para operar" tone="info" />
+              <MetricCard title="Sin saldo" value={creditosSinSaldo} detail="Revisar o recargar" tone="warning" />
+              <MetricCard title="Bloqueados" value={creditosBloqueados} detail="Cuentas con restricción" tone="danger" />
+            </div>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Gestión financiera</p>
+                  <h3>{editandoCreditoId ? "Editar crédito" : "Crear crédito"}</h3>
+                  <span className={styles.panelHint}>Selecciona un usuario aprobado, define saldo y estado operativo del crédito.</span>
+                </div>
+                {editandoCreditoId && <span className={styles.editBadge}>Modo edición</span>}
+              </div>
+
+              <form onSubmit={guardarCredito} className={styles.formGrid}>
+                <select name="usuario_id" value={formCredito.usuario_id} onChange={handleCreditoChange} className={styles.input}>
+                  <option value="">Seleccionar usuario</option>
+                  {usuariosParaCredito.map((u) => (
+                    <option key={u.id} value={u.id}>{u.nombre} · {u.correo} · {u.rol}</option>
+                  ))}
+                </select>
+
+                <input
+                  name="saldo"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Saldo del crédito"
+                  value={formCredito.saldo}
+                  onChange={handleCreditoChange}
+                  className={styles.input}
+                />
+
+                <select name="estado" value={formCredito.estado} onChange={handleCreditoChange} className={styles.input}>
+                  <option value="activo">Activo</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="bloqueado">Bloqueado</option>
+                  <option value="inactivo">Inactivo</option>
+                </select>
+
+                <div className={styles.formActions}>
+                  <button type="submit" disabled={guardandoCredito} className={styles.primaryButton}>
+                    {guardandoCredito ? "Guardando..." : editandoCreditoId ? "Actualizar crédito" : "Crear crédito"}
+                  </button>
+                  {editandoCreditoId && (
+                    <button type="button" onClick={limpiarFormularioCredito} className={styles.secondaryButton}>Cancelar edición</button>
+                  )}
+                </div>
+              </form>
+            </article>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Cartera interna</p>
+                  <h3>Créditos registrados</h3>
+                  <span className={styles.panelHint}>Vista conectada a la tabla creditos con filtros por usuario, correo, rol, estado y saldo.</span>
+                </div>
+                <span className={styles.countBadge}>{creditosFiltrados.length} créditos</span>
+              </div>
+
+              <div className={styles.miniStatsGrid}>
+                <button type="button" onClick={() => setFiltroEstadoCredito("activo")} className={styles.miniStatCard}>
+                  <span>Activos</span><strong>{creditosActivos}</strong><small>Operación habilitada</small>
+                </button>
+                <button type="button" onClick={() => setFiltroEstadoCredito("pendiente")} className={styles.miniStatCard}>
+                  <span>Pendientes</span><strong>{creditos.filter((c) => normalizarTexto(c.estado) === "pendiente").length}</strong><small>Requieren revisión</small>
+                </button>
+                <button type="button" onClick={() => setBusquedaCredito("0")} className={styles.miniStatCard}>
+                  <span>Sin saldo</span><strong>{creditosSinSaldo}</strong><small>Recargar o bloquear</small>
+                </button>
+                <button type="button" onClick={() => { setFiltroEstadoCredito("todos"); setBusquedaCredito("") }} className={`${styles.miniStatCard} ${styles.miniStatDanger}`}>
+                  <span>Bloqueados</span><strong>{creditosBloqueados}</strong><small>Alertas financieras</small>
+                </button>
+              </div>
+
+              <div className={styles.filtersGridCompact}>
+                <input
+                  type="text"
+                  placeholder="Buscar usuario, correo, rol, estado o saldo..."
+                  value={busquedaCredito}
+                  onChange={(e) => setBusquedaCredito(e.target.value)}
+                  className={styles.input}
+                />
+                <select value={filtroEstadoCredito} onChange={(e) => setFiltroEstadoCredito(e.target.value)} className={styles.input}>
+                  <option value="todos">Todos los estados</option>
+                  <option value="activo">Activo</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="bloqueado">Bloqueado</option>
+                  <option value="inactivo">Inactivo</option>
+                </select>
+              </div>
+
+              {creditosFiltrados.length === 0 ? (
+                <EmptyState title="Sin créditos" text="Crea el primer saldo interno para clientes, proveedores o cuentas aprobadas." />
+              ) : (
+                <div className={styles.tableWrap}>
+                  <table className={styles.proTable}>
+                    <thead>
+                      <tr>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th>Saldo</th>
+                        <th>Estado</th>
+                        <th>Riesgo</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {creditosFiltrados.map((credito) => {
+                        const usuarioCredito = obtenerUsuarioPorId(credito.usuario_id)
+                        const saldo = Number(credito.saldo || 0)
+                        const estadoCredito = normalizarTexto(credito.estado)
+                        const riesgo = estadoCredito === "bloqueado" || estadoCredito === "inactivo"
+                          ? "Alto"
+                          : saldo <= 0
+                          ? "Medio"
+                          : "Controlado"
+
+                        return (
+                          <tr key={credito.id}>
+                            <td>
+                              <strong>{usuarioCredito?.nombre || "Usuario no encontrado"}</strong>
+                              <small>{usuarioCredito?.correo || credito.usuario_id}</small>
+                            </td>
+                            <td><span className={styles.roleChip}>{usuarioCredito?.rol || "sin rol"}</span></td>
+                            <td><strong>{formatearSoles(saldo)}</strong><small>Crédito #{credito.id.slice(0, 8)}</small></td>
+                            <td><StatusBadge estado={credito.estado || "activo"} /></td>
+                            <td>
+                              {riesgo === "Alto" ? <span className={styles.badgeDanger}>Alto</span> : riesgo === "Medio" ? <span className={styles.badgeWarning}>Medio</span> : <span className={styles.badgeOk}>OK</span>}
+                            </td>
+                            <td>{fechaLegible(credito.created_at)}</td>
+                            <td>
+                              <div className={styles.tableActions}>
+                                <button type="button" onClick={() => editarCredito(credito)} className={styles.secondaryButton}>Editar</button>
+                                <button type="button" onClick={() => eliminarCredito(credito)} className={styles.dangerGhostButton}>Eliminar</button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </article>
+          </div>
         )}
 
         {tabActiva === "historial" && (
