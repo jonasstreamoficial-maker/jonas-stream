@@ -254,6 +254,7 @@ export default function AdminPage() {
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
   const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("tabla")
   const [comprobantePreview, setComprobantePreview] = useState<ComprobanteUnificado | null>(null)
+  const [pedidoAEliminar, setPedidoAEliminar] = useState<Pedido | null>(null)
 
   const [busquedaHistorial, setBusquedaHistorial] = useState("")
   const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
@@ -577,8 +578,20 @@ export default function AdminPage() {
 
   const eliminarPedido = async (id: string) => {
     const pedidoObjetivo = pedidos.find((pedido) => pedido.id === id)
-    const confirmar = confirm(`¿Eliminar pedido #${id.slice(0, 8)}? Esta acción no se puede deshacer.`)
-    if (!confirmar) return
+    if (!pedidoObjetivo) {
+      toast.error("No encontré el pedido para eliminar")
+      return
+    }
+
+    setPedidoAEliminar(pedidoObjetivo)
+  }
+
+  const ejecutarEliminarPedido = async () => {
+    if (!pedidoAEliminar) return
+
+    const id = pedidoAEliminar.id
+    const pedidoObjetivo = pedidoAEliminar
+    setPedidoAEliminar(null)
 
     const { error: itemsError } = await supabase.from("pedido_items").delete().eq("pedido_id", id)
 
@@ -1128,26 +1141,24 @@ export default function AdminPage() {
     router.push("/login")
   }
 
-  const obtenerComprobanteDePedido = useCallback((pedidoId: string) => {
-    const comprobante = comprobantes.find((item) => item.pedido_id === pedidoId)
-    return comprobante ? obtenerComprobanteUrl(comprobante) : null
-  }, [comprobantes])
+  const obtenerComprobanteDePedido = useCallback((pedido: Pedido): ComprobanteUnificado | null => {
+    const comprobanteTabla = comprobantes.find((item) => item.pedido_id === pedido.id)
 
-  const obtenerComprobantePreviewPedido = useCallback((pedido: Pedido): ComprobanteUnificado | null => {
-    const comprobante = comprobantes.find((item) => item.pedido_id === pedido.id)
+    if (comprobanteTabla) {
+      const url = obtenerComprobanteUrl(comprobanteTabla)
+      if (!url) return null
 
-    if (comprobante) {
       return {
-        id: comprobante.id,
-        pedidoId: comprobante.pedido_id || pedido.id,
-        cliente: comprobante.cliente_nombre || pedido.cliente_nombre || comprobante.cliente_correo || "Cliente sin nombre",
-        correo: comprobante.cliente_correo || pedido.cliente_correo || "",
-        monto: Number(comprobante.monto || pedido.total || 0),
-        metodo: comprobante.metodo_pago || pedido.metodo_pago || "No definido",
-        estado: comprobante.estado || pedido.estado || "pendiente",
-        url: obtenerComprobanteUrl(comprobante),
-        fecha: comprobante.created_at || pedido.created_at,
-        origen: "tabla",
+        id: comprobanteTabla.id,
+        pedidoId: pedido.id,
+        cliente: comprobanteTabla.cliente_nombre || pedido.cliente_nombre || comprobanteTabla.cliente_correo || "Cliente sin nombre",
+        correo: comprobanteTabla.cliente_correo || pedido.cliente_correo || "",
+        monto: Number(comprobanteTabla.monto ?? pedido.total ?? 0),
+        metodo: comprobanteTabla.metodo_pago || pedido.metodo_pago || "No definido",
+        estado: comprobanteTabla.estado || pedido.estado || "pendiente",
+        url,
+        fecha: comprobanteTabla.created_at || pedido.created_at,
+        origen: "tabla" as const,
       }
     }
 
@@ -1157,14 +1168,14 @@ export default function AdminPage() {
     return {
       id: pedido.id,
       pedidoId: pedido.id,
-      cliente: pedido.cliente_nombre,
-      correo: pedido.cliente_correo,
+      cliente: pedido.cliente_nombre || "Cliente sin nombre",
+      correo: pedido.cliente_correo || "",
       monto: Number(pedido.total || 0),
       metodo: pedido.metodo_pago || "No definido",
       estado: pedido.estado || "pendiente",
       url: urlPedido,
       fecha: pedido.created_at,
-      origen: "pedido",
+      origen: "pedido" as const,
     }
   }, [comprobantes])
 
@@ -1195,7 +1206,7 @@ export default function AdminPage() {
   const productosOferta = productos.filter((p) => p.oferta).length
   const productosSinImagen = productos.filter((p) => !p.imagen).length
   const productosInactivos = productos.filter((p) => p.estado === "inactivo").length
-  const pedidosConComprobante = pedidos.filter((pedido) => obtenerComprobanteUrl(pedido) || obtenerComprobanteDePedido(pedido.id)).length
+  const pedidosConComprobante = pedidos.filter((pedido) => obtenerComprobanteDePedido(pedido)).length
   const comprobantesPendientes = comprobantes.filter((c) => (c.estado || "pendiente") === "pendiente").length
   const metodosPago = Array.from(new Set(pedidos.map((p) => p.metodo_pago).filter(Boolean)))
   const entidadesLog = Array.from(new Set(logs.map((log) => log.entidad).filter(Boolean)))
@@ -1284,7 +1295,7 @@ export default function AdminPage() {
     return [...pedidos]
       .filter((pedido) => {
         const texto = normalizarTexto(`${pedido.id} ${pedido.cliente_nombre} ${pedido.cliente_correo} ${pedido.metodo_pago} ${pedido.producto_nombre}`)
-        const comprobanteUrl = obtenerComprobanteUrl(pedido) || obtenerComprobanteDePedido(pedido.id)
+        const comprobanteUrl = obtenerComprobanteDePedido(pedido)?.url
         const coincideBusqueda = texto.includes(normalizarTexto(busquedaPedido))
         const coincideEstado = filtroEstadoPedido === "todos" || pedido.estado === filtroEstadoPedido
         const coincideMetodo = filtroMetodoPago === "todos" || pedido.metodo_pago === filtroMetodoPago
@@ -1406,9 +1417,9 @@ export default function AdminPage() {
   const pedidosUrgentes = pedidos.filter((pedido) => {
     const creado = new Date(pedido.created_at).getTime()
     const viejo = !Number.isNaN(creado) && Date.now() - creado > 1000 * 60 * 60 * 24
-    return pedido.estado === "pendiente" && (viejo || !(obtenerComprobanteUrl(pedido) || obtenerComprobanteDePedido(pedido.id)))
+    return pedido.estado === "pendiente" && (viejo || !obtenerComprobanteDePedido(pedido))
   })
-  const pedidosSinPago = pedidos.filter((pedido) => pedido.estado === "pendiente" && !(obtenerComprobanteUrl(pedido) || obtenerComprobanteDePedido(pedido.id)))
+  const pedidosSinPago = pedidos.filter((pedido) => pedido.estado === "pendiente" && !obtenerComprobanteDePedido(pedido))
   const productosCriticosTotal = productosAgotados.length + productosBajoStock.length
   const productosDisponibles = productos.filter((producto) => Number(producto.stock || 0) > 3).length
   const comprobantesPendientesDashboard = comprobantesUnificados.filter((comprobante) => comprobante.estado === "pendiente").length
@@ -2215,8 +2226,8 @@ export default function AdminPage() {
                       </thead>
                       <tbody>
                         {pedidosVisibles.map((pedido) => {
-                          const comprobantePreviewPedido = obtenerComprobantePreviewPedido(pedido)
-                          const comprobanteUrl = comprobantePreviewPedido?.url || null
+                          const comprobantePedido = obtenerComprobanteDePedido(pedido)
+                          const comprobanteUrl = comprobantePedido?.url
                           const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
                           const esUrgente = pedido.estado === "pendiente" && horasDesdeCreacion >= 24
                           const sinComprobante = !comprobanteUrl
@@ -2237,13 +2248,7 @@ export default function AdminPage() {
                                   {!esUrgente && !sinComprobante && !altoValor && <span className={styles.badgeOk}>OK</span>}
                                 </div>
                               </td>
-                              <td>
-                                {comprobanteUrl ? (
-                                  <a href={comprobanteUrl} target="_blank" rel="noreferrer" className={styles.secondaryButton}>👁 Ver</a>
-                                ) : (
-                                  <span className={styles.mutedText}>Sin voucher</span>
-                                )}
-                              </td>
+                              <td>{comprobantePedido ? <button type="button" onClick={() => setComprobantePreview(comprobantePedido)} className={styles.secondaryButton}>👁 Ver</button> : <span className={styles.mutedText}>Sin voucher</span>}</td>
                               <td>
                                 <div className={styles.tableActions}>
                                   <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>OK</button>
@@ -2260,8 +2265,8 @@ export default function AdminPage() {
                 ) : (
                   <div className={styles.cardsGrid}>
                     {pedidosVisibles.map((pedido) => {
-                      const comprobantePreviewPedido = obtenerComprobantePreviewPedido(pedido)
-                      const comprobanteUrl = comprobantePreviewPedido?.url || null
+                      const comprobantePedido = obtenerComprobanteDePedido(pedido)
+                      const comprobanteUrl = comprobantePedido?.url
                       const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
                       const esPendiente = pedido.estado === "pendiente"
                       const esUrgente = esPendiente && horasDesdeCreacion >= 24
@@ -2303,8 +2308,8 @@ export default function AdminPage() {
 
                           <div className={styles.orderVoucherBox}>
                             <span>Comprobante</span>
-                            {comprobanteUrl ? (
-                              <a href={comprobanteUrl} target="_blank" rel="noreferrer" className={styles.secondaryButton}>👁 Ver voucher</a>
+                            {comprobantePedido ? (
+                              <button type="button" onClick={() => setComprobantePreview(comprobantePedido)} className={styles.secondaryButton}>👁 Vista previa</button>
                             ) : (
                               <strong>Sin comprobante adjunto</strong>
                             )}
@@ -3336,6 +3341,135 @@ export default function AdminPage() {
               </div>
             </form>
           </article>
+        )}
+
+        {tabActiva !== "comprobantes" && comprobantePreview && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              background: "rgba(0, 0, 0, 0.86)",
+              backdropFilter: "blur(10px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "22px",
+            }}
+            onClick={() => setComprobantePreview(null)}
+          >
+            <div
+              style={{
+                width: "min(1180px, 96vw)",
+                maxHeight: "94vh",
+                overflow: "hidden",
+                border: "1px solid rgba(1, 231, 239, 0.35)",
+                borderRadius: "24px",
+                background: "#031316",
+                boxShadow: "0 0 50px rgba(0, 251, 255, 0.18)",
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1.35fr) minmax(320px, 0.65fr)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ background: "#000", minHeight: "70vh", maxHeight: "94vh", overflow: "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {comprobantePreview.url ? (
+                  <img
+                    src={comprobantePreview.url}
+                    alt={`Comprobante ${comprobantePreview.id.slice(0, 8)}`}
+                    style={{ width: "100%", height: "auto", maxHeight: "92vh", objectFit: "contain" }}
+                  />
+                ) : (
+                  <div className={styles.reviewPlaceholderPro}>
+                    <strong>Sin archivo</strong>
+                    <small>No hay comprobante para mostrar.</small>
+                  </div>
+                )}
+              </div>
+
+              <aside style={{ padding: "24px", overflow: "auto" }}>
+                <div className={styles.reviewTopline}>
+                  <div>
+                    <p className={styles.kicker}>Vista previa de pago</p>
+                    <h4>#{comprobantePreview.id.slice(0, 8)}</h4>
+                  </div>
+                  <button type="button" onClick={() => setComprobantePreview(null)} className={styles.dangerGhostButton}>Cerrar</button>
+                </div>
+
+                <div className={styles.reviewAmountBox}>
+                  <span>Monto declarado</span>
+                  <strong>{formatearSoles(comprobantePreview.monto)}</strong>
+                  <small>{comprobantePreview.metodo || "Método no definido"}</small>
+                </div>
+
+                <div className={styles.infoGrid}>
+                  <span>Cliente</span><strong>{comprobantePreview.cliente}</strong>
+                  <span>Correo</span><strong>{comprobantePreview.correo || "Sin correo"}</strong>
+                  <span>Pedido</span><strong>{comprobantePreview.pedidoId ? `#${comprobantePreview.pedidoId.slice(0, 8)}` : "Sin pedido"}</strong>
+                  <span>Fecha</span><strong>{fechaLegible(comprobantePreview.fecha)}</strong>
+                  <span>Estado</span><strong>{comprobantePreview.estado}</strong>
+                </div>
+
+                <div className={styles.reviewActionsPro}>
+                  {comprobantePreview.url && <a href={comprobantePreview.url} target="_blank" rel="noreferrer" className={styles.primaryButton}>Abrir en otra pestaña</a>}
+                  <button type="button" onClick={() => resolverComprobantePro(comprobantePreview, "aprobado")} className={styles.successButton}>Aprobar pago</button>
+                  <button type="button" onClick={() => resolverComprobantePro(comprobantePreview, "observado")} className={styles.secondaryButton}>Observar</button>
+                  <button type="button" onClick={() => resolverComprobantePro(comprobantePreview, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                </div>
+              </aside>
+            </div>
+          </div>
+        )}
+
+        {pedidoAEliminar && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 10000,
+              background: "rgba(0, 0, 0, 0.82)",
+              backdropFilter: "blur(12px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "22px",
+            }}
+            onClick={() => setPedidoAEliminar(null)}
+          >
+            <div
+              style={{
+                width: "min(520px, 94vw)",
+                border: "1px solid rgba(255, 111, 145, 0.35)",
+                borderRadius: "24px",
+                background: "linear-gradient(145deg, rgba(7, 27, 30, 0.98), rgba(49, 9, 18, 0.96))",
+                boxShadow: "0 0 55px rgba(255, 111, 145, 0.2)",
+                padding: "26px",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className={styles.kicker}>Confirmación segura</p>
+              <h3 style={{ margin: "8px 0 10px", color: "#ECFFFF", fontSize: "26px" }}>Eliminar pedido #{pedidoAEliminar.id.slice(0, 8)}</h3>
+              <p style={{ color: "#9BC8CB", lineHeight: 1.6, marginBottom: "18px" }}>
+                Se eliminarán también sus items y comprobantes vinculados. Esta acción no se puede deshacer.
+              </p>
+
+              <div className={styles.infoGrid} style={{ marginBottom: "18px" }}>
+                <span>Cliente</span><strong>{pedidoAEliminar.cliente_nombre || "Sin cliente"}</strong>
+                <span>Correo</span><strong>{pedidoAEliminar.cliente_correo || "Sin correo"}</strong>
+                <span>Total</span><strong>{formatearSoles(pedidoAEliminar.total)}</strong>
+                <span>Estado</span><strong>{pedidoAEliminar.estado}</strong>
+              </div>
+
+              <div className={styles.reviewActionsPro}>
+                <button type="button" onClick={() => setPedidoAEliminar(null)} className={styles.secondaryButton}>Cancelar</button>
+                <button type="button" onClick={ejecutarEliminarPedido} className={styles.dangerButton}>Sí, eliminar pedido</button>
+              </div>
+            </div>
+          </div>
         )}
       </section>
     </main>
