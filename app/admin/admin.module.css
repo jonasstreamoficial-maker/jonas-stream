@@ -4837,3 +4837,304 @@
     border-radius: 24px;
   }
 }
+
+
+/* AJUSTE FINAL JONAS STREAM - headers compactos y modales premium */
+.topbar {
+  padding: 16px 22px !important;
+  margin-bottom: 16px !important;
+  min-height: unset !important;
+  align-items: center !important;
+}
+
+.topbar h2 {
+  font-size: clamp(30px, 3.1vw, 44px) !important;
+  line-height: 0.98 !important;
+  margin: 2px 0 5px !important;
+  letter-spacing: -0.02em !important;
+}
+
+.topbar span {
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  opacity: 0.78;
+}
+
+.kicker,
+.brandEyebrow {
+  font-size: 10px !important;
+  letter-spacing: 0.2em !important;
+}
+
+.content {
+  padding-top: 22px !important;
+}
+
+.sectionStack {
+  gap: 18px !important;
+}
+
+.proRibbonCompact,
+.proRibbon {
+  padding: 13px 16px !important;
+  margin: -2px 0 18px !important;
+  border-radius: 24px !important;
+  min-height: unset !important;
+  gap: 12px !important;
+}
+
+.proRibbonCompact .proRibbonMain,
+.proRibbonMain {
+  gap: 4px !important;
+}
+
+.proRibbonCompact .proTag,
+.proRibbon .proTag,
+.proTag {
+  padding: 5px 9px !important;
+  font-size: 9.5px !important;
+  letter-spacing: 0.17em !important;
+}
+
+.proRibbonCompact .proRibbonMain strong,
+.proRibbonMain strong {
+  font-size: clamp(21px, 2.2vw, 30px) !important;
+  line-height: 1.02 !important;
+}
+
+.proRibbonCompact .proRibbonMain p,
+.proRibbonMain p {
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  max-width: 720px !important;
+}
+
+.proRibbonStats {
+  gap: 8px !important;
+}
+
+.proRibbonStats button {
+  min-height: 70px !important;
+  padding: 10px 12px !important;
+  border-radius: 18px !important;
+  font-size: 12px !important;
+}
+
+.proRibbonStats button span {
+  font-size: clamp(22px, 2.2vw, 28px) !important;
+  margin-bottom: 5px !important;
+}
+
+.dashboardCommandHero,
+.usersHeroPro,
+.paymentHeroPro,
+.inventoryHeroPro,
+.creditsHeroPro,
+.historyHeroPro,
+.auditHeroPro,
+.dashboardHeroPro,
+.inventoryHero,
+.creditsHero,
+.auditHero,
+.heroPanel {
+  padding: 20px !important;
+  border-radius: 24px !important;
+  min-height: unset !important;
+  gap: 18px !important;
+}
+
+.dashboardCommandHero h3,
+.usersHeroPro h3,
+.paymentHeroPro h3,
+.inventoryHeroPro h3,
+.creditsHeroPro h3,
+.historyHeroPro h3,
+.auditHeroPro h3,
+.dashboardHeroPro h3,
+.inventoryHero h3,
+.creditsHero h3,
+.auditHero h3,
+.heroPanel h3,
+.commandHeroMain h3,
+.paymentHeroCopy h3,
+.usersHeroCopy h3 {
+  font-size: clamp(30px, 3.4vw, 44px) !important;
+  line-height: 0.98 !important;
+  margin: 4px 0 8px !important;
+  letter-spacing: -0.04em !important;
+}
+
+.dashboardCommandHero p,
+.usersHeroPro p,
+.paymentHeroPro p,
+.inventoryHeroPro p,
+.creditsHeroPro p,
+.historyHeroPro p,
+.auditHeroPro p,
+.dashboardHeroPro p,
+.inventoryHero p,
+.creditsHero p,
+.auditHero p,
+.heroPanel p,
+.commandHeroMain p,
+.paymentHeroCopy p,
+.usersHeroCopy p {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  opacity: 0.84;
+}
+
+.commandHeroFocus {
+  padding: 13px 15px !important;
+  border-radius: 18px !important;
+  margin-top: 10px !important;
+}
+
+.commandHeroFocus strong {
+  font-size: clamp(20px, 2.2vw, 28px) !important;
+  line-height: 1.05 !important;
+}
+
+.dashboardHeroActions,
+.usersHeroActions {
+  margin-top: 10px !important;
+  gap: 9px !important;
+}
+
+.commandMoneyCard,
+.paymentHeroPanel,
+.usersHeroStats,
+.inventoryHeroStats,
+.creditsHeroStats,
+.auditPreviewPro,
+.dashboardHeroMoney {
+  padding: 16px !important;
+  border-radius: 22px !important;
+  min-height: unset !important;
+}
+
+.commandMoneyCard strong,
+.paymentHeroPanel strong,
+.dashboardHeroMoney strong {
+  font-size: clamp(34px, 4vw, 54px) !important;
+  line-height: 1 !important;
+}
+
+.commandMoneyGrid,
+.moneySplitGrid {
+  gap: 8px !important;
+  margin-top: 14px !important;
+}
+
+.commandMoneyGrid div,
+.moneySplitGrid div,
+.usersHeroStats div,
+.inventoryHeroStats button,
+.creditsHeroStats div {
+  min-height: 68px !important;
+  padding: 10px !important;
+  border-radius: 16px !important;
+}
+
+.metricsGridPro,
+.metricsGridCompact,
+.miniStatsGrid,
+.dashboardAlertGrid {
+  gap: 12px !important;
+}
+
+.metricCard {
+  min-height: 118px !important;
+  padding: 17px !important;
+  border-radius: 22px !important;
+}
+
+.metricCard strong {
+  font-size: clamp(24px, 3vw, 32px) !important;
+}
+
+.panel {
+  padding: 20px !important;
+  border-radius: 24px !important;
+}
+
+.panelHeader {
+  margin-bottom: 15px !important;
+}
+
+.panelHeader h3 {
+  font-size: clamp(21px, 2vw, 26px) !important;
+  line-height: 1.08 !important;
+}
+
+.panelHint {
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+.primaryButton,
+.secondaryButton,
+.successButton,
+.dangerButton,
+.dangerGhostButton,
+.logoutButton,
+.linkButton,
+.refreshButton {
+  min-height: 38px !important;
+  padding: 9px 13px !important;
+  border-radius: 13px !important;
+  font-size: 13px !important;
+}
+
+.tableActions button,
+.reviewActionsPro button,
+.reviewActionsPro a {
+  min-height: 34px !important;
+  padding: 8px 11px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+}
+
+.reviewActionsPro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.input {
+  min-height: 43px !important;
+  padding: 11px 14px !important;
+}
+
+@media (max-width: 1180px) {
+  .proRibbon,
+  .proRibbonCompact {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar,
+  .dashboardCommandHero,
+  .usersHeroPro,
+  .paymentHeroPro,
+  .inventoryHeroPro,
+  .creditsHeroPro,
+  .historyHeroPro,
+  .auditHeroPro,
+  .panel,
+  .proRibbon {
+    padding: 16px !important;
+  }
+
+  .topbar h2,
+  .dashboardCommandHero h3,
+  .usersHeroPro h3,
+  .paymentHeroPro h3,
+  .inventoryHeroPro h3,
+  .creditsHeroPro h3,
+  .historyHeroPro h3,
+  .auditHeroPro h3 {
+    font-size: 30px !important;
+  }
+}

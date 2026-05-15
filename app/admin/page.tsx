@@ -898,16 +898,29 @@ export default function AdminPage() {
     }
 
     if (comprobante.pedidoId) {
+      const pedidoActual = pedidos.find((pedido) => pedido.id === comprobante.pedidoId)
+      const debeDescontarStock =
+        estadoPedido === "completado" &&
+        pedidoActual?.estado !== "completado"
+
       const { error: pedidoError } = await supabase.from("pedidos").update({ estado: estadoPedido }).eq("id", comprobante.pedidoId)
 
       if (!pedidoError) {
+        if (debeDescontarStock && pedidoActual) {
+          await descontarStockPorPedido(pedidoActual)
+        }
+
         setPedidos((prev) => prev.map((p) => (p.id === comprobante.pedidoId ? { ...p, estado: estadoPedido } : p)))
         await registrarLog("actualizar_por_comprobante", "pedidos", comprobante.pedidoId, `Comprobante ${nuevoEstado}`)
       }
     }
 
     registrarEvento(`Comprobante ${nuevoEstado}`, nuevoEstado === "aprobado" || nuevoEstado === "completado")
-    toast.success(`Comprobante ${nuevoEstado}`)
+    toast.success(
+      nuevoEstado === "aprobado" || nuevoEstado === "completado"
+        ? "Comprobante aprobado y stock sincronizado"
+        : `Comprobante ${nuevoEstado}`
+    )
     await cargarDatos()
   }
 
@@ -3122,7 +3135,7 @@ export default function AdminPage() {
                 <h3>Inventario automático</h3>
                 <p>
                   Sincroniza estados visuales: stock 0 pasa a AGOTADO y se oculta; stock 1-3 pasa a LIMITADO;
-                  stock mayor a 3 queda ACTIVO. Al completar pedidos, el panel intenta descontar 1 unidad por coincidencia de nombre.
+                  stock mayor a 3 queda ACTIVO. Al completar pedidos o aprobar comprobantes, el panel descuenta la cantidad comprada por coincidencia de nombre.
                 </p>
               </div>
               <div className={styles.autoInventoryActions}>
