@@ -1128,6 +1128,46 @@ export default function AdminPage() {
     router.push("/login")
   }
 
+  const obtenerComprobanteDePedido = useCallback((pedidoId: string) => {
+    const comprobante = comprobantes.find((item) => item.pedido_id === pedidoId)
+    return comprobante ? obtenerComprobanteUrl(comprobante) : null
+  }, [comprobantes])
+
+  const obtenerComprobantePreviewPedido = useCallback((pedido: Pedido): ComprobanteUnificado | null => {
+    const comprobante = comprobantes.find((item) => item.pedido_id === pedido.id)
+
+    if (comprobante) {
+      return {
+        id: comprobante.id,
+        pedidoId: comprobante.pedido_id || pedido.id,
+        cliente: comprobante.cliente_nombre || pedido.cliente_nombre || comprobante.cliente_correo || "Cliente sin nombre",
+        correo: comprobante.cliente_correo || pedido.cliente_correo || "",
+        monto: Number(comprobante.monto || pedido.total || 0),
+        metodo: comprobante.metodo_pago || pedido.metodo_pago || "No definido",
+        estado: comprobante.estado || pedido.estado || "pendiente",
+        url: obtenerComprobanteUrl(comprobante),
+        fecha: comprobante.created_at || pedido.created_at,
+        origen: "tabla",
+      }
+    }
+
+    const urlPedido = obtenerComprobanteUrl(pedido)
+    if (!urlPedido) return null
+
+    return {
+      id: pedido.id,
+      pedidoId: pedido.id,
+      cliente: pedido.cliente_nombre,
+      correo: pedido.cliente_correo,
+      monto: Number(pedido.total || 0),
+      metodo: pedido.metodo_pago || "No definido",
+      estado: pedido.estado || "pendiente",
+      url: urlPedido,
+      fecha: pedido.created_at,
+      origen: "pedido",
+    }
+  }, [comprobantes])
+
   const esProveedor = usuario?.rol === "proveedor"
   const totalUsuarios = usuarios.length
   const totalProductos = productos.length
@@ -1155,7 +1195,7 @@ export default function AdminPage() {
   const productosOferta = productos.filter((p) => p.oferta).length
   const productosSinImagen = productos.filter((p) => !p.imagen).length
   const productosInactivos = productos.filter((p) => p.estado === "inactivo").length
-  const pedidosConComprobante = pedidos.filter((pedido) => obtenerComprobanteUrl(pedido)).length
+  const pedidosConComprobante = pedidos.filter((pedido) => obtenerComprobanteUrl(pedido) || obtenerComprobanteDePedido(pedido.id)).length
   const comprobantesPendientes = comprobantes.filter((c) => (c.estado || "pendiente") === "pendiente").length
   const metodosPago = Array.from(new Set(pedidos.map((p) => p.metodo_pago).filter(Boolean)))
   const entidadesLog = Array.from(new Set(logs.map((log) => log.entidad).filter(Boolean)))
@@ -1244,7 +1284,7 @@ export default function AdminPage() {
     return [...pedidos]
       .filter((pedido) => {
         const texto = normalizarTexto(`${pedido.id} ${pedido.cliente_nombre} ${pedido.cliente_correo} ${pedido.metodo_pago} ${pedido.producto_nombre}`)
-        const comprobanteUrl = obtenerComprobanteUrl(pedido)
+        const comprobanteUrl = obtenerComprobanteUrl(pedido) || obtenerComprobanteDePedido(pedido.id)
         const coincideBusqueda = texto.includes(normalizarTexto(busquedaPedido))
         const coincideEstado = filtroEstadoPedido === "todos" || pedido.estado === filtroEstadoPedido
         const coincideMetodo = filtroMetodoPago === "todos" || pedido.metodo_pago === filtroMetodoPago
@@ -1264,7 +1304,7 @@ export default function AdminPage() {
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         }
       })
-  }, [pedidos, busquedaPedido, filtroEstadoPedido, filtroMetodoPago, filtroComprobantePedido, ordenPedido])
+  }, [pedidos, busquedaPedido, filtroEstadoPedido, filtroMetodoPago, filtroComprobantePedido, ordenPedido, obtenerComprobanteDePedido])
 
   const usuariosFiltrados = useMemo(() => {
     return usuarios.filter((u) => {
@@ -1366,9 +1406,9 @@ export default function AdminPage() {
   const pedidosUrgentes = pedidos.filter((pedido) => {
     const creado = new Date(pedido.created_at).getTime()
     const viejo = !Number.isNaN(creado) && Date.now() - creado > 1000 * 60 * 60 * 24
-    return pedido.estado === "pendiente" && (viejo || !obtenerComprobanteUrl(pedido))
+    return pedido.estado === "pendiente" && (viejo || !(obtenerComprobanteUrl(pedido) || obtenerComprobanteDePedido(pedido.id)))
   })
-  const pedidosSinPago = pedidos.filter((pedido) => pedido.estado === "pendiente" && !obtenerComprobanteUrl(pedido))
+  const pedidosSinPago = pedidos.filter((pedido) => pedido.estado === "pendiente" && !(obtenerComprobanteUrl(pedido) || obtenerComprobanteDePedido(pedido.id)))
   const productosCriticosTotal = productosAgotados.length + productosBajoStock.length
   const productosDisponibles = productos.filter((producto) => Number(producto.stock || 0) > 3).length
   const comprobantesPendientesDashboard = comprobantesUnificados.filter((comprobante) => comprobante.estado === "pendiente").length
@@ -2175,7 +2215,8 @@ export default function AdminPage() {
                       </thead>
                       <tbody>
                         {pedidosVisibles.map((pedido) => {
-                          const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                          const comprobantePreviewPedido = obtenerComprobantePreviewPedido(pedido)
+                          const comprobanteUrl = comprobantePreviewPedido?.url || null
                           const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
                           const esUrgente = pedido.estado === "pendiente" && horasDesdeCreacion >= 24
                           const sinComprobante = !comprobanteUrl
@@ -2196,7 +2237,13 @@ export default function AdminPage() {
                                   {!esUrgente && !sinComprobante && !altoValor && <span className={styles.badgeOk}>OK</span>}
                                 </div>
                               </td>
-                              <td>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.mutedText}>Sin voucher</span>}</td>
+                              <td>
+                                {comprobanteUrl ? (
+                                  <a href={comprobanteUrl} target="_blank" rel="noreferrer" className={styles.secondaryButton}>👁 Ver</a>
+                                ) : (
+                                  <span className={styles.mutedText}>Sin voucher</span>
+                                )}
+                              </td>
                               <td>
                                 <div className={styles.tableActions}>
                                   <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>OK</button>
@@ -2213,7 +2260,8 @@ export default function AdminPage() {
                 ) : (
                   <div className={styles.cardsGrid}>
                     {pedidosVisibles.map((pedido) => {
-                      const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                      const comprobantePreviewPedido = obtenerComprobantePreviewPedido(pedido)
+                      const comprobanteUrl = comprobantePreviewPedido?.url || null
                       const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
                       const esPendiente = pedido.estado === "pendiente"
                       const esUrgente = esPendiente && horasDesdeCreacion >= 24
@@ -2256,7 +2304,7 @@ export default function AdminPage() {
                           <div className={styles.orderVoucherBox}>
                             <span>Comprobante</span>
                             {comprobanteUrl ? (
-                              <a href={comprobanteUrl} target="_blank" rel="noreferrer">Abrir voucher</a>
+                              <a href={comprobanteUrl} target="_blank" rel="noreferrer" className={styles.secondaryButton}>👁 Ver voucher</a>
                             ) : (
                               <strong>Sin comprobante adjunto</strong>
                             )}
