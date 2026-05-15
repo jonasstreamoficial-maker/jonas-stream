@@ -117,6 +117,8 @@ type CuentaProducto = {
   clave: string
   fecha_inicio?: string | null
   fecha_fin?: string | null
+  cliente_inicio?: string | null
+  cliente_fin?: string | null
   estado: string
   pedido_id?: string | null
   usuario_id?: string | null
@@ -789,6 +791,8 @@ export default function AdminPage() {
     }
 
     const idsCuentas = cuentasParaEntregar.map((cuenta) => cuenta.id)
+    const clienteInicio = fechaISO()
+    const clienteFin = sumarDiasISO(30)
 
     const { error: entregaError } = await supabase
       .from("cuentas_producto")
@@ -796,6 +800,8 @@ export default function AdminPage() {
         estado: "entregada",
         pedido_id: pedido.id,
         usuario_id: usuarioAsignado,
+        cliente_inicio: clienteInicio,
+        cliente_fin: clienteFin,
       })
       .in("id", idsCuentas)
 
@@ -818,6 +824,8 @@ export default function AdminPage() {
               estado: "entregada",
               pedido_id: pedido.id,
               usuario_id: usuarioAsignado,
+              cliente_inicio: clienteInicio,
+              cliente_fin: clienteFin,
             }
           : cuenta
       )
@@ -1453,7 +1461,7 @@ export default function AdminPage() {
       `Producto: ${producto?.nombre || "Producto"}`,
       `Correo: ${cuenta.correo}`,
       `Contraseña: ${cuenta.clave}`,
-      `Vence: ${fechaCorta(cuenta.fecha_fin)}`,
+      `Vence cliente: ${fechaCorta(cuenta.cliente_fin || cuenta.fecha_fin)}`,
     ].join("\n")
 
     try {
@@ -1875,7 +1883,9 @@ export default function AdminPage() {
 
     return cuentasProducto.filter((cuenta) => {
       const productoCuenta = obtenerProductoPorId(cuenta.producto_id)
-      const texto = normalizarTexto(`${cuenta.correo} ${cuenta.estado} ${cuenta.notas} ${productoCuenta?.nombre} ${productoCuenta?.categoria}`)
+      const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
+      const pedidoCuenta = cuenta.pedido_id ? pedidos.find((pedido) => pedido.id === cuenta.pedido_id) : null
+      const texto = normalizarTexto(`${cuenta.correo} ${cuenta.estado} ${cuenta.notas} ${productoCuenta?.nombre} ${productoCuenta?.categoria} ${usuarioCuenta?.nombre} ${usuarioCuenta?.correo} ${pedidoCuenta?.cliente_nombre} ${pedidoCuenta?.cliente_correo} ${cuenta.pedido_id}`)
       const coincideBusqueda = !query || texto.includes(query)
       const coincideEstado = filtroEstadoCuenta === "todos" || normalizarTexto(cuenta.estado) === filtroEstadoCuenta
       return coincideBusqueda && coincideEstado
@@ -3728,7 +3738,7 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Control de cuentas</p>
                   <h3>Cuentas registradas</h3>
-                  <span className={styles.panelHint}>Filtra por producto, correo o estado. El stock automático lo conectamos en el siguiente paso.</span>
+                  <span className={styles.panelHint}>Filtra por producto, correo, cliente o estado. Aquí ves quién tiene cada cuenta y su vigencia de cliente.</span>
                 </div>
               </div>
 
@@ -3763,7 +3773,9 @@ export default function AdminPage() {
                       <tr>
                         <th>Producto</th>
                         <th>Acceso</th>
-                        <th>Vigencia</th>
+                        <th>Cliente asignado</th>
+                        <th>Vigencia admin</th>
+                        <th>Vigencia cliente</th>
                         <th>Estado</th>
                         <th>Notas</th>
                         <th>Acciones</th>
@@ -3776,6 +3788,13 @@ export default function AdminPage() {
                         const vencida = dias !== null && dias < 0
                         const porVencer = dias !== null && dias >= 0 && dias <= 7
                         const estadoNormalizado = normalizarTexto(cuenta.estado)
+                        const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
+                        const pedidoCuenta = cuenta.pedido_id ? pedidos.find((pedido) => pedido.id === cuenta.pedido_id) : null
+                        const clienteNombre = usuarioCuenta?.nombre || pedidoCuenta?.cliente_nombre || "Sin cliente"
+                        const clienteCorreo = usuarioCuenta?.correo || pedidoCuenta?.cliente_correo || ""
+                        const diasCliente = diasRestantes(cuenta.cliente_fin)
+                        const clienteVencido = diasCliente !== null && diasCliente < 0
+                        const clientePorVencer = diasCliente !== null && diasCliente >= 0 && diasCliente <= 7
 
                         return (
                           <tr key={cuenta.id}>
@@ -3788,6 +3807,10 @@ export default function AdminPage() {
                               <small>Clave: {cuenta.clave}</small>
                             </td>
                             <td>
+                              <strong>{clienteNombre}</strong>
+                              <small>{clienteCorreo || (cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Todavía no entregada")}</small>
+                            </td>
+                            <td>
                               <strong>{fechaCorta(cuenta.fecha_inicio)} → {fechaCorta(cuenta.fecha_fin)}</strong>
                               <small className={vencida ? styles.textDanger : porVencer ? styles.textWarning : styles.textSuccess}>
                                 {dias === null
@@ -3798,6 +3821,27 @@ export default function AdminPage() {
                                   ? "Vence hoy"
                                   : `Vence en ${dias} día(s)`}
                               </small>
+                            </td>
+                            <td>
+                              {cuenta.cliente_inicio || cuenta.cliente_fin ? (
+                                <>
+                                  <strong>{fechaCorta(cuenta.cliente_inicio)} → {fechaCorta(cuenta.cliente_fin)}</strong>
+                                  <small className={clienteVencido ? styles.textDanger : clientePorVencer ? styles.textWarning : styles.textSuccess}>
+                                    {diasCliente === null
+                                      ? "Sin cálculo"
+                                      : clienteVencido
+                                      ? `Cliente venció hace ${Math.abs(diasCliente)} día(s)`
+                                      : diasCliente === 0
+                                      ? "Cliente vence hoy"
+                                      : `Cliente vence en ${diasCliente} día(s)`}
+                                  </small>
+                                </>
+                              ) : (
+                                <>
+                                  <strong>Sin entrega</strong>
+                                  <small className={styles.mutedText}>Se llenará al aprobar pedido</small>
+                                </>
+                              )}
                             </td>
                             <td>
                               <span
