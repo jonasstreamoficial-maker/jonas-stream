@@ -1461,6 +1461,7 @@ export default function AdminPage() {
       `Producto: ${producto?.nombre || "Producto"}`,
       `Correo: ${cuenta.correo}`,
       `Contraseña: ${cuenta.clave}`,
+      `Vence admin: ${fechaCorta(cuenta.fecha_fin)}`,
       `Vence cliente: ${fechaCorta(cuenta.cliente_fin || cuenta.fecha_fin)}`,
     ].join("\n")
 
@@ -1470,6 +1471,107 @@ export default function AdminPage() {
     } catch {
       toast.error("No se pudo copiar")
     }
+  }
+
+  const renovarCuentaCliente = (cuenta: CuentaProducto) => {
+    const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
+    const baseActual = cuenta.cliente_fin ? new Date(`${cuenta.cliente_fin}T00:00:00`) : new Date()
+    const hoyBase = new Date()
+    hoyBase.setHours(0, 0, 0, 0)
+    const baseRenovacion = !Number.isNaN(baseActual.getTime()) && baseActual > hoyBase ? baseActual : hoyBase
+    const nuevaFechaFin = sumarDiasISO(30, baseRenovacion)
+    const clienteInicio = cuenta.cliente_inicio || fechaISO()
+
+    abrirConfirmacionAdmin({
+      titulo: `Renovar cuenta ${cuenta.correo}`,
+      descripcion: `Se extenderá el acceso del cliente ${usuarioCuenta?.correo || "asignado"} hasta ${fechaCorta(nuevaFechaFin)}.`,
+      textoConfirmar: "Sí, renovar +30 días",
+      tono: "success",
+      onConfirmar: async () => {
+        const payload = {
+          estado: "entregada",
+          cliente_inicio: clienteInicio,
+          cliente_fin: nuevaFechaFin,
+        }
+
+        const { error } = await supabase.from("cuentas_producto").update(payload).eq("id", cuenta.id)
+
+        if (error) {
+          toast.error("No se pudo renovar la cuenta")
+          return
+        }
+
+        setCuentasProducto((prev) => prev.map((item) => (item.id === cuenta.id ? { ...item, ...payload } : item)))
+        await registrarLog("renovar", "cuentas_producto", cuenta.id, `Cuenta renovada hasta ${nuevaFechaFin}`)
+        registrarEvento(`Cuenta renovada: ${cuenta.correo}`)
+        toast.success("Cuenta renovada +30 días")
+        await cargarDatos()
+      },
+    })
+  }
+
+  const quitarAccesoCuenta = (cuenta: CuentaProducto) => {
+    const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
+
+    abrirConfirmacionAdmin({
+      titulo: `Quitar acceso a ${cuenta.correo}`,
+      descripcion: `Se liberará la cuenta, se quitará el cliente ${usuarioCuenta?.correo || "asignado"}, el pedido y la vigencia del cliente. Volverá al stock disponible.`,
+      textoConfirmar: "Sí, quitar acceso",
+      tono: "warning",
+      onConfirmar: async () => {
+        const payload = {
+          estado: "disponible",
+          pedido_id: null,
+          usuario_id: null,
+          cliente_inicio: null,
+          cliente_fin: null,
+        }
+
+        const { error } = await supabase.from("cuentas_producto").update(payload).eq("id", cuenta.id)
+
+        if (error) {
+          toast.error("No se pudo quitar el acceso")
+          return
+        }
+
+        setCuentasProducto((prev) => prev.map((item) => (item.id === cuenta.id ? { ...item, ...payload } : item)))
+        await registrarLog("quitar_acceso", "cuentas_producto", cuenta.id, `Acceso liberado para ${cuenta.correo}`)
+        registrarEvento(`Acceso quitado: ${cuenta.correo}`)
+        toast.success("Acceso quitado y cuenta disponible")
+        await cargarDatos()
+      },
+    })
+  }
+
+  const cambiarEstadoCuentaOperativa = (cuenta: CuentaProducto, nuevoEstado: "disponible" | "bloqueada" | "vencida") => {
+    const accion = nuevoEstado === "disponible" ? "liberar" : nuevoEstado === "bloqueada" ? "bloquear" : "marcar vencida"
+
+    abrirConfirmacionAdmin({
+      titulo: `${accion.charAt(0).toUpperCase()}${accion.slice(1)} cuenta ${cuenta.correo}`,
+      descripcion: nuevoEstado === "disponible"
+        ? "La cuenta quedará disponible para venta automática y volverá al stock."
+        : "La cuenta saldrá del stock disponible y no se entregará automáticamente.",
+      textoConfirmar: `Sí, ${accion}`,
+      tono: nuevoEstado === "disponible" ? "success" : "danger",
+      onConfirmar: async () => {
+        const payload = nuevoEstado === "disponible"
+          ? { estado: "disponible", pedido_id: null, usuario_id: null, cliente_inicio: null, cliente_fin: null }
+          : { estado: nuevoEstado }
+
+        const { error } = await supabase.from("cuentas_producto").update(payload).eq("id", cuenta.id)
+
+        if (error) {
+          toast.error("No se pudo actualizar la cuenta")
+          return
+        }
+
+        setCuentasProducto((prev) => prev.map((item) => (item.id === cuenta.id ? { ...item, ...payload } : item)))
+        await registrarLog(accion.replace(" ", "_"), "cuentas_producto", cuenta.id, `Estado cuenta: ${nuevoEstado}`)
+        registrarEvento(`Cuenta ${nuevoEstado}: ${cuenta.correo}`)
+        toast.success(`Cuenta ${nuevoEstado}`)
+        await cargarDatos()
+      },
+    })
   }
 
   const handleCreditoChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -1884,8 +1986,7 @@ export default function AdminPage() {
     return cuentasProducto.filter((cuenta) => {
       const productoCuenta = obtenerProductoPorId(cuenta.producto_id)
       const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
-      const pedidoCuenta = cuenta.pedido_id ? pedidos.find((pedido) => pedido.id === cuenta.pedido_id) : null
-      const texto = normalizarTexto(`${cuenta.correo} ${cuenta.estado} ${cuenta.notas} ${productoCuenta?.nombre} ${productoCuenta?.categoria} ${usuarioCuenta?.nombre} ${usuarioCuenta?.correo} ${pedidoCuenta?.cliente_nombre} ${pedidoCuenta?.cliente_correo} ${cuenta.pedido_id}`)
+      const texto = normalizarTexto(`${cuenta.correo} ${cuenta.estado} ${cuenta.notas} ${cuenta.cliente_inicio} ${cuenta.cliente_fin} ${productoCuenta?.nombre} ${productoCuenta?.categoria} ${usuarioCuenta?.nombre} ${usuarioCuenta?.correo}`)
       const coincideBusqueda = !query || texto.includes(query)
       const coincideEstado = filtroEstadoCuenta === "todos" || normalizarTexto(cuenta.estado) === filtroEstadoCuenta
       return coincideBusqueda && coincideEstado
@@ -3738,7 +3839,7 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Control de cuentas</p>
                   <h3>Cuentas registradas</h3>
-                  <span className={styles.panelHint}>Filtra por producto, correo, cliente o estado. Aquí ves quién tiene cada cuenta y su vigencia de cliente.</span>
+                  <span className={styles.panelHint}>Filtra por producto, correo, cliente o estado. Aquí controlas entrega, renovación, bloqueo y liberación de cuentas.</span>
                 </div>
               </div>
 
@@ -3784,17 +3885,16 @@ export default function AdminPage() {
                     <tbody>
                       {cuentasFiltradas.map((cuenta) => {
                         const productoCuenta = obtenerProductoPorId(cuenta.producto_id)
-                        const dias = diasRestantes(cuenta.fecha_fin)
-                        const vencida = dias !== null && dias < 0
-                        const porVencer = dias !== null && dias >= 0 && dias <= 7
-                        const estadoNormalizado = normalizarTexto(cuenta.estado)
                         const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
-                        const pedidoCuenta = cuenta.pedido_id ? pedidos.find((pedido) => pedido.id === cuenta.pedido_id) : null
-                        const clienteNombre = usuarioCuenta?.nombre || pedidoCuenta?.cliente_nombre || "Sin cliente"
-                        const clienteCorreo = usuarioCuenta?.correo || pedidoCuenta?.cliente_correo || ""
+                        const diasAdmin = diasRestantes(cuenta.fecha_fin)
+                        const adminVencida = diasAdmin !== null && diasAdmin < 0
+                        const adminPorVencer = diasAdmin !== null && diasAdmin >= 0 && diasAdmin <= 7
                         const diasCliente = diasRestantes(cuenta.cliente_fin)
                         const clienteVencido = diasCliente !== null && diasCliente < 0
                         const clientePorVencer = diasCliente !== null && diasCliente >= 0 && diasCliente <= 7
+                        const estadoNormalizado = normalizarTexto(cuenta.estado)
+                        const estaEntregada = estadoNormalizado === "entregada"
+                        const estaBloqueada = estadoNormalizado === "bloqueada"
 
                         return (
                           <tr key={cuenta.id}>
@@ -3807,41 +3907,35 @@ export default function AdminPage() {
                               <small>Clave: {cuenta.clave}</small>
                             </td>
                             <td>
-                              <strong>{clienteNombre}</strong>
-                              <small>{clienteCorreo || (cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Todavía no entregada")}</small>
+                              <strong>{usuarioCuenta?.nombre || (cuenta.usuario_id ? "Cliente asignado" : "Sin cliente")}</strong>
+                              <small>{usuarioCuenta?.correo || (cuenta.usuario_id ? cuenta.usuario_id.slice(0, 8) : "Todavía no entregada")}</small>
+                              {cuenta.pedido_id && <small>Pedido #{cuenta.pedido_id.slice(0, 8)}</small>}
                             </td>
                             <td>
                               <strong>{fechaCorta(cuenta.fecha_inicio)} → {fechaCorta(cuenta.fecha_fin)}</strong>
-                              <small className={vencida ? styles.textDanger : porVencer ? styles.textWarning : styles.textSuccess}>
-                                {dias === null
+                              <small className={adminVencida ? styles.textDanger : adminPorVencer ? styles.textWarning : styles.textSuccess}>
+                                {diasAdmin === null
                                   ? "Sin cálculo"
-                                  : vencida
-                                  ? `Venció hace ${Math.abs(dias)} día(s)`
-                                  : dias === 0
+                                  : adminVencida
+                                  ? `Venció hace ${Math.abs(diasAdmin)} día(s)`
+                                  : diasAdmin === 0
                                   ? "Vence hoy"
-                                  : `Vence en ${dias} día(s)`}
+                                  : `Vence en ${diasAdmin} día(s)`}
                               </small>
                             </td>
                             <td>
-                              {cuenta.cliente_inicio || cuenta.cliente_fin ? (
-                                <>
-                                  <strong>{fechaCorta(cuenta.cliente_inicio)} → {fechaCorta(cuenta.cliente_fin)}</strong>
-                                  <small className={clienteVencido ? styles.textDanger : clientePorVencer ? styles.textWarning : styles.textSuccess}>
-                                    {diasCliente === null
-                                      ? "Sin cálculo"
-                                      : clienteVencido
-                                      ? `Cliente venció hace ${Math.abs(diasCliente)} día(s)`
-                                      : diasCliente === 0
-                                      ? "Cliente vence hoy"
-                                      : `Cliente vence en ${diasCliente} día(s)`}
-                                  </small>
-                                </>
-                              ) : (
-                                <>
-                                  <strong>Sin entrega</strong>
-                                  <small className={styles.mutedText}>Se llenará al aprobar pedido</small>
-                                </>
-                              )}
+                              <strong>{cuenta.cliente_inicio && cuenta.cliente_fin ? `${fechaCorta(cuenta.cliente_inicio)} → ${fechaCorta(cuenta.cliente_fin)}` : "Sin entrega"}</strong>
+                              <small className={clienteVencido ? styles.textDanger : clientePorVencer ? styles.textWarning : styles.textSuccess}>
+                                {!cuenta.cliente_fin
+                                  ? "Se llenará al aprobar pedido"
+                                  : diasCliente === null
+                                  ? "Sin cálculo"
+                                  : clienteVencido
+                                  ? `Cliente venció hace ${Math.abs(diasCliente)} día(s)`
+                                  : diasCliente === 0
+                                  ? "Cliente vence hoy"
+                                  : `Cliente vence en ${diasCliente} día(s)`}
+                              </small>
                             </td>
                             <td>
                               <span
@@ -3860,6 +3954,13 @@ export default function AdminPage() {
                             <td>
                               <div className={styles.tableActions}>
                                 <button type="button" className={styles.secondaryButton} onClick={() => copiarDatosCuenta(cuenta)}>Copiar</button>
+                                {estaEntregada && <button type="button" className={styles.successButton} onClick={() => renovarCuentaCliente(cuenta)}>Renovar +30</button>}
+                                {estaEntregada && <button type="button" className={styles.dangerGhostButton} onClick={() => quitarAccesoCuenta(cuenta)}>Quitar acceso</button>}
+                                {estaBloqueada ? (
+                                  <button type="button" className={styles.successButton} onClick={() => cambiarEstadoCuentaOperativa(cuenta, "disponible")}>Liberar</button>
+                                ) : (
+                                  <button type="button" className={styles.dangerGhostButton} onClick={() => cambiarEstadoCuentaOperativa(cuenta, "bloqueada")}>Bloquear</button>
+                                )}
                                 <button type="button" className={styles.successButton} onClick={() => editarCuenta(cuenta)}>Editar</button>
                                 <button type="button" className={styles.dangerGhostButton} onClick={() => eliminarCuenta(cuenta)}>Eliminar</button>
                               </div>
