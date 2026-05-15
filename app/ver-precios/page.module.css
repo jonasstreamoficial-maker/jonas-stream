@@ -813,3 +813,48 @@
     text-align: left;
   }
 }
+
+/* ==========================================================
+   CORRECCION FINAL: catalogo solo visual + stock por estado
+   ========================================================== */
+.previewFavorite,
+.consultButton {
+  display: none !important;
+}
+
+.stockBar {
+  transition: 0.18s ease;
+}
+
+.stock_activo {
+  border-color: rgba(124, 255, 178, 0.36) !important;
+  background: rgba(124, 255, 178, 0.08) !important;
+  box-shadow: inset 0 0 18px rgba(124, 255, 178, 0.045);
+}
+
+.stock_activo span,
+.stock_activo strong {
+  color: var(--success) !important;
+}
+
+.stock_limitado {
+  border-color: rgba(255, 224, 130, 0.36) !important;
+  background: rgba(255, 224, 130, 0.08) !important;
+  box-shadow: inset 0 0 18px rgba(255, 224, 130, 0.045);
+}
+
+.stock_limitado span,
+.stock_limitado strong {
+  color: var(--warning) !important;
+}
+
+.stock_agotado {
+  border-color: rgba(255, 143, 163, 0.42) !important;
+  background: rgba(255, 143, 163, 0.09) !important;
+  box-shadow: inset 0 0 18px rgba(255, 143, 163, 0.05);
+}
+
+.stock_agotado span,
+.stock_agotado strong {
+  color: var(--danger) !important;
+}

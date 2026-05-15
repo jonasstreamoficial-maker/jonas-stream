@@ -378,8 +378,6 @@ export default function VerPreciosPage() {
           <div className={styles.catalogGrid}>
             {filteredProducts.map((product) => {
               const usd = product.pen / USD_RATE;
-              const whatsappMessage = `Hola Jonas Stream, quiero consultar disponibilidad de ${product.name} (${product.type}) por S/ ${formatMoney(product.pen)}.`;
-
               return (
                 <article key={product.id} className={`${styles.storePreviewCard} ${styles[`accent_${product.accent}`] || ""}`}>
                   <div className={styles.previewBadgeRow}>
@@ -388,16 +386,6 @@ export default function VerPreciosPage() {
                       {product.type}
                     </span>
                   </div>
-
-                  <a
-                    href={buildWhatsAppLink(whatsappMessage)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.previewFavorite}
-                    aria-label={`Consultar ${product.name} por WhatsApp`}
-                  >
-                    ♥
-                  </a>
 
                   <div className={styles.previewImageBox}>
                     {product.image ? (
@@ -411,7 +399,7 @@ export default function VerPreciosPage() {
                     <h3>{product.name}</h3>
                     <p>{product.subtitle}</p>
 
-                    <div className={styles.stockBar}>
+                    <div className={`${styles.stockBar} ${styles[`stock_${product.status.toLowerCase()}`]}`}>
                       <span>Stock</span>
                       <strong>{product.stock}</strong>
                     </div>
@@ -451,15 +439,6 @@ export default function VerPreciosPage() {
                         <strong>$ {formatMoney(usd)}</strong>
                       </div>
                     </div>
-
-                    <a
-                      href={buildWhatsAppLink(whatsappMessage)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.consultButton}
-                    >
-                      Consultar disponibilidad
-                    </a>
                   </div>
                 </article>
               );
