@@ -51,6 +51,7 @@ type Pedido = {
   id: string
   cliente_nombre: string
   cliente_correo: string
+  usuario_id?: string | null
   total: number
   estado: string
   metodo_pago: string
@@ -682,14 +683,15 @@ export default function AdminPage() {
       }) || null
     }
 
-    const ajustes = new Map<string, { producto: Producto; cantidad: number }>()
+    const entregas = new Map<string, { producto: Producto; cantidad: number }>()
 
-    const sumarAjuste = (producto: Producto | null, cantidad: number) => {
+    const sumarEntrega = (producto: Producto | null, cantidad: number) => {
       if (!producto) return
-      const cantidadSegura = Math.max(1, Number(cantidad || 1))
-      const actual = ajustes.get(producto.id)
 
-      ajustes.set(producto.id, {
+      const cantidadSegura = Math.max(1, Math.floor(Number(cantidad || 1)))
+      const actual = entregas.get(producto.id)
+
+      entregas.set(producto.id, {
         producto,
         cantidad: (actual?.cantidad || 0) + cantidadSegura,
       })
@@ -704,19 +706,19 @@ export default function AdminPage() {
       ;(itemsPedido as Record<string, unknown>[]).forEach((item) => {
         const productoItem = buscarProductoPorDatos(item)
         const cantidadItem = Number(item.cantidad ?? item.quantity ?? item.unidades ?? 1)
-        sumarAjuste(productoItem, cantidadItem)
+        sumarEntrega(productoItem, cantidadItem)
       })
     }
 
-    if (ajustes.size === 0) {
+    if (entregas.size === 0) {
       if (!pedido.producto_nombre) {
         await registrarLog(
-          "stock_no_encontrado",
+          "cuenta_no_encontrada",
           "pedidos",
           pedido.id,
-          "No se encontró producto_nombre ni items del pedido para descontar stock"
+          "No se encontró producto_nombre ni items del pedido para entregar cuenta"
         )
-        toast.error("No encontré producto vinculado para descontar stock")
+        toast.error("No encontré producto vinculado para entregar cuenta")
         return false
       }
 
@@ -724,95 +726,138 @@ export default function AdminPage() {
         producto_nombre: pedido.producto_nombre,
       })
 
-      sumarAjuste(productoPedido, Number(pedido.cantidad || 1))
+      sumarEntrega(productoPedido, Number(pedido.cantidad || 1))
     }
 
-    if (ajustes.size === 0) {
+    if (entregas.size === 0) {
       await registrarLog(
-        "stock_no_encontrado",
+        "cuenta_no_encontrada",
         "pedidos",
         pedido.id,
-        `No se encontró producto para descontar: ${pedido.producto_nombre || "pedido_items sin producto coincidente"}`
+        `No se encontró producto para entregar cuenta: ${pedido.producto_nombre || "pedido_items sin producto coincidente"}`
       )
-      toast.error("No se encontró producto para descontar stock")
+      toast.error("No se encontró producto para entregar cuenta")
       return false
     }
 
-    let descuentosCorrectos = 0
+    const usuarioAsignado =
+      pedido.usuario_id ||
+      usuarios.find((item) => normalizarTexto(item.correo) === normalizarTexto(pedido.cliente_correo))?.id ||
+      null
 
-    for (const { producto, cantidad } of ajustes.values()) {
-      const stockActual = Number(producto.stock || 0)
-      const nuevoStock = Math.max(0, stockActual - cantidad)
-      const payload = {
-        stock: nuevoStock,
-        ...calcularEstadoInventario(nuevoStock),
-      }
+    const cuentasParaEntregar: CuentaProducto[] = []
 
-      const { error } = await supabase
-        .from("productos")
-        .update(payload)
-        .eq("id", producto.id)
+    for (const { producto, cantidad } of entregas.values()) {
+      const { data: cuentasDisponibles, error: cuentasError } = await supabase
+        .from("cuentas_producto")
+        .select("*")
+        .eq("producto_id", producto.id)
+        .eq("estado", "disponible")
+        .order("created_at", { ascending: true })
+        .limit(cantidad)
 
-      if (error) {
+      if (cuentasError) {
         await registrarLog(
-          "stock_error",
-          "productos",
+          "cuenta_error",
+          "cuentas_producto",
           producto.id,
-          `Pedido #${pedido.id.slice(0, 8)} no pudo descontar ${cantidad} unidad(es): ${error.message}`
+          `Pedido #${pedido.id.slice(0, 8)} no pudo consultar cuentas disponibles: ${cuentasError.message}`
         )
-        toast.error(`No se pudo descontar stock de ${producto.nombre}`)
-        continue
+        toast.error(`No pude consultar cuentas disponibles para ${producto.nombre}`)
+        return false
       }
 
-      descuentosCorrectos += 1
+      const disponibles = (cuentasDisponibles || []) as CuentaProducto[]
 
-      setProductos((prev) =>
-        prev.map((p) =>
-          p.id === producto.id
-            ? {
-                ...p,
-                ...payload,
-              }
-            : p
+      if (disponibles.length < cantidad) {
+        await registrarLog(
+          "cuenta_stock_insuficiente",
+          "cuentas_producto",
+          producto.id,
+          `Pedido #${pedido.id.slice(0, 8)} requiere ${cantidad} cuenta(s), disponibles ${disponibles.length}`
         )
-      )
+        toast.error(`${producto.nombre} no tiene cuentas suficientes disponibles`)
+        return false
+      }
 
+      cuentasParaEntregar.push(...disponibles)
+    }
+
+    if (cuentasParaEntregar.length === 0) {
+      toast.error("No hay cuentas disponibles para entregar")
+      return false
+    }
+
+    const idsCuentas = cuentasParaEntregar.map((cuenta) => cuenta.id)
+
+    const { error: entregaError } = await supabase
+      .from("cuentas_producto")
+      .update({
+        estado: "entregada",
+        pedido_id: pedido.id,
+        usuario_id: usuarioAsignado,
+      })
+      .in("id", idsCuentas)
+
+    if (entregaError) {
       await registrarLog(
-        "descontar_stock",
-        "productos",
-        producto.id,
-        `Pedido #${pedido.id.slice(0, 8)} descontó ${cantidad} unidad(es). Stock final: ${nuevoStock}`
+        "cuenta_entrega_error",
+        "cuentas_producto",
+        pedido.id,
+        `No se pudieron marcar cuentas como entregadas: ${entregaError.message}`
       )
-
-      registrarEvento(`Stock descontado: ${producto.nombre}`)
-
-      if (nuevoStock <= 0) {
-        toast.error(`${producto.nombre} quedó AGOTADO`)
-      } else if (nuevoStock <= 3) {
-        toast(`${producto.nombre} tiene stock bajo`)
-      }
+      toast.error("No se pudieron asignar las cuentas al pedido")
+      return false
     }
 
-    if (descuentosCorrectos > 0) {
-      toast.success("Stock actualizado correctamente")
-      return true
+    setCuentasProducto((prev) =>
+      prev.map((cuenta) =>
+        idsCuentas.includes(cuenta.id)
+          ? {
+              ...cuenta,
+              estado: "entregada",
+              pedido_id: pedido.id,
+              usuario_id: usuarioAsignado,
+            }
+          : cuenta
+      )
+    )
+
+    for (const { producto, cantidad } of entregas.values()) {
+      await registrarLog(
+        "entregar_cuenta",
+        "cuentas_producto",
+        producto.id,
+        `Pedido #${pedido.id.slice(0, 8)} entregó ${cantidad} cuenta(s) de ${producto.nombre}`
+      )
+      registrarEvento(`Cuenta entregada: ${producto.nombre}`)
     }
 
-    return false
+    toast.success(
+      cuentasParaEntregar.length === 1
+        ? "Cuenta asignada correctamente"
+        : `${cuentasParaEntregar.length} cuentas asignadas correctamente`
+    )
+
+    return true
   }
 
   const actualizarEstadoPedido = async (id: string, nuevoEstado: string) => {
     const pedidoActual = pedidos.find((pedido) => pedido.id === id)
-    const debeDescontarStock = nuevoEstado === "completado" && pedidoActual?.estado !== "completado"
+    const debeEntregarCuenta = nuevoEstado === "completado" && pedidoActual?.estado !== "completado"
+
+    if (debeEntregarCuenta && pedidoActual) {
+      const cuentaEntregada = await descontarStockPorPedido(pedidoActual)
+      if (!cuentaEntregada) return
+    }
 
     const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).eq("id", id)
 
     if (!error) {
-      if (debeDescontarStock && pedidoActual) await descontarStockPorPedido(pedidoActual)
       setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: nuevoEstado } : p)))
       registrarEvento(`Pedido marcado como ${nuevoEstado}`, nuevoEstado === "completado")
       await registrarLog("actualizar_estado", "pedidos", id, `Estado: ${nuevoEstado}`)
-      toast.success(debeDescontarStock ? `Pedido completado y stock sincronizado` : `Pedido actualizado a ${nuevoEstado}`)
+      toast.success(debeEntregarCuenta ? `Pedido completado y cuenta asignada` : `Pedido actualizado a ${nuevoEstado}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo actualizar el pedido")
@@ -894,6 +939,20 @@ export default function AdminPage() {
       onConfirmar: async () => {
         setProcesandoMasivo(true)
         const ids = [...pedidosSeleccionados]
+
+        if (nuevoEstado === "completado") {
+          const pedidosParaEntregar = pedidos.filter((pedido) => ids.includes(pedido.id) && pedido.estado !== "completado")
+
+          for (const pedido of pedidosParaEntregar) {
+            const cuentaEntregada = await descontarStockPorPedido(pedido)
+
+            if (!cuentaEntregada) {
+              setProcesandoMasivo(false)
+              return
+            }
+          }
+        }
+
         const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).in("id", ids)
 
         if (error) {
@@ -902,18 +961,11 @@ export default function AdminPage() {
           return
         }
 
-        if (nuevoEstado === "completado") {
-          const pedidosParaDescontar = pedidos.filter((pedido) => ids.includes(pedido.id) && pedido.estado !== "completado")
-          for (const pedido of pedidosParaDescontar) {
-            await descontarStockPorPedido(pedido)
-          }
-        }
-
         setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: nuevoEstado } : pedido))
         setPedidosSeleccionados([])
         registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
         await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
-        toast.success(nuevoEstado === "completado" ? `${ids.length} pedido(s) completados y stock revisado` : `${ids.length} pedido(s) actualizados`)
+        toast.success(nuevoEstado === "completado" ? `${ids.length} pedido(s) completados y cuentas asignadas` : `${ids.length} pedido(s) actualizados`)
         setProcesandoMasivo(false)
         await cargarDatos()
       },
@@ -1061,6 +1113,18 @@ export default function AdminPage() {
         ? "cancelado"
         : "pendiente"
 
+    const pedidoActualComprobante = comprobante.pedidoId
+      ? pedidos.find((pedido) => pedido.id === comprobante.pedidoId)
+      : null
+    const debeEntregarCuenta =
+      estadoPedido === "completado" &&
+      pedidoActualComprobante?.estado !== "completado"
+
+    if (debeEntregarCuenta && pedidoActualComprobante) {
+      const cuentaEntregada = await descontarStockPorPedido(pedidoActualComprobante)
+      if (!cuentaEntregada) return
+    }
+
     if (comprobante.origen === "tabla") {
       const { error } = await supabase.from("comprobantes").update({ estado: nuevoEstado }).eq("id", comprobante.id)
 
@@ -1074,18 +1138,9 @@ export default function AdminPage() {
     }
 
     if (comprobante.pedidoId) {
-      const pedidoActual = pedidos.find((pedido) => pedido.id === comprobante.pedidoId)
-      const debeDescontarStock =
-        estadoPedido === "completado" &&
-        pedidoActual?.estado !== "completado"
-
       const { error: pedidoError } = await supabase.from("pedidos").update({ estado: estadoPedido }).eq("id", comprobante.pedidoId)
 
       if (!pedidoError) {
-        if (debeDescontarStock && pedidoActual) {
-          await descontarStockPorPedido(pedidoActual)
-        }
-
         setPedidos((prev) => prev.map((p) => (p.id === comprobante.pedidoId ? { ...p, estado: estadoPedido } : p)))
         await registrarLog("actualizar_por_comprobante", "pedidos", comprobante.pedidoId, `Comprobante ${nuevoEstado}`)
       }
@@ -1094,7 +1149,7 @@ export default function AdminPage() {
     registrarEvento(`Comprobante ${nuevoEstado}`, nuevoEstado === "aprobado" || nuevoEstado === "completado")
     toast.success(
       nuevoEstado === "aprobado" || nuevoEstado === "completado"
-        ? "Comprobante aprobado y stock sincronizado"
+        ? "Comprobante aprobado y cuenta asignada"
         : `Comprobante ${nuevoEstado}`
     )
     await cargarDatos()
