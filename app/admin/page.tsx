@@ -593,102 +593,153 @@ export default function AdminPage() {
   }
 
   const descontarStockPorPedido = async (pedido: Pedido) => {
-    if (!pedido.producto_nombre) return false
+    const normalizarProductoPedido = (valor?: unknown) => normalizarTexto(String(valor ?? ""))
 
-    const productoMatch = productos.find((producto) => {
-      const productoNombre = normalizarTexto(producto.nombre)
-      const pedidoProducto = normalizarTexto(pedido.producto_nombre)
+    const buscarProductoPorDatos = (datos: Record<string, unknown>) => {
+      const productoId = String(datos.producto_id ?? datos.product_id ?? datos.id_producto ?? "")
 
-      return (
-        productoNombre === pedidoProducto ||
-        productoNombre.includes(pedidoProducto) ||
-        pedidoProducto.includes(productoNombre)
+      if (productoId) {
+        const porId = productos.find((producto) => producto.id === productoId)
+        if (porId) return porId
+      }
+
+      const nombrePedido = normalizarProductoPedido(
+        datos.producto_nombre ??
+        datos.nombre_producto ??
+        datos.nombre ??
+        datos.producto ??
+        pedido.producto_nombre
       )
-    })
 
-    if (!productoMatch) {
+      if (!nombrePedido) return null
+
+      return productos.find((producto) => {
+        const productoNombre = normalizarTexto(producto.nombre)
+        return (
+          productoNombre === nombrePedido ||
+          productoNombre.includes(nombrePedido) ||
+          nombrePedido.includes(productoNombre)
+        )
+      }) || null
+    }
+
+    const ajustes = new Map<string, { producto: Producto; cantidad: number }>()
+
+    const sumarAjuste = (producto: Producto | null, cantidad: number) => {
+      if (!producto) return
+      const cantidadSegura = Math.max(1, Number(cantidad || 1))
+      const actual = ajustes.get(producto.id)
+
+      ajustes.set(producto.id, {
+        producto,
+        cantidad: (actual?.cantidad || 0) + cantidadSegura,
+      })
+    }
+
+    const { data: itemsPedido, error: itemsError } = await supabase
+      .from("pedido_items")
+      .select("*")
+      .eq("pedido_id", pedido.id)
+
+    if (!itemsError && itemsPedido && itemsPedido.length > 0) {
+      ;(itemsPedido as Record<string, unknown>[]).forEach((item) => {
+        const productoItem = buscarProductoPorDatos(item)
+        const cantidadItem = Number(item.cantidad ?? item.quantity ?? item.unidades ?? 1)
+        sumarAjuste(productoItem, cantidadItem)
+      })
+    }
+
+    if (ajustes.size === 0) {
+      if (!pedido.producto_nombre) {
+        await registrarLog(
+          "stock_no_encontrado",
+          "pedidos",
+          pedido.id,
+          "No se encontró producto_nombre ni items del pedido para descontar stock"
+        )
+        toast.error("No encontré producto vinculado para descontar stock")
+        return false
+      }
+
+      const productoPedido = buscarProductoPorDatos({
+        producto_nombre: pedido.producto_nombre,
+      })
+
+      sumarAjuste(productoPedido, Number(pedido.cantidad || 1))
+    }
+
+    if (ajustes.size === 0) {
       await registrarLog(
         "stock_no_encontrado",
         "pedidos",
         pedido.id,
-        `No se encontró producto para descontar: ${pedido.producto_nombre}`
+        `No se encontró producto para descontar: ${pedido.producto_nombre || "pedido_items sin producto coincidente"}`
       )
-
+      toast.error("No se encontró producto para descontar stock")
       return false
     }
 
-    const cantidadComprada = Math.max(1, Number(pedido.cantidad || 1))
+    let descuentosCorrectos = 0
 
-    const stockActual = Number(productoMatch.stock || 0)
+    for (const { producto, cantidad } of ajustes.values()) {
+      const stockActual = Number(producto.stock || 0)
+      const nuevoStock = Math.max(0, stockActual - cantidad)
+      const payload = {
+        stock: nuevoStock,
+        ...calcularEstadoInventario(nuevoStock),
+      }
 
-    const nuevoStock = Math.max(
-      0,
-      stockActual - cantidadComprada
-    )
+      const { error } = await supabase
+        .from("productos")
+        .update(payload)
+        .eq("id", producto.id)
 
-    let nuevoEstado = "activo"
+      if (error) {
+        await registrarLog(
+          "stock_error",
+          "productos",
+          producto.id,
+          `Pedido #${pedido.id.slice(0, 8)} no pudo descontar ${cantidad} unidad(es): ${error.message}`
+        )
+        toast.error(`No se pudo descontar stock de ${producto.nombre}`)
+        continue
+      }
 
-    if (nuevoStock <= 0) {
-      nuevoEstado = "agotado"
-    } else if (nuevoStock <= 3) {
-      nuevoEstado = "limitado"
+      descuentosCorrectos += 1
+
+      setProductos((prev) =>
+        prev.map((p) =>
+          p.id === producto.id
+            ? {
+                ...p,
+                ...payload,
+              }
+            : p
+        )
+      )
+
+      await registrarLog(
+        "descontar_stock",
+        "productos",
+        producto.id,
+        `Pedido #${pedido.id.slice(0, 8)} descontó ${cantidad} unidad(es). Stock final: ${nuevoStock}`
+      )
+
+      registrarEvento(`Stock descontado: ${producto.nombre}`)
+
+      if (nuevoStock <= 0) {
+        toast.error(`${producto.nombre} quedó AGOTADO`)
+      } else if (nuevoStock <= 3) {
+        toast(`${producto.nombre} tiene stock bajo`)
+      }
     }
 
-    const payload = {
-      stock: nuevoStock,
-      estado: nuevoEstado,
+    if (descuentosCorrectos > 0) {
+      toast.success("Stock actualizado correctamente")
+      return true
     }
 
-    const { error } = await supabase
-      .from("productos")
-      .update(payload)
-      .eq("id", productoMatch.id)
-
-    if (error) {
-      toast.error(
-        "Pedido completado, pero no se pudo descontar stock"
-      )
-
-      return false
-    }
-
-    setProductos((prev) =>
-      prev.map((p) =>
-        p.id === productoMatch.id
-          ? {
-              ...p,
-              ...payload,
-            }
-          : p
-      )
-    )
-
-    await registrarLog(
-      "descontar_stock",
-      "productos",
-      productoMatch.id,
-      `Pedido #${pedido.id.slice(0, 8)} descontó ${cantidadComprada} unidad(es). Stock final: ${nuevoStock}`
-    )
-
-    registrarEvento(
-      `Stock descontado: ${productoMatch.nombre}`
-    )
-
-    if (nuevoStock <= 0) {
-      toast.error(
-        `${productoMatch.nombre} quedó AGOTADO`
-      )
-    } else if (nuevoStock <= 3) {
-      toast(
-        `${productoMatch.nombre} tiene stock bajo`
-      )
-    } else {
-      toast.success(
-        `Stock actualizado correctamente`
-      )
-    }
-
-    return true
+    return false
   }
 
   const actualizarEstadoPedido = async (id: string, nuevoEstado: string) => {
