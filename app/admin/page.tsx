@@ -127,6 +127,16 @@ type MetricTone = "success" | "warning" | "danger" | "info" | "neutral"
 type OrdenProducto = "recientes" | "nombre" | "precio_mayor" | "precio_menor" | "stock_menor"
 type OrdenPedido = "recientes" | "monto_mayor" | "monto_menor"
 
+type ConfirmacionAdmin = {
+  abierta: boolean
+  titulo: string
+  descripcion: string
+  textoConfirmar: string
+  tono: "danger" | "success" | "warning"
+  onConfirmar: (() => Promise<void> | void) | null
+}
+
+
 const USD_RATE = 3.75
 
 const productoInicial = {
@@ -280,6 +290,40 @@ export default function AdminPage() {
   const [sincronizandoInventario, setSincronizandoInventario] = useState(false)
   const [busquedaInventario, setBusquedaInventario] = useState("")
   const [filtroInventario, setFiltroInventario] = useState<"todos" | "critico" | "agotado" | "bajo" | "estable">("critico")
+
+  const [confirmacionAdmin, setConfirmacionAdmin] = useState<ConfirmacionAdmin>({
+    abierta: false,
+    titulo: "",
+    descripcion: "",
+    textoConfirmar: "Confirmar",
+    tono: "danger",
+    onConfirmar: null,
+  })
+
+  const cerrarConfirmacionAdmin = () => {
+    setConfirmacionAdmin({
+      abierta: false,
+      titulo: "",
+      descripcion: "",
+      textoConfirmar: "Confirmar",
+      tono: "danger",
+      onConfirmar: null,
+    })
+  }
+
+  const abrirConfirmacionAdmin = (config: Omit<ConfirmacionAdmin, "abierta">) => {
+    setConfirmacionAdmin({
+      abierta: true,
+      ...config,
+    })
+  }
+
+  const ejecutarConfirmacionAdmin = async () => {
+    const accion = confirmacionAdmin.onConfirmar
+    cerrarConfirmacionAdmin()
+    if (accion) await accion()
+  }
+
 
   useEffect(() => {
     if (!imagenFile) {
@@ -496,21 +540,28 @@ export default function AdminPage() {
     }
   }
 
-  const eliminarUsuario = async (id: string) => {
-    const confirmar = confirm("¿Seguro que quieres eliminar este usuario? Esta acción no se puede deshacer.")
-    if (!confirmar) return
+  const eliminarUsuario = (id: string) => {
+    const usuarioObjetivo = usuarios.find((u) => u.id === id)
 
-    const { error } = await supabase.from("usuarios").delete().eq("id", id)
+    abrirConfirmacionAdmin({
+      titulo: `Eliminar usuario${usuarioObjetivo?.nombre ? ` ${usuarioObjetivo.nombre}` : ""}`,
+      descripcion: "Esta acción eliminará el usuario del panel. No se puede deshacer.",
+      textoConfirmar: "Sí, eliminar usuario",
+      tono: "danger",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("usuarios").delete().eq("id", id)
 
-    if (!error) {
-      setUsuarios((prev) => prev.filter((u) => u.id !== id))
-      registrarEvento("Usuario eliminado")
-      await registrarLog("eliminar", "usuarios", id, "Usuario eliminado")
-      toast.success("Usuario eliminado")
-      await cargarDatos()
-    } else {
-      toast.error("No se pudo eliminar el usuario")
-    }
+        if (!error) {
+          setUsuarios((prev) => prev.filter((u) => u.id !== id))
+          registrarEvento("Usuario eliminado")
+          await registrarLog("eliminar", "usuarios", id, "Usuario eliminado")
+          toast.success("Usuario eliminado")
+          await cargarDatos()
+        } else {
+          toast.error("No se pudo eliminar el usuario")
+        }
+      },
+    })
   }
 
   const calcularEstadoInventario = (stock: number) => ({
@@ -725,33 +776,38 @@ export default function AdminPage() {
       return
     }
 
-    const confirmar = confirm(`¿Actualizar ${pedidosSeleccionados.length} pedido(s) a ${nuevoEstado}?`)
-    if (!confirmar) return
+    abrirConfirmacionAdmin({
+      titulo: nuevoEstado === "completado" ? "Completar lote de pedidos" : "Cancelar lote de pedidos",
+      descripcion: `Se actualizarán ${pedidosSeleccionados.length} pedido(s) a estado ${nuevoEstado}.`,
+      textoConfirmar: nuevoEstado === "completado" ? "Sí, completar lote" : "Sí, cancelar lote",
+      tono: nuevoEstado === "completado" ? "success" : "danger",
+      onConfirmar: async () => {
+        setProcesandoMasivo(true)
+        const ids = [...pedidosSeleccionados]
+        const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).in("id", ids)
 
-    setProcesandoMasivo(true)
-    const ids = [...pedidosSeleccionados]
-    const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).in("id", ids)
+        if (error) {
+          toast.error("No se pudieron actualizar los pedidos seleccionados")
+          setProcesandoMasivo(false)
+          return
+        }
 
-    if (error) {
-      toast.error("No se pudieron actualizar los pedidos seleccionados")
-      setProcesandoMasivo(false)
-      return
-    }
+        if (nuevoEstado === "completado") {
+          const pedidosParaDescontar = pedidos.filter((pedido) => ids.includes(pedido.id) && pedido.estado !== "completado")
+          for (const pedido of pedidosParaDescontar) {
+            await descontarStockPorPedido(pedido)
+          }
+        }
 
-    if (nuevoEstado === "completado") {
-      const pedidosParaDescontar = pedidos.filter((pedido) => ids.includes(pedido.id) && pedido.estado !== "completado")
-      for (const pedido of pedidosParaDescontar) {
-        await descontarStockPorPedido(pedido)
-      }
-    }
-
-    setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: nuevoEstado } : pedido))
-    setPedidosSeleccionados([])
-    registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
-    await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
-    toast.success(nuevoEstado === "completado" ? `${ids.length} pedido(s) completados y stock revisado` : `${ids.length} pedido(s) actualizados`)
-    setProcesandoMasivo(false)
-    await cargarDatos()
+        setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: nuevoEstado } : pedido))
+        setPedidosSeleccionados([])
+        registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
+        await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
+        toast.success(nuevoEstado === "completado" ? `${ids.length} pedido(s) completados y stock revisado` : `${ids.length} pedido(s) actualizados`)
+        setProcesandoMasivo(false)
+        await cargarDatos()
+      },
+    })
   }
 
   const eliminarPedidosSeleccionados = async () => {
@@ -760,45 +816,50 @@ export default function AdminPage() {
       return
     }
 
-    const confirmar = confirm(`¿Eliminar ${pedidosSeleccionados.length} pedido(s)? Esta acción no se puede deshacer.`)
-    if (!confirmar) return
+    abrirConfirmacionAdmin({
+      titulo: "Eliminar pedidos seleccionados",
+      descripcion: `Se eliminarán ${pedidosSeleccionados.length} pedido(s), sus items y comprobantes vinculados. Esta acción no se puede deshacer.`,
+      textoConfirmar: "Sí, eliminar lote",
+      tono: "danger",
+      onConfirmar: async () => {
+        setProcesandoMasivo(true)
+        const ids = [...pedidosSeleccionados]
 
-    setProcesandoMasivo(true)
-    const ids = [...pedidosSeleccionados]
+        const { error: itemsError } = await supabase.from("pedido_items").delete().in("pedido_id", ids)
 
-    const { error: itemsError } = await supabase.from("pedido_items").delete().in("pedido_id", ids)
+        if (itemsError) {
+          toast.error("No se pudieron eliminar los items de los pedidos")
+          setProcesandoMasivo(false)
+          return
+        }
 
-    if (itemsError) {
-      toast.error("No se pudieron eliminar los items de los pedidos")
-      setProcesandoMasivo(false)
-      return
-    }
+        const { error: comprobantesError } = await supabase.from("comprobantes").delete().in("pedido_id", ids)
 
-    const { error: comprobantesError } = await supabase.from("comprobantes").delete().in("pedido_id", ids)
+        if (comprobantesError) {
+          toast.error("No se pudieron eliminar los comprobantes")
+          setProcesandoMasivo(false)
+          return
+        }
 
-    if (comprobantesError) {
-      toast.error("No se pudieron eliminar los comprobantes")
-      setProcesandoMasivo(false)
-      return
-    }
+        const { error: pedidosError } = await supabase.from("pedidos").delete().in("id", ids)
 
-    const { error: pedidosError } = await supabase.from("pedidos").delete().in("id", ids)
+        if (pedidosError) {
+          toast.error("No se pudieron eliminar los pedidos seleccionados")
+          setProcesandoMasivo(false)
+          return
+        }
 
-    if (pedidosError) {
-      toast.error("No se pudieron eliminar los pedidos seleccionados")
-      setProcesandoMasivo(false)
-      return
-    }
+        setPedidos((prev) => prev.filter((pedido) => !ids.includes(pedido.id)))
+        setComprobantes((prev) => prev.filter((comprobante) => !ids.includes(comprobante.pedido_id || "")))
+        setPedidosSeleccionados([])
 
-    setPedidos((prev) => prev.filter((pedido) => !ids.includes(pedido.id)))
-    setComprobantes((prev) => prev.filter((comprobante) => !ids.includes(comprobante.pedido_id || "")))
-    setPedidosSeleccionados([])
-
-    registrarEvento(`${ids.length} pedido(s) eliminados`)
-    await registrarLog("eliminar_masivo", "pedidos", undefined, `${ids.length} pedidos eliminados`)
-    toast.success(`${ids.length} pedido(s) eliminados`)
-    setProcesandoMasivo(false)
-    await cargarDatos()
+        registrarEvento(`${ids.length} pedido(s) eliminados`)
+        await registrarLog("eliminar_masivo", "pedidos", undefined, `${ids.length} pedidos eliminados`)
+        toast.success(`${ids.length} pedido(s) eliminados`)
+        setProcesandoMasivo(false)
+        await cargarDatos()
+      },
+    })
   }
 
   const sincronizarInventarioAutomatico = async () => {
@@ -815,44 +876,49 @@ export default function AdminPage() {
       return
     }
 
-    const confirmar = confirm(`Inventario automático aplicará: ${agotados.length} agotado(s) y ${bajos.length} limitado(s). ¿Continuar?`)
-    if (!confirmar) return
+    abrirConfirmacionAdmin({
+      titulo: "Sincronizar inventario automático",
+      descripcion: `Se marcarán ${agotados.length} producto(s) como AGOTADO y ${bajos.length} como LIMITADO. Los agotados se ocultarán de tienda.`,
+      textoConfirmar: "Sí, sincronizar",
+      tono: "warning",
+      onConfirmar: async () => {
+        setSincronizandoInventario(true)
 
-    setSincronizandoInventario(true)
+        const operaciones = []
+        if (agotados.length > 0) {
+          operaciones.push(
+            supabase
+              .from("productos")
+              .update({ estado_catalogo: "AGOTADO", publicacion: false })
+              .in("id", agotados.map((p) => p.id))
+          )
+        }
 
-    const operaciones = []
-    if (agotados.length > 0) {
-      operaciones.push(
-        supabase
-          .from("productos")
-          .update({ estado_catalogo: "AGOTADO", publicacion: false })
-          .in("id", agotados.map((p) => p.id))
-      )
-    }
+        if (bajos.length > 0) {
+          operaciones.push(
+            supabase
+              .from("productos")
+              .update({ estado_catalogo: "LIMITADO" })
+              .in("id", bajos.map((p) => p.id))
+          )
+        }
 
-    if (bajos.length > 0) {
-      operaciones.push(
-        supabase
-          .from("productos")
-          .update({ estado_catalogo: "LIMITADO" })
-          .in("id", bajos.map((p) => p.id))
-      )
-    }
+        const resultados = await Promise.all(operaciones)
+        const fallo = resultados.find((resultado) => resultado.error)
 
-    const resultados = await Promise.all(operaciones)
-    const fallo = resultados.find((resultado) => resultado.error)
+        if (fallo?.error) {
+          toast.error("No se pudo sincronizar todo el inventario")
+          setSincronizandoInventario(false)
+          return
+        }
 
-    if (fallo?.error) {
-      toast.error("No se pudo sincronizar todo el inventario")
-      setSincronizandoInventario(false)
-      return
-    }
-
-    await registrarLog("sincronizar", "productos", undefined, `Inventario automático: ${agotados.length} agotados, ${bajos.length} limitados`)
-    registrarEvento("Inventario automático sincronizado")
-    toast.success("Inventario automático sincronizado")
-    setSincronizandoInventario(false)
-    await cargarDatos()
+        await registrarLog("sincronizar", "productos", undefined, `Inventario automático: ${agotados.length} agotados, ${bajos.length} limitados`)
+        registrarEvento("Inventario automático sincronizado")
+        toast.success("Inventario automático sincronizado")
+        setSincronizandoInventario(false)
+        await cargarDatos()
+      },
+    })
   }
 
   const reponerProductoRapido = async (producto: Producto, cantidad = 10) => {
@@ -1076,21 +1142,28 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const eliminarProducto = async (id: string) => {
-    const confirmar = confirm("¿Seguro que quieres eliminar este producto? Esta acción no se puede deshacer.")
-    if (!confirmar) return
+  const eliminarProducto = (id: string) => {
+    const productoObjetivo = productos.find((p) => p.id === id)
 
-    const { error } = await supabase.from("productos").delete().eq("id", id)
+    abrirConfirmacionAdmin({
+      titulo: `Eliminar producto${productoObjetivo?.nombre ? ` ${productoObjetivo.nombre}` : ""}`,
+      descripcion: "Esta acción eliminará el producto del catálogo admin. No se puede deshacer.",
+      textoConfirmar: "Sí, eliminar producto",
+      tono: "danger",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("productos").delete().eq("id", id)
 
-    if (!error) {
-      setProductos((prev) => prev.filter((p) => p.id !== id))
-      registrarEvento("Producto eliminado")
-      await registrarLog("eliminar", "productos", id, "Producto eliminado")
-      toast.success("Producto eliminado")
-      await cargarDatos()
-    } else {
-      toast.error("No se pudo eliminar el producto")
-    }
+        if (!error) {
+          setProductos((prev) => prev.filter((p) => p.id !== id))
+          registrarEvento("Producto eliminado")
+          await registrarLog("eliminar", "productos", id, "Producto eliminado")
+          toast.success("Producto eliminado")
+          await cargarDatos()
+        } else {
+          toast.error("No se pudo eliminar el producto")
+        }
+      },
+    })
   }
 
   const handleCreditoChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -1166,21 +1239,26 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const eliminarCredito = async (credito: Credito) => {
-    const confirmar = confirm(`¿Eliminar crédito #${credito.id.slice(0, 8)}? Esta acción no se puede deshacer.`)
-    if (!confirmar) return
+  const eliminarCredito = (credito: Credito) => {
+    abrirConfirmacionAdmin({
+      titulo: `Eliminar crédito #${credito.id.slice(0, 8)}`,
+      descripcion: `Se eliminará el registro financiero con saldo ${formatearSoles(Number(credito.saldo || 0))}. Esta acción no se puede deshacer.`,
+      textoConfirmar: "Sí, eliminar crédito",
+      tono: "danger",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("creditos").delete().eq("id", credito.id)
 
-    const { error } = await supabase.from("creditos").delete().eq("id", credito.id)
+        if (error) {
+          toast.error("No se pudo eliminar el crédito")
+          return
+        }
 
-    if (error) {
-      toast.error("No se pudo eliminar el crédito")
-      return
-    }
-
-    setCreditos((prev) => prev.filter((item) => item.id !== credito.id))
-    await registrarLog("eliminar", "creditos", credito.id, `Crédito eliminado: ${formatearSoles(Number(credito.saldo || 0))}`)
-    toast.success("Crédito eliminado")
-    await cargarDatos()
+        setCreditos((prev) => prev.filter((item) => item.id !== credito.id))
+        await registrarLog("eliminar", "creditos", credito.id, `Crédito eliminado: ${formatearSoles(Number(credito.saldo || 0))}`)
+        toast.success("Crédito eliminado")
+        await cargarDatos()
+      },
+    })
   }
 
   const handleConfigChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -1668,7 +1746,7 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <section className={styles.proRibbon}>
+        <section className={`${styles.proRibbon} ${styles.proRibbonCompact}`}>
           <div className={styles.proRibbonMain}>
             <span className={styles.proTag}>PRO CONTROL 2.0</span>
             <strong>Vista ejecutiva activa</strong>
@@ -3730,10 +3808,103 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        <AdminConfirmModal
+          abierta={confirmacionAdmin.abierta}
+          titulo={confirmacionAdmin.titulo}
+          descripcion={confirmacionAdmin.descripcion}
+          textoConfirmar={confirmacionAdmin.textoConfirmar}
+          tono={confirmacionAdmin.tono}
+          onCancelar={cerrarConfirmacionAdmin}
+          onConfirmar={ejecutarConfirmacionAdmin}
+        />
       </section>
     </main>
   )
 }
+
+
+function AdminConfirmModal({
+  abierta,
+  titulo,
+  descripcion,
+  textoConfirmar,
+  tono,
+  onCancelar,
+  onConfirmar,
+}: {
+  abierta: boolean
+  titulo: string
+  descripcion: string
+  textoConfirmar: string
+  tono: "danger" | "success" | "warning"
+  onCancelar: () => void
+  onConfirmar: () => void
+}) {
+  if (!abierta) return null
+
+  const esDanger = tono === "danger"
+  const esSuccess = tono === "success"
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 10001,
+        background: "rgba(0, 0, 0, 0.84)",
+        backdropFilter: "blur(12px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "22px",
+      }}
+      onClick={onCancelar}
+    >
+      <div
+        style={{
+          width: "min(520px, 94vw)",
+          border: esDanger
+            ? "1px solid rgba(255, 111, 145, 0.35)"
+            : esSuccess
+            ? "1px solid rgba(124, 255, 178, 0.34)"
+            : "1px solid rgba(255, 224, 130, 0.34)",
+          borderRadius: "24px",
+          background: esDanger
+            ? "linear-gradient(145deg, rgba(7, 27, 30, 0.98), rgba(49, 9, 18, 0.96))"
+            : esSuccess
+            ? "linear-gradient(145deg, rgba(7, 27, 30, 0.98), rgba(8, 42, 27, 0.96))"
+            : "linear-gradient(145deg, rgba(7, 27, 30, 0.98), rgba(45, 34, 9, 0.96))",
+          boxShadow: esDanger
+            ? "0 0 55px rgba(255, 111, 145, 0.2)"
+            : esSuccess
+            ? "0 0 55px rgba(124, 255, 178, 0.16)"
+            : "0 0 55px rgba(255, 224, 130, 0.14)",
+          padding: "26px",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className={styles.kicker}>{esDanger ? "Confirmación segura" : "Acción administrativa"}</p>
+        <h3 style={{ margin: "8px 0 10px", color: "#ECFFFF", fontSize: "26px", lineHeight: 1.08 }}>{titulo}</h3>
+        <p style={{ color: "#9BC8CB", lineHeight: 1.6, marginBottom: "18px" }}>{descripcion}</p>
+
+        <div className={styles.reviewActionsPro}>
+          <button type="button" onClick={onCancelar} className={styles.secondaryButton}>Cancelar</button>
+          <button
+            type="button"
+            onClick={onConfirmar}
+            className={esDanger ? styles.dangerButton : esSuccess ? styles.successButton : styles.primaryButton}
+          >
+            {textoConfirmar}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
 function AdminSkeleton() {
   return (
