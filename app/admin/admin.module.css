@@ -5697,3 +5697,84 @@
     font-size: 13px !important;
   }
 }
+
+
+/* AJUSTES JONAS STREAM - Confirmaciones, inventario y stock visual */
+.previewStockLine,
+.adminStockInline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 16px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  background: rgba(1, 231, 239, 0.055);
+}
+
+.previewStockLine span,
+.adminStockInline span {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.previewStockLine strong,
+.adminStockInline strong {
+  color: #ECFFFF;
+  font-size: 13px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.previewStockOk,
+.adminStockOk {
+  border-color: rgba(124, 255, 178, 0.28);
+  background: rgba(124, 255, 178, 0.075);
+  box-shadow: inset 0 0 22px rgba(124, 255, 178, 0.035);
+}
+
+.previewStockOk strong,
+.adminStockOk strong {
+  color: #7cffb2;
+}
+
+.previewStockOut,
+.adminStockOut {
+  border-color: rgba(255, 143, 163, 0.34);
+  background: rgba(255, 143, 163, 0.085);
+  box-shadow: inset 0 0 22px rgba(255, 143, 163, 0.04);
+}
+
+.previewStockOut strong,
+.adminStockOut strong {
+  color: #ff8fa3;
+}
+
+.adminMetaCard strong {
+  line-height: 1.25;
+}
+
+.reviewActionsPro button,
+.tableActions button,
+.cardActions button {
+  position: relative;
+}
+
+.reviewActionsPro button:active,
+.tableActions button:active,
+.cardActions button:active {
+  transform: scale(0.98);
+  filter: brightness(1.08);
+}
+
+@media (max-width: 720px) {
+  .previewStockLine,
+  .adminStockInline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
