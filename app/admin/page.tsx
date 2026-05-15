@@ -2004,7 +2004,7 @@ export default function AdminPage() {
   }
 
   const descargarArchivo = (nombreArchivo: string, contenido: string, tipo = "text/csv;charset=utf-8;") => {
-    const blob = new Blob([contenido], { type: tipo })
+    const blob = new Blob(["\ufeff", contenido], { type: tipo })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
@@ -2016,6 +2016,7 @@ export default function AdminPage() {
   }
 
   const construirCSVDeCuentas = (cuentas: CuentaProducto[]) => {
+    const separador = ";"
     const encabezados = [
       "PRODUCTO",
       "CORREO",
@@ -2039,10 +2040,10 @@ export default function AdminPage() {
         inicioCliente && finCliente ? `${fechaCorta(inicioCliente)} -> ${fechaCorta(finCliente)}` : "Sin entrega",
         cuenta.estado || "Sin estado",
         dias === null ? "" : dias,
-      ].map(escaparCSV).join(",")
+      ].map(escaparCSV).join(separador)
     })
 
-    return [encabezados.join(","), ...filas].join("\n")
+    return [encabezados.map(escaparCSV).join(separador), ...filas].join("\r\n")
   }
 
   const exportarCuentasCSV = (soloFiltradas = false) => {
@@ -2127,7 +2128,7 @@ export default function AdminPage() {
 
   const importarCuentasDesdeTXT = async () => {
     if (!formCuenta.producto_id) {
-      toast.error("Selecciona un producto para importar")
+      toast.error("Primero selecciona un producto arriba")
       return
     }
 
@@ -2141,6 +2142,8 @@ export default function AdminPage() {
       return
     }
 
+    setImportandoCuentas(true)
+
     const cuentasParseadas: { correo: string; clave: string }[] = []
     const errores: string[] = []
 
@@ -2149,18 +2152,20 @@ export default function AdminPage() {
         .replace(/^🎫\s*/u, "")
         .replace(/^[-*•]\s*/u, "")
         .trim()
-      const match = linea.match(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\s*:\s*(.+)$/i)
 
-      if (!match) {
-        errores.push(`Línea ${index + 1}: formato inválido`)
+      const separadorIndex = linea.indexOf(":")
+
+      if (separadorIndex <= 0) {
+        errores.push(`Línea ${index + 1}: falta :`)
         return
       }
 
-      const correo = match[1].trim()
-      const clave = match[2].trim()
+      const correo = linea.slice(0, separadorIndex).trim()
+      const clave = linea.slice(separadorIndex + 1).trim()
+      const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)
 
-      if (!correo || !clave) {
-        errores.push(`Línea ${index + 1}: falta correo o contraseña`)
+      if (!correoValido || !clave) {
+        errores.push(`Línea ${index + 1}: formato inválido`)
         return
       }
 
@@ -2169,69 +2174,74 @@ export default function AdminPage() {
 
     if (cuentasParseadas.length === 0) {
       toast.error("No encontré cuentas válidas para importar")
+      setImportandoCuentas(false)
+      return
+    }
+
+    const { data: cuentasExistentesDB, error: errorExistentes } = await supabase
+      .from("cuentas_producto")
+      .select("correo")
+      .eq("producto_id", formCuenta.producto_id)
+
+    if (errorExistentes) {
+      toast.error("No pude revisar duplicados en Supabase")
+      setImportandoCuentas(false)
       return
     }
 
     const correosExistentes = new Set(
-      cuentasProducto
-        .filter((cuenta) => cuenta.producto_id === formCuenta.producto_id)
+      ((cuentasExistentesDB || []) as Pick<CuentaProducto, "correo">[])
         .map((cuenta) => normalizarTexto(cuenta.correo))
     )
 
-    const cuentasNuevas = cuentasParseadas.filter((cuenta, index, arr) => {
+    const vistosEnArchivo = new Set<string>()
+    const cuentasNuevas = cuentasParseadas.filter((cuenta) => {
       const correoNormalizado = normalizarTexto(cuenta.correo)
-      const primeraAparicion = arr.findIndex((item) => normalizarTexto(item.correo) === correoNormalizado) === index
-      return primeraAparicion && !correosExistentes.has(correoNormalizado)
+      if (vistosEnArchivo.has(correoNormalizado)) return false
+      vistosEnArchivo.add(correoNormalizado)
+      return !correosExistentes.has(correoNormalizado)
     })
 
     const omitidas = cuentasParseadas.length - cuentasNuevas.length
 
     if (cuentasNuevas.length === 0) {
       toast.error("Todas las cuentas ya existen o están duplicadas")
+      setImportandoCuentas(false)
       return
     }
 
-    abrirConfirmacionAdmin({
-      titulo: `Importar ${cuentasNuevas.length} cuenta(s)`,
-      descripcion: `${omitidas > 0 ? `${omitidas} línea(s) serán omitidas por duplicadas. ` : ""}${errores.length > 0 ? `${errores.length} línea(s) tienen formato inválido. ` : ""}Se guardarán como ${formCuenta.estado || "disponible"}.`,
-      textoConfirmar: "Sí, importar cuentas",
-      tono: "success",
-      onConfirmar: async () => {
-        setImportandoCuentas(true)
+    const payload = cuentasNuevas.map((cuenta) => ({
+      producto_id: formCuenta.producto_id,
+      correo: cuenta.correo,
+      clave: cuenta.clave,
+      fecha_inicio: formCuenta.fecha_inicio || fechaISO(),
+      fecha_fin: formCuenta.fecha_fin || sumarDiasISO(30),
+      estado: formCuenta.estado || "disponible",
+      notas: formCuenta.notas.trim() || null,
+    }))
 
-        const payload = cuentasNuevas.map((cuenta) => ({
-          producto_id: formCuenta.producto_id,
-          correo: cuenta.correo,
-          clave: cuenta.clave,
-          fecha_inicio: formCuenta.fecha_inicio || fechaISO(),
-          fecha_fin: formCuenta.fecha_fin || sumarDiasISO(30),
-          estado: formCuenta.estado || "disponible",
-          notas: formCuenta.notas.trim() || null,
-        }))
+    const { error } = await supabase.from("cuentas_producto").insert(payload)
 
-        const { error } = await supabase.from("cuentas_producto").insert(payload)
+    if (error) {
+      toast.error(`No se pudieron importar: ${error.message}`)
+      setImportandoCuentas(false)
+      return
+    }
 
-        if (error) {
-          toast.error("No se pudieron importar las cuentas")
-          setImportandoCuentas(false)
-          return
-        }
-
-        await registrarLog(
-          "importar_txt",
-          "cuentas_producto",
-          formCuenta.producto_id,
-          `${payload.length} cuenta(s) importadas masivamente${omitidas > 0 ? ` · ${omitidas} omitidas` : ""}`
-        )
-        registrarEvento(`${payload.length} cuenta(s) importadas`)
-        toast.success(`${payload.length} cuenta(s) importadas correctamente`)
-        setTextoImportacionCuentas("")
-        setArchivoImportacionNombre("")
-        setImportandoCuentas(false)
-        await cargarDatos()
-      },
-    })
+    await registrarLog(
+      "importar_txt",
+      "cuentas_producto",
+      formCuenta.producto_id,
+      `${payload.length} cuenta(s) importadas masivamente${omitidas > 0 ? ` · ${omitidas} omitidas` : ""}${errores.length > 0 ? ` · ${errores.length} inválidas` : ""}`
+    )
+    registrarEvento(`${payload.length} cuenta(s) importadas`)
+    toast.success(`${payload.length} cuenta(s) importadas${omitidas > 0 ? ` · ${omitidas} duplicada(s) omitida(s)` : ""}`)
+    setTextoImportacionCuentas("")
+    setArchivoImportacionNombre("")
+    setImportandoCuentas(false)
+    await cargarDatos()
   }
+
 
 
   const hoy = new Date()
@@ -4080,7 +4090,7 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Importación y respaldo</p>
                   <h3>Importar cuentas por archivo TXT</h3>
-                  <span className={styles.panelHint}>Arrastra tu archivo .txt con una cuenta por línea. Ejemplo limpio: correo1@gmail.com:123456</span>
+                  <span className={styles.panelHint}>Arrastra tu archivo .txt con una cuenta por línea. Formato: correo1@gmail.com:123456</span>
                 </div>
                 <div className={styles.tableActions}>
                   <button type="button" onClick={() => exportarCuentasCSV(false)} className={styles.secondaryButton}>Exportar CSV</button>
@@ -4090,7 +4100,7 @@ export default function AdminPage() {
               </div>
 
               <div className={styles.noticeBox}>
-                Selecciona arriba el producto, fechas, estado y notas. Luego arrastra tu TXT. El sistema omite duplicadas del mismo producto.
+                Primero selecciona arriba el producto, fechas, estado y notas. Luego arrastra tu TXT. Ejemplo: correo1@gmail.com:123456. El sistema omite duplicadas del mismo producto.
               </div>
 
               <input
@@ -4115,7 +4125,7 @@ export default function AdminPage() {
                 <div className={styles.importDropIcon}>TXT</div>
                 <div>
                   <strong>{archivoImportacionNombre || "Arrastra aquí tu archivo de cuentas"}</strong>
-                  <p>Formato: correo1@gmail.com:123456 · correo2@gmail.com:abcdef</p>
+                  <p>Formato: correo1@gmail.com:123456 · correo2@gmail.com:clave456</p>
                   <small>{textoImportacionCuentas ? `${textoImportacionCuentas.split(/\r?\n/).filter((linea) => linea.trim()).length} línea(s) listas para importar` : "Click para seleccionar archivo .txt"}</small>
                 </div>
               </div>
