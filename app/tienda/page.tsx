@@ -95,6 +95,12 @@ function getStatusClass(status: ProductStatus) {
   return styles.statusSoldOut;
 }
 
+function getStockClass(status: ProductStatus) {
+  if (status === "ACTIVO") return styles.stockActive;
+  if (status === "LIMITADO") return styles.stockLimited;
+  return styles.stockSoldOut;
+}
+
 function getTypeClass(type: string) {
   return type === "Cuenta completa" ? styles.typeAccount : styles.typeProfile;
 }
@@ -464,32 +470,30 @@ export default function TiendaPage() {
                       {favoritos.includes(producto.id) ? "❤️" : "🤍"}
                     </button>
 
-                    <div className={styles.productTop}>
-                      <div className={styles.productBadges}>
-                        <span
-                          className={`${styles.categoryBadge} ${getCategoryClass(
-                            producto.categoria || "Streaming"
-                          )}`}
-                        >
-                          {producto.categoria || "Streaming"}
-                        </span>
+                    <div className={styles.productBadges}>
+                      <span
+                        className={`${styles.categoryBadge} ${getCategoryClass(
+                          producto.categoria || "Streaming"
+                        )}`}
+                      >
+                        {producto.categoria || "Streaming"}
+                      </span>
 
-                        <span className={`${styles.typeBadge} ${getTypeClass(type)}`}>
-                          {type === "Perfil" ? "Perfil privado" : "Cuenta completa"}
-                        </span>
-                      </div>
+                      <span className={`${styles.typeBadge} ${getTypeClass(type)}`}>
+                        {type === "Perfil" ? "Perfil" : "Cuenta completa"}
+                      </span>
+                    </div>
 
-                      <div className={styles.productVisual}>
-                        {producto.imagen ? (
-                          <img
-                            src={producto.imagen}
-                            alt={producto.nombre || "Producto"}
-                            className={styles.productImage}
-                          />
-                        ) : (
-                          <div className={styles.imagePlaceholder}>Sin imagen</div>
-                        )}
-                      </div>
+                    <div className={styles.productVisual}>
+                      {producto.imagen ? (
+                        <img
+                          src={producto.imagen}
+                          alt={producto.nombre || "Producto"}
+                          className={styles.productImage}
+                        />
+                      ) : (
+                        <div className={styles.imagePlaceholder}>Sin imagen</div>
+                      )}
                     </div>
 
                     <div className={styles.productBody}>
@@ -498,6 +502,11 @@ export default function TiendaPage() {
                       <p className={styles.productSubtitle}>
                         {producto.descripcion || "Producto digital disponible"}
                       </p>
+
+                      <div className={`${styles.stockBar} ${getStockClass(status)}`}>
+                        <span>Stock</span>
+                        <strong>{Number(producto.stock || 0)}</strong>
+                      </div>
 
                       <div className={styles.metaGrid}>
                         <div className={styles.metaCard}>
@@ -515,7 +524,7 @@ export default function TiendaPage() {
                           <strong>{producto.proveedor || "Jonas Stream"}</strong>
                         </div>
 
-                        <div className={styles.metaCard}>
+                        <div className={`${styles.metaCard} ${producto.renovable ?? true ? styles.metaCardSuccess : ""}`}>
                           <span>RENOVABLE</span>
                           <strong>{producto.renovable ?? true ? "Sí" : "No"}</strong>
                         </div>
@@ -529,7 +538,7 @@ export default function TiendaPage() {
                         <span className={styles.stockText}>
                           {producto.stock_texto ||
                             (status === "LIMITADO"
-                              ? "Últimas unidades"
+                              ? "Stock disponible"
                               : status === "AGOTADO"
                               ? "Consultar reposición"
                               : "Stock disponible")}
@@ -540,6 +549,7 @@ export default function TiendaPage() {
                         <div className={styles.priceCard}>
                           <small>PEN</small>
                           <strong>S/ {formatMoney(producto.precio)}</strong>
+                          {producto.precio_antes ? <em>Antes S/ {formatMoney(producto.precio_antes)}</em> : null}
                         </div>
 
                         <div className={styles.priceCard}>
