@@ -254,6 +254,20 @@ const diasRestantes = (fecha?: string | null) => {
   fin.setHours(0, 0, 0, 0)
   return Math.ceil((fin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
 }
+const obtenerEstadoStockVisual = (stockValor: number) => {
+  const stock = Math.max(0, Number(stockValor || 0))
+
+  if (stock <= 0) {
+    return { label: "AGOTADO", detalle: "Consultar reposición", tono: "danger" as const }
+  }
+
+  if (stock <= 3) {
+    return { label: "LIMITADO", detalle: "Últimas unidades", tono: "warning" as const }
+  }
+
+  return { label: "ACTIVO", detalle: "Stock disponible", tono: "success" as const }
+}
+
 const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
   const posibleComprobante = item as Partial<Pedido & Comprobante>
 
@@ -2806,7 +2820,20 @@ export default function AdminPage() {
 
                     <div className={styles.previewBody}>
                       <h4>{formProducto.nombre || "Nuevo producto"}</h4>
-                      <p>{formProducto.descripcion || "Descripción del producto digital"}</p>
+                      <p>{formProducto.descripcion || "Descripción visible en tienda"}</p>
+
+                      <div
+                        className={`${styles.adminStockStrip} ${
+                          obtenerEstadoStockVisual(Number(formProducto.stock || 0)).tono === "danger"
+                            ? styles.adminStockDanger
+                            : obtenerEstadoStockVisual(Number(formProducto.stock || 0)).tono === "warning"
+                            ? styles.adminStockWarning
+                            : styles.adminStockSuccess
+                        }`}
+                      >
+                        <span>Stock</span>
+                        <strong>{Number(formProducto.stock || 0)}</strong>
+                      </div>
 
                       <div className={styles.adminMetaGrid}>
                         <div className={styles.adminMetaCard}>
@@ -2821,23 +2848,34 @@ export default function AdminPage() {
                           <span>Proveedor</span>
                           <strong>{formProducto.proveedor || "Jonas Stream"}</strong>
                         </div>
-                        <div className={styles.adminMetaCard}>
+                        <div className={`${styles.adminMetaCard} ${formProducto.renovable ? styles.adminMetaSuccess : styles.adminMetaDanger}`}>
                           <span>Renovable</span>
                           <strong>{formProducto.renovable ? "Sí" : "No"}</strong>
                         </div>
                       </div>
 
                       <div className={styles.adminStatusRow}>
-                        <span className={Number(formProducto.stock || 0) <= 0 ? styles.badgeDanger : styles.badgeOk}>
-                          {Number(formProducto.stock || 0) <= 0 ? "AGOTADO" : "ACTIVO"}
+                        <span
+                          className={
+                            obtenerEstadoStockVisual(Number(formProducto.stock || 0)).tono === "danger"
+                              ? styles.badgeDanger
+                              : obtenerEstadoStockVisual(Number(formProducto.stock || 0)).tono === "warning"
+                              ? styles.badgeWarning
+                              : styles.badgeOk
+                          }
+                        >
+                          {obtenerEstadoStockVisual(Number(formProducto.stock || 0)).label}
                         </span>
-                        <small>{Number(formProducto.stock || 0) <= 0 ? "Consultar reposición" : "Stock disponible"}</small>
+                        <small>{obtenerEstadoStockVisual(Number(formProducto.stock || 0)).detalle}</small>
                       </div>
 
                       <div className={styles.adminPriceGrid}>
                         <div className={styles.adminPriceCard}>
                           <small>PEN</small>
                           <strong>{formatearSoles(Number(formProducto.precio || 0))}</strong>
+                          {formProducto.precio_antes && Number(formProducto.precio_antes) > 0 && (
+                            <em>Antes {formatearSoles(Number(formProducto.precio_antes))}</em>
+                          )}
                         </div>
                         <div className={styles.adminPriceCard}>
                           <small>USD</small>
@@ -3094,6 +3132,11 @@ export default function AdminPage() {
                         <h4>{p.nombre}</h4>
                         <p>{p.descripcion || "Producto digital disponible"}</p>
 
+                        <div className={`${styles.adminStockStrip} ${agotado ? styles.adminStockDanger : limitado ? styles.adminStockWarning : styles.adminStockSuccess}`}>
+                          <span>Stock</span>
+                          <strong>{stock}</strong>
+                        </div>
+
                         <div className={styles.adminMetaGrid}>
                           <div className={styles.adminMetaCard}>
                             <span>Tipo</span>
@@ -3107,9 +3150,9 @@ export default function AdminPage() {
                             <span>Proveedor</span>
                             <strong>{p.proveedor || "Jonas Stream"}</strong>
                           </div>
-                          <div className={styles.adminMetaCard}>
-                            <span>Stock</span>
-                            <strong>{stock}</strong>
+                          <div className={`${styles.adminMetaCard} ${p.renovable ? styles.adminMetaSuccess : styles.adminMetaDanger}`}>
+                            <span>Renovable</span>
+                            <strong>{p.renovable ? "Sí" : "No"}</strong>
                           </div>
                         </div>
 
@@ -3117,13 +3160,16 @@ export default function AdminPage() {
                           <span className={agotado ? styles.badgeDanger : limitado ? styles.badgeWarning : styles.badgeOk}>
                             {agotado ? "AGOTADO" : limitado ? "LIMITADO" : "ACTIVO"}
                           </span>
-                          <small>{p.publicacion ? "Publicado en tienda" : "Oculto en tienda"}</small>
+                          <small>{agotado ? "Consultar reposición" : limitado ? "Últimas unidades" : "Stock disponible"}</small>
                         </div>
 
                         <div className={styles.adminPriceGrid}>
                           <div className={styles.adminPriceCard}>
                             <small>PEN</small>
                             <strong>{formatearSoles(p.precio)}</strong>
+                            {p.precio_antes && Number(p.precio_antes) > 0 && (
+                              <em>Antes {formatearSoles(Number(p.precio_antes))}</em>
+                            )}
                           </div>
                           <div className={styles.adminPriceCard}>
                             <small>USD</small>
