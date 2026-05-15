@@ -11,15 +11,28 @@ const WHATSAPP_NUMBER = "51900557949";
 
 type Usuario = {
   id: string;
-  nombre: string;
+  nombre: string | null;
   correo: string;
-  contrasena: string;
-  rol: string;
-  estado: string;
+  contrasena: string | null;
+  rol: string | null;
+  estado: string | null;
+  pais?: string | null;
+  codigo_pais?: string | null;
+  celular?: string | null;
+  celular_completo?: string | null;
+  telefono?: string | null;
+  numero_orden?: number | null;
+  prefijo_cliente?: string | null;
+  etiqueta_contacto?: string | null;
+  segundo_nombre?: string | null;
 };
 
 function buildWhatsAppLink(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+function normalizarCorreo(value: string) {
+  return value.trim().toLowerCase();
 }
 
 export default function LoginPage() {
@@ -29,81 +42,106 @@ export default function LoginPage() {
   const [contrasena, setContrasena] = useState("");
   const [cargando, setCargando] = useState(false);
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
+  const [mensajeDebug, setMensajeDebug] = useState<string | null>(null);
 
-  const iniciarSesion = async (
-    e: React.FormEvent<HTMLFormElement>,
-  ) => {
+  const iniciarSesion = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (cargando) return;
 
     setCargando(true);
+    setMensajeDebug(null);
+
+    const correoNormalizado = normalizarCorreo(correo);
+    const contrasenaLimpia = contrasena.trim();
+
+    if (!correoNormalizado || !contrasenaLimpia) {
+      toast.error("Ingresa correo y contraseña");
+      setCargando(false);
+      return;
+    }
 
     try {
-      const correoNormalizado = correo.trim().toLowerCase();
-
       const { data, error } = await supabase
         .from("usuarios")
         .select("*")
         .eq("correo", correoNormalizado)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        setMensajeDebug(`ERROR USUARIOS: ${error.message}`);
+        toast.error("No se pudo consultar el usuario");
+        setCargando(false);
+        return;
+      }
+
+      if (!data) {
+        setMensajeDebug("USUARIO NO ENCONTRADO EN TABLA usuarios");
         toast.error("Usuario no encontrado");
         setCargando(false);
         return;
       }
 
       const usuario = data as Usuario;
+      const passwordGuardado = String(usuario.contrasena || "").trim();
+      const estado = String(usuario.estado || "").toLowerCase().trim();
+      const rol = String(usuario.rol || "cliente").toLowerCase().trim();
 
-      if (usuario.contrasena !== contrasena) {
+      if (!passwordGuardado || passwordGuardado !== contrasenaLimpia) {
+        setMensajeDebug("CONTRASEÑA INCORRECTA EN TABLA usuarios");
         toast.error("Contraseña incorrecta");
         setCargando(false);
         return;
       }
 
-      if (usuario.estado === "pendiente") {
+      if (estado === "pendiente") {
+        setMensajeDebug("CUENTA PENDIENTE: espera aprobación del admin.");
         toast("Tu cuenta está pendiente de aprobación");
         setCargando(false);
         return;
       }
 
-      if (usuario.estado === "rechazado") {
+      if (estado === "rechazado") {
+        setMensajeDebug("CUENTA RECHAZADA: comunícate con soporte.");
         toast.error("Tu cuenta fue rechazada");
         setCargando(false);
         return;
       }
 
-      if (
-        usuario.estado !== "aprobado" &&
-        usuario.estado !== "activo"
-      ) {
+      if (estado !== "aprobado" && estado !== "activo") {
+        setMensajeDebug(`CUENTA NO HABILITADA: estado actual ${usuario.estado}`);
         toast.error("Tu cuenta no está habilitada");
         setCargando(false);
         return;
       }
 
-      localStorage.setItem(
-        "usuario",
-        JSON.stringify(usuario),
-      );
+      const usuarioSesion = {
+        ...usuario,
+        rol,
+        estado,
+      };
+
+      localStorage.setItem("usuario", JSON.stringify(usuarioSesion));
+      localStorage.setItem("jonas_login_ok", new Date().toISOString());
 
       toast.success("Bienvenido 🚀");
 
       const destino =
-        usuario.rol === "admin"
-          ? "/admin"
-          : usuario.rol === "proveedor"
-          ? "/proveedor"
-          : "/cliente";
+        rol === "admin" ? "/admin" : rol === "proveedor" ? "/proveedor" : "/cliente";
 
-      router.push(destino);
+      router.replace(destino);
+      router.refresh();
+
+      window.setTimeout(() => {
+        window.location.assign(destino);
+      }, 250);
     } catch (error) {
+      const detalle = error instanceof Error ? error.message : "Error desconocido";
       console.error(error);
+      setMensajeDebug(`ERROR GENERAL: ${detalle}`);
       toast.error("Error al iniciar sesión");
+      setCargando(false);
     }
-
-    setCargando(false);
   };
 
   return (
@@ -113,17 +151,11 @@ export default function LoginPage() {
       <div className={styles.gridOverlay} />
 
       <div className={styles.sideBrand}>JONAS STREAM</div>
-      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>
-        JONAS STREAM
-      </div>
+      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>JONAS STREAM</div>
 
       <header className={styles.topbarWrap}>
         <div className={styles.topbar}>
-          <Link
-            href="/"
-            className={styles.brandBlock}
-            aria-label="Ir al inicio"
-          >
+          <Link href="/" className={styles.brandBlock} aria-label="Ir al inicio">
             <strong>JONAS STREAM</strong>
             <span>ACCESO OFICIAL</span>
           </Link>
@@ -134,9 +166,7 @@ export default function LoginPage() {
             </Link>
 
             <a
-              href={buildWhatsAppLink(
-                "Hola Jonas Stream, necesito ayuda con mi acceso.",
-              )}
+              href={buildWhatsAppLink("Hola Jonas Stream, necesito ayuda con mi acceso.")}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.topLinkPrimary}
@@ -157,11 +187,10 @@ export default function LoginPage() {
           </h1>
 
           <p className={styles.heroText}>
-            Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo
-            de cuenta.
+            Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo de cuenta.
           </p>
 
-          <div className={styles.accessGrid}>
+          <div className={styles.accessGrid} aria-label="Accesos disponibles">
             <div className={styles.accessCard}>
               <span>CLIENTE</span>
               <strong>Consulta tus pedidos y servicios activos.</strong>
@@ -179,33 +208,21 @@ export default function LoginPage() {
           </div>
 
           <p className={styles.panelNote}>
-            Si tu cuenta está pendiente, espera la aprobación o comunícate con
-            soporte.
+            Si tu cuenta está pendiente, espera la aprobación o comunícate con soporte.
           </p>
         </div>
 
-        <form
-          onSubmit={iniciarSesion}
-          className={styles.loginCard}
-        >
+        <form onSubmit={iniciarSesion} className={styles.loginCard}>
           <div className={styles.cardGlow} />
 
           <div className={styles.formHeader}>
-            <span className={styles.formKicker}>
-              CUENTA JONAS STREAM
-            </span>
-
+            <span className={styles.formKicker}>CUENTA JONAS STREAM</span>
             <h2>Iniciar sesión</h2>
-
-            <p>
-              Ingresa con tu correo y contraseña registrados.
-            </p>
+            <p>Ingresa con tu correo y contraseña registrados.</p>
           </div>
 
           <div className={styles.inputGroup}>
-            <label htmlFor="correo">
-              Correo electrónico
-            </label>
+            <label htmlFor="correo">Correo electrónico</label>
 
             <div className={styles.inputWrap}>
               <input
@@ -214,65 +231,66 @@ export default function LoginPage() {
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
                 placeholder="tunombre@correo.com"
+                autoComplete="email"
                 required
               />
             </div>
           </div>
 
           <div className={styles.inputGroup}>
-            <label htmlFor="contrasena">
-              Contraseña
-            </label>
+            <label htmlFor="contrasena">Contraseña</label>
 
-            <div
-              className={`${styles.inputWrap} ${styles.passwordWrap}`}
-            >
+            <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
               <input
                 id="contrasena"
-                type={
-                  mostrarContrasena ? "text" : "password"
-                }
+                type={mostrarContrasena ? "text" : "password"}
                 value={contrasena}
-                onChange={(e) =>
-                  setContrasena(e.target.value)
-                }
+                onChange={(e) => setContrasena(e.target.value)}
                 placeholder="Ingresa tu contraseña"
+                autoComplete="current-password"
                 required
               />
 
               <button
                 type="button"
                 className={styles.passwordToggle}
-                onClick={() =>
-                  setMostrarContrasena((prev) => !prev)
-                }
+                onClick={() => setMostrarContrasena((prev) => !prev)}
+                aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
                 {mostrarContrasena ? "OCULTAR" : "VER"}
               </button>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={cargando}
-            className={styles.submitButton}
-          >
-            {cargando
-              ? "Ingresando..."
-              : "Entrar al panel"}
+          {mensajeDebug && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "12px 14px",
+                borderRadius: 16,
+                border: "1px solid rgba(255, 143, 163, 0.38)",
+                background: "rgba(255, 143, 163, 0.1)",
+                color: "#ffd7df",
+                fontSize: 12,
+                fontWeight: 800,
+                lineHeight: 1.5,
+                wordBreak: "break-word",
+              }}
+            >
+              {mensajeDebug}
+            </div>
+          )}
+
+          <button type="submit" disabled={cargando} className={styles.submitButton}>
+            {cargando ? "Ingresando..." : "Entrar al panel"}
           </button>
 
           <div className={styles.formFooter}>
-            <Link
-              href="/"
-              className={styles.secondaryLink}
-            >
+            <Link href="/" className={styles.secondaryLink}>
               Volver al inicio
             </Link>
 
-            <span>
-              Acceso exclusivo para usuarios registrados.
-            </span>
+            <span>Acceso exclusivo para usuarios registrados.</span>
           </div>
         </form>
       </section>
@@ -280,19 +298,10 @@ export default function LoginPage() {
       <footer className={styles.footerWrap}>
         <div className={styles.footerLegal}>
           © 2026 Jonas Stream. Todos los derechos reservados.
-
           <div className={styles.footerLinks}>
-            <Link href="/terminos">
-              Términos y Condiciones
-            </Link>
-
-            <span className={styles.footerSeparator}>
-              •
-            </span>
-
-            <Link href="/privacidad">
-              Política de Privacidad
-            </Link>
+            <Link href="/terminos">Términos y Condiciones</Link>
+            <span className={styles.footerSeparator}>•</span>
+            <Link href="/privacidad">Política de Privacidad</Link>
           </div>
         </div>
       </footer>
