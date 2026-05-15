@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
   type FormEvent,
 } from "react"
 import { useRouter } from "next/navigation"
@@ -335,6 +336,8 @@ export default function AdminPage() {
   const [guardandoCuenta, setGuardandoCuenta] = useState(false)
   const [textoImportacionCuentas, setTextoImportacionCuentas] = useState("")
   const [importandoCuentas, setImportandoCuentas] = useState(false)
+  const [archivoImportacionNombre, setArchivoImportacionNombre] = useState("")
+  const inputImportarCuentasRef = useRef<HTMLInputElement | null>(null)
 
   const [configId, setConfigId] = useState<string | null>(null)
   const [formConfig, setFormConfig] = useState(configuracionInicial)
@@ -2014,41 +2017,28 @@ export default function AdminPage() {
 
   const construirCSVDeCuentas = (cuentas: CuentaProducto[]) => {
     const encabezados = [
-      "producto",
-      "categoria",
-      "correo",
-      "clave",
-      "estado",
-      "cliente_nombre",
-      "cliente_correo",
-      "pedido_id",
-      "fecha_inicio_admin",
-      "fecha_fin_admin",
-      "cliente_inicio",
-      "cliente_fin",
-      "notas",
-      "created_at",
+      "PRODUCTO",
+      "CORREO",
+      "CLIENTE",
+      "VIGENCIA CLIENTE",
+      "ESTADO",
+      "DIAS",
     ]
 
     const filas = cuentas.map((cuenta) => {
       const productoCuenta = obtenerProductoPorId(cuenta.producto_id)
       const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
+      const inicioCliente = cuenta.cliente_inicio || ""
+      const finCliente = cuenta.cliente_fin || ""
+      const dias = diasRestantes(cuenta.cliente_fin || cuenta.fecha_fin)
 
       return [
         productoCuenta?.nombre || "Producto eliminado",
-        productoCuenta?.categoria || "Sin categoría",
         cuenta.correo,
-        cuenta.clave,
-        cuenta.estado,
-        usuarioCuenta?.nombre || "",
-        usuarioCuenta?.correo || "",
-        cuenta.pedido_id || "",
-        cuenta.fecha_inicio || "",
-        cuenta.fecha_fin || "",
-        cuenta.cliente_inicio || "",
-        cuenta.cliente_fin || "",
-        cuenta.notas || "",
-        cuenta.created_at || "",
+        usuarioCuenta ? `${usuarioCuenta.nombre || "Cliente"} (${usuarioCuenta.correo})` : "Sin cliente",
+        inicioCliente && finCliente ? `${fechaCorta(inicioCliente)} -> ${fechaCorta(finCliente)}` : "Sin entrega",
+        cuenta.estado || "Sin estado",
+        dias === null ? "" : dias,
       ].map(escaparCSV).join(",")
     })
 
@@ -2087,7 +2077,7 @@ export default function AdminPage() {
 
     abrirConfirmacionAdmin({
       titulo: "Exportar respaldo completo de cuentas",
-      descripcion: "Se descargará un CSV con correos, claves, estado, cliente asignado, pedido y vigencias. Guárdalo en un lugar seguro.",
+      descripcion: "Se descargará un CSV ordenado para Excel: producto, correo, cliente, vigencia de cliente, estado y días restantes. Guárdalo en un lugar seguro.",
       textoConfirmar: "Sí, descargar respaldo",
       tono: "warning",
       onConfirmar: async () => {
@@ -2099,6 +2089,40 @@ export default function AdminPage() {
         toast.success("Respaldo de cuentas descargado")
       },
     })
+  }
+
+  const cargarArchivoCuentasTXT = async (archivo?: File | null) => {
+    if (!archivo) return
+
+    if (!archivo.name.toLowerCase().endsWith(".txt")) {
+      toast.error("Sube un archivo .txt")
+      return
+    }
+
+    try {
+      const contenido = await archivo.text()
+      setTextoImportacionCuentas(contenido)
+      setArchivoImportacionNombre(archivo.name)
+      const lineas = contenido.split(/\r?\n/).map((linea) => linea.trim()).filter(Boolean).length
+      toast.success(`${lineas} línea(s) cargadas desde TXT`)
+    } catch {
+      toast.error("No se pudo leer el archivo TXT")
+    }
+  }
+
+  const handleArchivoImportacionChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    await cargarArchivoCuentasTXT(e.target.files?.[0] || null)
+    e.target.value = ""
+  }
+
+  const handleDropImportacion = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    await cargarArchivoCuentasTXT(e.dataTransfer.files?.[0] || null)
+  }
+
+  const limpiarArchivoImportacion = () => {
+    setTextoImportacionCuentas("")
+    setArchivoImportacionNombre("")
   }
 
   const importarCuentasDesdeTXT = async () => {
@@ -2113,7 +2137,7 @@ export default function AdminPage() {
       .filter(Boolean)
 
     if (lineas.length === 0) {
-      toast.error("Pega al menos una cuenta en formato correo:contraseña")
+      toast.error("Arrastra o selecciona un TXT con cuentas en formato correo:contraseña")
       return
     }
 
@@ -2202,6 +2226,7 @@ export default function AdminPage() {
         registrarEvento(`${payload.length} cuenta(s) importadas`)
         toast.success(`${payload.length} cuenta(s) importadas correctamente`)
         setTextoImportacionCuentas("")
+        setArchivoImportacionNombre("")
         setImportandoCuentas(false)
         await cargarDatos()
       },
@@ -4054,8 +4079,8 @@ export default function AdminPage() {
               <div className={styles.panelHeader}>
                 <div>
                   <p className={styles.kicker}>Importación y respaldo</p>
-                  <h3>Importar cuentas TXT y exportar CSV</h3>
-                  <span className={styles.panelHint}>Pega muchas cuentas en formato correo:contraseña. Ejemplo: yampi.sg@pronyx.xyz:12345</span>
+                  <h3>Importar cuentas por archivo TXT</h3>
+                  <span className={styles.panelHint}>Arrastra tu archivo .txt con una cuenta por línea. Ejemplo limpio: correo1@gmail.com:123456</span>
                 </div>
                 <div className={styles.tableActions}>
                   <button type="button" onClick={() => exportarCuentasCSV(false)} className={styles.secondaryButton}>Exportar CSV</button>
@@ -4065,22 +4090,42 @@ export default function AdminPage() {
               </div>
 
               <div className={styles.noticeBox}>
-                Selecciona arriba el producto, fechas, estado y notas. Luego pega una cuenta por línea. El sistema omite duplicadas del mismo producto.
+                Selecciona arriba el producto, fechas, estado y notas. Luego arrastra tu TXT. El sistema omite duplicadas del mismo producto.
               </div>
 
-              <textarea
-                value={textoImportacionCuentas}
-                onChange={(e) => setTextoImportacionCuentas(e.target.value)}
-                placeholder={"yampi.sg@pronyx.xyz:12345\ncorreo2@gmail.com:clave2\ncorreo3@hotmail.com:clave3"}
-                className={`${styles.input} ${styles.textarea}`}
+              <input
+                ref={inputImportarCuentasRef}
+                type="file"
+                accept=".txt,text/plain"
+                onChange={handleArchivoImportacionChange}
+                className={styles.hiddenFileInput}
               />
 
+              <div
+                className={styles.importDropzone}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDropImportacion}
+                onClick={() => inputImportarCuentasRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") inputImportarCuentasRef.current?.click()
+                }}
+              >
+                <div className={styles.importDropIcon}>TXT</div>
+                <div>
+                  <strong>{archivoImportacionNombre || "Arrastra aquí tu archivo de cuentas"}</strong>
+                  <p>Formato: correo1@gmail.com:123456 · correo2@gmail.com:abcdef</p>
+                  <small>{textoImportacionCuentas ? `${textoImportacionCuentas.split(/\r?\n/).filter((linea) => linea.trim()).length} línea(s) listas para importar` : "Click para seleccionar archivo .txt"}</small>
+                </div>
+              </div>
+
               <div className={styles.formActions}>
-                <button type="button" onClick={importarCuentasDesdeTXT} disabled={importandoCuentas || guardandoCuenta} className={styles.primaryButton}>
+                <button type="button" onClick={importarCuentasDesdeTXT} disabled={importandoCuentas || guardandoCuenta || !textoImportacionCuentas.trim()} className={styles.primaryButton}>
                   {importandoCuentas ? "Importando..." : "Importar cuentas TXT"}
                 </button>
-                <button type="button" onClick={() => setTextoImportacionCuentas("")} className={styles.secondaryButton}>
-                  Limpiar texto
+                <button type="button" onClick={limpiarArchivoImportacion} className={styles.secondaryButton}>
+                  Limpiar archivo
                 </button>
               </div>
             </article>
