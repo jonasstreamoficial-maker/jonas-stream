@@ -333,6 +333,8 @@ export default function AdminPage() {
   const [formCuenta, setFormCuenta] = useState(crearCuentaInicial)
   const [editandoCuentaId, setEditandoCuentaId] = useState<string | null>(null)
   const [guardandoCuenta, setGuardandoCuenta] = useState(false)
+  const [textoImportacionCuentas, setTextoImportacionCuentas] = useState("")
+  const [importandoCuentas, setImportandoCuentas] = useState(false)
 
   const [configId, setConfigId] = useState<string | null>(null)
   const [formConfig, setFormConfig] = useState(configuracionInicial)
@@ -1992,6 +1994,220 @@ export default function AdminPage() {
       return coincideBusqueda && coincideEstado
     })
   }, [cuentasProducto, productos, busquedaCuenta, filtroEstadoCuenta])
+
+  const escaparCSV = (valor?: string | number | null) => {
+    const texto = String(valor ?? "")
+    return `"${texto.replace(/"/g, '""')}"`
+  }
+
+  const descargarArchivo = (nombreArchivo: string, contenido: string, tipo = "text/csv;charset=utf-8;") => {
+    const blob = new Blob([contenido], { type: tipo })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = nombreArchivo
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const construirCSVDeCuentas = (cuentas: CuentaProducto[]) => {
+    const encabezados = [
+      "producto",
+      "categoria",
+      "correo",
+      "clave",
+      "estado",
+      "cliente_nombre",
+      "cliente_correo",
+      "pedido_id",
+      "fecha_inicio_admin",
+      "fecha_fin_admin",
+      "cliente_inicio",
+      "cliente_fin",
+      "notas",
+      "created_at",
+    ]
+
+    const filas = cuentas.map((cuenta) => {
+      const productoCuenta = obtenerProductoPorId(cuenta.producto_id)
+      const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
+
+      return [
+        productoCuenta?.nombre || "Producto eliminado",
+        productoCuenta?.categoria || "Sin categoría",
+        cuenta.correo,
+        cuenta.clave,
+        cuenta.estado,
+        usuarioCuenta?.nombre || "",
+        usuarioCuenta?.correo || "",
+        cuenta.pedido_id || "",
+        cuenta.fecha_inicio || "",
+        cuenta.fecha_fin || "",
+        cuenta.cliente_inicio || "",
+        cuenta.cliente_fin || "",
+        cuenta.notas || "",
+        cuenta.created_at || "",
+      ].map(escaparCSV).join(",")
+    })
+
+    return [encabezados.join(","), ...filas].join("\n")
+  }
+
+  const exportarCuentasCSV = (soloFiltradas = false) => {
+    const cuentasAExportar = soloFiltradas ? cuentasFiltradas : cuentasProducto
+
+    if (cuentasAExportar.length === 0) {
+      toast.error("No hay cuentas para exportar")
+      return
+    }
+
+    const fechaBackup = fechaISO()
+    const csv = construirCSVDeCuentas(cuentasAExportar)
+    descargarArchivo(
+      soloFiltradas ? `jonas-stream-cuentas-filtradas-${fechaBackup}.csv` : `jonas-stream-cuentas-${fechaBackup}.csv`,
+      csv
+    )
+    registrarEvento(soloFiltradas ? "Exportación CSV filtrada generada" : "Exportación CSV completa generada")
+    registrarLog(
+      soloFiltradas ? "exportar_cuentas_filtradas" : "exportar_cuentas",
+      "cuentas_producto",
+      undefined,
+      `${cuentasAExportar.length} cuenta(s) exportadas a CSV`
+    )
+    toast.success(`${cuentasAExportar.length} cuenta(s) exportadas`)
+  }
+
+  const exportarRespaldoCuentas = () => {
+    if (cuentasProducto.length === 0) {
+      toast.error("No hay cuentas para respaldar")
+      return
+    }
+
+    abrirConfirmacionAdmin({
+      titulo: "Exportar respaldo completo de cuentas",
+      descripcion: "Se descargará un CSV con correos, claves, estado, cliente asignado, pedido y vigencias. Guárdalo en un lugar seguro.",
+      textoConfirmar: "Sí, descargar respaldo",
+      tono: "warning",
+      onConfirmar: async () => {
+        const fechaBackup = fechaISO()
+        const csv = construirCSVDeCuentas(cuentasProducto)
+        descargarArchivo(`backup-jonas-stream-cuentas-${fechaBackup}.csv`, csv)
+        await registrarLog("respaldo_cuentas", "cuentas_producto", undefined, `${cuentasProducto.length} cuenta(s) respaldadas`)
+        registrarEvento("Respaldo de cuentas generado")
+        toast.success("Respaldo de cuentas descargado")
+      },
+    })
+  }
+
+  const importarCuentasDesdeTXT = async () => {
+    if (!formCuenta.producto_id) {
+      toast.error("Selecciona un producto para importar")
+      return
+    }
+
+    const lineas = textoImportacionCuentas
+      .split(/\r?\n/)
+      .map((linea) => linea.trim())
+      .filter(Boolean)
+
+    if (lineas.length === 0) {
+      toast.error("Pega al menos una cuenta en formato correo:contraseña")
+      return
+    }
+
+    const cuentasParseadas: { correo: string; clave: string }[] = []
+    const errores: string[] = []
+
+    lineas.forEach((lineaOriginal, index) => {
+      const linea = lineaOriginal
+        .replace(/^🎫\s*/u, "")
+        .replace(/^[-*•]\s*/u, "")
+        .trim()
+      const match = linea.match(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\s*:\s*(.+)$/i)
+
+      if (!match) {
+        errores.push(`Línea ${index + 1}: formato inválido`)
+        return
+      }
+
+      const correo = match[1].trim()
+      const clave = match[2].trim()
+
+      if (!correo || !clave) {
+        errores.push(`Línea ${index + 1}: falta correo o contraseña`)
+        return
+      }
+
+      cuentasParseadas.push({ correo, clave })
+    })
+
+    if (cuentasParseadas.length === 0) {
+      toast.error("No encontré cuentas válidas para importar")
+      return
+    }
+
+    const correosExistentes = new Set(
+      cuentasProducto
+        .filter((cuenta) => cuenta.producto_id === formCuenta.producto_id)
+        .map((cuenta) => normalizarTexto(cuenta.correo))
+    )
+
+    const cuentasNuevas = cuentasParseadas.filter((cuenta, index, arr) => {
+      const correoNormalizado = normalizarTexto(cuenta.correo)
+      const primeraAparicion = arr.findIndex((item) => normalizarTexto(item.correo) === correoNormalizado) === index
+      return primeraAparicion && !correosExistentes.has(correoNormalizado)
+    })
+
+    const omitidas = cuentasParseadas.length - cuentasNuevas.length
+
+    if (cuentasNuevas.length === 0) {
+      toast.error("Todas las cuentas ya existen o están duplicadas")
+      return
+    }
+
+    abrirConfirmacionAdmin({
+      titulo: `Importar ${cuentasNuevas.length} cuenta(s)`,
+      descripcion: `${omitidas > 0 ? `${omitidas} línea(s) serán omitidas por duplicadas. ` : ""}${errores.length > 0 ? `${errores.length} línea(s) tienen formato inválido. ` : ""}Se guardarán como ${formCuenta.estado || "disponible"}.`,
+      textoConfirmar: "Sí, importar cuentas",
+      tono: "success",
+      onConfirmar: async () => {
+        setImportandoCuentas(true)
+
+        const payload = cuentasNuevas.map((cuenta) => ({
+          producto_id: formCuenta.producto_id,
+          correo: cuenta.correo,
+          clave: cuenta.clave,
+          fecha_inicio: formCuenta.fecha_inicio || fechaISO(),
+          fecha_fin: formCuenta.fecha_fin || sumarDiasISO(30),
+          estado: formCuenta.estado || "disponible",
+          notas: formCuenta.notas.trim() || null,
+        }))
+
+        const { error } = await supabase.from("cuentas_producto").insert(payload)
+
+        if (error) {
+          toast.error("No se pudieron importar las cuentas")
+          setImportandoCuentas(false)
+          return
+        }
+
+        await registrarLog(
+          "importar_txt",
+          "cuentas_producto",
+          formCuenta.producto_id,
+          `${payload.length} cuenta(s) importadas masivamente${omitidas > 0 ? ` · ${omitidas} omitidas` : ""}`
+        )
+        registrarEvento(`${payload.length} cuenta(s) importadas`)
+        toast.success(`${payload.length} cuenta(s) importadas correctamente`)
+        setTextoImportacionCuentas("")
+        setImportandoCuentas(false)
+        await cargarDatos()
+      },
+    })
+  }
+
 
   const hoy = new Date()
   const logsHoy = logs.filter((log) => {
@@ -3832,6 +4048,41 @@ export default function AdminPage() {
                   )}
                 </div>
               </form>
+            </article>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Importación y respaldo</p>
+                  <h3>Importar cuentas TXT y exportar CSV</h3>
+                  <span className={styles.panelHint}>Pega muchas cuentas en formato correo:contraseña. Ejemplo: yampi.sg@pronyx.xyz:12345</span>
+                </div>
+                <div className={styles.tableActions}>
+                  <button type="button" onClick={() => exportarCuentasCSV(false)} className={styles.secondaryButton}>Exportar CSV</button>
+                  <button type="button" onClick={() => exportarCuentasCSV(true)} className={styles.secondaryButton}>Exportar filtradas</button>
+                  <button type="button" onClick={exportarRespaldoCuentas} className={styles.successButton}>Respaldo cuentas</button>
+                </div>
+              </div>
+
+              <div className={styles.noticeBox}>
+                Selecciona arriba el producto, fechas, estado y notas. Luego pega una cuenta por línea. El sistema omite duplicadas del mismo producto.
+              </div>
+
+              <textarea
+                value={textoImportacionCuentas}
+                onChange={(e) => setTextoImportacionCuentas(e.target.value)}
+                placeholder={"yampi.sg@pronyx.xyz:12345\ncorreo2@gmail.com:clave2\ncorreo3@hotmail.com:clave3"}
+                className={`${styles.input} ${styles.textarea}`}
+              />
+
+              <div className={styles.formActions}>
+                <button type="button" onClick={importarCuentasDesdeTXT} disabled={importandoCuentas || guardandoCuenta} className={styles.primaryButton}>
+                  {importandoCuentas ? "Importando..." : "Importar cuentas TXT"}
+                </button>
+                <button type="button" onClick={() => setTextoImportacionCuentas("")} className={styles.secondaryButton}>
+                  Limpiar texto
+                </button>
+              </div>
             </article>
 
             <article className={styles.panel}>
