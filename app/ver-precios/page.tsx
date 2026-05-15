@@ -7,6 +7,7 @@ import styles from "./page.module.css";
 
 const USD_RATE = 3.75;
 const WHATSAPP_NUMBER = "51900557949";
+const CONTACT_MESSAGE = "1️⃣ Quiero *Vender Plataformas de Streaming.*";
 
 type ProductStatus = "ACTIVO" | "LIMITADO" | "AGOTADO";
 type ProductType = "Perfil" | "Cuenta completa";
@@ -251,31 +252,42 @@ export default function VerPreciosPage() {
 
   return (
     <main className={styles.page}>
-      <div className={styles.backgroundGlow} />
+      <div className={styles.bgGlowOne} />
+      <div className={styles.bgGlowTwo} />
+      <div className={styles.gridOverlay} />
 
-      <header className={styles.topbar}>
-        <Link href="/" className={styles.brandBox} aria-label="Ir al inicio">
-          <span className={styles.brandMark}>JS</span>
-          <span>
-            <small>Catálogo oficial</small>
-            <strong>Jonas Stream</strong>
-          </span>
-        </Link>
+      <div className={styles.sideBrand}>JONAS STREAM</div>
+      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>JONAS STREAM</div>
 
-        <nav className={styles.topActions} aria-label="Navegación principal">
-          <Link href="/" className={styles.secondaryButton}>Inicio</Link>
-          <Link href="/quiero-ser-socio" className={styles.secondaryButton}>Ser socio</Link>
-          <a
-            href={buildWhatsAppLink("Hola, quiero más información sobre los productos y precios de Jonas Stream.")}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.primaryButton}
-          >
-            WhatsApp
-          </a>
-        </nav>
+      <header className={styles.topbarWrap}>
+        <div className={styles.topbar}>
+          <Link href="/" className={styles.brandBlock} aria-label="Ir al inicio">
+            <strong>JONAS STREAM</strong>
+            <span>PLATAFORMA OFICIAL</span>
+          </Link>
+
+          <nav className={styles.topActions} aria-label="Navegación principal">
+            <Link href="/" className={styles.topLink}>
+              INICIO
+            </Link>
+
+            <Link href="/ver-precios" className={styles.topLinkPrimary}>
+              VER PRECIOS
+            </Link>
+
+            <a
+              href={buildWhatsAppLink(CONTACT_MESSAGE)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.topLink}
+            >
+              CONTÁCTANOS
+            </a>
+          </nav>
+        </div>
       </header>
 
+      <div className={styles.mainContent}>
       <section className={styles.heroPanel}>
         <div>
           <p className={styles.kicker}>Vista sincronizada con admin</p>
@@ -457,12 +469,12 @@ export default function VerPreciosPage() {
         <div className={styles.heroActions}>
           <Link href="/quiero-ser-socio" className={styles.secondaryButton}>Quiero ser socio</Link>
           <a
-            href={buildWhatsAppLink("Hola Jonas Stream, quiero activar mi acceso y consultar disponibilidad de productos.")}
+            href={buildWhatsAppLink(CONTACT_MESSAGE)}
             target="_blank"
             rel="noopener noreferrer"
             className={styles.primaryButton}
           >
-            Activar mi acceso
+            Quiero vender plataformas
           </a>
         </div>
       </section>
@@ -470,6 +482,7 @@ export default function VerPreciosPage() {
       <footer className={styles.footerWrap}>
         © 2026 Jonas Stream. Todos los derechos reservados.
       </footer>
+      </div>
     </main>
   );
 }
