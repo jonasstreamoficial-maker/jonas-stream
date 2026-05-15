@@ -13,7 +13,7 @@ type Usuario = {
   id: string;
   nombre: string | null;
   correo: string;
-  contrasena: string | null;
+  contrasena?: string | null;
   rol: string | null;
   estado: string | null;
   pais?: string | null;
@@ -62,41 +62,67 @@ export default function LoginPage() {
     }
 
     try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: correoNormalizado,
+        password: contrasenaLimpia,
+      });
+
+      if (authError || !authData.user) {
+        setMensajeDebug(`ERROR AUTH: ${authError?.message || "No se pudo iniciar sesión"}`);
+        toast.error("Correo o contraseña incorrectos");
+        setCargando(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("usuarios")
         .select("*")
-        .eq("correo", correoNormalizado)
+        .eq("id", authData.user.id)
         .maybeSingle();
+
+      let usuarioData = data as Usuario | null;
 
       if (error) {
         setMensajeDebug(`ERROR USUARIOS: ${error.message}`);
         toast.error("No se pudo consultar el usuario");
+        await supabase.auth.signOut();
         setCargando(false);
         return;
       }
 
-      if (!data) {
+      if (!usuarioData) {
+        const { data: porCorreo, error: errorCorreo } = await supabase
+          .from("usuarios")
+          .select("*")
+          .eq("correo", correoNormalizado)
+          .maybeSingle();
+
+        if (errorCorreo) {
+          setMensajeDebug(`ERROR USUARIOS CORREO: ${errorCorreo.message}`);
+          toast.error("No se pudo consultar el usuario");
+          await supabase.auth.signOut();
+          setCargando(false);
+          return;
+        }
+
+        usuarioData = porCorreo as Usuario | null;
+      }
+
+      if (!usuarioData) {
         setMensajeDebug("USUARIO NO ENCONTRADO EN TABLA usuarios");
-        toast.error("Usuario no encontrado");
+        toast.error("Usuario no encontrado en tabla usuarios");
+        await supabase.auth.signOut();
         setCargando(false);
         return;
       }
 
-      const usuario = data as Usuario;
-      const passwordGuardado = String(usuario.contrasena || "").trim();
-      const estado = String(usuario.estado || "").toLowerCase().trim();
-      const rol = String(usuario.rol || "cliente").toLowerCase().trim();
-
-      if (!passwordGuardado || passwordGuardado !== contrasenaLimpia) {
-        setMensajeDebug("CONTRASEÑA INCORRECTA EN TABLA usuarios");
-        toast.error("Contraseña incorrecta");
-        setCargando(false);
-        return;
-      }
+      const estado = String(usuarioData.estado || "").toLowerCase().trim();
+      const rol = String(usuarioData.rol || "cliente").toLowerCase().trim();
 
       if (estado === "pendiente") {
         setMensajeDebug("CUENTA PENDIENTE: espera aprobación del admin.");
         toast("Tu cuenta está pendiente de aprobación");
+        await supabase.auth.signOut();
         setCargando(false);
         return;
       }
@@ -104,19 +130,21 @@ export default function LoginPage() {
       if (estado === "rechazado") {
         setMensajeDebug("CUENTA RECHAZADA: comunícate con soporte.");
         toast.error("Tu cuenta fue rechazada");
+        await supabase.auth.signOut();
         setCargando(false);
         return;
       }
 
       if (estado !== "aprobado" && estado !== "activo") {
-        setMensajeDebug(`CUENTA NO HABILITADA: estado actual ${usuario.estado}`);
+        setMensajeDebug(`CUENTA NO HABILITADA: estado actual ${usuarioData.estado}`);
         toast.error("Tu cuenta no está habilitada");
+        await supabase.auth.signOut();
         setCargando(false);
         return;
       }
 
       const usuarioSesion = {
-        ...usuario,
+        ...usuarioData,
         rol,
         estado,
       };
@@ -126,8 +154,7 @@ export default function LoginPage() {
 
       toast.success("Bienvenido 🚀");
 
-      const destino =
-        rol === "admin" ? "/admin" : rol === "proveedor" ? "/proveedor" : "/cliente";
+      const destino = rol === "admin" ? "/admin" : rol === "proveedor" ? "/proveedor" : "/cliente";
 
       router.replace(destino);
       router.refresh();
