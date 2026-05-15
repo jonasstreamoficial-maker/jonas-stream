@@ -566,18 +566,35 @@ export default function AdminPage() {
     const confirmar = confirm(`¿Eliminar pedido #${id.slice(0, 8)}? Esta acción no se puede deshacer.`)
     if (!confirmar) return
 
-    const { error } = await supabase.from("pedidos").delete().eq("id", id)
+    const { error: itemsError } = await supabase.from("pedido_items").delete().eq("pedido_id", id)
 
-    if (!error) {
-      setPedidos((prev) => prev.filter((pedido) => pedido.id !== id))
-      setPedidosSeleccionados((prev) => prev.filter((pedidoId) => pedidoId !== id))
-      registrarEvento(`Pedido #${id.slice(0, 8)} eliminado`)
-      await registrarLog("eliminar", "pedidos", id, `Pedido eliminado${pedidoObjetivo?.cliente_nombre ? ` · ${pedidoObjetivo.cliente_nombre}` : ""}`)
-      toast.success("Pedido eliminado")
-      await cargarDatos()
-    } else {
-      toast.error("No se pudo eliminar el pedido")
+    if (itemsError) {
+      toast.error("No se pudieron eliminar los items del pedido")
+      return
     }
+
+    const { error: comprobantesError } = await supabase.from("comprobantes").delete().eq("pedido_id", id)
+
+    if (comprobantesError) {
+      toast.error("No se pudieron eliminar los comprobantes del pedido")
+      return
+    }
+
+    const { error: pedidoError } = await supabase.from("pedidos").delete().eq("id", id)
+
+    if (pedidoError) {
+      toast.error("No se pudo eliminar el pedido")
+      return
+    }
+
+    setPedidos((prev) => prev.filter((pedido) => pedido.id !== id))
+    setComprobantes((prev) => prev.filter((comprobante) => comprobante.pedido_id !== id))
+    setPedidosSeleccionados((prev) => prev.filter((pedidoId) => pedidoId !== id))
+
+    registrarEvento(`Pedido #${id.slice(0, 8)} eliminado`)
+    await registrarLog("eliminar", "pedidos", id, `Pedido eliminado${pedidoObjetivo?.cliente_nombre ? ` · ${pedidoObjetivo.cliente_nombre}` : ""}`)
+    toast.success("Pedido eliminado")
+    await cargarDatos()
   }
 
   const alternarPedidoSeleccionado = (id: string) => {
@@ -639,16 +656,35 @@ export default function AdminPage() {
 
     setProcesandoMasivo(true)
     const ids = [...pedidosSeleccionados]
-    const { error } = await supabase.from("pedidos").delete().in("id", ids)
 
-    if (error) {
+    const { error: itemsError } = await supabase.from("pedido_items").delete().in("pedido_id", ids)
+
+    if (itemsError) {
+      toast.error("No se pudieron eliminar los items de los pedidos")
+      setProcesandoMasivo(false)
+      return
+    }
+
+    const { error: comprobantesError } = await supabase.from("comprobantes").delete().in("pedido_id", ids)
+
+    if (comprobantesError) {
+      toast.error("No se pudieron eliminar los comprobantes")
+      setProcesandoMasivo(false)
+      return
+    }
+
+    const { error: pedidosError } = await supabase.from("pedidos").delete().in("id", ids)
+
+    if (pedidosError) {
       toast.error("No se pudieron eliminar los pedidos seleccionados")
       setProcesandoMasivo(false)
       return
     }
 
     setPedidos((prev) => prev.filter((pedido) => !ids.includes(pedido.id)))
+    setComprobantes((prev) => prev.filter((comprobante) => !ids.includes(comprobante.pedido_id || "")))
     setPedidosSeleccionados([])
+
     registrarEvento(`${ids.length} pedido(s) eliminados`)
     await registrarLog("eliminar_masivo", "pedidos", undefined, `${ids.length} pedidos eliminados`)
     toast.success(`${ids.length} pedido(s) eliminados`)
