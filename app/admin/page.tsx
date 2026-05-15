@@ -116,7 +116,7 @@ type CuentaProducto = {
   clave: string
   fecha_inicio?: string | null
   fecha_fin?: string | null
-  estado: "disponible" | "entregada" | "vencida" | "bloqueada" | string
+  estado: string
   pedido_id?: string | null
   usuario_id?: string | null
   notas?: string | null
@@ -184,15 +184,15 @@ const configuracionInicial = {
   whatsapp: "",
 }
 
-const cuentaInicial = {
+const crearCuentaInicial = () => ({
   producto_id: "",
   correo: "",
   clave: "",
-  fecha_inicio: "",
-  fecha_fin: "",
+  fecha_inicio: fechaISO(),
+  fecha_fin: sumarDiasISO(30),
   estado: "disponible",
   notas: "",
-}
+})
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: "▣" },
@@ -228,6 +228,27 @@ const fechaLegible = (fecha?: string | null) => {
   const date = new Date(fecha)
   if (Number.isNaN(date.getTime())) return "Sin fecha"
   return date.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" })
+}
+const fechaISO = (fecha = new Date()) => fecha.toISOString().slice(0, 10)
+const sumarDiasISO = (dias: number, base = new Date()) => {
+  const fecha = new Date(base)
+  fecha.setDate(fecha.getDate() + dias)
+  return fechaISO(fecha)
+}
+const fechaCorta = (fecha?: string | null) => {
+  if (!fecha) return "Sin fecha"
+  const date = new Date(`${fecha}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return "Sin fecha"
+  return date.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+const diasRestantes = (fecha?: string | null) => {
+  if (!fecha) return null
+  const fin = new Date(`${fecha}T00:00:00`)
+  if (Number.isNaN(fin.getTime())) return null
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  fin.setHours(0, 0, 0, 0)
+  return Math.ceil((fin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
 }
 const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
   const posibleComprobante = item as Partial<Pedido & Comprobante>
@@ -306,7 +327,7 @@ export default function AdminPage() {
 
   const [busquedaCuenta, setBusquedaCuenta] = useState("")
   const [filtroEstadoCuenta, setFiltroEstadoCuenta] = useState("todos")
-  const [formCuenta, setFormCuenta] = useState(cuentaInicial)
+  const [formCuenta, setFormCuenta] = useState(crearCuentaInicial)
   const [editandoCuentaId, setEditandoCuentaId] = useState<string | null>(null)
   const [guardandoCuenta, setGuardandoCuenta] = useState(false)
 
@@ -432,7 +453,7 @@ export default function AdminPage() {
       supabase.from("configuracion_tienda").select("*").order("created_at", { ascending: false }).limit(1),
       supabase.from("comprobantes").select("*").order("created_at", { ascending: false }).limit(80),
       supabase.from("creditos").select("*").order("created_at", { ascending: false }).limit(120),
-      supabase.from("cuentas_producto").select("*").order("created_at", { ascending: false }).limit(500),
+      supabase.from("cuentas_producto").select("*").order("created_at", { ascending: false }).limit(300),
     ])
 
     if (usuariosResult.data) setUsuarios(usuariosResult.data as Usuario[])
@@ -1255,6 +1276,139 @@ export default function AdminPage() {
     })
   }
 
+  const handleCuentaChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+
+    setFormCuenta((prev) => {
+      if (name === "fecha_inicio") {
+        const base = value ? new Date(`${value}T00:00:00`) : new Date()
+        return {
+          ...prev,
+          fecha_inicio: value,
+          fecha_fin: sumarDiasISO(30, base),
+        }
+      }
+
+      return {
+        ...prev,
+        [name]: value,
+      }
+    })
+  }
+
+  const limpiarFormularioCuenta = () => {
+    setFormCuenta(crearCuentaInicial())
+    setEditandoCuentaId(null)
+  }
+
+  const guardarCuenta = async (e: FormEvent) => {
+    e.preventDefault()
+
+    if (!formCuenta.producto_id) {
+      toast.error("Selecciona un producto")
+      return
+    }
+
+    if (!formCuenta.correo.trim() || !formCuenta.clave.trim()) {
+      toast.error("Completa correo y contraseña")
+      return
+    }
+
+    setGuardandoCuenta(true)
+
+    const payload = {
+      producto_id: formCuenta.producto_id,
+      correo: formCuenta.correo.trim(),
+      clave: formCuenta.clave.trim(),
+      fecha_inicio: formCuenta.fecha_inicio || fechaISO(),
+      fecha_fin: formCuenta.fecha_fin || sumarDiasISO(30),
+      estado: formCuenta.estado || "disponible",
+      notas: formCuenta.notas.trim() || null,
+    }
+
+    if (editandoCuentaId) {
+      const { error } = await supabase.from("cuentas_producto").update(payload).eq("id", editandoCuentaId)
+
+      if (error) {
+        toast.error("No se pudo actualizar la cuenta")
+        setGuardandoCuenta(false)
+        return
+      }
+
+      await registrarLog("actualizar", "cuentas_producto", editandoCuentaId, `Cuenta actualizada: ${payload.correo}`)
+      toast.success("Cuenta actualizada")
+    } else {
+      const { data, error } = await supabase.from("cuentas_producto").insert([payload]).select("id")
+
+      if (error) {
+        toast.error("No se pudo guardar la cuenta")
+        setGuardandoCuenta(false)
+        return
+      }
+
+      await registrarLog("crear", "cuentas_producto", data?.[0]?.id, `Cuenta agregada: ${payload.correo}`)
+      toast.success("Cuenta agregada")
+    }
+
+    limpiarFormularioCuenta()
+    setGuardandoCuenta(false)
+    await cargarDatos()
+  }
+
+  const editarCuenta = (cuenta: CuentaProducto) => {
+    setEditandoCuentaId(cuenta.id)
+    setFormCuenta({
+      producto_id: cuenta.producto_id || "",
+      correo: cuenta.correo || "",
+      clave: cuenta.clave || "",
+      fecha_inicio: cuenta.fecha_inicio || fechaISO(),
+      fecha_fin: cuenta.fecha_fin || sumarDiasISO(30),
+      estado: cuenta.estado || "disponible",
+      notas: cuenta.notas || "",
+    })
+    setTabActiva("cuentas")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const eliminarCuenta = (cuenta: CuentaProducto) => {
+    abrirConfirmacionAdmin({
+      titulo: `Eliminar cuenta ${cuenta.correo}`,
+      descripcion: "Esta cuenta completa saldrá del banco de cuentas. No se puede deshacer.",
+      textoConfirmar: "Sí, eliminar cuenta",
+      tono: "danger",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("cuentas_producto").delete().eq("id", cuenta.id)
+
+        if (error) {
+          toast.error("No se pudo eliminar la cuenta")
+          return
+        }
+
+        setCuentasProducto((prev) => prev.filter((item) => item.id !== cuenta.id))
+        await registrarLog("eliminar", "cuentas_producto", cuenta.id, `Cuenta eliminada: ${cuenta.correo}`)
+        toast.success("Cuenta eliminada")
+        await cargarDatos()
+      },
+    })
+  }
+
+  const copiarDatosCuenta = async (cuenta: CuentaProducto) => {
+    const producto = productos.find((item) => item.id === cuenta.producto_id)
+    const texto = [
+      `Producto: ${producto?.nombre || "Producto"}`,
+      `Correo: ${cuenta.correo}`,
+      `Contraseña: ${cuenta.clave}`,
+      `Vence: ${fechaCorta(cuenta.fecha_fin)}`,
+    ].join("\n")
+
+    try {
+      await navigator.clipboard.writeText(texto)
+      toast.success("Datos copiados")
+    } catch {
+      toast.error("No se pudo copiar")
+    }
+  }
+
   const handleCreditoChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormCredito((prev) => ({ ...prev, [name]: value }))
@@ -1348,126 +1502,6 @@ export default function AdminPage() {
         await cargarDatos()
       },
     })
-  }
-
-
-  const obtenerProductoCuenta = (productoId?: string | null) => {
-    if (!productoId) return null
-    return productos.find((producto) => producto.id === productoId) || null
-  }
-
-  const handleCuentaChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormCuenta((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const limpiarFormularioCuenta = () => {
-    setFormCuenta(cuentaInicial)
-    setEditandoCuentaId(null)
-  }
-
-  const guardarCuentaProducto = async (e: FormEvent) => {
-    e.preventDefault()
-
-    if (!formCuenta.producto_id) {
-      toast.error("Selecciona el producto de la cuenta")
-      return
-    }
-
-    if (!formCuenta.correo.trim() || !formCuenta.clave.trim()) {
-      toast.error("Completa correo y contraseña")
-      return
-    }
-
-    setGuardandoCuenta(true)
-
-    const payload = {
-      producto_id: formCuenta.producto_id,
-      correo: formCuenta.correo.trim(),
-      clave: formCuenta.clave.trim(),
-      fecha_inicio: formCuenta.fecha_inicio || null,
-      fecha_fin: formCuenta.fecha_fin || null,
-      estado: formCuenta.estado || "disponible",
-      notas: formCuenta.notas.trim() || null,
-    }
-
-    if (editandoCuentaId) {
-      const { error } = await supabase.from("cuentas_producto").update(payload).eq("id", editandoCuentaId)
-
-      if (error) {
-        toast.error("No se pudo actualizar la cuenta")
-        setGuardandoCuenta(false)
-        return
-      }
-
-      await registrarLog("actualizar", "cuentas_producto", editandoCuentaId, `Cuenta actualizada: ${payload.correo}`)
-      toast.success("Cuenta actualizada")
-    } else {
-      const { data, error } = await supabase.from("cuentas_producto").insert([payload]).select("id")
-
-      if (error) {
-        toast.error("No se pudo crear la cuenta")
-        setGuardandoCuenta(false)
-        return
-      }
-
-      await registrarLog("crear", "cuentas_producto", data?.[0]?.id, `Cuenta agregada: ${payload.correo}`)
-      toast.success("Cuenta agregada")
-    }
-
-    limpiarFormularioCuenta()
-    setGuardandoCuenta(false)
-    await cargarDatos()
-  }
-
-  const editarCuentaProducto = (cuenta: CuentaProducto) => {
-    setEditandoCuentaId(cuenta.id)
-    setFormCuenta({
-      producto_id: cuenta.producto_id || "",
-      correo: cuenta.correo || "",
-      clave: cuenta.clave || "",
-      fecha_inicio: cuenta.fecha_inicio || "",
-      fecha_fin: cuenta.fecha_fin || "",
-      estado: cuenta.estado || "disponible",
-      notas: cuenta.notas || "",
-    })
-    setTabActiva("cuentas")
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  const eliminarCuentaProducto = (cuenta: CuentaProducto) => {
-    const productoCuenta = obtenerProductoCuenta(cuenta.producto_id)
-
-    abrirConfirmacionAdmin({
-      titulo: `Eliminar cuenta ${productoCuenta?.nombre || ""}`,
-      descripcion: `Se eliminará la cuenta ${cuenta.correo}. Esta acción no se puede deshacer.`,
-      textoConfirmar: "Sí, eliminar cuenta",
-      tono: "danger",
-      onConfirmar: async () => {
-        const { error } = await supabase.from("cuentas_producto").delete().eq("id", cuenta.id)
-
-        if (error) {
-          toast.error("No se pudo eliminar la cuenta")
-          return
-        }
-
-        setCuentasProducto((prev) => prev.filter((item) => item.id !== cuenta.id))
-        await registrarLog("eliminar", "cuentas_producto", cuenta.id, `Cuenta eliminada: ${cuenta.correo}`)
-        toast.success("Cuenta eliminada")
-        await cargarDatos()
-      },
-    })
-  }
-
-  const copiarDatosCuenta = async (cuenta: CuentaProducto) => {
-    const productoCuenta = obtenerProductoCuenta(cuenta.producto_id)
-    const texto = `Producto: ${productoCuenta?.nombre || "Producto"}\nCorreo: ${cuenta.correo}\nContraseña: ${cuenta.clave}\nFinaliza: ${cuenta.fecha_fin || "Sin fecha"}`
-    try {
-      await navigator.clipboard.writeText(texto)
-      toast.success("Datos copiados")
-    } catch {
-      toast.error("No se pudo copiar")
-    }
   }
 
   const handleConfigChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -1601,16 +1635,13 @@ export default function AdminPage() {
   const creditosBloqueados = creditos.filter((credito) => ["bloqueado", "suspendido", "inactivo"].includes(normalizarTexto(credito.estado))).length
   const creditosSinSaldo = creditos.filter((credito) => Number(credito.saldo || 0) <= 0).length
   const saldoPromedioCredito = creditos.length > 0 ? totalSaldoCreditos / creditos.length : 0
+  const obtenerProductoPorId = (productoId: string) => productos.find((producto) => producto.id === productoId)
   const cuentasDisponibles = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "disponible").length
   const cuentasEntregadas = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "entregada").length
-  const cuentasVencidas = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "vencida").length
-  const cuentasBloqueadas = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "bloqueada").length
+  const cuentasBloqueadas = cuentasProducto.filter((cuenta) => ["bloqueada", "vencida"].includes(normalizarTexto(cuenta.estado))).length
   const cuentasPorVencer = cuentasProducto.filter((cuenta) => {
-    if (!cuenta.fecha_fin) return false
-    const fin = new Date(cuenta.fecha_fin).getTime()
-    if (Number.isNaN(fin)) return false
-    const dias = (fin - Date.now()) / (1000 * 60 * 60 * 24)
-    return dias >= 0 && dias <= 7
+    const dias = diasRestantes(cuenta.fecha_fin)
+    return dias !== null && dias >= 0 && dias <= 7
   }).length
 
   const resultadosGlobales = useMemo(() => {
@@ -1788,7 +1819,7 @@ export default function AdminPage() {
     const query = normalizarTexto(busquedaCuenta)
 
     return cuentasProducto.filter((cuenta) => {
-      const productoCuenta = obtenerProductoCuenta(cuenta.producto_id)
+      const productoCuenta = obtenerProductoPorId(cuenta.producto_id)
       const texto = normalizarTexto(`${cuenta.correo} ${cuenta.estado} ${cuenta.notas} ${productoCuenta?.nombre} ${productoCuenta?.categoria}`)
       const coincideBusqueda = !query || texto.includes(query)
       const coincideEstado = filtroEstadoCuenta === "todos" || normalizarTexto(cuenta.estado) === filtroEstadoCuenta
@@ -1894,8 +1925,6 @@ export default function AdminPage() {
                       ? usuariosPendientes
                       : tab.id === "inventario"
                       ? productosCriticos.length
-                      : tab.id === "cuentas"
-                      ? cuentasDisponibles
                       : 0
 
                   return (
@@ -2361,18 +2390,6 @@ export default function AdminPage() {
                     <div className={styles.previewBody}>
                       <h4>{formProducto.nombre || "Nuevo producto"}</h4>
                       <p>{formProducto.descripcion || "Descripción del producto digital"}</p>
-                      <div
-                        className={`${styles.previewStockLine} ${
-                          Number(formProducto.stock || 0) <= 0
-                            ? styles.previewStockDanger
-                            : Number(formProducto.stock || 0) <= 3
-                            ? styles.previewStockWarning
-                            : styles.previewStockOk
-                        }`}
-                      >
-                        <span>Stock</span>
-                        <strong>{Number(formProducto.stock || 0)}</strong>
-                      </div>
 
                       <div className={styles.adminMetaGrid}>
                         <div className={styles.adminMetaCard}>
@@ -2387,19 +2404,15 @@ export default function AdminPage() {
                           <span>Proveedor</span>
                           <strong>{formProducto.proveedor || "Jonas Stream"}</strong>
                         </div>
-                        <div
-                          className={`${styles.adminMetaCard} ${
-                            formProducto.renovable ? styles.adminMetaSuccess : styles.adminMetaDanger
-                          }`}
-                        >
+                        <div className={styles.adminMetaCard}>
                           <span>Renovable</span>
                           <strong>{formProducto.renovable ? "Sí" : "No"}</strong>
                         </div>
                       </div>
 
                       <div className={styles.adminStatusRow}>
-                        <span className={Number(formProducto.stock || 0) <= 0 ? styles.badgeDanger : Number(formProducto.stock || 0) <= 3 ? styles.badgeWarning : styles.badgeOk}>
-                          {Number(formProducto.stock || 0) <= 0 ? "AGOTADO" : Number(formProducto.stock || 0) <= 3 ? "LIMITADO" : "ACTIVO"}
+                        <span className={Number(formProducto.stock || 0) <= 0 ? styles.badgeDanger : styles.badgeOk}>
+                          {Number(formProducto.stock || 0) <= 0 ? "AGOTADO" : "ACTIVO"}
                         </span>
                         <small>{Number(formProducto.stock || 0) <= 0 ? "Consultar reposición" : "Stock disponible"}</small>
                       </div>
@@ -2669,29 +2682,17 @@ export default function AdminPage() {
                             <span>Tipo</span>
                             <strong>{tipoVenta}</strong>
                           </div>
-                          <div
-                            className={`${styles.adminMetaCard} ${
-                              agotado ? styles.adminMetaDanger : limitado ? styles.adminMetaWarning : styles.adminMetaSuccess
-                            }`}
-                          >
-                            <span>Stock</span>
-                            <strong>{stock}</strong>
-                          </div>
                           <div className={styles.adminMetaCard}>
                             <span>Duración</span>
                             <strong>{p.duracion || "1 mes"}</strong>
                           </div>
-                          <div
-                            className={`${styles.adminMetaCard} ${
-                              p.renovable ? styles.adminMetaSuccess : styles.adminMetaDanger
-                            }`}
-                          >
-                            <span>Renovable</span>
-                            <strong>{p.renovable ? "Sí" : "No"}</strong>
-                          </div>
                           <div className={styles.adminMetaCard}>
                             <span>Proveedor</span>
                             <strong>{p.proveedor || "Jonas Stream"}</strong>
+                          </div>
+                          <div className={styles.adminMetaCard}>
+                            <span>Stock</span>
+                            <strong>{stock}</strong>
                           </div>
                         </div>
 
@@ -3558,102 +3559,110 @@ export default function AdminPage() {
           </div>
         )}
 
-
         {tabActiva === "cuentas" && (
           <div className={styles.sectionStack}>
-            <section className={styles.accountsHeroPro}>
-              <div className={styles.usersHeroCopy}>
-                <span className={styles.proTag}>CUENTAS COMPLETAS</span>
-                <h3>Banco de cuentas Jonas Stream</h3>
-                <p>
-                  Registra cuentas completas por producto, controla disponibilidad, vencimientos y entrega. Este módulo será la base para la entrega automática cuando apruebes compras.
-                </p>
-                <div className={styles.usersHeroActions}>
-                  <button type="button" onClick={() => { setFiltroEstadoCuenta("disponible"); setBusquedaCuenta("") }} className={styles.primaryButton}>Ver disponibles</button>
-                  <button type="button" onClick={() => { setFiltroEstadoCuenta("entregada"); setBusquedaCuenta("") }} className={styles.secondaryButton}>Ver entregadas</button>
-                  <button type="button" onClick={limpiarFormularioCuenta} className={styles.secondaryButton}>Nueva cuenta</button>
-                </div>
-              </div>
-
-              <div className={styles.usersHeroStats}>
-                <div>
-                  <span>Disponibles</span>
-                  <strong>{cuentasDisponibles}</strong>
-                  <small>listas para vender</small>
-                </div>
-                <div>
-                  <span>Entregadas</span>
-                  <strong>{cuentasEntregadas}</strong>
-                  <small>asignadas a clientes</small>
-                </div>
-                <div>
-                  <span>Por vencer</span>
-                  <strong>{cuentasPorVencer}</strong>
-                  <small>vencen en 7 días</small>
-                </div>
-                <div>
-                  <span>Alertas</span>
-                  <strong>{cuentasVencidas + cuentasBloqueadas}</strong>
-                  <small>vencidas o bloqueadas</small>
-                </div>
-              </div>
+            <section className={styles.metricsGridCompact}>
+              <MetricCard title="Cuentas" value={cuentasProducto.length} detail={`${cuentasEntregadas} entregadas`} tone="info" />
+              <MetricCard title="Disponibles" value={cuentasDisponibles} detail="Listas para entregar" tone="success" />
+              <MetricCard title="Por vencer" value={cuentasPorVencer} detail="Vencen en 7 días" tone="warning" />
+              <MetricCard title="Bloqueadas" value={cuentasBloqueadas} detail="No vender / vencidas" tone="danger" />
             </section>
-
-            <div className={styles.metricsGridCompact}>
-              <MetricCard title="Total cuentas" value={cuentasProducto.length} detail="Registros cargados" tone="info" />
-              <MetricCard title="Disponibles" value={cuentasDisponibles} detail="Inventario real" tone="success" />
-              <MetricCard title="Por vencer" value={cuentasPorVencer} detail="Próximos 7 días" tone="warning" />
-              <MetricCard title="Bloqueadas/vencidas" value={cuentasBloqueadas + cuentasVencidas} detail="No vender" tone="danger" />
-            </div>
 
             <article className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <p className={styles.kicker}>{editandoCuentaId ? "Editar cuenta" : "Nueva cuenta"}</p>
-                  <h3>{editandoCuentaId ? "Actualizar cuenta completa" : "Agregar cuenta completa"}</h3>
-                  <span className={styles.panelHint}>Primero carga cuentas completas: producto, correo, contraseña y fecha de finalización.</span>
+                  <p className={styles.kicker}>Banco de cuentas completas</p>
+                  <h3>{editandoCuentaId ? "Editar cuenta" : "Agregar cuenta completa"}</h3>
+                  <span className={styles.panelHint}>
+                    Las fechas se crean automáticamente: inicio hoy y finalización en 30 días. Puedes editarlas si necesitas.
+                  </span>
                 </div>
-                {editandoCuentaId && <span className={styles.editBadge}>Editando</span>}
+                {editandoCuentaId && <span className={styles.editBadge}>Modo edición</span>}
               </div>
 
-              <form onSubmit={guardarCuentaProducto} className={styles.formGrid}>
-                <select name="producto_id" value={formCuenta.producto_id} onChange={handleCuentaChange} className={styles.input}>
+              <form onSubmit={guardarCuenta} className={styles.formGrid}>
+                <select
+                  name="producto_id"
+                  value={formCuenta.producto_id}
+                  onChange={handleCuentaChange}
+                  className={styles.input}
+                >
                   <option value="">Seleccionar producto</option>
                   {productos.map((producto) => (
                     <option key={producto.id} value={producto.id}>
-                      {producto.nombre} · Stock admin {producto.stock}
+                      {producto.nombre}
                     </option>
                   ))}
                 </select>
 
-                <select name="estado" value={formCuenta.estado} onChange={handleCuentaChange} className={styles.input}>
+                <select
+                  name="estado"
+                  value={formCuenta.estado}
+                  onChange={handleCuentaChange}
+                  className={styles.input}
+                >
                   <option value="disponible">Disponible</option>
                   <option value="entregada">Entregada</option>
-                  <option value="vencida">Vencida</option>
                   <option value="bloqueada">Bloqueada</option>
+                  <option value="vencida">Vencida</option>
                 </select>
 
-                <input name="correo" value={formCuenta.correo} onChange={handleCuentaChange} className={styles.input} placeholder="Correo de la cuenta" />
-                <input name="clave" value={formCuenta.clave} onChange={handleCuentaChange} className={styles.input} placeholder="Contraseña de la cuenta" />
+                <input
+                  name="correo"
+                  type="email"
+                  placeholder="Correo de la cuenta"
+                  value={formCuenta.correo}
+                  onChange={handleCuentaChange}
+                  className={styles.input}
+                />
 
-                <label className={styles.fieldWithLabel}>
-                  <span>Fecha de inicio</span>
-                  <input type="date" name="fecha_inicio" value={formCuenta.fecha_inicio} onChange={handleCuentaChange} className={styles.input} />
+                <input
+                  name="clave"
+                  type="text"
+                  placeholder="Contraseña"
+                  value={formCuenta.clave}
+                  onChange={handleCuentaChange}
+                  className={styles.input}
+                />
+
+                <label className={styles.dateFieldLabel}>
+                  <span>Fecha inicio</span>
+                  <input
+                    name="fecha_inicio"
+                    type="date"
+                    value={formCuenta.fecha_inicio}
+                    onChange={handleCuentaChange}
+                    className={styles.input}
+                  />
                 </label>
 
-                <label className={styles.fieldWithLabel}>
-                  <span>Fecha de finalización</span>
-                  <input type="date" name="fecha_fin" value={formCuenta.fecha_fin} onChange={handleCuentaChange} className={styles.input} />
+                <label className={styles.dateFieldLabel}>
+                  <span>Fecha fin automática (+30 días)</span>
+                  <input
+                    name="fecha_fin"
+                    type="date"
+                    value={formCuenta.fecha_fin}
+                    onChange={handleCuentaChange}
+                    className={styles.input}
+                  />
                 </label>
 
-                <textarea name="notas" value={formCuenta.notas} onChange={handleCuentaChange} className={`${styles.input} ${styles.textarea}`} placeholder="Notas internas: proveedor, garantía, observaciones..." />
+                <textarea
+                  name="notas"
+                  placeholder="Notas internas opcionales"
+                  value={formCuenta.notas}
+                  onChange={handleCuentaChange}
+                  className={`${styles.input} ${styles.textarea}`}
+                />
 
                 <div className={styles.formActions}>
-                  <button type="submit" disabled={guardandoCuenta} className={styles.primaryButton}>
+                  <button type="submit" className={styles.primaryButton} disabled={guardandoCuenta}>
                     {guardandoCuenta ? "Guardando..." : editandoCuentaId ? "Actualizar cuenta" : "Guardar cuenta"}
                   </button>
                   {editandoCuentaId && (
-                    <button type="button" onClick={limpiarFormularioCuenta} className={styles.secondaryButton}>Cancelar edición</button>
+                    <button type="button" className={styles.secondaryButton} onClick={limpiarFormularioCuenta}>
+                      Cancelar edición
+                    </button>
                   )}
                 </div>
               </form>
@@ -3662,36 +3671,36 @@ export default function AdminPage() {
             <article className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <p className={styles.kicker}>Orden operativo</p>
+                  <p className={styles.kicker}>Control de cuentas</p>
                   <h3>Cuentas registradas</h3>
-                  <span className={styles.panelHint}>Filtra por producto, correo, estado o notas. Disponible significa lista para entregar.</span>
+                  <span className={styles.panelHint}>Filtra por producto, correo o estado. El stock automático lo conectamos en el siguiente paso.</span>
                 </div>
-                <span className={styles.countBadge}>{cuentasFiltradas.length} resultado(s)</span>
               </div>
 
               <div className={styles.filtersGridCompact}>
                 <input
                   type="search"
+                  placeholder="Buscar cuenta, producto o nota..."
                   value={busquedaCuenta}
                   onChange={(e) => setBusquedaCuenta(e.target.value)}
                   className={styles.input}
-                  placeholder="Buscar por producto, correo o nota..."
                 />
-                <select value={filtroEstadoCuenta} onChange={(e) => setFiltroEstadoCuenta(e.target.value)} className={styles.input}>
-                  <option value="todos">Todos los estados</option>
+
+                <select
+                  value={filtroEstadoCuenta}
+                  onChange={(e) => setFiltroEstadoCuenta(e.target.value)}
+                  className={styles.input}
+                >
+                  <option value="todos">Todos</option>
                   <option value="disponible">Disponibles</option>
                   <option value="entregada">Entregadas</option>
-                  <option value="vencida">Vencidas</option>
                   <option value="bloqueada">Bloqueadas</option>
+                  <option value="vencida">Vencidas</option>
                 </select>
               </div>
 
               {cuentasFiltradas.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <div>▧</div>
-                  <h4>No hay cuentas registradas</h4>
-                  <p>Agrega cuentas completas para empezar a ordenar tu inventario real.</p>
-                </div>
+                <EmptyState title="Sin cuentas" text="Agrega tus primeras cuentas completas para ordenar el stock real." />
               ) : (
                 <div className={styles.tableWrap}>
                   <table className={styles.proTable}>
@@ -3699,22 +3708,19 @@ export default function AdminPage() {
                       <tr>
                         <th>Producto</th>
                         <th>Acceso</th>
-                        <th>Estado</th>
                         <th>Vigencia</th>
+                        <th>Estado</th>
                         <th>Notas</th>
                         <th>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {cuentasFiltradas.map((cuenta) => {
-                        const productoCuenta = obtenerProductoCuenta(cuenta.producto_id)
-                        const estadoCuenta = normalizarTexto(cuenta.estado)
-                        const estadoClase =
-                          estadoCuenta === "disponible"
-                            ? styles.statusSuccess
-                            : estadoCuenta === "entregada"
-                            ? styles.statusWarning
-                            : styles.statusDanger
+                        const productoCuenta = obtenerProductoPorId(cuenta.producto_id)
+                        const dias = diasRestantes(cuenta.fecha_fin)
+                        const vencida = dias !== null && dias < 0
+                        const porVencer = dias !== null && dias >= 0 && dias <= 7
+                        const estadoNormalizado = normalizarTexto(cuenta.estado)
 
                         return (
                           <tr key={cuenta.id}>
@@ -3723,26 +3729,40 @@ export default function AdminPage() {
                               <small>{productoCuenta?.categoria || "Sin categoría"}</small>
                             </td>
                             <td>
-                              <div className={styles.accountAccessBox}>
-                                <span>{cuenta.correo}</span>
-                                <code>{cuenta.clave}</code>
-                              </div>
+                              <strong>{cuenta.correo}</strong>
+                              <small>Clave: {cuenta.clave}</small>
                             </td>
                             <td>
-                              <span className={`${styles.statusBadge} ${estadoClase}`}>{cuenta.estado}</span>
+                              <strong>{fechaCorta(cuenta.fecha_inicio)} → {fechaCorta(cuenta.fecha_fin)}</strong>
+                              <small className={vencida ? styles.textDanger : porVencer ? styles.textWarning : styles.textSuccess}>
+                                {dias === null
+                                  ? "Sin cálculo"
+                                  : vencida
+                                  ? `Venció hace ${Math.abs(dias)} día(s)`
+                                  : dias === 0
+                                  ? "Vence hoy"
+                                  : `Vence en ${dias} día(s)`}
+                              </small>
                             </td>
                             <td>
-                              <strong>{cuenta.fecha_fin ? fechaLegible(cuenta.fecha_fin).split(",")[0] : "Sin fecha final"}</strong>
-                              <small>Inicio: {cuenta.fecha_inicio ? fechaLegible(cuenta.fecha_inicio).split(",")[0] : "Sin fecha"}</small>
+                              <span
+                                className={`${styles.statusBadge} ${
+                                  estadoNormalizado === "disponible"
+                                    ? styles.statusSuccess
+                                    : estadoNormalizado === "entregada"
+                                    ? styles.statusWarning
+                                    : styles.statusDanger
+                                }`}
+                              >
+                                {cuenta.estado}
+                              </span>
                             </td>
-                            <td>
-                              <span className={styles.mutedText}>{cuenta.notas || "Sin notas"}</span>
-                            </td>
+                            <td>{cuenta.notas || <span className={styles.mutedText}>Sin notas</span>}</td>
                             <td>
                               <div className={styles.tableActions}>
-                                <button type="button" onClick={() => copiarDatosCuenta(cuenta)} className={styles.secondaryButton}>Copiar</button>
-                                <button type="button" onClick={() => editarCuentaProducto(cuenta)} className={styles.primaryButton}>Editar</button>
-                                <button type="button" onClick={() => eliminarCuentaProducto(cuenta)} className={styles.dangerButton}>Eliminar</button>
+                                <button type="button" className={styles.secondaryButton} onClick={() => copiarDatosCuenta(cuenta)}>Copiar</button>
+                                <button type="button" className={styles.successButton} onClick={() => editarCuenta(cuenta)}>Editar</button>
+                                <button type="button" className={styles.dangerGhostButton} onClick={() => eliminarCuenta(cuenta)}>Eliminar</button>
                               </div>
                             </td>
                           </tr>
