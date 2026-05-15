@@ -126,6 +126,8 @@ type MetricTone = "success" | "warning" | "danger" | "info" | "neutral"
 type OrdenProducto = "recientes" | "nombre" | "precio_mayor" | "precio_menor" | "stock_menor"
 type OrdenPedido = "recientes" | "monto_mayor" | "monto_menor"
 
+const USD_RATE = 3.75
+
 const productoInicial = {
   nombre: "",
   descripcion: "",
@@ -270,12 +272,26 @@ export default function AdminPage() {
   const [guardandoConfig, setGuardandoConfig] = useState(false)
 
   const [imagenFile, setImagenFile] = useState<File | null>(null)
+  const [imagenPreviewUrl, setImagenPreviewUrl] = useState<string | null>(null)
   const [subiendoImagen, setSubiendoImagen] = useState(false)
   const [guardandoProducto, setGuardandoProducto] = useState(false)
   const [comprobantesDisponibles, setComprobantesDisponibles] = useState(true)
   const [sincronizandoInventario, setSincronizandoInventario] = useState(false)
   const [busquedaInventario, setBusquedaInventario] = useState("")
   const [filtroInventario, setFiltroInventario] = useState<"todos" | "critico" | "agotado" | "bajo" | "estable">("critico")
+
+  useEffect(() => {
+    if (!imagenFile) {
+      setImagenPreviewUrl(null)
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(imagenFile)
+    setImagenPreviewUrl(objectUrl)
+
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [imagenFile])
+
 
   const reproducirBeep = useCallback(() => {
     try {
@@ -1212,6 +1228,8 @@ export default function AdminPage() {
   const entidadesLog = Array.from(new Set(logs.map((log) => log.entidad).filter(Boolean)))
   const usuariosParaCredito = usuarios.filter((u) => u.estado === "aprobado" || u.estado === "activo")
   const obtenerUsuarioPorId = (usuarioId: string) => usuarios.find((u) => u.id === usuarioId)
+  const productoEditandoActual = editandoId ? productos.find((producto) => producto.id === editandoId) : null
+  const imagenPreviewProducto = imagenPreviewUrl || productoEditandoActual?.imagen || null
   const totalSaldoCreditos = creditos.reduce((acc, credito) => acc + Number(credito.saldo || 0), 0)
   const creditosActivos = creditos.filter((credito) => normalizarTexto(credito.estado) === "activo").length
   const creditosBloqueados = creditos.filter((credito) => ["bloqueado", "suspendido", "inactivo"].includes(normalizarTexto(credito.estado))).length
@@ -1912,159 +1930,267 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Catálogo</p>
                   <h3>{editandoId ? "Editar producto" : "Crear producto"}</h3>
-                  <span className={styles.panelHint}>Edición estable con validación de precio, stock, estado visual e imagen.</span>
+                  <span className={styles.panelHint}>
+                    Formulario limpio con vista previa igual a tienda. Solo dejamos lo necesario para vender.
+                  </span>
                 </div>
                 {editandoId && <span className={styles.editBadge}>Modo edición</span>}
               </div>
 
-              <div className={styles.productPreviewStrip}>
-                <div className={styles.previewOrb}>{formProducto.nombre?.slice(0, 2).toUpperCase() || "JS"}</div>
-                <div>
-                  <p>Vista rápida</p>
-                  <h4>{formProducto.nombre || "Nuevo producto premium"}</h4>
-                  <span>{formatearSoles(Number(formProducto.precio || 0))} · Stock {formProducto.stock || "0"} · {Number(formProducto.stock || 0) <= 0 ? "AGOTADO" : formProducto.estado_catalogo || "ACTIVO"}</span>
-                </div>
-              </div>
+              <div className={styles.productEditorLayout}>
+                <div className={styles.productLivePreview}>
+                  <p className={styles.kicker}>Vista previa tienda</p>
 
-              <form onSubmit={guardarProducto} className={styles.formGrid}>
-                <input name="nombre" placeholder="Nombre" value={formProducto.nombre} onChange={handleProductoChange} className={styles.input} />
-                <textarea name="descripcion" placeholder="Descripción" value={formProducto.descripcion} onChange={handleProductoChange} className={`${styles.input} ${styles.textarea}`} />
-                <input name="precio" type="number" min="0" step="0.01" placeholder="Precio" value={formProducto.precio} onChange={handleProductoChange} className={styles.input} />
-                <input name="precio_antes" type="number" min="0" step="0.01" placeholder="Precio antes" value={formProducto.precio_antes} onChange={handleProductoChange} className={styles.input} />
-                <input name="stock" type="number" min="0" placeholder="Stock" value={formProducto.stock} onChange={handleProductoChange} className={styles.input} />
-                <input name="categoria" placeholder="Categoría" value={formProducto.categoria} onChange={handleProductoChange} className={styles.input} />
+                  <article className={styles.storePreviewCard}>
+                    <div className={styles.previewBadgeRow}>
+                      <span className={styles.adminCategoryBadge}>
+                        {formProducto.categoria || "Streaming"}
+                      </span>
+                      <span className={styles.adminTypeBadge}>
+                        {formProducto.tipo_venta || "Cuenta completa"}
+                      </span>
+                    </div>
 
-                <select name="tipo_venta" value={formProducto.tipo_venta} onChange={handleProductoChange} className={styles.input}>
-                  <option value="">Tipo de venta</option>
-                  <option value="Cuenta Completa">Cuenta Completa</option>
-                  <option value="Perfiles">Perfiles</option>
-                  <option value="Código / Giftcard">Código / Giftcard</option>
-                  <option value="Renovación">Renovación</option>
-                </select>
-
-                <input name="duracion" placeholder="Duración (ej: 1 mes, 12 meses)" value={formProducto.duracion} onChange={handleProductoChange} className={styles.input} />
-                <input name="proveedor" placeholder="Proveedor" value={formProducto.proveedor} onChange={handleProductoChange} className={styles.input} />
-                <input name="stock_texto" placeholder="Texto de stock" value={formProducto.stock_texto} onChange={handleProductoChange} className={styles.input} />
-
-                <select name="estado_catalogo" value={formProducto.estado_catalogo} onChange={handleProductoChange} className={styles.input}>
-                  <option value="ACTIVO">ACTIVO</option>
-                  <option value="LIMITADO">LIMITADO</option>
-                  <option value="AGOTADO">AGOTADO</option>
-                </select>
-
-                <input name="badge" placeholder="Etiqueta visual" value={formProducto.badge} onChange={handleProductoChange} className={styles.input} />
-
-                <select name="accent" value={formProducto.accent} onChange={handleProductoChange} className={styles.input}>
-                  <option value="netflix">Netflix</option>
-                  <option value="disney">Disney+</option>
-                  <option value="prime">Prime Video</option>
-                  <option value="max">Max</option>
-                  <option value="spotify">Spotify</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="crunchy">Crunchyroll</option>
-                  <option value="paramount">Paramount+</option>
-                  <option value="canva">Canva</option>
-                  <option value="office">Microsoft 365</option>
-                  <option value="iptv">IPTV</option>
-                  <option value="viki">Viki</option>
-                </select>
-
-                <input name="whatsapp" placeholder="WhatsApp" value={formProducto.whatsapp} onChange={handleProductoChange} className={styles.input} />
-
-                <select name="estado" value={formProducto.estado} onChange={handleProductoChange} className={styles.input}>
-                  <option value="activo">Activo</option>
-                  <option value="inactivo">Inactivo</option>
-                </select>
-
-                <div className={styles.checkGroup}>
-                  <label><input type="checkbox" name="renovable" checked={formProducto.renovable} onChange={handleProductoChange} /> Renovable</label>
-                  <label><input type="checkbox" name="publicacion" checked={formProducto.publicacion} onChange={handleProductoChange} /> Publicación activa</label>
-                  <label><input type="checkbox" name="destacado" checked={formProducto.destacado} onChange={handleProductoChange} /> Destacado</label>
-                  <label><input type="checkbox" name="oferta" checked={formProducto.oferta} onChange={handleProductoChange} /> Oferta</label>
-                </div>
-
-                <div className={styles.fileBox}>
-                  <label>Imagen del producto</label>
-                  <input type="file" accept="image/*" onChange={(e) => setImagenFile(e.target.files?.[0] || null)} className={styles.input} />
-                  {imagenFile && <p>Archivo seleccionado: {imagenFile.name}</p>}
-                  {subiendoImagen && <p>Subiendo imagen...</p>}
-                </div>
-
-                <div className={styles.formActions}>
-                  <button type="submit" disabled={guardandoProducto || subiendoImagen} className={styles.primaryButton}>
-                    {guardandoProducto ? "Guardando..." : editandoId ? "Actualizar producto" : "Crear producto"}
-                  </button>
-
-                  {editandoId && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditandoId(null)
-                        setFormProducto(productoInicial)
-                        setImagenFile(null)
-                      }}
-                      className={styles.secondaryButton}
-                    >
-                      Cancelar edición
+                    <button type="button" className={styles.previewFavorite} aria-label="Vista previa favorito">
+                      ♥
                     </button>
-                  )}
+
+                    <div className={styles.previewImageBox}>
+                      {imagenPreviewProducto ? (
+                        <img
+                          src={imagenPreviewProducto}
+                          alt={formProducto.nombre || "Vista previa producto"}
+                          className={styles.previewImage}
+                        />
+                      ) : (
+                        <div className={styles.previewNoImage}>JS</div>
+                      )}
+                    </div>
+
+                    <div className={styles.previewBody}>
+                      <h4>{formProducto.nombre || "Nuevo producto"}</h4>
+                      <p>{formProducto.descripcion || "Descripción del producto digital"}</p>
+
+                      <div className={styles.adminMetaGrid}>
+                        <div className={styles.adminMetaCard}>
+                          <span>Tipo</span>
+                          <strong>{formProducto.tipo_venta || "Cuenta completa"}</strong>
+                        </div>
+                        <div className={styles.adminMetaCard}>
+                          <span>Duración</span>
+                          <strong>{formProducto.duracion || "1 mes"}</strong>
+                        </div>
+                        <div className={styles.adminMetaCard}>
+                          <span>Proveedor</span>
+                          <strong>{formProducto.proveedor || "Jonas Stream"}</strong>
+                        </div>
+                        <div className={styles.adminMetaCard}>
+                          <span>Renovable</span>
+                          <strong>{formProducto.renovable ? "Sí" : "No"}</strong>
+                        </div>
+                      </div>
+
+                      <div className={styles.adminStatusRow}>
+                        <span className={Number(formProducto.stock || 0) <= 0 ? styles.badgeDanger : styles.badgeOk}>
+                          {Number(formProducto.stock || 0) <= 0 ? "AGOTADO" : "ACTIVO"}
+                        </span>
+                        <small>{Number(formProducto.stock || 0) <= 0 ? "Consultar reposición" : "Stock disponible"}</small>
+                      </div>
+
+                      <div className={styles.adminPriceGrid}>
+                        <div className={styles.adminPriceCard}>
+                          <small>PEN</small>
+                          <strong>{formatearSoles(Number(formProducto.precio || 0))}</strong>
+                        </div>
+                        <div className={styles.adminPriceCard}>
+                          <small>USD</small>
+                          <strong>$ {(Number(formProducto.precio || 0) / USD_RATE).toFixed(2)}</strong>
+                        </div>
+                      </div>
+
+                      <button type="button" className={styles.previewBuyButton}>Comprar</button>
+                    </div>
+                  </article>
                 </div>
-              </form>
+
+                <form onSubmit={guardarProducto} className={styles.cleanProductForm}>
+                  <div className={styles.cleanFormGrid}>
+                    <input
+                      name="nombre"
+                      placeholder="Nombre del producto"
+                      value={formProducto.nombre}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    />
+
+                    <input
+                      name="categoria"
+                      placeholder="Categoría, ejemplo: Streaming"
+                      value={formProducto.categoria}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    />
+
+                    <textarea
+                      name="descripcion"
+                      placeholder="Descripción visible en tienda"
+                      value={formProducto.descripcion}
+                      onChange={handleProductoChange}
+                      className={`${styles.input} ${styles.textarea}`}
+                    />
+
+                    <input
+                      name="precio"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Precio"
+                      value={formProducto.precio}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    />
+
+                    <input
+                      name="precio_antes"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Precio antes (opcional)"
+                      value={formProducto.precio_antes}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    />
+
+                    <input
+                      name="stock"
+                      type="number"
+                      min="0"
+                      placeholder="Stock"
+                      value={formProducto.stock}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    />
+
+                    <select
+                      name="tipo_venta"
+                      value={formProducto.tipo_venta}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    >
+                      <option value="">Tipo de venta</option>
+                      <option value="Cuenta Completa">Cuenta completa</option>
+                      <option value="Perfil">Perfil</option>
+                      <option value="Perfiles">Perfiles</option>
+                      <option value="Código / Giftcard">Código / Giftcard</option>
+                      <option value="Renovación">Renovación</option>
+                    </select>
+
+                    <input
+                      name="duracion"
+                      placeholder="Duración, ejemplo: 1 mes"
+                      value={formProducto.duracion}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    />
+
+                    <input
+                      name="proveedor"
+                      placeholder="Proveedor"
+                      value={formProducto.proveedor}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    />
+
+                    <select
+                      name="estado"
+                      value={formProducto.estado}
+                      onChange={handleProductoChange}
+                      className={styles.input}
+                    >
+                      <option value="activo">Activo</option>
+                      <option value="inactivo">Inactivo</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.compactChecks}>
+                    <label>
+                      <input type="checkbox" name="renovable" checked={formProducto.renovable} onChange={handleProductoChange} />
+                      Renovable
+                    </label>
+                    <label>
+                      <input type="checkbox" name="publicacion" checked={formProducto.publicacion} onChange={handleProductoChange} />
+                      Publicar en tienda
+                    </label>
+                    <label>
+                      <input type="checkbox" name="destacado" checked={formProducto.destacado} onChange={handleProductoChange} />
+                      Destacado
+                    </label>
+                    <label>
+                      <input type="checkbox" name="oferta" checked={formProducto.oferta} onChange={handleProductoChange} />
+                      Oferta
+                    </label>
+                  </div>
+
+                  <div className={styles.fileBoxPreview}>
+                    <div>
+                      <label>Imagen del producto</label>
+                      <p>Se muestra al instante en la vista previa antes de guardar.</p>
+                    </div>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setImagenFile(e.target.files?.[0] || null)}
+                      className={styles.input}
+                    />
+
+                    {imagenFile && <small>Archivo seleccionado: {imagenFile.name}</small>}
+                    {subiendoImagen && <small>Subiendo imagen...</small>}
+                  </div>
+
+                  <div className={styles.formActions}>
+                    <button type="submit" disabled={guardandoProducto || subiendoImagen} className={styles.primaryButton}>
+                      {guardandoProducto ? "Guardando..." : editandoId ? "Actualizar producto" : "Crear producto"}
+                    </button>
+
+                    {editandoId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditandoId(null)
+                          setFormProducto(productoInicial)
+                          setImagenFile(null)
+                        }}
+                        className={styles.secondaryButton}
+                      >
+                        Cancelar edición
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
             </article>
 
             <article className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
                   <p className={styles.kicker}>Productos</p>
-                  <h3>Lista de productos</h3>
-                  <span className={styles.panelHint}>Control comercial del catálogo con alertas, estado visual y acciones rápidas.</span>
+                  <h3>Catálogo visual</h3>
+                  <span className={styles.panelHint}>
+                    Vista admin alineada con la tienda: imagen grande, datos clave y acciones rápidas.
+                  </span>
                 </div>
-                <span className={styles.countBadge}>{productosFiltrados.length} resultados</span>
+                <span className={styles.countBadge}>{productosFiltrados.length} productos</span>
               </div>
 
-              <section className={styles.productOpsPanel}>
-                <div className={styles.productOpsMain}>
-                  <span className={styles.proTag}>PRODUCTOS PRO</span>
-                  <h4>Catálogo listo para vender</h4>
-                  <p>Detecta productos agotados, ofertas, publicaciones activas y artículos sin imagen antes de que afecten la tienda.</p>
-                </div>
-                <div className={styles.productOpsStats}>
-                  <button type="button" onClick={() => { setFiltroEstadoProducto("activo"); setFiltroStockProducto("todos") }}>
-                    <strong>{productosActivos}</strong>
-                    <span>Activos</span>
-                  </button>
-                  <button type="button" onClick={() => setFiltroStockProducto("agotado")}>
-                    <strong>{productosAgotados.length}</strong>
-                    <span>Agotados</span>
-                  </button>
-                  <button type="button" onClick={() => setFiltroStockProducto("bajo")}>
-                    <strong>{productosBajoStock.length}</strong>
-                    <span>Bajo stock</span>
-                  </button>
-                  <button type="button" onClick={() => { setFiltroEstadoProducto("todos"); setFiltroStockProducto("todos"); setBusquedaProducto("") }}>
-                    <strong>{productosSinImagen}</strong>
-                    <span>Sin imagen</span>
-                  </button>
-                </div>
-              </section>
-
-              <div className={styles.miniStatsGrid}>
-                <button type="button" onClick={() => { setFiltroEstadoProducto("activo"); setFiltroStockProducto("todos") }} className={styles.miniStatCard}>
-                  <span>Activos</span><strong>{productosActivos}</strong><small>Publicables en catálogo</small>
-                </button>
-                <button type="button" onClick={() => setFiltroStockProducto("bajo")} className={styles.miniStatCard}>
-                  <span>Bajo stock</span><strong>{productosBajoStock.length}</strong><small>Reponer pronto</small>
-                </button>
-                <button type="button" onClick={() => setFiltroStockProducto("agotado")} className={`${styles.miniStatCard} ${styles.miniStatDanger}`}>
-                  <span>Agotados</span><strong>{productosAgotados.length}</strong><small>Ocultar o reponer</small>
-                </button>
-                <button type="button" onClick={() => { setFiltroEstadoProducto("todos"); setFiltroStockProducto("todos"); setBusquedaProducto("") }} className={styles.miniStatCard}>
-                  <span>Sin imagen</span><strong>{productosSinImagen}</strong><small>{productosInactivos} inactivos</small>
-                </button>
-              </div>
-
-              <div className={styles.filtersGridWide}>
-                <input type="text" placeholder="Buscar producto..." value={busquedaProducto} onChange={(e) => setBusquedaProducto(e.target.value)} className={styles.input} />
+              <div className={styles.adminProductToolbar}>
+                <input
+                  type="text"
+                  placeholder="Buscar producto..."
+                  value={busquedaProducto}
+                  onChange={(e) => setBusquedaProducto(e.target.value)}
+                  className={styles.input}
+                />
                 <select value={filtroEstadoProducto} onChange={(e) => setFiltroEstadoProducto(e.target.value)} className={styles.input}>
                   <option value="todos">Todos los estados</option>
                   <option value="activo">Activos</option>
@@ -2085,51 +2211,105 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              <div className={styles.productGrid}>
+              <div className={styles.miniStatsGrid}>
+                <button type="button" onClick={() => { setFiltroEstadoProducto("activo"); setFiltroStockProducto("todos") }} className={styles.miniStatCard}>
+                  <span>Activos</span><strong>{productosActivos}</strong><small>Publicables</small>
+                </button>
+                <button type="button" onClick={() => setFiltroStockProducto("bajo")} className={styles.miniStatCard}>
+                  <span>Bajo stock</span><strong>{productosBajoStock.length}</strong><small>Reponer pronto</small>
+                </button>
+                <button type="button" onClick={() => setFiltroStockProducto("agotado")} className={`${styles.miniStatCard} ${styles.miniStatDanger}`}>
+                  <span>Agotados</span><strong>{productosAgotados.length}</strong><small>Ocultar o reponer</small>
+                </button>
+                <button type="button" onClick={() => { setFiltroEstadoProducto("todos"); setFiltroStockProducto("todos"); setBusquedaProducto("") }} className={styles.miniStatCard}>
+                  <span>Sin imagen</span><strong>{productosSinImagen}</strong><small>{productosInactivos} inactivos</small>
+                </button>
+              </div>
+
+              <div className={styles.adminProductGrid}>
                 {productosVisibles.length === 0 ? (
                   <EmptyState title="Sin productos" text="No hay productos que coincidan con los filtros." />
-                ) : productosVisibles.map((p) => (
-                  <article key={p.id} className={`${styles.productCard} ${styles.productCardPro} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`}>
-                    {p.imagen ? <img src={p.imagen} alt={p.nombre} className={styles.productImage} /> : <div className={styles.productImagePlaceholder}>JS</div>}
-                    <div className={styles.productBody}>
-                      <div className={styles.productTopline}>
-                        <StatusBadge estado={p.estado} />
-                        <div className={styles.productStateCluster}>
-                          {Number(p.stock) <= 0 && <span className={styles.badgeDanger}>Agotado</span>}
-                          {Number(p.stock) > 0 && Number(p.stock) <= 3 && <span className={styles.badgeWarning}>Bajo stock</span>}
-                          {p.destacado && <span className={styles.badgeInfo}>Destacado</span>}
-                          {p.oferta && <span className={styles.offerBadge}>Oferta</span>}
+                ) : productosVisibles.map((p) => {
+                  const stock = Number(p.stock || 0)
+                  const agotado = stock <= 0
+                  const limitado = stock > 0 && stock <= 3
+                  const tipoVenta = p.tipo_venta || "Cuenta completa"
+                  const usd = Number(p.precio || 0) / USD_RATE
+
+                  return (
+                    <article key={p.id} className={styles.adminStoreCard}>
+                      <div className={styles.adminProductVisual}>
+                        <div className={styles.adminProductBadges}>
+                          <span className={styles.adminCategoryBadge}>{p.categoria || "Streaming"}</span>
+                          <span className={styles.adminTypeBadge}>{tipoVenta}</span>
+                        </div>
+
+                        {p.destacado && <span className={styles.adminFeaturedBadge}>Destacado</span>}
+
+                        {p.imagen ? (
+                          <img src={p.imagen} alt={p.nombre} className={styles.adminProductImage} />
+                        ) : (
+                          <div className={styles.adminProductPlaceholder}>JS</div>
+                        )}
+                      </div>
+
+                      <div className={styles.adminProductContent}>
+                        <h4>{p.nombre}</h4>
+                        <p>{p.descripcion || "Producto digital disponible"}</p>
+
+                        <div className={styles.adminMetaGrid}>
+                          <div className={styles.adminMetaCard}>
+                            <span>Tipo</span>
+                            <strong>{tipoVenta}</strong>
+                          </div>
+                          <div className={styles.adminMetaCard}>
+                            <span>Duración</span>
+                            <strong>{p.duracion || "1 mes"}</strong>
+                          </div>
+                          <div className={styles.adminMetaCard}>
+                            <span>Proveedor</span>
+                            <strong>{p.proveedor || "Jonas Stream"}</strong>
+                          </div>
+                          <div className={styles.adminMetaCard}>
+                            <span>Stock</span>
+                            <strong>{stock}</strong>
+                          </div>
+                        </div>
+
+                        <div className={styles.adminStatusRow}>
+                          <span className={agotado ? styles.badgeDanger : limitado ? styles.badgeWarning : styles.badgeOk}>
+                            {agotado ? "AGOTADO" : limitado ? "LIMITADO" : "ACTIVO"}
+                          </span>
+                          <small>{p.publicacion ? "Publicado en tienda" : "Oculto en tienda"}</small>
+                        </div>
+
+                        <div className={styles.adminPriceGrid}>
+                          <div className={styles.adminPriceCard}>
+                            <small>PEN</small>
+                            <strong>{formatearSoles(p.precio)}</strong>
+                          </div>
+                          <div className={styles.adminPriceCard}>
+                            <small>USD</small>
+                            <strong>$ {usd.toFixed(2)}</strong>
+                          </div>
+                        </div>
+
+                        <div className={styles.adminProductActions}>
+                          <button type="button" onClick={() => editarProducto(p)} className={styles.secondaryButton}>Editar</button>
+                          <button type="button" onClick={() => reponerProductoRapido(p)} className={styles.successButton}>+10 stock</button>
+                          <button type="button" onClick={() => eliminarProducto(p.id)} className={styles.dangerButton}>Eliminar</button>
                         </div>
                       </div>
-                      <h4>{p.nombre}</h4>
-                      <p>{p.descripcion || "Sin descripción"}</p>
-                      <div className={styles.productHealthLine}>
-                        <span>{p.publicacion ? "Publicado" : "Oculto"}</span>
-                        <strong>{Number(p.stock) <= 0 ? "Reponer ahora" : Number(p.stock) <= 3 ? "Stock limitado" : "Stock estable"}</strong>
-                      </div>
-                      <div className={styles.productMeta}>
-                        <span>{formatearSoles(p.precio)}</span>
-                        <span className={Number(p.stock) <= 3 ? styles.metaDanger : ""}>Stock: {p.stock}</span>
-                        <span>{p.categoria || "Sin categoría"}</span>
-                        <span>{p.tipo_venta || "Sin tipo"}</span>
-                        <span>{p.duracion || "-"}</span>
-                        <span>{p.proveedor || "Jonas Stream"}</span>
-                        <span>{Number(p.stock) <= 0 ? "AGOTADO" : p.estado_catalogo || "-"}</span>
-                        <span>{p.renovable ? "Renovable" : "No renovable"}</span>
-                      </div>
-                      <div className={styles.cardActions}>
-                        <button type="button" onClick={() => editarProducto(p)} className={styles.secondaryButton}>Editar</button>
-                        <button type="button" onClick={() => reponerProductoRapido(p)} className={styles.successButton}>+10 stock</button>
-                        <button type="button" onClick={() => eliminarProducto(p.id)} className={styles.dangerButton}>Eliminar</button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  )
+                })}
               </div>
 
               {productosFiltrados.length > productosVisibles.length && (
                 <div className={styles.loadMoreBox}>
-                  <button type="button" onClick={() => setLimiteProductos((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más productos</button>
+                  <button type="button" onClick={() => setLimiteProductos((prev) => prev + 12)} className={styles.secondaryButton}>
+                    Cargar más productos
+                  </button>
                 </div>
               )}
             </article>
