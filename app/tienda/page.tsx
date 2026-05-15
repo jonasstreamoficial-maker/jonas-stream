@@ -321,6 +321,10 @@ export default function TiendaPage() {
               CARRITO ({cartCantidad || cantidadCarrito})
             </Link>
 
+            <Link href="/favoritos" className={styles.topLink}>
+              FAVORITOS ({favoritos.length})
+            </Link>
+
             <a
               href={buildWhatsAppLink(
                 config?.whatsapp || "51900557949",
