@@ -345,6 +345,7 @@ export default function AdminPage() {
 
   const [busquedaCuenta, setBusquedaCuenta] = useState("")
   const [filtroEstadoCuenta, setFiltroEstadoCuenta] = useState("todos")
+  const [productoCuentasActivoId, setProductoCuentasActivoId] = useState<string | null>(null)
   const [formCuenta, setFormCuenta] = useState(crearCuentaInicial)
   const [editandoCuentaId, setEditandoCuentaId] = useState<string | null>(null)
   const [guardandoCuenta, setGuardandoCuenta] = useState(false)
@@ -2011,6 +2012,50 @@ export default function AdminPage() {
       return coincideBusqueda && coincideEstado
     })
   }, [cuentasProducto, productos, busquedaCuenta, filtroEstadoCuenta])
+
+
+  const resumenCuentasPorProducto = useMemo(() => {
+    return productos
+      .map((producto) => {
+        const cuentasDelProducto = cuentasProducto.filter((cuenta) => cuenta.producto_id === producto.id)
+        const disponibles = cuentasDelProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "disponible").length
+        const entregadas = cuentasDelProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "entregada").length
+        const bloqueadas = cuentasDelProducto.filter((cuenta) => ["bloqueada", "vencida"].includes(normalizarTexto(cuenta.estado))).length
+        const vencidas = cuentasDelProducto.filter((cuenta) => {
+          const diasCliente = diasRestantes(cuenta.cliente_fin)
+          return diasCliente !== null && diasCliente < 0
+        }).length
+        const porVencer = cuentasDelProducto.filter((cuenta) => {
+          const diasCliente = diasRestantes(cuenta.cliente_fin || cuenta.fecha_fin)
+          return diasCliente !== null && diasCliente >= 0 && diasCliente <= 7
+        }).length
+
+        return {
+          producto,
+          total: cuentasDelProducto.length,
+          disponibles,
+          entregadas,
+          bloqueadas,
+          vencidas,
+          porVencer,
+        }
+      })
+      .filter((item) => item.total > 0)
+      .sort((a, b) => b.total - a.total || a.producto.nombre.localeCompare(b.producto.nombre))
+  }, [productos, cuentasProducto])
+
+  const productoCuentasActivo = productoCuentasActivoId
+    ? productos.find((producto) => producto.id === productoCuentasActivoId) || null
+    : null
+
+  const cuentasDetalleProducto = useMemo(() => {
+    if (!productoCuentasActivoId) return cuentasFiltradas
+    return cuentasFiltradas.filter((cuenta) => cuenta.producto_id === productoCuentasActivoId)
+  }, [cuentasFiltradas, productoCuentasActivoId])
+
+  const resumenCuentasActivo = productoCuentasActivoId
+    ? resumenCuentasPorProducto.find((item) => item.producto.id === productoCuentasActivoId) || null
+    : null
 
   const escaparCSV = (valor?: string | number | null) => {
     const texto = String(valor ?? "")
@@ -4189,140 +4234,238 @@ export default function AdminPage() {
             <article className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <p className={styles.kicker}>Control de cuentas</p>
-                  <h3>Cuentas registradas</h3>
-                  <span className={styles.panelHint}>Filtra por producto, correo, cliente o estado. Aquí controlas entrega, renovación, bloqueo y liberación de cuentas.</span>
+                  <p className={styles.kicker}>Control de cuentas por plataforma</p>
+                  <h3>{productoCuentasActivo ? `Cuentas de ${productoCuentasActivo.nombre}` : "Resumen de cuentas"}</h3>
+                  <span className={styles.panelHint}>
+                    {productoCuentasActivo
+                      ? "Aquí ves solo las cuentas de esta plataforma: clientes asignados, vigencias, estado y acciones."
+                      : "Primero ves el resumen por producto. Entra a una plataforma para ver clientes y cuentas sin hacer una lista infinita."}
+                  </span>
                 </div>
+
+                {productoCuentasActivo && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => setProductoCuentasActivoId(null)}
+                  >
+                    ← Volver al resumen
+                  </button>
+                )}
               </div>
 
-              <div className={styles.filtersGridCompact}>
-                <input
-                  type="search"
-                  placeholder="Buscar cuenta, producto o nota..."
-                  value={busquedaCuenta}
-                  onChange={(e) => setBusquedaCuenta(e.target.value)}
-                  className={styles.input}
-                />
+              {!productoCuentasActivo && (
+                resumenCuentasPorProducto.length === 0 ? (
+                  <EmptyState title="Sin cuentas" text="Agrega tus primeras cuentas completas para ordenar el stock real." />
+                ) : (
+                  <div className={styles.accountSummaryGrid}>
+                    {resumenCuentasPorProducto.map((item) => (
+                      <button
+                        key={item.producto.id}
+                        type="button"
+                        className={`${styles.accountPlatformCard} ${
+                          item.disponibles <= 0
+                            ? styles.accountPlatformDanger
+                            : item.disponibles <= 3
+                            ? styles.accountPlatformWarning
+                            : styles.accountPlatformSuccess
+                        }`}
+                        onClick={() => {
+                          setProductoCuentasActivoId(item.producto.id)
+                          setBusquedaCuenta("")
+                          setFiltroEstadoCuenta("todos")
+                        }}
+                      >
+                        <div className={styles.accountPlatformTop}>
+                          <div>
+                            <span>{item.producto.categoria || "Plataforma"}</span>
+                            <strong>{item.producto.nombre}</strong>
+                          </div>
+                          <em>{item.total}</em>
+                        </div>
 
-                <select
-                  value={filtroEstadoCuenta}
-                  onChange={(e) => setFiltroEstadoCuenta(e.target.value)}
-                  className={styles.input}
-                >
-                  <option value="todos">Todos</option>
-                  <option value="disponible">Disponibles</option>
-                  <option value="entregada">Entregadas</option>
-                  <option value="bloqueada">Bloqueadas</option>
-                  <option value="vencida">Vencidas</option>
-                </select>
-              </div>
+                        <div className={styles.accountPlatformStats}>
+                          <div>
+                            <b>{item.disponibles}</b>
+                            <small>Disponibles</small>
+                          </div>
+                          <div>
+                            <b>{item.entregadas}</b>
+                            <small>Ocupadas</small>
+                          </div>
+                          <div>
+                            <b>{item.bloqueadas}</b>
+                            <small>Bloqueadas</small>
+                          </div>
+                          <div>
+                            <b>{item.porVencer}</b>
+                            <small>Por vencer</small>
+                          </div>
+                        </div>
 
-              {cuentasFiltradas.length === 0 ? (
-                <EmptyState title="Sin cuentas" text="Agrega tus primeras cuentas completas para ordenar el stock real." />
-              ) : (
-                <div className={styles.tableWrap}>
-                  <table className={styles.proTable}>
-                    <thead>
-                      <tr>
-                        <th>Producto</th>
-                        <th>Acceso</th>
-                        <th>Cliente asignado</th>
-                        <th>Vigencia admin</th>
-                        <th>Vigencia cliente</th>
-                        <th>Estado</th>
-                        <th>Notas</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cuentasFiltradas.map((cuenta) => {
-                        const productoCuenta = obtenerProductoPorId(cuenta.producto_id)
-                        const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
-                        const diasAdmin = diasRestantes(cuenta.fecha_fin)
-                        const adminVencida = diasAdmin !== null && diasAdmin < 0
-                        const adminPorVencer = diasAdmin !== null && diasAdmin >= 0 && diasAdmin <= 7
-                        const diasCliente = diasRestantes(cuenta.cliente_fin)
-                        const clienteVencido = diasCliente !== null && diasCliente < 0
-                        const clientePorVencer = diasCliente !== null && diasCliente >= 0 && diasCliente <= 7
-                        const estadoNormalizado = normalizarTexto(cuenta.estado)
-                        const estaEntregada = estadoNormalizado === "entregada"
-                        const estaBloqueada = estadoNormalizado === "bloqueada"
+                        <div className={styles.accountPlatformFooter}>
+                          <span>Stock tienda: {item.producto.stock}</span>
+                          <strong>Gestionar cuentas →</strong>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )
+              )}
 
-                        return (
-                          <tr key={cuenta.id}>
-                            <td>
-                              <strong>{productoCuenta?.nombre || "Producto eliminado"}</strong>
-                              <small>{productoCuenta?.categoria || "Sin categoría"}</small>
-                            </td>
-                            <td>
-                              <strong>{cuenta.correo}</strong>
-                              <small>Clave: {cuenta.clave}</small>
-                            </td>
-                            <td>
-                              <strong>{usuarioCuenta?.nombre || (cuenta.usuario_id ? "Cliente asignado" : "Sin cliente")}</strong>
-                              <small>{usuarioCuenta?.correo || (cuenta.usuario_id ? cuenta.usuario_id.slice(0, 8) : "Todavía no entregada")}</small>
-                              {cuenta.pedido_id && <small>Pedido #{cuenta.pedido_id.slice(0, 8)}</small>}
-                            </td>
-                            <td>
-                              <strong>{fechaCorta(cuenta.fecha_inicio)} → {fechaCorta(cuenta.fecha_fin)}</strong>
-                              <small className={adminVencida ? styles.textDanger : adminPorVencer ? styles.textWarning : styles.textSuccess}>
-                                {diasAdmin === null
-                                  ? "Sin cálculo"
-                                  : adminVencida
-                                  ? `Venció hace ${Math.abs(diasAdmin)} día(s)`
-                                  : diasAdmin === 0
-                                  ? "Vence hoy"
-                                  : `Vence en ${diasAdmin} día(s)`}
-                              </small>
-                            </td>
-                            <td>
-                              <strong>{cuenta.cliente_inicio && cuenta.cliente_fin ? `${fechaCorta(cuenta.cliente_inicio)} → ${fechaCorta(cuenta.cliente_fin)}` : "Sin entrega"}</strong>
-                              <small className={clienteVencido ? styles.textDanger : clientePorVencer ? styles.textWarning : styles.textSuccess}>
-                                {!cuenta.cliente_fin
-                                  ? "Se llenará al aprobar pedido"
-                                  : diasCliente === null
-                                  ? "Sin cálculo"
-                                  : clienteVencido
-                                  ? `Cliente venció hace ${Math.abs(diasCliente)} día(s)`
-                                  : diasCliente === 0
-                                  ? "Cliente vence hoy"
-                                  : `Cliente vence en ${diasCliente} día(s)`}
-                              </small>
-                            </td>
-                            <td>
-                              <span
-                                className={`${styles.statusBadge} ${
-                                  estadoNormalizado === "disponible"
-                                    ? styles.statusSuccess
-                                    : estadoNormalizado === "entregada"
-                                    ? styles.statusWarning
-                                    : styles.statusDanger
-                                }`}
-                              >
-                                {cuenta.estado}
-                              </span>
-                            </td>
-                            <td>{cuenta.notas || <span className={styles.mutedText}>Sin notas</span>}</td>
-                            <td>
-                              <div className={styles.tableActions}>
-                                <button type="button" className={styles.secondaryButton} onClick={() => copiarDatosCuenta(cuenta)}>Copiar</button>
-                                {estaEntregada && <button type="button" className={styles.successButton} onClick={() => renovarCuentaCliente(cuenta)}>Renovar +30</button>}
-                                {estaEntregada && <button type="button" className={styles.dangerGhostButton} onClick={() => quitarAccesoCuenta(cuenta)}>Quitar acceso</button>}
-                                {estaBloqueada ? (
-                                  <button type="button" className={styles.successButton} onClick={() => cambiarEstadoCuentaOperativa(cuenta, "disponible")}>Liberar</button>
-                                ) : (
-                                  <button type="button" className={styles.dangerGhostButton} onClick={() => cambiarEstadoCuentaOperativa(cuenta, "bloqueada")}>Bloquear</button>
-                                )}
-                                <button type="button" className={styles.successButton} onClick={() => editarCuenta(cuenta)}>Editar</button>
-                                <button type="button" className={styles.dangerGhostButton} onClick={() => eliminarCuenta(cuenta)}>Eliminar</button>
-                              </div>
-                            </td>
+              {productoCuentasActivo && (
+                <>
+                  <div className={styles.accountDetailHero}>
+                    <div>
+                      <p className={styles.kicker}>Plataforma seleccionada</p>
+                      <h4>{productoCuentasActivo.nombre}</h4>
+                      <span>{productoCuentasActivo.categoria || "Sin categoría"} · Stock tienda {productoCuentasActivo.stock}</span>
+                    </div>
+
+                    <div className={styles.accountDetailStats}>
+                      <div>
+                        <strong>{resumenCuentasActivo?.total || 0}</strong>
+                        <span>Total</span>
+                      </div>
+                      <div>
+                        <strong>{resumenCuentasActivo?.disponibles || 0}</strong>
+                        <span>Libres</span>
+                      </div>
+                      <div>
+                        <strong>{resumenCuentasActivo?.entregadas || 0}</strong>
+                        <span>Ocupadas</span>
+                      </div>
+                      <div>
+                        <strong>{resumenCuentasActivo?.bloqueadas || 0}</strong>
+                        <span>Bloqueadas</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.filtersGridCompact}>
+                    <input
+                      type="search"
+                      placeholder={`Buscar cuenta, cliente o nota en ${productoCuentasActivo.nombre}...`}
+                      value={busquedaCuenta}
+                      onChange={(e) => setBusquedaCuenta(e.target.value)}
+                      className={styles.input}
+                    />
+
+                    <select
+                      value={filtroEstadoCuenta}
+                      onChange={(e) => setFiltroEstadoCuenta(e.target.value)}
+                      className={styles.input}
+                    >
+                      <option value="todos">Todos</option>
+                      <option value="disponible">Disponibles</option>
+                      <option value="entregada">Entregadas / ocupadas</option>
+                      <option value="bloqueada">Bloqueadas</option>
+                      <option value="vencida">Vencidas</option>
+                    </select>
+                  </div>
+
+                  {cuentasDetalleProducto.length === 0 ? (
+                    <EmptyState title="Sin cuentas en este filtro" text="Cambia el filtro o importa cuentas para esta plataforma." />
+                  ) : (
+                    <div className={styles.tableWrap}>
+                      <table className={styles.proTable}>
+                        <thead>
+                          <tr>
+                            <th>Acceso</th>
+                            <th>Cliente asignado</th>
+                            <th>Vigencia admin</th>
+                            <th>Vigencia cliente</th>
+                            <th>Estado</th>
+                            <th>Notas</th>
+                            <th>Acciones</th>
                           </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                        </thead>
+                        <tbody>
+                          {cuentasDetalleProducto.map((cuenta) => {
+                            const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
+                            const diasAdmin = diasRestantes(cuenta.fecha_fin)
+                            const adminVencida = diasAdmin !== null && diasAdmin < 0
+                            const adminPorVencer = diasAdmin !== null && diasAdmin >= 0 && diasAdmin <= 7
+                            const diasCliente = diasRestantes(cuenta.cliente_fin)
+                            const clienteVencido = diasCliente !== null && diasCliente < 0
+                            const clientePorVencer = diasCliente !== null && diasCliente >= 0 && diasCliente <= 7
+                            const estadoNormalizado = normalizarTexto(cuenta.estado)
+                            const estaEntregada = estadoNormalizado === "entregada"
+                            const estaBloqueada = estadoNormalizado === "bloqueada"
+
+                            return (
+                              <tr key={cuenta.id}>
+                                <td>
+                                  <strong>{cuenta.correo}</strong>
+                                  <small>Clave: {cuenta.clave}</small>
+                                </td>
+                                <td>
+                                  <strong>{usuarioCuenta?.nombre || (cuenta.usuario_id ? "Cliente asignado" : "Sin cliente")}</strong>
+                                  <small>{usuarioCuenta?.correo || (cuenta.usuario_id ? cuenta.usuario_id.slice(0, 8) : "Todavía no entregada")}</small>
+                                  {cuenta.pedido_id && <small>Pedido #{cuenta.pedido_id.slice(0, 8)}</small>}
+                                </td>
+                                <td>
+                                  <strong>{fechaCorta(cuenta.fecha_inicio)} → {fechaCorta(cuenta.fecha_fin)}</strong>
+                                  <small className={adminVencida ? styles.textDanger : adminPorVencer ? styles.textWarning : styles.textSuccess}>
+                                    {diasAdmin === null
+                                      ? "Sin cálculo"
+                                      : adminVencida
+                                      ? `Venció hace ${Math.abs(diasAdmin)} día(s)`
+                                      : diasAdmin === 0
+                                      ? "Vence hoy"
+                                      : `Vence en ${diasAdmin} día(s)`}
+                                  </small>
+                                </td>
+                                <td>
+                                  <strong>{cuenta.cliente_inicio && cuenta.cliente_fin ? `${fechaCorta(cuenta.cliente_inicio)} → ${fechaCorta(cuenta.cliente_fin)}` : "Sin entrega"}</strong>
+                                  <small className={clienteVencido ? styles.textDanger : clientePorVencer ? styles.textWarning : styles.textSuccess}>
+                                    {!cuenta.cliente_fin
+                                      ? "Se llenará al aprobar pedido"
+                                      : diasCliente === null
+                                      ? "Sin cálculo"
+                                      : clienteVencido
+                                      ? `Cliente venció hace ${Math.abs(diasCliente)} día(s)`
+                                      : diasCliente === 0
+                                      ? "Cliente vence hoy"
+                                      : `Cliente vence en ${diasCliente} día(s)`}
+                                  </small>
+                                </td>
+                                <td>
+                                  <span
+                                    className={`${styles.statusBadge} ${
+                                      estadoNormalizado === "disponible"
+                                        ? styles.statusSuccess
+                                        : estadoNormalizado === "entregada"
+                                        ? styles.statusWarning
+                                        : styles.statusDanger
+                                    }`}
+                                  >
+                                    {cuenta.estado}
+                                  </span>
+                                </td>
+                                <td>{cuenta.notas || <span className={styles.mutedText}>Sin notas</span>}</td>
+                                <td>
+                                  <div className={styles.tableActions}>
+                                    <button type="button" className={styles.secondaryButton} onClick={() => copiarDatosCuenta(cuenta)}>Copiar</button>
+                                    {estaEntregada && <button type="button" className={styles.successButton} onClick={() => renovarCuentaCliente(cuenta)}>Renovar +30</button>}
+                                    {estaEntregada && <button type="button" className={styles.dangerGhostButton} onClick={() => quitarAccesoCuenta(cuenta)}>Quitar acceso</button>}
+                                    {estaBloqueada ? (
+                                      <button type="button" className={styles.successButton} onClick={() => cambiarEstadoCuentaOperativa(cuenta, "disponible")}>Liberar</button>
+                                    ) : (
+                                      <button type="button" className={styles.dangerGhostButton} onClick={() => cambiarEstadoCuentaOperativa(cuenta, "bloqueada")}>Bloquear</button>
+                                    )}
+                                    <button type="button" className={styles.successButton} onClick={() => editarCuenta(cuenta)}>Editar</button>
+                                    <button type="button" className={styles.dangerGhostButton} onClick={() => eliminarCuenta(cuenta)}>Eliminar</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
               )}
             </article>
           </div>

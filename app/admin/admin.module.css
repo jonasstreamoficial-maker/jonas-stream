@@ -5977,3 +5977,175 @@
 .storePreviewCard .adminStatusRow small {
   font-weight: 950;
 }
+
+
+/* Gestion por plataforma de cuentas */
+.accountSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.accountPlatformCard {
+  width: 100%;
+  min-height: 210px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  background:
+    radial-gradient(circle at 85% 8%, rgba(0, 251, 255, 0.12), transparent 34%),
+    rgba(3, 19, 22, 0.76);
+  color: #ECFFFF;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s ease;
+  box-shadow: inset 0 0 32px rgba(0, 251, 255, 0.035);
+}
+
+.accountPlatformCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 251, 255, 0.45);
+  box-shadow: 0 0 28px rgba(1, 231, 239, 0.14), inset 0 0 34px rgba(0, 251, 255, 0.055);
+}
+
+.accountPlatformSuccess {
+  border-color: rgba(124, 255, 178, 0.26);
+}
+
+.accountPlatformWarning {
+  border-color: rgba(255, 224, 130, 0.34);
+}
+
+.accountPlatformDanger {
+  border-color: rgba(255, 143, 163, 0.38);
+}
+
+.accountPlatformTop,
+.accountPlatformFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accountPlatformTop span {
+  display: block;
+  color: #00FBFF;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.accountPlatformTop strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1.08;
+}
+
+.accountPlatformTop em {
+  min-width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(0, 251, 255, 0.1);
+  border: 1px solid rgba(0, 251, 255, 0.22);
+  color: #00FBFF;
+  font-style: normal;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.accountPlatformStats,
+.accountDetailStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.accountPlatformStats div,
+.accountDetailStats div {
+  padding: 11px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(1, 231, 239, 0.12);
+}
+
+.accountPlatformStats b,
+.accountDetailStats strong {
+  display: block;
+  color: #7cffb2;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.accountPlatformStats small,
+.accountDetailStats span {
+  display: block;
+  margin-top: 6px;
+  color: #9BC8CB;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.accountPlatformFooter span {
+  color: #9BC8CB;
+  font-weight: 850;
+}
+
+.accountPlatformFooter strong {
+  color: #00FBFF;
+}
+
+.accountDetailHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr);
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  background:
+    radial-gradient(circle at 12% 20%, rgba(0, 251, 255, 0.14), transparent 34%),
+    rgba(0, 0, 0, 0.24);
+}
+
+.accountDetailHero h4 {
+  margin: 0 0 6px;
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.accountDetailHero span {
+  color: #9BC8CB;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .accountDetailHero {
+    grid-template-columns: 1fr;
+  }
+
+  .accountPlatformStats,
+  .accountDetailStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .accountSummaryGrid,
+  .accountPlatformStats,
+  .accountDetailStats {
+    grid-template-columns: 1fr;
+  }
+
+  .accountPlatformTop,
+  .accountPlatformFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
