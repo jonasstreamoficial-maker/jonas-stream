@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -21,10 +21,6 @@ type Usuario = {
   celular?: string | null;
   celular_completo?: string | null;
   telefono?: string | null;
-  numero_orden?: number | null;
-  prefijo_cliente?: string | null;
-  etiqueta_contacto?: string | null;
-  segundo_nombre?: string | null;
 };
 
 function buildWhatsAppLink(message: string) {
@@ -33,6 +29,11 @@ function buildWhatsAppLink(message: string) {
 
 function normalizarCorreo(value: string) {
   return value.trim().toLowerCase();
+}
+
+function nombreDesdeCorreo(email: string) {
+  const base = email.split("@")[0] || "cliente";
+  return base.replace(/[._-]+/g, " ").trim() || "cliente";
 }
 
 export default function LoginPage() {
@@ -44,7 +45,7 @@ export default function LoginPage() {
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
   const [mensajeDebug, setMensajeDebug] = useState<string | null>(null);
 
-  const iniciarSesion = async (e: React.FormEvent<HTMLFormElement>) => {
+  const iniciarSesion = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (cargando) return;
@@ -74,46 +75,47 @@ export default function LoginPage() {
         return;
       }
 
-      const { data, error } = await supabase
+      let usuarioData: Usuario | null = null;
+
+      const { data: usuarioPorId, error: errorPorId } = await supabase
         .from("usuarios")
         .select("*")
         .eq("id", authData.user.id)
         .maybeSingle();
 
-      let usuarioData = data as Usuario | null;
-
-      if (error) {
-        setMensajeDebug(`ERROR USUARIOS: ${error.message}`);
-        toast.error("No se pudo consultar el usuario");
-        await supabase.auth.signOut();
-        setCargando(false);
-        return;
+      if (errorPorId) {
+        setMensajeDebug(`ERROR USUARIOS ID: ${errorPorId.message}`);
       }
 
-      if (!usuarioData) {
-        const { data: porCorreo, error: errorCorreo } = await supabase
-          .from("usuarios")
-          .select("*")
-          .eq("correo", correoNormalizado)
-          .maybeSingle();
+      usuarioData = usuarioPorId as Usuario | null;
 
-        if (errorCorreo) {
-          setMensajeDebug(`ERROR USUARIOS CORREO: ${errorCorreo.message}`);
-          toast.error("No se pudo consultar el usuario");
+      if (!usuarioData) {
+        const nuevoPerfil = {
+          id: authData.user.id,
+          nombre:
+            String(authData.user.user_metadata?.nombre || "").trim() ||
+            String(authData.user.user_metadata?.name || "").trim() ||
+            nombreDesdeCorreo(correoNormalizado),
+          correo: correoNormalizado,
+          rol: "cliente",
+          estado: "activo",
+        };
+
+        const { data: perfilCreado, error: errorCrearPerfil } = await supabase
+          .from("usuarios")
+          .insert([nuevoPerfil])
+          .select("*")
+          .single();
+
+        if (errorCrearPerfil) {
+          setMensajeDebug(`USUARIO NO ENCONTRADO EN TABLA usuarios: ${errorCrearPerfil.message}`);
+          toast.error("Usuario no encontrado en tabla usuarios");
           await supabase.auth.signOut();
           setCargando(false);
           return;
         }
 
-        usuarioData = porCorreo as Usuario | null;
-      }
-
-      if (!usuarioData) {
-        setMensajeDebug("USUARIO NO ENCONTRADO EN TABLA usuarios");
-        toast.error("Usuario no encontrado en tabla usuarios");
-        await supabase.auth.signOut();
-        setCargando(false);
-        return;
+        usuarioData = perfilCreado as Usuario;
       }
 
       const estado = String(usuarioData.estado || "").toLowerCase().trim();
@@ -195,8 +197,8 @@ export default function LoginPage() {
             <a
               href={buildWhatsAppLink("Hola Jonas Stream, necesito ayuda con mi acceso.")}
               target="_blank"
-              rel="noopener noreferrer"
-              className={styles.topLinkPrimary}
+              rel="noreferrer"
+              className={`${styles.topLink} ${styles.topLinkPrimary}`}
             >
               CONTÁCTANOS
             </a>
@@ -204,132 +206,106 @@ export default function LoginPage() {
         </div>
       </header>
 
-      <section className={styles.loginShell}>
-        <div className={styles.brandPanel}>
-          <div className={styles.heroBadge}>ACCESO OFICIAL</div>
+      <section className={styles.accessGrid}>
+        <article className={styles.heroPanel}>
+          <span className={styles.heroBadge}>ACCESO OFICIAL</span>
 
           <h1 className={styles.heroTitle}>
-            ENTRA A TU
-            <span> CUENTA</span>
+            ENTRA A TU <strong>CUENTA</strong>
           </h1>
 
           <p className={styles.heroText}>
             Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo de cuenta.
           </p>
 
-          <div className={styles.accessGrid} aria-label="Accesos disponibles">
+          <div className={styles.accessGrid}>
             <div className={styles.accessCard}>
               <span>CLIENTE</span>
-              <strong>Consulta tus pedidos y servicios activos.</strong>
+              <p>Consulta tus pedidos y servicios activos.</p>
             </div>
 
             <div className={styles.accessCard}>
               <span>PROVEEDOR</span>
-              <strong>Gestiona productos y disponibilidad.</strong>
+              <p>Gestiona productos y disponibilidad.</p>
             </div>
 
             <div className={styles.accessCard}>
               <span>ADMIN</span>
-              <strong>Administra usuarios, ventas y configuración.</strong>
+              <p>Administra usuarios, ventas y configuración.</p>
             </div>
           </div>
 
-          <p className={styles.panelNote}>
+          <div className={styles.panelNote}>
             Si tu cuenta está pendiente, espera la aprobación o comunícate con soporte.
-          </p>
-        </div>
+          </div>
+        </article>
 
-        <form onSubmit={iniciarSesion} className={styles.loginCard}>
-          <div className={styles.cardGlow} />
-
+        <article className={styles.registerCard}>
           <div className={styles.formHeader}>
             <span className={styles.formKicker}>CUENTA JONAS STREAM</span>
-            <h2>Iniciar sesión</h2>
+            <h2>INICIAR SESIÓN</h2>
             <p>Ingresa con tu correo y contraseña registrados.</p>
           </div>
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="correo">Correo electrónico</label>
+          <form onSubmit={iniciarSesion} className={styles.formSection}>
+            <label className={styles.inputGroup}>
+              <span>CORREO ELECTRÓNICO</span>
+              <div className={styles.inputWrap}>
+                <input
+                  type="email"
+                  value={correo}
+                  onChange={(e) => setCorreo(e.target.value)}
+                  placeholder="cliente@test.com"
+                  autoComplete="email"
+                />
+              </div>
+            </label>
 
-            <div className={styles.inputWrap}>
-              <input
-                id="correo"
-                type="email"
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
-                placeholder="tunombre@correo.com"
-                autoComplete="email"
-                required
-              />
-            </div>
-          </div>
+            <label className={styles.inputGroup}>
+              <span>CONTRASEÑA</span>
+              <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
+                <input
+                  type={mostrarContrasena ? "text" : "password"}
+                  value={contrasena}
+                  onChange={(e) => setContrasena(e.target.value)}
+                  placeholder="••••••"
+                  autoComplete="current-password"
+                />
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="contrasena">Contraseña</label>
+                <button
+                  type="button"
+                  onClick={() => setMostrarContrasena((prev) => !prev)}
+                  className={styles.passwordToggle}
+                >
+                  {mostrarContrasena ? "OCULTAR" : "VER"}
+                </button>
+              </div>
+            </label>
 
-            <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
-              <input
-                id="contrasena"
-                type={mostrarContrasena ? "text" : "password"}
-                value={contrasena}
-                onChange={(e) => setContrasena(e.target.value)}
-                placeholder="Ingresa tu contraseña"
-                autoComplete="current-password"
-                required
-              />
+            {mensajeDebug && <div className={styles.panelNote}>{mensajeDebug}</div>}
 
-              <button
-                type="button"
-                className={styles.passwordToggle}
-                onClick={() => setMostrarContrasena((prev) => !prev)}
-                aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
-              >
-                {mostrarContrasena ? "OCULTAR" : "VER"}
-              </button>
-            </div>
-          </div>
+            <button type="submit" disabled={cargando} className={styles.submitButton}>
+              {cargando ? "INGRESANDO..." : "ENTRAR AL PANEL"}
+            </button>
 
-          {mensajeDebug && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "12px 14px",
-                borderRadius: 16,
-                border: "1px solid rgba(255, 143, 163, 0.38)",
-                background: "rgba(255, 143, 163, 0.1)",
-                color: "#ffd7df",
-                fontSize: 12,
-                fontWeight: 800,
-                lineHeight: 1.5,
-                wordBreak: "break-word",
-              }}
-            >
-              {mensajeDebug}
-            </div>
-          )}
-
-          <button type="submit" disabled={cargando} className={styles.submitButton}>
-            {cargando ? "Ingresando..." : "Entrar al panel"}
-          </button>
-
-          <div className={styles.formFooter}>
             <Link href="/" className={styles.secondaryLink}>
-              Volver al inicio
+              VOLVER AL INICIO
             </Link>
 
-            <span>Acceso exclusivo para usuarios registrados.</span>
-          </div>
-        </form>
+            <p className={styles.formFooter}>Acceso exclusivo para usuarios registrados.</p>
+          </form>
+        </article>
       </section>
 
       <footer className={styles.footerWrap}>
         <div className={styles.footerLegal}>
           © 2026 Jonas Stream. Todos los derechos reservados.
-          <div className={styles.footerLinks}>
-            <Link href="/terminos">Términos y Condiciones</Link>
-            <span className={styles.footerSeparator}>•</span>
-            <Link href="/privacidad">Política de Privacidad</Link>
-          </div>
+        </div>
+
+        <div className={styles.footerLinks}>
+          <Link href="/terminos">Términos y Condiciones</Link>
+          <span className={styles.footerSeparator}>•</span>
+          <Link href="/privacidad">Política de Privacidad</Link>
         </div>
       </footer>
     </main>
