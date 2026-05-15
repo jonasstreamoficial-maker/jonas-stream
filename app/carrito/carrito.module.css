@@ -969,3 +969,92 @@
     transform: none;
   }
 }
+
+
+/* ==========================================================
+   CREDITOS - CARRITO
+   Pago con saldo interno y entrega automática.
+   ========================================================== */
+
+.creditBox {
+  position: relative;
+  z-index: 2;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 224, 130, 0.1), transparent 36%),
+    rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 224, 130, 0.2);
+  box-shadow: inset 0 0 18px rgba(255, 224, 130, 0.025);
+}
+
+.creditBoxActive {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(124, 255, 178, 0.13), transparent 36%),
+    rgba(124, 255, 178, 0.045);
+  border-color: rgba(124, 255, 178, 0.28);
+  box-shadow:
+    0 0 18px rgba(124, 255, 178, 0.06),
+    inset 0 0 18px rgba(124, 255, 178, 0.025);
+}
+
+.creditBox span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.creditBox strong {
+  display: block;
+  color: #ffe082;
+  font-size: 1.45rem;
+  line-height: 1;
+  font-weight: 950;
+  font-family: "Orbitron", sans-serif;
+}
+
+.creditBoxActive strong {
+  color: #7cffb2;
+  text-shadow: 0 0 18px rgba(124, 255, 178, 0.18);
+}
+
+.creditBox small {
+  display: block;
+  margin-top: 9px;
+  color: var(--muted);
+  line-height: 1.45;
+  font-weight: 750;
+}
+
+.paymentGrid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.paymentGrid button:nth-child(5) {
+  grid-column: 1 / -1;
+  border-color: rgba(124, 255, 178, 0.24);
+  color: #7cffb2;
+  background: rgba(124, 255, 178, 0.055);
+}
+
+.paymentGrid button:nth-child(5).paymentActive {
+  color: #001014;
+  background: linear-gradient(135deg, #7cffb2, #01e7ef);
+  border-color: transparent;
+  box-shadow: 0 0 22px rgba(124, 255, 178, 0.16);
+}
+
+@media (max-width: 760px) {
+  .paymentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentGrid button:nth-child(5) {
+    grid-column: auto;
+  }
+}

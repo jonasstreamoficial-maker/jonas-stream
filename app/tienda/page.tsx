@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
 import { agregarAlCarrito, contarItemsCarrito } from "@/lib/carrito";
 import { toggleFavorito, obtenerFavoritos } from "@/lib/favoritos";
+import { obtenerCreditoUsuario, type CreditoUsuario } from "@/lib/creditos";
 import styles from "./tienda.module.css";
 
 const USD_RATE = 3.75;
@@ -156,13 +157,18 @@ export default function TiendaPage() {
   const [cantidadCarrito, setCantidadCarrito] = useState(0);
   const [favoritos, setFavoritos] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [creditoUsuario, setCreditoUsuario] = useState<CreditoUsuario | null>(null);
 
   useEffect(() => {
     cargarTienda();
     actualizarCarrito();
     cargarFavoritos();
+    cargarCreditoUsuario();
 
-    const handleFocus = () => actualizarCarrito();
+    const handleFocus = () => {
+      actualizarCarrito();
+      cargarCreditoUsuario();
+    };
     window.addEventListener("focus", handleFocus);
 
     return () => window.removeEventListener("focus", handleFocus);
@@ -177,6 +183,11 @@ export default function TiendaPage() {
   const cargarFavoritos = async () => {
     const data = await obtenerFavoritos();
     setFavoritos((data as Favorito[]).map((favorito) => favorito.producto_id));
+  };
+
+  const cargarCreditoUsuario = async () => {
+    const credito = await obtenerCreditoUsuario();
+    setCreditoUsuario(credito);
   };
 
   const manejarFavorito = async (productoId: string) => {
@@ -580,6 +591,18 @@ export default function TiendaPage() {
         </div>
 
         <aside className={styles.cartPanel}>
+          <div className={styles.creditMiniPanel}>
+            <span>Créditos disponibles</span>
+            <strong>S/ {formatMoney(creditoUsuario?.saldo || 0)}</strong>
+            <small>
+              {creditoUsuario
+                ? creditoUsuario.estado === "activo"
+                  ? "Puedes pagar desde el carrito si tienes saldo suficiente."
+                  : "Tu saldo existe, pero está inactivo."
+                : "Inicia sesión para ver tu saldo de créditos."}
+            </small>
+          </div>
+
           <div className={styles.cartHeader}>
             <div>
               <span>Carrito</span>

@@ -11,6 +11,7 @@ import {
   type ProductoCarrito,
 } from "@/lib/carrito";
 import { crearPedido } from "@/lib/pedidos";
+import { comprarConCreditos, obtenerCreditoUsuario, type CreditoUsuario } from "@/lib/creditos";
 import { validarCupon } from "@/lib/cupones";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
@@ -82,6 +83,7 @@ export default function CarritoPage() {
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [previewComprobante, setPreviewComprobante] = useState<string | null>(null);
   const [subiendoComprobante, setSubiendoComprobante] = useState(false);
+  const [creditoUsuario, setCreditoUsuario] = useState<CreditoUsuario | null>(null);
 
   const cargarCarrito = () => {
     setCarrito(obtenerCarrito());
@@ -89,8 +91,12 @@ export default function CarritoPage() {
 
   useEffect(() => {
     cargarCarrito();
+    cargarCreditoUsuario();
 
-    const handleFocus = () => cargarCarrito();
+    const handleFocus = () => {
+      cargarCarrito();
+      cargarCreditoUsuario();
+    };
     window.addEventListener("focus", handleFocus);
 
     return () => window.removeEventListener("focus", handleFocus);
@@ -104,6 +110,11 @@ export default function CarritoPage() {
     };
   }, [previewComprobante]);
 
+  const cargarCreditoUsuario = async () => {
+    const credito = await obtenerCreditoUsuario();
+    setCreditoUsuario(credito);
+  };
+
   const unidades = useMemo(() => {
     return carrito.reduce((acc, item) => acc + item.cantidad, 0);
   }, [carrito]);
@@ -111,6 +122,10 @@ export default function CarritoPage() {
   const totalOriginal = totalCarrito();
   const montoDescuento = (totalOriginal * descuento) / 100;
   const totalFinal = Math.max(totalOriginal - montoDescuento, 0);
+  const saldoCredito = Number(creditoUsuario?.saldo || 0);
+  const creditoActivo = creditoUsuario?.estado === "activo";
+  const creditoSuficiente = creditoActivo && saldoCredito >= totalFinal;
+  const pagoConCreditos = metodoPago === "Créditos";
 
   const aumentarCantidad = (id: string, cantidadActual: number) => {
     cambiarCantidadCarrito(id, cantidadActual + 1);
@@ -272,6 +287,52 @@ export default function CarritoPage() {
 
       if (!metodoPago) {
         toast.error("Selecciona un método de pago");
+        return;
+      }
+
+      if (pagoConCreditos) {
+        if (!creditoActivo) {
+          toast.error("Tus créditos no están activos");
+          return;
+        }
+
+        if (!creditoSuficiente) {
+          toast.error("No tienes créditos suficientes para esta compra");
+          return;
+        }
+
+        setProcesandoPedido(true);
+
+        const pedidoCredito = await comprarConCreditos(totalFinal, descuento);
+
+        toast.success("Compra con créditos completada. Tu cuenta fue asignada.");
+        limpiarCarrito();
+        cargarCarrito();
+        await cargarCreditoUsuario();
+        setCodigoCupon("");
+        setDescuento(0);
+        setCuponAplicado(null);
+        setMetodoPago("");
+        setComprobante(null);
+        setPreviewComprobante(null);
+
+        const mensajeWhatsAppCreditos = `✅ *COMPRA CON CRÉDITOS - JONAS STREAM*
+
+📌 *Pedido ID:*
+${pedidoCredito.id}
+
+💳 *Pago:*
+• Método: Créditos
+• Total: S/ ${totalFinal.toFixed(2)}
+
+📦 *Productos:*
+${carrito
+  .map((p) => `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`)
+  .join("\n")}
+
+✅ *Pedido completado automáticamente.*`;
+
+        window.open(buildWhatsAppLink(mensajeWhatsAppCreditos), "_blank", "noopener,noreferrer");
         return;
       }
 
@@ -575,11 +636,25 @@ ${productosTexto}
               )}
             </div>
 
+            <div className={`${styles.creditBox} ${creditoSuficiente ? styles.creditBoxActive : ""}`}>
+              <span>CRÉDITOS JONAS STREAM</span>
+              <strong>S/ {saldoCredito.toFixed(2)}</strong>
+              <small>
+                {creditoUsuario
+                  ? creditoActivo
+                    ? creditoSuficiente
+                      ? "Saldo suficiente para pagar este carrito con créditos."
+                      : "Saldo insuficiente para cubrir el total actual."
+                    : "Tu saldo existe, pero está inactivo."
+                  : "No tienes créditos asignados o no iniciaste sesión."}
+              </small>
+            </div>
+
             <div className={styles.paymentBox}>
               <span>MÉTODO DE PAGO</span>
 
               <div className={styles.paymentGrid}>
-                {["Yape", "Plin", "Bim", "Binance"].map((metodo) => (
+                {["Yape", "Plin", "Bim", "Binance", "Créditos"].map((metodo) => (
                   <button
                     key={metodo}
                     type="button"
@@ -591,7 +666,7 @@ ${productosTexto}
                 ))}
               </div>
 
-              <label className={styles.uploadBox}>
+              {!pagoConCreditos && <label className={styles.uploadBox}>
                 <input
                   type="file"
                   accept="image/*"
@@ -606,7 +681,7 @@ ${productosTexto}
                     <img src={previewComprobante} alt="Vista previa del comprobante" />
                   </div>
                 )}
-              </label>
+              </label>}
             </div>
 
             <button
@@ -615,12 +690,13 @@ ${productosTexto}
               onClick={finalizarCompra}
               disabled={procesandoPedido || subiendoComprobante}
             >
-              {procesandoPedido || subiendoComprobante ? "Procesando pedido..." : "Crear pedido"}
+              {procesandoPedido || subiendoComprobante ? "Procesando pedido..." : pagoConCreditos ? "Comprar con créditos" : "Crear pedido"}
             </button>
 
             <p className={styles.summaryNote}>
-              Al crear el pedido se registrará con estado pendiente para continuar el proceso de
-              confirmación.
+              {pagoConCreditos
+                ? "Al pagar con créditos, el pedido se completa automáticamente y se asigna una cuenta disponible."
+                : "Al crear el pedido se registrará con estado pendiente para continuar el proceso de confirmación."}
             </p>
           </aside>
         </section>

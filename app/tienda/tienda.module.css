@@ -1935,3 +1935,52 @@
     font-size: 1.08rem !important;
   }
 }
+
+
+/* ==========================================================
+   CREDITOS - TIENDA
+   Muestra saldo disponible sin tocar carrito ni cards.
+   ========================================================== */
+
+.creditMiniPanel {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(124, 255, 178, 0.13), transparent 36%),
+    rgba(1, 231, 239, 0.055);
+  border: 1px solid rgba(124, 255, 178, 0.24);
+  box-shadow:
+    0 0 22px rgba(124, 255, 178, 0.06),
+    inset 0 0 18px rgba(0, 251, 255, 0.035);
+}
+
+.creditMiniPanel span {
+  display: block;
+  margin-bottom: 8px;
+  color: #7cffb2;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.creditMiniPanel strong {
+  display: block;
+  color: #7cffb2;
+  font-size: 1.35rem;
+  font-weight: 950;
+  line-height: 1;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-shadow: 0 0 18px rgba(124, 255, 178, 0.2);
+}
+
+.creditMiniPanel small {
+  display: block;
+  margin-top: 9px;
+  color: #9bc8cb;
+  line-height: 1.45;
+  font-weight: 750;
+}
