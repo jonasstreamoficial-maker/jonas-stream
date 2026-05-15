@@ -2178,6 +2178,18 @@ export default function AdminPage() {
                     <div className={styles.previewBody}>
                       <h4>{formProducto.nombre || "Nuevo producto"}</h4>
                       <p>{formProducto.descripcion || "Descripción del producto digital"}</p>
+                      <div
+                        className={`${styles.previewStockLine} ${
+                          Number(formProducto.stock || 0) <= 0
+                            ? styles.previewStockDanger
+                            : Number(formProducto.stock || 0) <= 3
+                            ? styles.previewStockWarning
+                            : styles.previewStockOk
+                        }`}
+                      >
+                        <span>Stock</span>
+                        <strong>{Number(formProducto.stock || 0)}</strong>
+                      </div>
 
                       <div className={styles.adminMetaGrid}>
                         <div className={styles.adminMetaCard}>
@@ -2192,15 +2204,19 @@ export default function AdminPage() {
                           <span>Proveedor</span>
                           <strong>{formProducto.proveedor || "Jonas Stream"}</strong>
                         </div>
-                        <div className={styles.adminMetaCard}>
+                        <div
+                          className={`${styles.adminMetaCard} ${
+                            formProducto.renovable ? styles.adminMetaSuccess : styles.adminMetaDanger
+                          }`}
+                        >
                           <span>Renovable</span>
                           <strong>{formProducto.renovable ? "Sí" : "No"}</strong>
                         </div>
                       </div>
 
                       <div className={styles.adminStatusRow}>
-                        <span className={Number(formProducto.stock || 0) <= 0 ? styles.badgeDanger : styles.badgeOk}>
-                          {Number(formProducto.stock || 0) <= 0 ? "AGOTADO" : "ACTIVO"}
+                        <span className={Number(formProducto.stock || 0) <= 0 ? styles.badgeDanger : Number(formProducto.stock || 0) <= 3 ? styles.badgeWarning : styles.badgeOk}>
+                          {Number(formProducto.stock || 0) <= 0 ? "AGOTADO" : Number(formProducto.stock || 0) <= 3 ? "LIMITADO" : "ACTIVO"}
                         </span>
                         <small>{Number(formProducto.stock || 0) <= 0 ? "Consultar reposición" : "Stock disponible"}</small>
                       </div>
@@ -2470,17 +2486,29 @@ export default function AdminPage() {
                             <span>Tipo</span>
                             <strong>{tipoVenta}</strong>
                           </div>
+                          <div
+                            className={`${styles.adminMetaCard} ${
+                              agotado ? styles.adminMetaDanger : limitado ? styles.adminMetaWarning : styles.adminMetaSuccess
+                            }`}
+                          >
+                            <span>Stock</span>
+                            <strong>{stock}</strong>
+                          </div>
                           <div className={styles.adminMetaCard}>
                             <span>Duración</span>
                             <strong>{p.duracion || "1 mes"}</strong>
                           </div>
+                          <div
+                            className={`${styles.adminMetaCard} ${
+                              p.renovable ? styles.adminMetaSuccess : styles.adminMetaDanger
+                            }`}
+                          >
+                            <span>Renovable</span>
+                            <strong>{p.renovable ? "Sí" : "No"}</strong>
+                          </div>
                           <div className={styles.adminMetaCard}>
                             <span>Proveedor</span>
                             <strong>{p.proveedor || "Jonas Stream"}</strong>
-                          </div>
-                          <div className={styles.adminMetaCard}>
-                            <span>Stock</span>
-                            <strong>{stock}</strong>
                           </div>
                         </div>
 

@@ -5778,3 +5778,36 @@
     flex-direction: column;
   }
 }
+
+
+/* Jonas Stream - renovable y stock visual */
+
+.adminMetaSuccess {
+  border-color: rgba(124, 255, 178, 0.28);
+  background: rgba(124, 255, 178, 0.075);
+}
+
+.adminMetaSuccess span,
+.adminMetaSuccess strong {
+  color: #7cffb2;
+}
+
+.adminMetaWarning {
+  border-color: rgba(255, 224, 130, 0.32);
+  background: rgba(255, 224, 130, 0.08);
+}
+
+.adminMetaWarning span,
+.adminMetaWarning strong {
+  color: #ffe082;
+}
+
+.adminMetaDanger {
+  border-color: rgba(255, 143, 163, 0.34);
+  background: rgba(255, 143, 163, 0.085);
+}
+
+.adminMetaDanger span,
+.adminMetaDanger strong {
+  color: #ff8fa3;
+}
