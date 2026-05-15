@@ -108,6 +108,19 @@ type Credito = {
   created_at?: string | null
 }
 
+type ComprobanteUnificado = {
+  id: string
+  pedidoId?: string | null
+  cliente: string
+  correo: string
+  monto: number
+  metodo: string
+  estado: string
+  url: string | null
+  fecha?: string | null
+  origen: "tabla" | "pedido"
+}
+
 type MetricTone = "success" | "warning" | "danger" | "info" | "neutral"
 
 type OrdenProducto = "recientes" | "nombre" | "precio_mayor" | "precio_menor" | "stock_menor"
@@ -239,7 +252,8 @@ export default function AdminPage() {
 
   const [busquedaComprobante, setBusquedaComprobante] = useState("")
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
-  const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("revision")
+  const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("tabla")
+  const [comprobantePreview, setComprobantePreview] = useState<ComprobanteUnificado | null>(null)
 
   const [busquedaHistorial, setBusquedaHistorial] = useState("")
   const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
@@ -1262,7 +1276,7 @@ export default function AdminPage() {
     })
   }, [usuarios, busquedaUsuario, filtroEstadoUsuario, filtroRolUsuario])
 
-  const comprobantesUnificados = useMemo(() => {
+  const comprobantesUnificados = useMemo<ComprobanteUnificado[]>(() => {
     if (comprobantes.length > 0) {
       return comprobantes.map((c) => ({
         id: c.id,
@@ -2561,11 +2575,11 @@ export default function AdminPage() {
                 </div>
                 <div className={styles.bulkActions}>
                   <button type="button" onClick={() => { setFiltroEstadoComprobante("todos"); setBusquedaComprobante("") }} className={styles.secondaryButton}>Limpiar filtros</button>
-                  <button type="button" onClick={() => { setFiltroEstadoComprobante("pendiente"); setVistaComprobantes("revision") }} className={styles.primaryButton}>Cola pendiente</button>
+                  <button type="button" onClick={() => { setFiltroEstadoComprobante("pendiente"); setVistaComprobantes("tabla") }} className={styles.primaryButton}>Cola pendiente</button>
                 </div>
                 <div className={styles.toggleGroup}>
-                  <button type="button" onClick={() => setVistaComprobantes("revision")} className={vistaComprobantes === "revision" ? styles.toggleActive : ""}>Revisión</button>
-                  <button type="button" onClick={() => setVistaComprobantes("tabla")} className={vistaComprobantes === "tabla" ? styles.toggleActive : ""}>Tabla</button>
+                  <button type="button" onClick={() => setVistaComprobantes("tabla")} className={vistaComprobantes === "tabla" ? styles.toggleActive : ""}>Filas</button>
+                  <button type="button" onClick={() => setVistaComprobantes("revision")} className={vistaComprobantes === "revision" ? styles.toggleActive : ""}>Tarjetas</button>
                 </div>
               </div>
 
@@ -2597,11 +2611,17 @@ export default function AdminPage() {
                               <td>{comprobante.metodo}</td>
                               <td><StatusBadge estado={comprobante.estado} /></td>
                               <td><span className={comprobante.origen === "tabla" ? styles.badgeInfo : styles.badgeOk}>{comprobante.origen === "tabla" ? "Tabla" : "Pedido"}</span></td>
-                              <td>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.badgeWarning}>Sin archivo</span>}</td>
+                              <td>
+                                {comprobante.url ? (
+                                  <button type="button" onClick={() => setComprobantePreview(comprobante)} className={styles.secondaryButton}>👁 Ver</button>
+                                ) : (
+                                  <span className={styles.badgeWarning}>Sin archivo</span>
+                                )}
+                              </td>
                               <td>
                                 <div className={styles.tableActions}>
                                   <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar</button>
-                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "observado")} className={styles.secondaryButton}>Observar</button>
+                                  <button type="button" onClick={() => setComprobantePreview(comprobante)} className={styles.secondaryButton}>Revisar</button>
                                   <button type="button" onClick={() => resolverComprobantePro(comprobante, "rechazado")} className={styles.dangerButton}>Rechazar</button>
                                 </div>
                               </td>
@@ -2680,6 +2700,86 @@ export default function AdminPage() {
                 </>
               )}
             </article>
+
+            {comprobantePreview && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 9999,
+                  background: "rgba(0, 0, 0, 0.86)",
+                  backdropFilter: "blur(10px)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "22px",
+                }}
+                onClick={() => setComprobantePreview(null)}
+              >
+                <div
+                  style={{
+                    width: "min(1180px, 96vw)",
+                    maxHeight: "94vh",
+                    overflow: "hidden",
+                    border: "1px solid rgba(1, 231, 239, 0.35)",
+                    borderRadius: "24px",
+                    background: "#031316",
+                    boxShadow: "0 0 50px rgba(0, 251, 255, 0.18)",
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1.35fr) minmax(320px, 0.65fr)",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div style={{ background: "#000", minHeight: "70vh", maxHeight: "94vh", overflow: "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {comprobantePreview.url ? (
+                      <img
+                        src={comprobantePreview.url}
+                        alt={`Comprobante ${comprobantePreview.id.slice(0, 8)}`}
+                        style={{ width: "100%", height: "auto", maxHeight: "92vh", objectFit: "contain" }}
+                      />
+                    ) : (
+                      <div className={styles.reviewPlaceholderPro}>
+                        <strong>Sin archivo</strong>
+                        <small>No hay comprobante para mostrar.</small>
+                      </div>
+                    )}
+                  </div>
+
+                  <aside style={{ padding: "24px", overflow: "auto" }}>
+                    <div className={styles.reviewTopline}>
+                      <div>
+                        <p className={styles.kicker}>Vista previa</p>
+                        <h4>#{comprobantePreview.id.slice(0, 8)}</h4>
+                      </div>
+                      <button type="button" onClick={() => setComprobantePreview(null)} className={styles.dangerGhostButton}>Cerrar</button>
+                    </div>
+
+                    <div className={styles.reviewAmountBox}>
+                      <span>Monto declarado</span>
+                      <strong>{formatearSoles(comprobantePreview.monto)}</strong>
+                      <small>{comprobantePreview.metodo || "Método no definido"}</small>
+                    </div>
+
+                    <div className={styles.infoGrid}>
+                      <span>Cliente</span><strong>{comprobantePreview.cliente}</strong>
+                      <span>Correo</span><strong>{comprobantePreview.correo || "Sin correo"}</strong>
+                      <span>Pedido</span><strong>{comprobantePreview.pedidoId ? `#${comprobantePreview.pedidoId.slice(0, 8)}` : "Sin pedido"}</strong>
+                      <span>Fecha</span><strong>{fechaLegible(comprobantePreview.fecha)}</strong>
+                      <span>Estado</span><strong>{comprobantePreview.estado}</strong>
+                    </div>
+
+                    <div className={styles.reviewActionsPro}>
+                      {comprobantePreview.url && <a href={comprobantePreview.url} target="_blank" rel="noreferrer" className={styles.primaryButton}>Abrir en otra pestaña</a>}
+                      <button type="button" onClick={() => resolverComprobantePro(comprobantePreview, "aprobado")} className={styles.successButton}>Aprobar pago</button>
+                      <button type="button" onClick={() => resolverComprobantePro(comprobantePreview, "observado")} className={styles.secondaryButton}>Observar</button>
+                      <button type="button" onClick={() => resolverComprobantePro(comprobantePreview, "rechazado")} className={styles.dangerButton}>Rechazar</button>
+                    </div>
+                  </aside>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
