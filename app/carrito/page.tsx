@@ -11,7 +11,12 @@ import {
   type ProductoCarrito,
 } from "@/lib/carrito";
 import { crearPedido } from "@/lib/pedidos";
-import { comprarConCreditos, obtenerCreditoUsuario, type CreditoUsuario } from "@/lib/creditos";
+import {
+  comprarConCreditos,
+  obtenerCreditoUsuario,
+  type CreditoUsuario,
+  type CuentaEntregada,
+} from "@/lib/creditos";
 import { validarCupon } from "@/lib/cupones";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
@@ -81,9 +86,19 @@ export default function CarritoPage() {
   const [cuponAplicado, setCuponAplicado] = useState<string | null>(null);
   const [metodoPago, setMetodoPago] = useState("");
   const [comprobante, setComprobante] = useState<File | null>(null);
-  const [previewComprobante, setPreviewComprobante] = useState<string | null>(null);
+  const [previewComprobante, setPreviewComprobante] = useState<string | null>(
+    null,
+  );
   const [subiendoComprobante, setSubiendoComprobante] = useState(false);
-  const [creditoUsuario, setCreditoUsuario] = useState<CreditoUsuario | null>(null);
+  const [creditoUsuario, setCreditoUsuario] = useState<CreditoUsuario | null>(
+    null,
+  );
+  const [cuentasEntregadas, setCuentasEntregadas] = useState<CuentaEntregada[]>(
+    [],
+  );
+  const [pedidoEntregadoId, setPedidoEntregadoId] = useState<string | null>(
+    null,
+  );
 
   const cargarCarrito = () => {
     setCarrito(obtenerCarrito());
@@ -92,6 +107,7 @@ export default function CarritoPage() {
   useEffect(() => {
     cargarCarrito();
     cargarCreditoUsuario();
+    cargarUltimaEntrega();
 
     const handleFocus = () => {
       cargarCarrito();
@@ -113,6 +129,49 @@ export default function CarritoPage() {
   const cargarCreditoUsuario = async () => {
     const credito = await obtenerCreditoUsuario();
     setCreditoUsuario(credito);
+  };
+
+  const cargarUltimaEntrega = () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const data = window.localStorage.getItem("ultima_entrega_creditos");
+      if (!data) return;
+
+      const parsed = JSON.parse(data) as {
+        pedido_id?: string;
+        cuentas?: CuentaEntregada[];
+      };
+      setPedidoEntregadoId(parsed.pedido_id || null);
+      setCuentasEntregadas(Array.isArray(parsed.cuentas) ? parsed.cuentas : []);
+    } catch {
+      setPedidoEntregadoId(null);
+      setCuentasEntregadas([]);
+    }
+  };
+
+  const guardarUltimaEntrega = (
+    pedidoId: string,
+    cuentas: CuentaEntregada[],
+  ) => {
+    setPedidoEntregadoId(pedidoId);
+    setCuentasEntregadas(cuentas);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        "ultima_entrega_creditos",
+        JSON.stringify({ pedido_id: pedidoId, cuentas }),
+      );
+    }
+  };
+
+  const ocultarUltimaEntrega = () => {
+    setPedidoEntregadoId(null);
+    setCuentasEntregadas([]);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("ultima_entrega_creditos");
+    }
   };
 
   const unidades = useMemo(() => {
@@ -207,7 +266,7 @@ export default function CarritoPage() {
       if (error) {
         console.error("ERROR SUBIENDO COMPROBANTE:", error);
         throw new Error(
-          `No se pudo subir el comprobante: ${error.message || "revisa policies del bucket"}`
+          `No se pudo subir el comprobante: ${error.message || "revisa policies del bucket"}`,
         );
       }
 
@@ -218,7 +277,9 @@ export default function CarritoPage() {
         .getPublicUrl(filePath);
 
       if (!publicUrlData?.publicUrl) {
-        throw new Error("El comprobante se subió, pero no se pudo generar el link público.");
+        throw new Error(
+          "El comprobante se subió, pero no se pudo generar el link público.",
+        );
       }
 
       console.log("URL pública comprobante:", publicUrlData.publicUrl);
@@ -229,13 +290,17 @@ export default function CarritoPage() {
     }
   };
 
-  const guardarComprobanteEnTabla = async (pedido: PedidoCreado, comprobanteUrl: string) => {
+  const guardarComprobanteEnTabla = async (
+    pedido: PedidoCreado,
+    comprobanteUrl: string,
+  ) => {
     const usuarioLocal = leerUsuarioLocal();
 
     const payload = {
       pedido_id: pedido.id,
       usuario_id: pedido.usuario_id || usuarioLocal?.id || null,
-      cliente_nombre: pedido.cliente_nombre || usuarioLocal?.nombre || "Cliente Jonas Stream",
+      cliente_nombre:
+        pedido.cliente_nombre || usuarioLocal?.nombre || "Cliente Jonas Stream",
       cliente_correo: pedido.cliente_correo || usuarioLocal?.correo || "",
       url: comprobanteUrl,
       archivo_url: comprobanteUrl,
@@ -253,7 +318,7 @@ export default function CarritoPage() {
       console.error("ERROR INSERTANDO COMPROBANTE:", error);
       throw new Error(
         error.message ||
-          "El comprobante subió, pero no se pudo registrar en la tabla comprobantes"
+          "El comprobante subió, pero no se pudo registrar en la tabla comprobantes",
       );
     }
   };
@@ -315,7 +380,14 @@ export default function CarritoPage() {
         setPreviewComprobante(null);
 
         if (pedidoCredito.cuentas_asignadas) {
-          toast.success("Compra con créditos completada. Tu cuenta fue asignada.");
+          const cuentas = Array.isArray(pedidoCredito.cuentas_entregadas)
+            ? (pedidoCredito.cuentas_entregadas as CuentaEntregada[])
+            : [];
+
+          guardarUltimaEntrega(pedidoCredito.id, cuentas);
+          toast.success(
+            "Compra con créditos completada. Tu cuenta fue asignada.",
+          );
 
           const mensajeWhatsAppCreditos = `✅ *COMPRA CON CRÉDITOS - JONAS STREAM*
 
@@ -328,14 +400,23 @@ ${pedidoCredito.id}
 
 📦 *Productos:*
 ${carrito
-  .map((p) => `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`)
+  .map(
+    (p) =>
+      `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`,
+  )
   .join("\n")}
 
 ✅ *Pedido completado automáticamente.*`;
 
-          window.open(buildWhatsAppLink(mensajeWhatsAppCreditos), "_blank", "noopener,noreferrer");
+          window.open(
+            buildWhatsAppLink(mensajeWhatsAppCreditos),
+            "_blank",
+            "noopener,noreferrer",
+          );
         } else {
-          toast.error("Pedido creado, pero falta cuenta disponible. El admin lo revisará.");
+          toast.error(
+            "Pedido creado, pero falta cuenta disponible. El admin lo revisará.",
+          );
 
           const mensajeWhatsAppCreditosPendiente = `🧾 *PEDIDO CON CRÉDITOS - JONAS STREAM*
 
@@ -348,12 +429,19 @@ ${pedidoCredito.id}
 
 📦 *Productos:*
 ${carrito
-  .map((p) => `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`)
+  .map(
+    (p) =>
+      `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`,
+  )
   .join("\n")}
 
 ⚠️ *Pedido registrado, pendiente de asignación por admin.*`;
 
-          window.open(buildWhatsAppLink(mensajeWhatsAppCreditosPendiente), "_blank", "noopener,noreferrer");
+          window.open(
+            buildWhatsAppLink(mensajeWhatsAppCreditosPendiente),
+            "_blank",
+            "noopener,noreferrer",
+          );
         }
 
         return;
@@ -366,7 +454,11 @@ ${carrito
 
       setProcesandoPedido(true);
 
-      const pedido = (await crearPedido(metodoPago, totalFinal, descuento)) as PedidoCreado;
+      const pedido = (await crearPedido(
+        metodoPago,
+        totalFinal,
+        descuento,
+      )) as PedidoCreado;
       const comprobanteUrl = await subirComprobante(pedido.id);
 
       const { error: comprobantePedidoError } = await supabase
@@ -380,9 +472,13 @@ ${carrito
         .eq("id", pedido.id);
 
       if (comprobantePedidoError) {
-        console.error("ERROR GUARDANDO COMPROBANTE EN PEDIDO:", comprobantePedidoError);
+        console.error(
+          "ERROR GUARDANDO COMPROBANTE EN PEDIDO:",
+          comprobantePedidoError,
+        );
         throw new Error(
-          comprobantePedidoError.message || "El comprobante subió, pero no se pudo guardar en el pedido"
+          comprobantePedidoError.message ||
+            "El comprobante subió, pero no se pudo guardar en el pedido",
         );
       }
 
@@ -396,14 +492,14 @@ ${carrito
       const listaCuentas = cuentas
         .map(
           (p) =>
-            `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`
+            `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`,
         )
         .join("\n");
 
       const listaPerfiles = perfiles
         .map(
           (p) =>
-            `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`
+            `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`,
         )
         .join("\n");
 
@@ -448,7 +544,10 @@ ${productosTexto}
       setPreviewComprobante(null);
     } catch (error) {
       console.error("ERROR REAL CREANDO PEDIDO:", error);
-      const mensaje = error instanceof Error ? error.message : "Ocurrió un error al crear el pedido";
+      const mensaje =
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error al crear el pedido";
       toast.error(mensaje);
     } finally {
       setProcesandoPedido(false);
@@ -463,11 +562,17 @@ ${productosTexto}
       <div className={styles.gridOverlay} />
 
       <div className={styles.sideBrand}>JONAS STREAM</div>
-      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>JONAS STREAM</div>
+      <div className={`${styles.sideBrand} ${styles.sideBrandRight}`}>
+        JONAS STREAM
+      </div>
 
       <header className={styles.topbarWrap}>
         <div className={styles.topbar}>
-          <Link href="/" className={styles.brandBlock} aria-label="Ir al inicio">
+          <Link
+            href="/"
+            className={styles.brandBlock}
+            aria-label="Ir al inicio"
+          >
             <strong>JONAS STREAM</strong>
             <span>TIENDA OFICIAL</span>
           </Link>
@@ -479,6 +584,10 @@ ${productosTexto}
 
             <Link href="/tienda" className={styles.topLink}>
               TIENDA
+            </Link>
+
+            <Link href="/mis-cuentas" className={styles.topLink}>
+              MIS CUENTAS
             </Link>
 
             <a
@@ -502,8 +611,8 @@ ${productosTexto}
         </h1>
 
         <p className={styles.heroText}>
-          Revisa tus productos seleccionados, modifica cantidades, aplica cupones y crea tu
-          pedido de forma segura.
+          Revisa tus productos seleccionados, modifica cantidades, aplica
+          cupones y crea tu pedido de forma segura.
         </p>
 
         <div className={styles.heroActions}>
@@ -512,7 +621,11 @@ ${productosTexto}
           </Link>
 
           {carrito.length > 0 && (
-            <button type="button" onClick={vaciarCarrito} className={styles.heroBtnDanger}>
+            <button
+              type="button"
+              onClick={vaciarCarrito}
+              className={styles.heroBtnDanger}
+            >
               Vaciar carrito
             </button>
           )}
@@ -520,20 +633,73 @@ ${productosTexto}
       </section>
 
       {carrito.length === 0 ? (
-        <section className={styles.emptySection}>
-          <div className={styles.emptyIcon}>🛒</div>
-          <h2>Tu carrito está vacío</h2>
-          <p>Agrega productos desde la tienda para continuar con tu compra.</p>
+        cuentasEntregadas.length > 0 ? (
+          <section className={styles.deliverySection}>
+            <div className={styles.deliveryIcon}>✓</div>
+            <span className={styles.sectionKicker}>ENTREGA AUTOMÁTICA</span>
+            <h2>Tu cuenta fue entregada</h2>
+            <p>
+              Guarda estos datos. También podrás verlos luego en la sección Mis
+              cuentas.
+            </p>
 
-          <Link href="/tienda" className={styles.emptyButton}>
-            Ir a la tienda
-          </Link>
-        </section>
+            {pedidoEntregadoId && (
+              <div className={styles.deliveryOrder}>
+                Pedido #{pedidoEntregadoId.slice(0, 8)}
+              </div>
+            )}
+
+            <div className={styles.deliveryGrid}>
+              {cuentasEntregadas.map((cuenta) => (
+                <article key={cuenta.id} className={styles.deliveryCard}>
+                  <span>{cuenta.producto_nombre || "Producto"}</span>
+                  <h3>{cuenta.correo}</h3>
+                  <div>
+                    <small>Contraseña</small>
+                    <strong>{cuenta.clave}</strong>
+                  </div>
+                  <p>
+                    Vigencia: {cuenta.cliente_inicio || "Hoy"} hasta{" "}
+                    {cuenta.cliente_fin || "30 días"}
+                  </p>
+                </article>
+              ))}
+            </div>
+
+            <div className={styles.deliveryActions}>
+              <Link href="/mis-cuentas" className={styles.emptyButton}>
+                Ver mis cuentas
+              </Link>
+
+              <button
+                type="button"
+                onClick={ocultarUltimaEntrega}
+                className={styles.hideDeliveryButton}
+              >
+                Ocultar entrega
+              </button>
+            </div>
+          </section>
+        ) : (
+          <section className={styles.emptySection}>
+            <div className={styles.emptyIcon}>🛒</div>
+            <h2>Tu carrito está vacío</h2>
+            <p>
+              Agrega productos desde la tienda para continuar con tu compra.
+            </p>
+
+            <Link href="/tienda" className={styles.emptyButton}>
+              Ir a la tienda
+            </Link>
+          </section>
+        )
       ) : (
         <section className={styles.checkoutGrid}>
           <div className={styles.productsPanel}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionKicker}>PRODUCTOS SELECCIONADOS</span>
+              <span className={styles.sectionKicker}>
+                PRODUCTOS SELECCIONADOS
+              </span>
               <h2 className={styles.sectionTitle}>Detalle de compra</h2>
             </div>
 
@@ -542,26 +708,36 @@ ${productosTexto}
                 <article key={producto.id} className={styles.cartCard}>
                   <div className={styles.imageWrap}>
                     {producto.imagen ? (
-                      <img src={producto.imagen} alt={producto.nombre} className={styles.image} />
+                      <img
+                        src={producto.imagen}
+                        alt={producto.nombre}
+                        className={styles.image}
+                      />
                     ) : (
                       <div className={styles.imagePlaceholder}>JS</div>
                     )}
                   </div>
 
                   <div className={styles.productInfo}>
-                    <span className={styles.category}>{producto.categoria || "General"}</span>
+                    <span className={styles.category}>
+                      {producto.categoria || "General"}
+                    </span>
                     <h3>{producto.nombre}</h3>
                     <p>{producto.tipo_venta || "Producto digital"}</p>
 
                     <div className={styles.unitPrice}>
                       <small>Precio unitario</small>
-                      <strong>S/ {Number(producto.precio || 0).toFixed(2)}</strong>
+                      <strong>
+                        S/ {Number(producto.precio || 0).toFixed(2)}
+                      </strong>
                     </div>
 
                     <div className={styles.qtyControl}>
                       <button
                         type="button"
-                        onClick={() => disminuirCantidad(producto.id, producto.cantidad)}
+                        onClick={() =>
+                          disminuirCantidad(producto.id, producto.cantidad)
+                        }
                       >
                         −
                       </button>
@@ -570,7 +746,9 @@ ${productosTexto}
 
                       <button
                         type="button"
-                        onClick={() => aumentarCantidad(producto.id, producto.cantidad)}
+                        onClick={() =>
+                          aumentarCantidad(producto.id, producto.cantidad)
+                        }
                       >
                         +
                       </button>
@@ -579,7 +757,9 @@ ${productosTexto}
 
                   <div className={styles.productTotal}>
                     <span>Subtotal</span>
-                    <strong>S/ {(producto.precio * producto.cantidad).toFixed(2)}</strong>
+                    <strong>
+                      S/ {(producto.precio * producto.cantidad).toFixed(2)}
+                    </strong>
 
                     <button
                       type="button"
@@ -641,7 +821,9 @@ ${productosTexto}
                   type="text"
                   placeholder="Código de cupón"
                   value={codigoCupon}
-                  onChange={(event) => setCodigoCupon(event.target.value.toUpperCase())}
+                  onChange={(event) =>
+                    setCodigoCupon(event.target.value.toUpperCase())
+                  }
                 />
 
                 <button type="button" onClick={aplicarCupon}>
@@ -659,7 +841,9 @@ ${productosTexto}
               )}
             </div>
 
-            <div className={`${styles.creditBox} ${creditoSuficiente ? styles.creditBoxActive : ""}`}>
+            <div
+              className={`${styles.creditBox} ${creditoSuficiente ? styles.creditBoxActive : ""}`}
+            >
               <span>CRÉDITOS JONAS STREAM</span>
               <strong>S/ {saldoCredito.toFixed(2)}</strong>
               <small>
@@ -677,34 +861,50 @@ ${productosTexto}
               <span>MÉTODO DE PAGO</span>
 
               <div className={styles.paymentGrid}>
-                {["Yape", "Plin", "Bim", "Binance", "Créditos"].map((metodo) => (
-                  <button
-                    key={metodo}
-                    type="button"
-                    onClick={() => setMetodoPago(metodo)}
-                    className={metodoPago === metodo ? styles.paymentActive : ""}
-                  >
-                    {metodo}
-                  </button>
-                ))}
+                {["Yape", "Plin", "Bim", "Binance", "Créditos"].map(
+                  (metodo) => (
+                    <button
+                      key={metodo}
+                      type="button"
+                      onClick={() => setMetodoPago(metodo)}
+                      className={
+                        metodoPago === metodo ? styles.paymentActive : ""
+                      }
+                    >
+                      {metodo}
+                    </button>
+                  ),
+                )}
               </div>
 
-              {!pagoConCreditos && <label className={styles.uploadBox}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => seleccionarComprobante(event.target.files?.[0])}
-                />
+              {!pagoConCreditos && (
+                <label className={styles.uploadBox}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      seleccionarComprobante(event.target.files?.[0])
+                    }
+                  />
 
-                <strong>{comprobante ? comprobante.name : "Adjuntar comprobante"}</strong>
-                <small>Sube una captura o foto del pago. Se guardará en tu pedido y el admin podrá revisarlo.</small>
+                  <strong>
+                    {comprobante ? comprobante.name : "Adjuntar comprobante"}
+                  </strong>
+                  <small>
+                    Sube una captura o foto del pago. Se guardará en tu pedido y
+                    el admin podrá revisarlo.
+                  </small>
 
-                {previewComprobante && (
-                  <div className={styles.previewBox}>
-                    <img src={previewComprobante} alt="Vista previa del comprobante" />
-                  </div>
-                )}
-              </label>}
+                  {previewComprobante && (
+                    <div className={styles.previewBox}>
+                      <img
+                        src={previewComprobante}
+                        alt="Vista previa del comprobante"
+                      />
+                    </div>
+                  )}
+                </label>
+              )}
             </div>
 
             <button
@@ -713,7 +913,11 @@ ${productosTexto}
               onClick={finalizarCompra}
               disabled={procesandoPedido || subiendoComprobante}
             >
-              {procesandoPedido || subiendoComprobante ? "Procesando pedido..." : pagoConCreditos ? "Comprar con créditos" : "Crear pedido"}
+              {procesandoPedido || subiendoComprobante
+                ? "Procesando pedido..."
+                : pagoConCreditos
+                  ? "Comprar con créditos"
+                  : "Crear pedido"}
             </button>
 
             <p className={styles.summaryNote}>

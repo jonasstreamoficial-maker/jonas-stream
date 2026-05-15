@@ -23,6 +23,18 @@ type CuentaProducto = {
   correo: string;
   clave: string;
   estado: string;
+  cliente_inicio?: string | null;
+  cliente_fin?: string | null;
+};
+
+export type CuentaEntregada = {
+  id: string;
+  producto_id: string;
+  producto_nombre: string;
+  correo: string;
+  clave: string;
+  cliente_inicio?: string | null;
+  cliente_fin?: string | null;
 };
 
 function leerUsuarioLocal(): UsuarioLocal {
@@ -74,24 +86,30 @@ export async function obtenerCreditoUsuario(): Promise<CreditoUsuario | null> {
   };
 }
 
-async function verificarCuentasDisponibles(carrito: ReturnType<typeof obtenerCarrito>) {
+async function verificarCuentasDisponibles(
+  carrito: ReturnType<typeof obtenerCarrito>,
+) {
   for (const item of carrito) {
     const cantidad = Math.max(1, Number(item.cantidad || 1));
 
     const { data, error } = await supabase
       .from("cuentas_producto")
-      .select("id,producto_id,correo,clave,estado")
+      .select("id,producto_id,correo,clave,estado,cliente_inicio,cliente_fin")
       .eq("producto_id", item.id)
       .eq("estado", "disponible")
       .order("created_at", { ascending: true })
       .limit(cantidad);
 
     if (error) {
-      throw new Error(`No se pudo consultar cuentas disponibles para ${item.nombre}`);
+      throw new Error(
+        `No se pudo consultar cuentas disponibles para ${item.nombre}`,
+      );
     }
 
     if (!data || data.length < cantidad) {
-      throw new Error(`${item.nombre} no tiene cuentas suficientes disponibles`);
+      throw new Error(
+        `${item.nombre} no tiene cuentas suficientes disponibles`,
+      );
     }
   }
 }
@@ -99,25 +117,27 @@ async function verificarCuentasDisponibles(carrito: ReturnType<typeof obtenerCar
 async function asignarCuentasAlPedido(
   pedidoId: string,
   usuarioId: string,
-  carrito: ReturnType<typeof obtenerCarrito>
-) {
+  carrito: ReturnType<typeof obtenerCarrito>,
+): Promise<CuentaEntregada[]> {
   const clienteInicio = fechaISO();
   const clienteFin = sumarDiasISO(30);
-  const cuentasAsignadas: CuentaProducto[] = [];
+  const cuentasAsignadas: CuentaEntregada[] = [];
 
   for (const item of carrito) {
     const cantidad = Math.max(1, Number(item.cantidad || 1));
 
     const { data, error } = await supabase
       .from("cuentas_producto")
-      .select("id,producto_id,correo,clave,estado")
+      .select("id,producto_id,correo,clave,estado,cliente_inicio,cliente_fin")
       .eq("producto_id", item.id)
       .eq("estado", "disponible")
       .order("created_at", { ascending: true })
       .limit(cantidad);
 
     if (error || !data || data.length < cantidad) {
-      throw new Error(`${item.nombre} no tiene cuentas suficientes disponibles`);
+      throw new Error(
+        `${item.nombre} no tiene cuentas suficientes disponibles`,
+      );
     }
 
     const cuentas = data as CuentaProducto[];
@@ -138,7 +158,17 @@ async function asignarCuentasAlPedido(
       throw new Error(`No se pudo entregar la cuenta de ${item.nombre}`);
     }
 
-    cuentasAsignadas.push(...cuentas);
+    cuentasAsignadas.push(
+      ...cuentas.map((cuenta) => ({
+        id: cuenta.id,
+        producto_id: cuenta.producto_id,
+        producto_nombre: item.nombre,
+        correo: cuenta.correo,
+        clave: cuenta.clave,
+        cliente_inicio: clienteInicio,
+        cliente_fin: clienteFin,
+      })),
+    );
   }
 
   return cuentasAsignadas;
@@ -190,7 +220,9 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
     .single();
 
   if (pedidoError || !pedidoData) {
-    throw new Error(pedidoError?.message || "No se pudo crear el pedido con créditos");
+    throw new Error(
+      pedidoError?.message || "No se pudo crear el pedido con créditos",
+    );
   }
 
   const itemsPayload = carrito.map((item) => ({
@@ -200,20 +232,32 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
     precio: Number(item.precio || 0),
   }));
 
-  const { error: itemsError } = await supabase.from("pedido_items").insert(itemsPayload);
+  const { error: itemsError } = await supabase
+    .from("pedido_items")
+    .insert(itemsPayload);
 
   if (itemsError) {
-    throw new Error(itemsError.message || "El pedido se creó, pero falló el detalle");
+    throw new Error(
+      itemsError.message || "El pedido se creó, pero falló el detalle",
+    );
   }
 
   let cuentasAsignadas = false;
+  let cuentasEntregadas: CuentaEntregada[] = [];
   let motivoRevision = "";
 
   try {
-    await asignarCuentasAlPedido(pedidoData.id, usuario.id, carrito);
+    cuentasEntregadas = await asignarCuentasAlPedido(
+      pedidoData.id,
+      usuario.id,
+      carrito,
+    );
     cuentasAsignadas = true;
   } catch (error) {
-    motivoRevision = error instanceof Error ? error.message : "No se pudo asignar cuenta automáticamente";
+    motivoRevision =
+      error instanceof Error
+        ? error.message
+        : "No se pudo asignar cuenta automáticamente";
 
     try {
       await supabase.rpc("log_admin_action", {
@@ -232,6 +276,7 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
       ...pedidoData,
       estado: "pendiente",
       cuentas_asignadas: false,
+      cuentas_entregadas: [],
       requiere_revision: true,
       motivo_revision: motivoRevision,
       saldo_anterior: saldoActual,
@@ -246,6 +291,7 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
       ...pedidoData,
       estado: "pendiente",
       cuentas_asignadas: false,
+      cuentas_entregadas: [],
       requiere_revision: true,
       motivo_revision: "No se pudo asignar cuenta automáticamente",
       saldo_anterior: saldoActual,
@@ -261,8 +307,13 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
     .eq("id", credito.id);
 
   if (creditoError) {
-    await supabase.from("pedidos").update({ estado: "pendiente" }).eq("id", pedidoData.id);
-    throw new Error("La cuenta fue ubicada, pero no se pudo descontar el crédito. El pedido quedó pendiente para revisión.");
+    await supabase
+      .from("pedidos")
+      .update({ estado: "pendiente" })
+      .eq("id", pedidoData.id);
+    throw new Error(
+      "La cuenta fue ubicada, pero no se pudo descontar el crédito. El pedido quedó pendiente para revisión.",
+    );
   }
 
   const { error: completarError } = await supabase
@@ -271,7 +322,9 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
     .eq("id", pedidoData.id);
 
   if (completarError) {
-    throw new Error("Se descontaron créditos, pero no se pudo completar el pedido. Avísale al admin.");
+    throw new Error(
+      "Se descontaron créditos, pero no se pudo completar el pedido. Avísale al admin.",
+    );
   }
 
   try {
@@ -291,6 +344,7 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
     ...pedidoData,
     estado: "completado",
     cuentas_asignadas: true,
+    cuentas_entregadas: cuentasEntregadas,
     requiere_revision: false,
     motivo_revision: null,
     saldo_anterior: saldoActual,

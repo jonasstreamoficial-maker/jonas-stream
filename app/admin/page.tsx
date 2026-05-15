@@ -704,7 +704,50 @@ export default function AdminPage() {
     return true
   }
 
+
+  const normalizarSinAcentos = (valor?: string | number | null) =>
+    normalizarTexto(valor)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+
+  const esPagoConCreditos = (metodo?: string | null) => {
+    const texto = normalizarSinAcentos(metodo)
+    return texto.includes("credito") || texto.includes("creditos")
+  }
+
+  const obtenerCuentasEntregadasPorPedido = useCallback(
+    (pedidoId?: string | null) => {
+      if (!pedidoId) return []
+
+      return cuentasProducto.filter(
+        (cuenta) =>
+          cuenta.pedido_id === pedidoId &&
+          normalizarSinAcentos(cuenta.estado) === "entregada"
+      )
+    },
+    [cuentasProducto]
+  )
+
+  const pedidoTieneCuentaEntregada = useCallback(
+    (pedido?: Pedido | null) => {
+      if (!pedido?.id) return false
+      return obtenerCuentasEntregadasPorPedido(pedido.id).length > 0
+    },
+    [obtenerCuentasEntregadasPorPedido]
+  )
+
   const descontarStockPorPedido = async (pedido: Pedido) => {
+    const cuentasYaEntregadas = obtenerCuentasEntregadasPorPedido(pedido.id)
+
+    if (cuentasYaEntregadas.length > 0) {
+      toast.success(
+        cuentasYaEntregadas.length === 1
+          ? "Este pedido ya tiene una cuenta entregada"
+          : `Este pedido ya tiene ${cuentasYaEntregadas.length} cuentas entregadas`
+      )
+      return true
+    }
+
     const normalizarProductoPedido = (valor?: unknown) => normalizarTexto(String(valor ?? ""))
 
     const buscarProductoPorDatos = (datos: Record<string, unknown>) => {
@@ -902,7 +945,10 @@ export default function AdminPage() {
 
   const actualizarEstadoPedido = async (id: string, nuevoEstado: string) => {
     const pedidoActual = pedidos.find((pedido) => pedido.id === id)
-    const debeEntregarCuenta = nuevoEstado === "completado" && pedidoActual?.estado !== "completado"
+    const debeEntregarCuenta =
+      nuevoEstado === "completado" &&
+      Boolean(pedidoActual) &&
+      !pedidoTieneCuentaEntregada(pedidoActual)
 
     if (debeEntregarCuenta && pedidoActual) {
       const cuentaEntregada = await descontarStockPorPedido(pedidoActual)
@@ -999,7 +1045,11 @@ export default function AdminPage() {
         const ids = [...pedidosSeleccionados]
 
         if (nuevoEstado === "completado") {
-          const pedidosParaEntregar = pedidos.filter((pedido) => ids.includes(pedido.id) && pedido.estado !== "completado")
+          const pedidosParaEntregar = pedidos.filter(
+            (pedido) =>
+              ids.includes(pedido.id) &&
+              (pedido.estado !== "completado" || !pedidoTieneCuentaEntregada(pedido))
+          )
 
           for (const pedido of pedidosParaEntregar) {
             const cuentaEntregada = await descontarStockPorPedido(pedido)
@@ -1176,7 +1226,8 @@ export default function AdminPage() {
       : null
     const debeEntregarCuenta =
       estadoPedido === "completado" &&
-      pedidoActualComprobante?.estado !== "completado"
+      Boolean(pedidoActualComprobante) &&
+      !pedidoTieneCuentaEntregada(pedidoActualComprobante)
 
     if (debeEntregarCuenta && pedidoActualComprobante) {
       const cuentaEntregada = await descontarStockPorPedido(pedidoActualComprobante)
@@ -3418,28 +3469,45 @@ export default function AdminPage() {
                           const comprobanteUrl = comprobantePedido?.url
                           const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
                           const esUrgente = pedido.estado === "pendiente" && horasDesdeCreacion >= 24
-                          const sinComprobante = !comprobanteUrl
+                          const esCredito = esPagoConCreditos(pedido.metodo_pago)
+                          const sinComprobante = !comprobanteUrl && !esCredito
                           const altoValor = Number(pedido.total || 0) >= 100
+                          const cuentasEntregadasPedido = obtenerCuentasEntregadasPorPedido(pedido.id)
+                          const entregaRealizada = cuentasEntregadasPedido.length > 0
                           return (
                             <tr key={pedido.id} className={pedidosSeleccionados.includes(pedido.id) ? styles.rowSelected : ""}>
                               <td className={styles.checkColumn}><input type="checkbox" aria-label={`Seleccionar pedido ${pedido.id.slice(0, 8)}`} checked={pedidosSeleccionados.includes(pedido.id)} onChange={() => alternarPedidoSeleccionado(pedido.id)} /></td>
                               <td><strong>#{pedido.id.slice(0, 8)}</strong><small>{fechaLegible(pedido.created_at)}</small></td>
                               <td><strong>{pedido.cliente_nombre}</strong><small>{pedido.cliente_correo}</small></td>
                               <td>{formatearSoles(pedido.total)}</td>
-                              <td>{pedido.metodo_pago || "No definido"}</td>
-                              <td><StatusBadge estado={pedido.estado} /></td>
+                              <td>
+                                <strong>{pedido.metodo_pago || "No definido"}</strong>
+                                {esCredito && <small className={styles.creditMethod}>Pago con créditos</small>}
+                              </td>
+                              <td>
+                                <StatusBadge estado={pedido.estado} />
+                                {entregaRealizada && (
+                                  <small className={styles.autoDeliveryMini}>
+                                    {cuentasEntregadasPedido.length} cuenta(s) entregada(s)
+                                  </small>
+                                )}
+                              </td>
                               <td>
                                 <div className={styles.tablePriorityStack}>
                                   {esUrgente && <span className={styles.badgeDanger}>Urgente</span>}
-                                  {sinComprobante && <span className={styles.badgeWarning}>Sin pago</span>}
+                                  {entregaRealizada && <span className={styles.badgeOk}>Entregado</span>}
+                                  {esCredito && <span className={styles.badgeInfo}>Créditos</span>}
+                                  {sinComprobante && !esCredito && <span className={styles.badgeWarning}>Sin pago</span>}
                                   {altoValor && <span className={styles.badgeInfo}>Alto valor</span>}
-                                  {!esUrgente && !sinComprobante && !altoValor && <span className={styles.badgeOk}>OK</span>}
+                                  {!entregaRealizada && !esUrgente && !sinComprobante && !altoValor && !esCredito && <span className={styles.badgeOk}>OK</span>}
                                 </div>
                               </td>
                               <td>{comprobantePedido ? <button type="button" onClick={() => setComprobantePreview(comprobantePedido)} className={styles.secondaryButton}>👁 Ver</button> : <span className={styles.mutedText}>Sin voucher</span>}</td>
                               <td>
                                 <div className={styles.tableActions}>
-                                  <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>OK</button>
+                                  <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>
+                                    {entregaRealizada ? "Verificado" : "OK"}
+                                  </button>
                                   <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelar</button>
                                   <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar</button>
                                 </div>
@@ -3458,9 +3526,12 @@ export default function AdminPage() {
                       const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
                       const esPendiente = pedido.estado === "pendiente"
                       const esUrgente = esPendiente && horasDesdeCreacion >= 24
-                      const sinComprobante = !comprobanteUrl
+                      const esCredito = esPagoConCreditos(pedido.metodo_pago)
+                      const sinComprobante = !comprobanteUrl && !esCredito
                       const altoValor = Number(pedido.total || 0) >= 100
-                      const cardEstadoClase = esUrgente ? styles.orderUrgent : sinComprobante ? styles.orderWarning : altoValor ? styles.orderHighValue : ""
+                      const cuentasEntregadasPedido = obtenerCuentasEntregadasPorPedido(pedido.id)
+                      const entregaRealizada = cuentasEntregadasPedido.length > 0
+                      const cardEstadoClase = entregaRealizada ? styles.orderDelivered : esUrgente ? styles.orderUrgent : sinComprobante ? styles.orderWarning : altoValor ? styles.orderHighValue : ""
 
                       return (
                         <article key={pedido.id} className={`${styles.orderCard} ${styles.orderCardPro} ${cardEstadoClase} ${pedidosSeleccionados.includes(pedido.id) ? styles.cardSelected : ""}`}>
@@ -3469,7 +3540,10 @@ export default function AdminPage() {
                               <input type="checkbox" checked={pedidosSeleccionados.includes(pedido.id)} onChange={() => alternarPedidoSeleccionado(pedido.id)} />
                               Seleccionar
                             </label>
-                            <StatusBadge estado={pedido.estado} />
+                            <div className={styles.orderStateStack}>
+                              <StatusBadge estado={pedido.estado} />
+                              {entregaRealizada && <span className={styles.deliveryBadge}>Entregado</span>}
+                            </div>
                           </div>
 
                           <div className={styles.orderHeroLine}>
@@ -3482,14 +3556,17 @@ export default function AdminPage() {
 
                           <div className={styles.orderSignalStrip}>
                             {esUrgente && <span className={styles.badgeDanger}>URGENTE +24H</span>}
-                            {sinComprobante && <span className={styles.badgeWarning}>SIN PAGO</span>}
+                            {entregaRealizada && <span className={styles.badgeOk}>ENTREGA LISTA</span>}
+                            {esCredito && <span className={styles.badgeInfo}>PAGO CON CRÉDITOS</span>}
+                            {sinComprobante && !esCredito && <span className={styles.badgeWarning}>SIN PAGO</span>}
                             {altoValor && <span className={styles.badgeInfo}>ALTO VALOR</span>}
-                            {!esUrgente && !sinComprobante && !altoValor && <span className={styles.badgeOk}>CONTROLADO</span>}
+                            {!entregaRealizada && !esUrgente && !sinComprobante && !altoValor && !esCredito && <span className={styles.badgeOk}>CONTROLADO</span>}
                           </div>
 
                           <div className={styles.infoGrid}>
                             <span>Correo</span><strong>{pedido.cliente_correo}</strong>
-                            <span>Método</span><strong>{pedido.metodo_pago || "No definido"}</strong>
+                            <span>Método</span><strong>{pedido.metodo_pago || "No definido"}{esCredito ? " · entrega automática" : ""}</strong>
+                            <span>Entrega</span><strong>{entregaRealizada ? `${cuentasEntregadasPedido.length} cuenta(s) asignada(s)` : "Pendiente de asignación"}</strong>
                             <span>Fecha</span><strong>{fechaLegible(pedido.created_at)}</strong>
                             <span>Tiempo</span><strong>{horasDesdeCreacion < 1 ? "Hace menos de 1h" : `Hace ${Math.floor(horasDesdeCreacion)}h`}</strong>
                           </div>
@@ -3505,7 +3582,9 @@ export default function AdminPage() {
 
                           <div className={styles.cardActions}>
                             <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>⏳ Pendiente</button>
-                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>✔ Completar</button>
+                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>
+                              {entregaRealizada ? "✔ Verificado" : "✔ Completar / entregar"}
+                            </button>
                             <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>✖ Cancelar</button>
                             <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar pedido</button>
                           </div>
