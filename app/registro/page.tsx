@@ -50,6 +50,13 @@ function limpiarCelular(value: string) {
   return value.replace(/[^\d]/g, "");
 }
 
+function separarNombreCompleto(nombreCompleto: string) {
+  const partes = nombreCompleto.trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
+  const primerNombre = partes[0] || "";
+  const segundoNombre = partes.slice(1).join(" ");
+  return { primerNombre, segundoNombre };
+}
+
 export default function RegistroPage() {
   const router = useRouter();
 
@@ -68,81 +75,103 @@ export default function RegistroPage() {
 
   const celularLimpio = limpiarCelular(celular);
   const celularCompleto = `${paisSeleccionado.codigo}${celularLimpio}`;
+  const telefonoSinMas = celularCompleto.replace("+", "");
 
   const registrarUsuario = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (cargando) return;
+    if (cargando) return;
 
-  const nombreLimpio = nombre.trim();
-  const correoNormalizado = correo.trim().toLowerCase();
+    const nombreLimpio = nombre.trim().replace(/\s+/g, " ");
+    const correoNormalizado = correo.trim().toLowerCase();
+    const { primerNombre, segundoNombre } = separarNombreCompleto(nombreLimpio);
 
-  if (nombreLimpio.length < 3) {
-    toast.error("Ingresa tu nombre completo");
-    return;
-  }
+    if (nombreLimpio.length < 3) {
+      toast.error("Ingresa tu nombre completo");
+      return;
+    }
 
-  if (celularLimpio.length < 6) {
-    toast.error("Ingresa un número de celular válido");
-    return;
-  }
+    if (!correoNormalizado.includes("@")) {
+      toast.error("Ingresa un correo válido");
+      return;
+    }
 
-  if (contrasena.length < 6) {
-    toast.error("La contraseña debe tener mínimo 6 caracteres");
-    return;
-  }
+    if (celularLimpio.length < 6) {
+      toast.error("Ingresa un número de celular válido");
+      return;
+    }
 
-  if (contrasena !== confirmarContrasena) {
-    toast.error("Las contraseñas no coinciden");
-    return;
-  }
+    if (contrasena.length < 6) {
+      toast.error("La contraseña debe tener mínimo 6 caracteres");
+      return;
+    }
 
-  setCargando(true);
+    if (contrasena !== confirmarContrasena) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
 
-  // 🔥 1. CREAR EN AUTH (IMPORTANTE)
-  const { data, error } = await supabase.auth.signUp({
-    email: correoNormalizado,
-    password: contrasena,
-  });
+    setCargando(true);
 
-  if (error) {
-    toast.error(error.message);
-    setCargando(false);
-    return;
-  }
+    try {
+      const { data: usuarioExistente, error: errorBusqueda } = await supabase
+        .from("usuarios")
+        .select("id")
+        .eq("correo", correoNormalizado)
+        .maybeSingle();
 
-  const user = data.user;
+      if (errorBusqueda) {
+        toast.error("No se pudo verificar el correo");
+        setCargando(false);
+        return;
+      }
 
-  if (!user) {
-    toast.error("No se pudo crear el usuario");
-    setCargando(false);
-    return;
-  }
+      if (usuarioExistente) {
+        toast.error("Este correo ya está registrado");
+        setCargando(false);
+        return;
+      }
 
-  // 🔥 2. GUARDAR PERFIL (SIN CONTRASEÑA)
-  const { error: errorPerfil } = await supabase.from("usuarios").insert({
-    id: user.id,
-    nombre: nombreLimpio,
-    correo: correoNormalizado,
-    pais: paisSeleccionado.pais,
-    codigo_pais: paisSeleccionado.codigo,
-    celular: celularLimpio,
-    celular_completo: celularCompleto,
-    rol: "cliente",
-    estado: "pendiente",
-  });
+      const { count } = await supabase
+        .from("usuarios")
+        .select("id", { count: "exact", head: true });
 
-  if (errorPerfil) {
-    toast.error("Usuario creado pero error guardando perfil");
-    setCargando(false);
-    return;
-  }
+      const numeroOrden = Number(count || 0) + 409;
+      const nuevoId = crypto.randomUUID();
 
-  toast.success("Registro enviado. Espera aprobación del admin.");
-  router.push("/login");
+      const { error: errorPerfil } = await supabase.from("usuarios").insert({
+        id: nuevoId,
+        nombre: nombreLimpio,
+        segundo_nombre: segundoNombre || null,
+        correo: correoNormalizado,
+        contrasena,
+        pais: paisSeleccionado.pais,
+        codigo_pais: paisSeleccionado.codigo,
+        celular: celularLimpio,
+        celular_completo: celularCompleto,
+        telefono: telefonoSinMas,
+        numero_orden: numeroOrden,
+        prefijo_cliente: String(numeroOrden),
+        etiqueta_contacto: "| SV |",
+        rol: "cliente",
+        estado: "pendiente",
+      });
 
-  setCargando(false);
-};
+      if (errorPerfil) {
+        console.error("Error creando usuario:", errorPerfil);
+        toast.error(errorPerfil.message || "No se pudo guardar el usuario");
+        setCargando(false);
+        return;
+      }
+
+      toast.success("Registro enviado. Espera aprobación del admin.");
+      router.push("/login");
+    } catch (error) {
+      console.error("Error inesperado:", error);
+      toast.error("Error inesperado al crear la cuenta");
+      setCargando(false);
+    }
+  };
 
   return (
     <main className={styles.page}>
