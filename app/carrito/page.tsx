@@ -586,8 +586,8 @@ ${productosTexto}
               TIENDA
             </Link>
 
-            <Link href="/mis-cuentas" className={styles.topLink}>
-              MIS CUENTAS
+            <Link href="/cliente" className={styles.topLink}>
+              PANEL CLIENTE
             </Link>
 
             <a
@@ -639,8 +639,7 @@ ${productosTexto}
             <span className={styles.sectionKicker}>ENTREGA AUTOMÁTICA</span>
             <h2>Tu cuenta fue entregada</h2>
             <p>
-              Guarda estos datos. También podrás verlos luego en la sección Mis
-              cuentas.
+              Guarda estos datos. También podrás verlos luego en tu panel cliente.
             </p>
 
             {pedidoEntregadoId && (
@@ -667,8 +666,8 @@ ${productosTexto}
             </div>
 
             <div className={styles.deliveryActions}>
-              <Link href="/mis-cuentas" className={styles.emptyButton}>
-                Ver mis cuentas
+              <Link href="/cliente" className={styles.emptyButton}>
+                Ver panel cliente
               </Link>
 
               <button
