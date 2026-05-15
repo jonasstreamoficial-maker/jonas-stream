@@ -19,6 +19,23 @@ import styles from "./carrito.module.css";
 const WHATSAPP_NUMBER = "51900557949";
 const COMPROBANTES_BUCKET = "comprobantes";
 
+type UsuarioLocal = {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol?: string;
+  estado?: string;
+};
+
+type PedidoCreado = {
+  id: string;
+  usuario_id?: string | null;
+  cliente_nombre?: string | null;
+  cliente_correo?: string | null;
+  total?: number | null;
+  metodo_pago?: string | null;
+};
+
 function buildWhatsAppLink(message: string) {
   return `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
 }
@@ -40,6 +57,19 @@ function esCuentaCompleta(tipoVenta?: string | null) {
     .trim();
 
   return texto.includes("cuenta");
+}
+
+function leerUsuarioLocal(): UsuarioLocal | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const data = window.localStorage.getItem("usuario");
+    if (!data) return null;
+
+    return JSON.parse(data) as UsuarioLocal;
+  } catch {
+    return null;
+  }
 }
 
 export default function CarritoPage() {
@@ -184,6 +214,35 @@ export default function CarritoPage() {
     }
   };
 
+  const guardarComprobanteEnTabla = async (pedido: PedidoCreado, comprobanteUrl: string) => {
+    const usuarioLocal = leerUsuarioLocal();
+
+    const payload = {
+      pedido_id: pedido.id,
+      usuario_id: pedido.usuario_id || usuarioLocal?.id || null,
+      cliente_nombre: pedido.cliente_nombre || usuarioLocal?.nombre || "Cliente Jonas Stream",
+      cliente_correo: pedido.cliente_correo || usuarioLocal?.correo || "",
+      url: comprobanteUrl,
+      archivo_url: comprobanteUrl,
+      imagen_url: comprobanteUrl,
+      comprobante_url: comprobanteUrl,
+      estado: "pendiente",
+      metodo_pago: metodoPago,
+      monto: totalFinal,
+      detalle: `Pedido #${pedido.id.slice(0, 8)} · ${carrito.length} producto(s) · ${unidades} unidad(es)`,
+    };
+
+    const { error } = await supabase.from("comprobantes").insert([payload]);
+
+    if (error) {
+      console.error("ERROR INSERTANDO COMPROBANTE:", error);
+      throw new Error(
+        error.message ||
+          "El comprobante subió, pero no se pudo registrar en la tabla comprobantes"
+      );
+    }
+  };
+
   const seleccionarComprobante = (file?: File) => {
     if (!file) {
       setComprobante(null);
@@ -223,12 +282,17 @@ export default function CarritoPage() {
 
       setProcesandoPedido(true);
 
-      const pedido = await crearPedido(metodoPago, totalFinal, descuento);
+      const pedido = (await crearPedido(metodoPago, totalFinal, descuento)) as PedidoCreado;
       const comprobanteUrl = await subirComprobante(pedido.id);
 
       const { error: comprobantePedidoError } = await supabase
         .from("pedidos")
-        .update({ comprobante_url: comprobanteUrl })
+        .update({
+          comprobante_url: comprobanteUrl,
+          voucher_url: comprobanteUrl,
+          captura_pago: comprobanteUrl,
+          comprobante: comprobanteUrl,
+        })
         .eq("id", pedido.id);
 
       if (comprobantePedidoError) {
@@ -237,6 +301,8 @@ export default function CarritoPage() {
           comprobantePedidoError.message || "El comprobante subió, pero no se pudo guardar en el pedido"
         );
       }
+
+      await guardarComprobanteEnTabla(pedido, comprobanteUrl);
 
       // 🔥 AGRUPAR PRODUCTOS POR TIPO
       // Detecta "Cuenta completa", "cuenta completa", "CUENTA", etc.
@@ -533,7 +599,7 @@ ${productosTexto}
                 />
 
                 <strong>{comprobante ? comprobante.name : "Adjuntar comprobante"}</strong>
-                <small>Sube una captura o foto del pago. Se enviará como link por WhatsApp.</small>
+                <small>Sube una captura o foto del pago. Se guardará en tu pedido y el admin podrá revisarlo.</small>
 
                 {previewComprobante && (
                   <div className={styles.previewBox}>
