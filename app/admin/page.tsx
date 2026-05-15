@@ -21,6 +21,10 @@ type Usuario = {
   correo: string
   rol: string
   estado: string
+  pais?: string | null
+  codigo_pais?: string | null
+  celular?: string | null
+  celular_completo?: string | null
 }
 
 type Producto = {
@@ -224,8 +228,32 @@ const navGroups: { title: string; items: TabId[] }[] = [
 const estadosPedido = ["todos", "pendiente", "completado", "cancelado"]
 const estadosUsuario = ["todos", "pendiente", "aprobado", "rechazado"]
 const rolesUsuario = ["todos", "cliente", "proveedor", "admin"]
+const etiquetasGoogleContactos = ["| ADMIN |", "| CV |", "| JS |", "| RATAS |", "| SE |", "| SR |", "| SV |"]
 
 const normalizarTexto = (valor?: string | number | null) => String(valor ?? "").trim().toLowerCase()
+const limpiarNumeroContacto = (valor?: string | null) => String(valor ?? "").replace(/[^\d]/g, "")
+const separarNombreContacto = (nombreCompleto?: string | null) => {
+  const partes = String(nombreCompleto ?? "").trim().split(/\s+/).filter(Boolean)
+  return {
+    nombre: partes[0] || "",
+    segundoNombre: partes.slice(1).join(" "),
+  }
+}
+const escaparCSV = (valor?: string | number | null) => {
+  const texto = String(valor ?? "")
+  return `"${texto.replace(/"/g, '""')}"`
+}
+const descargarArchivoTexto = (nombreArchivo: string, contenido: string, tipo = "text/csv;charset=utf-8;") => {
+  const blob = new Blob([contenido], { type: tipo })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = nombreArchivo
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
 const formatearSoles = (valor: number) => `S/ ${Number(valor || 0).toFixed(2)}`
 const fechaLegible = (fecha?: string | null) => {
   if (!fecha) return "Sin fecha"
@@ -327,6 +355,8 @@ export default function AdminPage() {
   const [filtroEstadoUsuario, setFiltroEstadoUsuario] = useState("todos")
   const [filtroRolUsuario, setFiltroRolUsuario] = useState("todos")
   const [vistaUsuarios, setVistaUsuarios] = useState<"tarjetas" | "tabla">("tabla")
+  const [etiquetaGoogleContactos, setEtiquetaGoogleContactos] = useState("| SV |")
+  const [ordenGoogleContactos, setOrdenGoogleContactos] = useState("409")
 
   const [busquedaComprobante, setBusquedaComprobante] = useState("")
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
@@ -528,7 +558,7 @@ export default function AdminPage() {
 
       const { data: usuario, error: errorUsuario } = await supabase
         .from("usuarios")
-        .select("id,nombre,correo,rol,estado")
+        .select("id,nombre,correo,rol,estado,pais,codigo_pais,celular,celular_completo")
         .eq("id", user.id)
         .single()
 
@@ -1181,6 +1211,56 @@ export default function AdminPage() {
         : `Comprobante ${nuevoEstado}`
     )
     await cargarDatos()
+  }
+
+
+  const exportarUsuariosGoogleContacts = (usuariosAExportar: Usuario[]) => {
+    if (usuariosAExportar.length === 0) {
+      toast.error("No hay usuarios para exportar")
+      return
+    }
+
+    const inicio = Math.max(1, Number(ordenGoogleContactos || 1))
+    const etiqueta = etiquetaGoogleContactos || "| SV |"
+
+    const headers = [
+      "Name Prefix",
+      "Given Name",
+      "Additional Name",
+      "Family Name",
+      "E-mail 1 - Value",
+      "Phone 1 - Value",
+      "Group Membership",
+      "Notes",
+    ]
+
+    const filas = usuariosAExportar.map((usuarioExportar, index) => {
+      const { nombre, segundoNombre } = separarNombreContacto(usuarioExportar.nombre)
+      const telefono = limpiarNumeroContacto(usuarioExportar.celular_completo || `${usuarioExportar.codigo_pais || ""}${usuarioExportar.celular || ""}`)
+      const numeroOrden = String(inicio + index)
+      const notas = [
+        "Jonas Stream",
+        `Rol: ${usuarioExportar.rol || "cliente"}`,
+        `Estado: ${usuarioExportar.estado || "pendiente"}`,
+        usuarioExportar.pais ? `Pais: ${usuarioExportar.pais}` : "",
+      ].filter(Boolean).join(" | ")
+
+      return [
+        numeroOrden,
+        nombre,
+        segundoNombre,
+        "",
+        usuarioExportar.correo || "",
+        telefono,
+        etiqueta,
+        notas,
+      ].map(escaparCSV).join(",")
+    })
+
+    const csv = "\uFEFF" + [headers.join(","), ...filas].join("\n")
+    const fecha = fechaISO()
+    descargarArchivoTexto(`google-contacts-jonas-stream-${etiqueta.replace(/[^a-zA-Z0-9]+/g, "-")}-${fecha}.csv`, csv)
+    toast.success(`CSV listo para Google Contacts: ${usuariosAExportar.length} contacto(s)`)
   }
 
   const handleProductoChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -3522,6 +3602,44 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              <div className={styles.googleContactsBox}>
+                <div>
+                  <p className={styles.kicker}>Google Contacts</p>
+                  <h4>Exportar contactos con tu orden</h4>
+                  <span>Formato: Prefijo = número de orden, Nombre = primer nombre, Segundo nombre = resto del nombre, Apellidos vacío, Teléfono sin + y etiqueta seleccionada.</span>
+                </div>
+
+                <div className={styles.googleContactsControls}>
+                  <label>
+                    <span>Orden inicial</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={ordenGoogleContactos}
+                      onChange={(e) => setOrdenGoogleContactos(e.target.value)}
+                      className={styles.input}
+                    />
+                  </label>
+
+                  <label>
+                    <span>Etiqueta</span>
+                    <select value={etiquetaGoogleContactos} onChange={(e) => setEtiquetaGoogleContactos(e.target.value)} className={styles.input}>
+                      {etiquetasGoogleContactos.map((etiqueta) => (
+                        <option key={etiqueta} value={etiqueta}>{etiqueta}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <button type="button" onClick={() => exportarUsuariosGoogleContacts(usuariosFiltrados)} className={styles.primaryButton}>
+                    Exportar filtrados
+                  </button>
+
+                  <button type="button" onClick={() => exportarUsuariosGoogleContacts(usuarios)} className={styles.secondaryButton}>
+                    Exportar todos
+                  </button>
+                </div>
+              </div>
+
               <div className={styles.filtersGridWide}>
                 <input type="text" placeholder="Buscar usuario, correo, rol o estado..." value={busquedaUsuario} onChange={(e) => setBusquedaUsuario(e.target.value)} className={styles.input} />
                 <select value={filtroEstadoUsuario} onChange={(e) => setFiltroEstadoUsuario(e.target.value)} className={styles.input}>
@@ -3541,6 +3659,7 @@ export default function AdminPage() {
                       <tr>
                         <th>Usuario</th>
                         <th>Correo</th>
+                        <th>Celular</th>
                         <th>Rol</th>
                         <th>Estado</th>
                         <th>Acceso</th>
@@ -3556,6 +3675,10 @@ export default function AdminPage() {
                             <small>ID {u.id.slice(0, 8)}</small>
                           </td>
                           <td>{u.correo}</td>
+                          <td>
+                            {limpiarNumeroContacto(u.celular_completo || `${u.codigo_pais || ""}${u.celular || ""}`) || "Sin celular"}
+                            {u.pais && <small>{u.pais}</small>}
+                          </td>
                           <td><span className={styles.roleChip}>{u.rol}</span></td>
                           <td><StatusBadge estado={u.estado} /></td>
                           <td>
@@ -3604,6 +3727,7 @@ export default function AdminPage() {
                         <div>
                           <h4>{u.nombre || "Usuario sin nombre"}</h4>
                           <p>{u.correo}</p>
+                          <p className={styles.userPhoneLine}>{limpiarNumeroContacto(u.celular_completo || `${u.codigo_pais || ""}${u.celular || ""}`) || "Sin celular"}{u.pais ? ` · ${u.pais}` : ""}</p>
                         </div>
 
                         <div className={styles.userAccessSummary}>

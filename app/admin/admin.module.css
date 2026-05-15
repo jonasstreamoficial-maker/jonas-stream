@@ -6149,3 +6149,73 @@
     flex-direction: column;
   }
 }
+
+
+/* Google Contacts CRM export */
+.googleContactsBox {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  margin: 0 0 18px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  background:
+    radial-gradient(circle at 8% 18%, rgba(0, 229, 255, 0.12), transparent 34%),
+    rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 0 30px rgba(0, 229, 255, 0.035);
+}
+
+.googleContactsBox h4 {
+  margin: 0 0 6px;
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.googleContactsBox span {
+  color: #a9cbd0;
+  line-height: 1.45;
+}
+
+.googleContactsControls {
+  display: grid;
+  grid-template-columns: 140px 150px auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.googleContactsControls label {
+  display: grid;
+  gap: 6px;
+}
+
+.googleContactsControls label span {
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.userPhoneLine {
+  margin-top: -8px !important;
+  color: #7cffb2 !important;
+  font-weight: 850 !important;
+}
+
+@media (max-width: 1180px) {
+  .googleContactsBox {
+    grid-template-columns: 1fr;
+  }
+
+  .googleContactsControls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .googleContactsControls {
+    grid-template-columns: 1fr;
+  }
+}
