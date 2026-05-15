@@ -169,8 +169,10 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
     throw new Error("No tienes créditos suficientes");
   }
 
-  await verificarCuentasDisponibles(carrito);
-
+  // IMPORTANTE:
+  // Primero creamos el pedido y sus items para que SIEMPRE llegue al admin.
+  // Luego intentamos la entrega automática. Si no hay cuentas disponibles,
+  // el pedido queda PENDIENTE para que el admin lo revise/entregue manualmente.
   const { data: pedidoData, error: pedidoError } = await supabase
     .from("pedidos")
     .insert([
@@ -179,7 +181,7 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
         cliente_nombre: usuario.nombre,
         cliente_correo: usuario.correo,
         total,
-        estado: "completado",
+        estado: "pendiente",
         metodo_pago: "Créditos",
         descuento,
       },
@@ -204,7 +206,52 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
     throw new Error(itemsError.message || "El pedido se creó, pero falló el detalle");
   }
 
-  await asignarCuentasAlPedido(pedidoData.id, usuario.id, carrito);
+  let cuentasAsignadas = false;
+  let motivoRevision = "";
+
+  try {
+    await asignarCuentasAlPedido(pedidoData.id, usuario.id, carrito);
+    cuentasAsignadas = true;
+  } catch (error) {
+    motivoRevision = error instanceof Error ? error.message : "No se pudo asignar cuenta automáticamente";
+
+    try {
+      await supabase.rpc("log_admin_action", {
+        p_accion: "CREDITOS_PENDIENTE_ENTREGA",
+        p_entidad: "pedidos",
+        p_entidad_id: pedidoData.id,
+        p_detalle: `Pedido con créditos creado, pero requiere revisión: ${motivoRevision}`,
+      });
+    } catch {
+      // El log no debe bloquear el pedido.
+    }
+
+    limpiarCarrito();
+
+    return {
+      ...pedidoData,
+      estado: "pendiente",
+      cuentas_asignadas: false,
+      requiere_revision: true,
+      motivo_revision: motivoRevision,
+      saldo_anterior: saldoActual,
+      saldo_final: saldoActual,
+    };
+  }
+
+  if (!cuentasAsignadas) {
+    limpiarCarrito();
+
+    return {
+      ...pedidoData,
+      estado: "pendiente",
+      cuentas_asignadas: false,
+      requiere_revision: true,
+      motivo_revision: "No se pudo asignar cuenta automáticamente",
+      saldo_anterior: saldoActual,
+      saldo_final: saldoActual,
+    };
+  }
 
   const nuevoSaldo = Math.max(saldoActual - total, 0);
 
@@ -214,7 +261,17 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
     .eq("id", credito.id);
 
   if (creditoError) {
-    throw new Error("La cuenta fue asignada, pero no se pudo descontar el crédito. Avísale al admin.");
+    await supabase.from("pedidos").update({ estado: "pendiente" }).eq("id", pedidoData.id);
+    throw new Error("La cuenta fue ubicada, pero no se pudo descontar el crédito. El pedido quedó pendiente para revisión.");
+  }
+
+  const { error: completarError } = await supabase
+    .from("pedidos")
+    .update({ estado: "completado" })
+    .eq("id", pedidoData.id);
+
+  if (completarError) {
+    throw new Error("Se descontaron créditos, pero no se pudo completar el pedido. Avísale al admin.");
   }
 
   try {
@@ -232,7 +289,10 @@ export async function comprarConCreditos(totalFinal: number, descuento = 0) {
 
   return {
     ...pedidoData,
+    estado: "completado",
     cuentas_asignadas: true,
+    requiere_revision: false,
+    motivo_revision: null,
     saldo_anterior: saldoActual,
     saldo_final: nuevoSaldo,
   };

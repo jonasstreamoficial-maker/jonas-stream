@@ -305,8 +305,6 @@ export default function CarritoPage() {
 
         const pedidoCredito = await comprarConCreditos(totalFinal, descuento);
 
-        toast.success("Compra con créditos completada. Tu cuenta fue asignada.");
-        limpiarCarrito();
         cargarCarrito();
         await cargarCreditoUsuario();
         setCodigoCupon("");
@@ -316,7 +314,10 @@ export default function CarritoPage() {
         setComprobante(null);
         setPreviewComprobante(null);
 
-        const mensajeWhatsAppCreditos = `✅ *COMPRA CON CRÉDITOS - JONAS STREAM*
+        if (pedidoCredito.cuentas_asignadas) {
+          toast.success("Compra con créditos completada. Tu cuenta fue asignada.");
+
+          const mensajeWhatsAppCreditos = `✅ *COMPRA CON CRÉDITOS - JONAS STREAM*
 
 📌 *Pedido ID:*
 ${pedidoCredito.id}
@@ -332,7 +333,29 @@ ${carrito
 
 ✅ *Pedido completado automáticamente.*`;
 
-        window.open(buildWhatsAppLink(mensajeWhatsAppCreditos), "_blank", "noopener,noreferrer");
+          window.open(buildWhatsAppLink(mensajeWhatsAppCreditos), "_blank", "noopener,noreferrer");
+        } else {
+          toast.error("Pedido creado, pero falta cuenta disponible. El admin lo revisará.");
+
+          const mensajeWhatsAppCreditosPendiente = `🧾 *PEDIDO CON CRÉDITOS - JONAS STREAM*
+
+📌 *Pedido ID:*
+${pedidoCredito.id}
+
+💳 *Pago:*
+• Método: Créditos
+• Total: S/ ${totalFinal.toFixed(2)}
+
+📦 *Productos:*
+${carrito
+  .map((p) => `• ${p.nombre} x${p.cantidad} — S/ ${(Number(p.precio || 0) * p.cantidad).toFixed(2)}`)
+  .join("\n")}
+
+⚠️ *Pedido registrado, pendiente de asignación por admin.*`;
+
+          window.open(buildWhatsAppLink(mensajeWhatsAppCreditosPendiente), "_blank", "noopener,noreferrer");
+        }
+
         return;
       }
 
