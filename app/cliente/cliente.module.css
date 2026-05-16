@@ -622,406 +622,255 @@
 
 
 /* ==========================================================
-   PANEL CLIENTE PRO - RENOVACION POR WHATSAPP
-   Mantiene funciones simples de cliente y copia el acabado visual premium del admin.
+   SOPORTE CLIENTE - REPORTES Y ESTADOS NEON
    ========================================================== */
 
-.accessActions {
+.supportGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 2px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.whatsappButton {
-  min-height: 46px;
-  border-radius: 15px;
-  padding: 0 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  text-decoration: none;
-  color: var(--success);
-  font-weight: 950;
-  border: 1px solid rgba(124, 255, 178, 0.32);
-  background:
-    radial-gradient(circle at 0% 50%, rgba(124, 255, 178, 0.18), transparent 34%),
-    linear-gradient(135deg, rgba(124, 255, 178, 0.11), rgba(3, 19, 22, 0.68));
+.supportForm,
+.supportInfoBox,
+.supportItem {
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 24px;
+  padding: 18px;
   box-shadow:
-    inset 0 0 24px rgba(124, 255, 178, 0.04),
-    0 0 18px rgba(124, 255, 178, 0.08);
-  transition: 0.22s ease;
+    inset 0 0 26px rgba(0, 251, 255, 0.035),
+    0 18px 48px rgba(0, 0, 0, 0.22);
 }
 
-.whatsappButton:hover,
-.expireItem a:hover,
-.primaryButton:hover,
-.heroActions a:hover {
-  transform: translateY(-2px);
-  border-color: rgba(0, 251, 255, 0.48);
-  box-shadow: 0 0 25px rgba(1, 231, 239, 0.16);
+.supportForm {
+  display: grid;
+  gap: 14px;
 }
 
-.accessCard {
+.supportKicker,
+.supportInfoBox span,
+.supportListHeader span {
+  display: inline-flex;
+  width: fit-content;
+  color: var(--cyan-strong);
+  font-size: 0.7rem;
+  font-weight: 1000;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.supportForm h3,
+.supportInfoBox strong,
+.supportListHeader h3,
+.supportItem h3 {
+  margin: 0;
+  color: var(--white);
+}
+
+.supportForm h3 {
+  margin-top: 8px;
+  font-size: 1.45rem;
+}
+
+.supportForm p,
+.supportInfoBox p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.formGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.formGroup span {
+  color: var(--cyan-strong);
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.formGroup select,
+.formGroup textarea {
+  width: 100%;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 16px;
+  background: rgba(3, 19, 22, 0.9);
+  color: var(--white);
+  padding: 13px 14px;
+  outline: none;
+  font: inherit;
+  font-weight: 760;
+  box-shadow: inset 0 0 22px rgba(0, 251, 255, 0.035);
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.formGroup select:focus,
+.formGroup textarea:focus {
+  border-color: rgba(0, 251, 255, 0.52);
+  box-shadow:
+    0 0 20px rgba(0, 251, 255, 0.12),
+    inset 0 0 22px rgba(0, 251, 255, 0.045);
+}
+
+.supportInfoBox {
   position: relative;
   overflow: hidden;
 }
 
-.accessCard::before,
-.orderItem::before,
-.expireItem::before,
-.creditRow::before {
+.supportInfoBox::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--danger), var(--warning), var(--success));
+  box-shadow: 0 0 24px rgba(0, 251, 255, 0.28);
+}
+
+.supportInfoBox strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.2rem;
+}
+
+.supportListHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 12px 0;
+}
+
+.supportList {
+  display: grid;
+  gap: 12px;
+}
+
+.supportItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 16px;
+  align-items: center;
+}
+
+.supportItem::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--cyan-strong), transparent);
+  background: var(--cyan-strong);
   box-shadow: 0 0 18px rgba(0, 251, 255, 0.42);
-  opacity: 0.78;
 }
 
-.orderItem,
-.expireItem,
-.creditRow {
-  position: relative;
-  border: 1px solid rgba(1, 231, 239, 0.14);
-  background: rgba(0, 0, 0, 0.22);
-}
-
-.expireItem a {
-  min-height: 42px;
-  border-radius: 999px;
-  padding: 0 15px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  color: var(--success);
-  font-weight: 950;
-  border: 1px solid rgba(124, 255, 178, 0.32);
-  background: rgba(124, 255, 178, 0.09);
-}
-
-@media (max-width: 760px) {
-  .accessActions {
-    grid-template-columns: 1fr;
-  }
-
-  .whatsappButton {
-    width: 100%;
-  }
-}
-
-/* ==========================================================
-   PANEL CLIENTE - PLATAFORMAS + TABLAS PRO
-   Corrige nombres reales, agrupación por plataforma y vencimientos en tabla.
-   ========================================================== */
-.panelHintBox {
-  margin-bottom: 14px;
-  padding: 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(1, 231, 239, 0.14);
-  background: rgba(0, 0, 0, 0.22);
-}
-
-.panelHintBox strong {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--cyan-strong);
-  font-size: 0.72rem;
-  font-weight: 1000;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.panelHintBox p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-.platformStack,
-.platformDetailStack {
-  display: grid;
-  gap: 16px;
-}
-
-.platformGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 16px;
-}
-
-.platformCard,
-.platformHeaderCard {
-  position: relative;
-  overflow: hidden;
-  border-radius: 26px;
-  border: 1px solid rgba(1, 231, 239, 0.2);
-  background: rgba(3, 19, 22, 0.78);
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.28),
-    inset 0 0 34px rgba(0, 229, 255, 0.045);
-}
-
-.platformCard {
-  min-height: 210px;
-  padding: 18px;
-  color: var(--white);
-  text-align: left;
-  cursor: pointer;
-  transition: 0.22s ease;
-}
-
-.platformCard:hover {
-  transform: translateY(-4px);
-  border-color: rgba(0, 251, 255, 0.46);
-  box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.32),
-    0 0 26px rgba(0, 251, 255, 0.12),
-    inset 0 0 34px rgba(0, 229, 255, 0.06);
-}
-
-.platformCard::before,
-.platformHeaderCard::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--platform-color, var(--cyan-strong));
-  box-shadow: 0 0 24px var(--platform-glow, rgba(0, 251, 255, 0.5));
-}
-
-.platformCard::after,
-.platformHeaderCard::after {
-  content: "";
-  position: absolute;
-  width: 240px;
-  height: 240px;
-  right: -100px;
-  top: -110px;
-  border-radius: 999px;
-  background: radial-gradient(circle, var(--platform-glow, rgba(0, 251, 255, 0.16)), transparent 62%);
-  pointer-events: none;
-}
-
-.platformTopline,
-.platformHeaderCard {
+.supportItemTop {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.platformTopline span,
-.platformHeaderCard span {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--cyan-strong);
-  font-size: 0.72rem;
-  font-weight: 1000;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.platformTopline strong,
-.platformHeaderCard h3 {
-  display: block;
-  margin: 0;
-  color: var(--white);
-  font-size: clamp(1.4rem, 2.6vw, 2rem);
-  line-height: 1.05;
-  text-transform: uppercase;
-}
-
-.platformTopline em,
-.platformHeaderCard > strong {
-  min-width: 54px;
-  height: 54px;
-  display: grid;
-  place-items: center;
-  border-radius: 18px;
-  color: var(--cyan-strong);
-  background: rgba(1, 231, 239, 0.12);
-  border: 1px solid rgba(1, 231, 239, 0.28);
-  font-style: normal;
-  font-size: 1.45rem;
-  font-weight: 1000;
-  box-shadow: inset 0 0 22px rgba(0, 251, 255, 0.05);
-}
-
-.platformMiniGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
   gap: 10px;
-  margin: 18px 0 14px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
-.platformMiniGrid div {
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(1, 231, 239, 0.12);
-  background: rgba(0, 0, 0, 0.24);
+.supportItem p {
+  margin: 0 0 6px;
+  color: var(--white);
+  font-weight: 900;
 }
 
-.platformMiniGrid strong,
-.platformMiniGrid span {
+.supportItem small,
+.supportItem em,
+.supportItem b {
+  display: block;
+  color: var(--muted);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.supportItem em {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(236, 255, 255, 0.07);
+  font-style: normal;
+}
+
+.supportItem b {
+  color: var(--success);
+}
+
+.supportBadge {
+  display: inline-flex;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 0.7rem;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.supportPending {
+  color: #ff5c7a;
+  background: rgba(255, 92, 122, 0.11);
+  border-color: rgba(255, 92, 122, 0.38);
+  box-shadow: 0 0 18px rgba(255, 92, 122, 0.08);
+}
+
+.supportProcess {
+  color: #ffb84d;
+  background: rgba(255, 184, 77, 0.11);
+  border-color: rgba(255, 184, 77, 0.38);
+  box-shadow: 0 0 18px rgba(255, 184, 77, 0.08);
+}
+
+.supportDelivered {
+  color: var(--success);
+  background: rgba(124, 255, 178, 0.11);
+  border-color: rgba(124, 255, 178, 0.38);
+  box-shadow: 0 0 18px rgba(124, 255, 178, 0.08);
+}
+
+.supportDays {
+  border-radius: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  background: rgba(1, 231, 239, 0.06);
+  padding: 14px;
+  text-align: center;
+}
+
+.supportDays span,
+.supportDays strong {
   display: block;
 }
 
-.platformMiniGrid strong {
-  color: var(--success);
-  font-size: 1.2rem;
-}
-
-.platformMiniGrid span,
-.platformCard p,
-.platformHeaderCard p {
+.supportDays span {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.76rem;
   font-weight: 850;
 }
 
-.platformCard p,
-.platformHeaderCard p {
-  margin: 0;
-}
-
-.platformCard b {
-  display: block;
-  margin-top: 10px;
+.supportDays strong {
   color: var(--cyan-strong);
-  text-align: right;
+  font-size: 2rem;
+  line-height: 1;
+  margin-top: 8px;
 }
 
-.backButton {
-  width: fit-content;
-  min-height: 42px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(1, 231, 239, 0.26);
-  background: rgba(1, 231, 239, 0.08);
-  color: var(--cyan-strong);
-  font-weight: 950;
-  cursor: pointer;
-}
-
-.platformHeaderCard {
-  padding: 18px;
-}
-
-.accessTableWrap {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid rgba(1, 231, 239, 0.16);
-  border-radius: 22px;
-  background: rgba(0, 0, 0, 0.22);
-}
-
-.accessTable {
-  width: 100%;
-  min-width: 940px;
-  border-collapse: collapse;
-}
-
-.accessTable th,
-.accessTable td {
-  padding: 14px 15px;
-  border-bottom: 1px solid rgba(1, 231, 239, 0.1);
-  text-align: left;
-  vertical-align: middle;
-}
-
-.accessTable th {
-  color: var(--cyan-strong);
-  background: rgba(1, 231, 239, 0.055);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 1000;
-}
-
-.accessTable td {
-  color: var(--white);
-  font-weight: 820;
-}
-
-.accessTable tr:last-child td {
-  border-bottom: 0;
-}
-
-.accessTable small {
-  display: block;
-  margin-top: 5px;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 760;
-}
-
-.tableActions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.tableCopyButton,
-.tableWhatsappButton {
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: 999px;
-  font-weight: 950;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tableCopyButton {
-  border: 1px solid rgba(1, 231, 239, 0.3);
-  background: rgba(1, 231, 239, 0.08);
-  color: var(--cyan-strong);
-}
-
-.tableWhatsappButton {
-  border: 1px solid rgba(124, 255, 178, 0.32);
-  background: rgba(124, 255, 178, 0.09);
-  color: var(--success);
-}
-
-.accent_netflix { --platform-color: #e50914; --platform-glow: rgba(229, 9, 20, 0.24); }
-.accent_youtube { --platform-color: #ff0000; --platform-glow: rgba(255, 0, 0, 0.24); }
-.accent_max { --platform-color: #8a4dff; --platform-glow: rgba(138, 77, 255, 0.28); }
-.accent_disney { --platform-color: #38a7ff; --platform-glow: rgba(56, 167, 255, 0.24); }
-.accent_prime { --platform-color: #00a8e1; --platform-glow: rgba(0, 168, 225, 0.24); }
-.accent_crunchy { --platform-color: #ff6a00; --platform-glow: rgba(255, 106, 0, 0.26); }
-.accent_spotify { --platform-color: #1db954; --platform-glow: rgba(29, 185, 84, 0.24); }
-.accent_paramount { --platform-color: #0064ff; --platform-glow: rgba(0, 100, 255, 0.24); }
-.accent_canva { --platform-color: #00c4cc; --platform-glow: rgba(0, 196, 204, 0.24); }
-.accent_office { --platform-color: #ff7a1a; --platform-glow: rgba(255, 122, 26, 0.24); }
-.accent_iptv { --platform-color: #8254ff; --platform-glow: rgba(130, 84, 255, 0.24); }
-.accent_viki { --platform-color: #51ecff; --platform-glow: rgba(81, 236, 255, 0.24); }
-.accent_vix { --platform-color: #00ff99; --platform-glow: rgba(0, 255, 153, 0.2); }
-.accent_default { --platform-color: var(--cyan-strong); --platform-glow: rgba(0, 251, 255, 0.16); }
-
-@media (max-width: 760px) {
-  .platformGrid {
+@media (max-width: 900px) {
+  .supportGrid,
+  .supportItem {
     grid-template-columns: 1fr;
   }
 
-  .platformMiniGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .platformTopline,
-  .platformHeaderCard {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .backButton {
-    width: 100%;
+  .supportDays {
+    text-align: left;
   }
 }

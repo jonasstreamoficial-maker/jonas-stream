@@ -7,10 +7,6 @@ import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 import styles from "./cliente.module.css";
 
-const WHATSAPP_NUMBER = "51900557949";
-
-type SectionId = "dashboard" | "compras" | "accesos" | "vencimientos" | "creditos" | "telegram";
-
 type Usuario = {
   id: string;
   nombre?: string | null;
@@ -38,7 +34,6 @@ type Producto = {
   imagen?: string | null;
   categoria?: string | null;
   tipo_venta?: string | null;
-  accent?: string | null;
 };
 
 type PedidoItem = {
@@ -47,8 +42,6 @@ type PedidoItem = {
   producto_id?: string | null;
   cantidad?: number | null;
   precio?: number | null;
-  productos?: Producto | Producto[] | null;
-  producto?: Producto | Producto[] | null;
 };
 
 type CuentaProducto = {
@@ -65,49 +58,40 @@ type CuentaProducto = {
   usuario_id?: string | null;
   notas?: string | null;
   created_at?: string | null;
-  productos?: Producto | Producto[] | null;
-  producto?: Producto | Producto[] | null;
 };
 
 type Credito = {
   id: string;
-  usuario_id?: string | null;
+  usuario_id: string;
   saldo?: number | null;
   estado?: string | null;
   created_at?: string | null;
 };
 
-type PlataformaGrupo = {
+
+type SoporteEstado = "pendiente" | "en_proceso" | "entregado";
+
+type SoporteTicket = {
   id: string;
-  nombre: string;
-  categoria: string;
-  accent: string;
-  cuentas: CuentaProducto[];
+  usuario_id: string;
+  cuenta_id?: string | null;
+  pedido_id?: string | null;
+  producto_id?: string | null;
+  cliente_nombre?: string | null;
+  cliente_correo?: string | null;
+  producto_nombre?: string | null;
+  cuenta_correo?: string | null;
+  problema?: string | null;
+  mensaje?: string | null;
+  estado?: SoporteEstado | string | null;
+  dias_compensacion?: number | null;
+  respuesta_admin?: string | null;
+  fecha_reporte?: string | null;
+  fecha_resuelto?: string | null;
+  created_at?: string | null;
 };
 
-const menu: { id: SectionId; label: string; icon: string }[] = [
-  { id: "dashboard", label: "Dashboard", icon: "⌂" },
-  { id: "compras", label: "Mis compras", icon: "▣" },
-  { id: "accesos", label: "Mis accesos", icon: "✦" },
-  { id: "vencimientos", label: "Vencimientos", icon: "◷" },
-  { id: "creditos", label: "Créditos", icon: "◆" },
-  { id: "telegram", label: "Telegram", icon: "✈" },
-];
-
-function buildWhatsAppLink(message: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-}
-
-function buildRenewMessage(cuenta: CuentaProducto, producto?: Producto, usuario?: Usuario | null) {
-  return [
-    "Hola Jonas Stream, quiero renovar mi cuenta.",
-    "",
-    `Producto: ${getProductName(producto, cuenta)}`,
-    `Correo de acceso: ${cuenta.correo || "No disponible"}`,
-    `Mi correo registrado: ${usuario?.correo || "No disponible"}`,
-    `Fecha de vencimiento: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
-  ].join("\n");
-}
+type SectionId = "dashboard" | "compras" | "accesos" | "vencimientos" | "creditos" | "soporte" | "telegram";
 
 function formatMoney(value?: number | null) {
   return `S/ ${Number(value || 0).toFixed(2)}`;
@@ -117,11 +101,7 @@ function formatDate(value?: string | null) {
   if (!value) return "Sin fecha";
   const date = value.includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
-  return date.toLocaleDateString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return date.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function getDiasRestantes(fecha?: string | null) {
@@ -134,60 +114,15 @@ function getDiasRestantes(fecha?: string | null) {
   return Math.ceil((fin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function normalizar(value?: string | null) {
-  return String(value || "").trim().toLowerCase();
+function estadoPedidoClass(estado?: string | null) {
+  const value = String(estado || "pendiente").toLowerCase();
+  if (value === "completado" || value === "entregado" || value === "pagado") return styles.statusOk;
+  if (value === "cancelado" || value === "rechazado") return styles.statusBad;
+  return styles.statusWait;
 }
 
-function normalizarId(value?: string | null) {
-  return String(value || "").trim();
-}
-
-function getStatusClass(estado?: string | null) {
-  const value = normalizar(estado || "pendiente");
-  if (value === "completado" || value === "entregado" || value === "pagado") return `${styles.statusBadge} ${styles.statusOk}`;
-  if (value === "cancelado" || value === "rechazado") return `${styles.statusBadge} ${styles.statusBad}`;
-  return `${styles.statusBadge} ${styles.statusWait}`;
-}
-
-function getAccentFromText(text?: string | null) {
-  const value = normalizar(text);
-  if (value.includes("netflix")) return "netflix";
-  if (value.includes("youtube")) return "youtube";
-  if (value.includes("max") || value.includes("hbo")) return "max";
-  if (value.includes("disney")) return "disney";
-  if (value.includes("prime") || value.includes("amazon")) return "prime";
-  if (value.includes("crunchy")) return "crunchy";
-  if (value.includes("spotify")) return "spotify";
-  if (value.includes("paramount")) return "paramount";
-  if (value.includes("canva")) return "canva";
-  if (value.includes("office") || value.includes("365")) return "office";
-  if (value.includes("iptv")) return "iptv";
-  if (value.includes("viki")) return "viki";
-  if (value.includes("vix")) return "vix";
-  return "default";
-}
-
-function getAccent(producto?: Producto) {
-  return getAccentFromText(producto?.accent || producto?.nombre || producto?.categoria || producto?.tipo_venta);
-}
-
-function getRelatedProduct(value?: Producto | Producto[] | null) {
-  if (!value) return null;
-  if (Array.isArray(value)) return value[0] || null;
-  return value;
-}
-
-function getProductName(producto?: Producto | null, cuenta?: CuentaProducto) {
-  const nombre = producto?.nombre?.trim();
-  if (nombre && normalizar(nombre) !== "producto") return nombre;
-  const cuentaRelacionada = getRelatedProduct(cuenta?.productos) || getRelatedProduct(cuenta?.producto);
-  const nombreCuenta = cuentaRelacionada?.nombre?.trim();
-  if (nombreCuenta && normalizar(nombreCuenta) !== "producto") return nombreCuenta;
-  return "Producto";
-}
-
-function extraerProductoRelacionado(item: PedidoItem): Producto | null {
-  return getRelatedProduct(item.productos) || getRelatedProduct(item.producto);
+function uniqueById<T extends { id: string }>(items: T[]) {
+  return Array.from(new Map(items.map((item) => [item.id, item])).values());
 }
 
 export default function ClientePage() {
@@ -200,163 +135,118 @@ export default function ClientePage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cuentas, setCuentas] = useState<CuentaProducto[]>([]);
   const [creditos, setCreditos] = useState<Credito[]>([]);
+  const [soportes, setSoportes] = useState<SoporteTicket[]>([]);
+  const [soporteCuentaId, setSoporteCuentaId] = useState("");
+  const [soporteProblema, setSoporteProblema] = useState("Cuenta caída");
+  const [soporteMensaje, setSoporteMensaje] = useState("");
+  const [enviandoSoporte, setEnviandoSoporte] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
-  const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
 
   useEffect(() => {
     cargarPanelCliente();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cargarPanelCliente = async () => {
     try {
       setLoading(true);
 
-      const { data: authData } = await supabase.auth.getUser();
-      const authUser = authData?.user || null;
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-      let usuarioLocal: Usuario | null = null;
-      if (typeof window !== "undefined") {
-        try {
-          const raw = localStorage.getItem("usuario");
-          usuarioLocal = raw ? (JSON.parse(raw) as Usuario) : null;
-        } catch {
-          usuarioLocal = null;
-        }
-      }
-
-      if (!authUser && !usuarioLocal?.id) {
+      if (authError || !user) {
         router.replace("/login");
-        setLoading(false);
         return;
       }
 
-      const userId = authUser?.id || usuarioLocal?.id || "";
-      const userEmail = authUser?.email || usuarioLocal?.correo || "";
+      const { data: usuarioData } = await supabase
+        .from("usuarios")
+        .select("id,nombre,correo,rol,estado,celular,celular_completo")
+        .eq("id", user.id)
+        .maybeSingle();
 
-      let usuarioData: Usuario | null = null;
-
-      if (userId) {
-        const { data } = await supabase
-          .from("usuarios")
-          .select("id,nombre,correo,rol,estado,celular,celular_completo")
-          .eq("id", userId)
-          .maybeSingle();
-        usuarioData = data as Usuario | null;
-      }
-
-      if (!usuarioData && userEmail) {
-        const { data } = await supabase
-          .from("usuarios")
-          .select("id,nombre,correo,rol,estado,celular,celular_completo")
-          .eq("correo", userEmail)
-          .maybeSingle();
-        usuarioData = data as Usuario | null;
-      }
-
-      const usuarioFinal: Usuario = usuarioData || usuarioLocal || {
-        id: userId,
-        nombre: authUser?.user_metadata?.name || userEmail.split("@")[0] || "Cliente",
-        correo: userEmail,
-        rol: "cliente",
-        estado: "aprobado",
-      };
+      const usuarioFinal: Usuario =
+        usuarioData || {
+          id: user.id,
+          nombre: user.user_metadata?.name || user.email?.split("@")[0] || "Cliente",
+          correo: user.email || "",
+          rol: "cliente",
+          estado: "aprobado",
+        };
 
       setUsuario(usuarioFinal);
 
-      const usuarioIdReal = usuarioFinal.id || userId;
-      const correoReal = usuarioFinal.correo || userEmail;
+      const correoUsuario = usuarioFinal.correo || user.email || "";
+      const pedidosQuery = correoUsuario
+        ? `usuario_id.eq.${user.id},cliente_correo.eq.${correoUsuario}`
+        : `usuario_id.eq.${user.id}`;
 
-      const pedidosQuery = supabase
-        .from("pedidos")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (usuarioIdReal && correoReal) {
-        pedidosQuery.or(`usuario_id.eq.${usuarioIdReal},cliente_correo.eq.${correoReal}`);
-      } else if (usuarioIdReal) {
-        pedidosQuery.eq("usuario_id", usuarioIdReal);
-      } else if (correoReal) {
-        pedidosQuery.eq("cliente_correo", correoReal);
-      }
-
-      const cuentasQuery = supabase
-        .from("cuentas_producto")
-        .select("*, productos:producto_id(id,nombre,imagen,categoria,tipo_venta)")
-        .order("cliente_fin", { ascending: true });
-
-      if (usuarioIdReal) cuentasQuery.eq("usuario_id", usuarioIdReal);
-
-      const creditosQuery = supabase
-        .from("creditos")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (usuarioIdReal) creditosQuery.eq("usuario_id", usuarioIdReal);
-
-      const [pedidosResult, cuentasResult, creditosResult] = await Promise.all([
-        pedidosQuery,
-        cuentasQuery,
-        creditosQuery,
+      const [pedidosResult, creditosResult, soportesResult] = await Promise.all([
+        supabase.from("pedidos").select("*").or(pedidosQuery).order("created_at", { ascending: false }),
+        supabase.from("creditos").select("*").eq("usuario_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("soporte_tickets").select("*").eq("usuario_id", user.id).order("created_at", { ascending: false }),
       ]);
 
       const pedidosData = (pedidosResult.data || []) as Pedido[];
-      const cuentasData = ((cuentasResult.data || []) as CuentaProducto[]).filter(
-        (cuenta) => normalizar(cuenta.estado) === "entregada"
-      );
       const creditosData = (creditosResult.data || []) as Credito[];
-
+      const soportesData = (soportesResult.data || []) as SoporteTicket[];
       setPedidos(pedidosData);
-      setCuentas(cuentasData);
       setCreditos(creditosData);
+      setSoportes(soportesData);
 
-      const pedidoIds = pedidosData.map((pedido) => pedido.id);
+      if (soportesResult.error) {
+        console.warn("Soporte no disponible todavía:", soportesResult.error.message);
+      }
+
+      const pedidoIds = pedidosData.map((pedido) => pedido.id).filter(Boolean);
+
+      let cuentasPorUsuario: CuentaProducto[] = [];
+      const { data: cuentasUsuarioData } = await supabase
+        .from("cuentas_producto")
+        .select("*")
+        .eq("usuario_id", user.id)
+        .order("cliente_fin", { ascending: true });
+      cuentasPorUsuario = (cuentasUsuarioData || []) as CuentaProducto[];
+
+      let cuentasPorPedido: CuentaProducto[] = [];
+      if (pedidoIds.length > 0) {
+        const { data: cuentasPedidoData } = await supabase
+          .from("cuentas_producto")
+          .select("*")
+          .in("pedido_id", pedidoIds)
+          .order("cliente_fin", { ascending: true });
+        cuentasPorPedido = (cuentasPedidoData || []) as CuentaProducto[];
+      }
+
+      const cuentasData = uniqueById([...cuentasPorUsuario, ...cuentasPorPedido]);
+      setCuentas(cuentasData);
+
       let itemsData: PedidoItem[] = [];
       if (pedidoIds.length > 0) {
-        const { data } = await supabase
-          .from("pedido_items")
-          .select("*, productos:producto_id(id,nombre,imagen,categoria,tipo_venta)")
-          .in("pedido_id", pedidoIds);
+        const { data } = await supabase.from("pedido_items").select("*").in("pedido_id", pedidoIds);
         itemsData = (data || []) as PedidoItem[];
       }
       setPedidoItems(itemsData);
 
       const productoIds = Array.from(
         new Set([
-          ...cuentasData.map((cuenta) => normalizarId(cuenta.producto_id)).filter(Boolean),
-          ...itemsData.map((item) => normalizarId(item.producto_id)).filter(Boolean),
-        ])
+          ...cuentasData.map((cuenta) => cuenta.producto_id).filter(Boolean),
+          ...itemsData.map((item) => item.producto_id).filter(Boolean),
+        ] as string[]),
       );
 
-      const productosMap = new Map<string, Producto>();
-
-      cuentasData.forEach((cuenta) => {
-        const relacionado = getRelatedProduct(cuenta.productos) || getRelatedProduct(cuenta.producto);
-        if (relacionado?.id) productosMap.set(normalizarId(relacionado.id), relacionado);
-      });
-
-      itemsData.forEach((item) => {
-        const relacionado = extraerProductoRelacionado(item);
-        if (relacionado?.id) productosMap.set(normalizarId(relacionado.id), relacionado);
-      });
-
       if (productoIds.length > 0) {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("productos")
           .select("id,nombre,imagen,categoria,tipo_venta")
           .in("id", productoIds);
-
-        if (error) console.error("Error cargando nombres de productos:", error);
-
-        ((data || []) as Producto[]).forEach((producto) => {
-          if (producto.id) productosMap.set(normalizarId(producto.id), producto);
-        });
+        setProductos((data || []) as Producto[]);
+      } else {
+        setProductos([]);
       }
-
-      setProductos(Array.from(productosMap.values()));
     } catch (error) {
       console.error("Error cargando panel cliente:", error);
-      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -364,10 +254,10 @@ export default function ClientePage() {
 
   const nombre = usuario?.nombre || usuario?.correo?.split("@")[0] || "Cliente";
   const saldo = creditos
-    .filter((credito) => normalizar(credito.estado || "activo") === "activo")
+    .filter((credito) => String(credito.estado || "activo").toLowerCase() === "activo")
     .reduce((acc, credito) => acc + Number(credito.saldo || 0), 0);
 
-  const productoPorId = useMemo(() => new Map(productos.map((producto) => [normalizarId(producto.id), producto])), [productos]);
+  const productoPorId = useMemo(() => new Map(productos.map((producto) => [producto.id, producto])), [productos]);
 
   const itemsPorPedido = useMemo(() => {
     const map = new Map<string, PedidoItem[]>();
@@ -379,55 +269,122 @@ export default function ClientePage() {
     return map;
   }, [pedidoItems]);
 
-  const cuentasActivas = cuentas.filter((cuenta) => normalizar(cuenta.estado) === "entregada");
+  const cuentasActivas = cuentas.filter((cuenta) => String(cuenta.estado || "").toLowerCase() === "entregada");
 
-  const productosGastados = pedidos
-    .filter((pedido) => normalizar(pedido.metodo_pago).includes("crédito") || normalizar(pedido.metodo_pago).includes("credito"))
-    .reduce((acc, pedido) => acc + Number(pedido.total || 0), 0);
+  const proximosVencimientos = useMemo(() => {
+    return cuentasActivas
+      .filter((cuenta) => {
+        const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+        return dias !== null && dias <= 7;
+      })
+      .slice(0, 5);
+  }, [cuentasActivas]);
 
-  const plataformas = useMemo<PlataformaGrupo[]>(() => {
-    const map = new Map<string, PlataformaGrupo>();
+  const soportesAbiertos = soportes.filter((item) => String(item.estado || "pendiente").toLowerCase() !== "entregado");
 
-    cuentasActivas.forEach((cuenta) => {
-      const producto = productoPorId.get(normalizarId(cuenta.producto_id)) || getRelatedProduct(cuenta.productos) || getRelatedProduct(cuenta.producto) || null;
-      const id = normalizarId(producto?.id || cuenta.producto_id || "sin-producto");
-      const nombreProducto = getProductName(producto, cuenta);
-      const actual = map.get(id) || {
-        id,
-        nombre: nombreProducto,
-        categoria: producto?.tipo_venta || producto?.categoria || "Acceso digital",
-        accent: getAccent(producto || undefined),
-        cuentas: [],
-      };
-
-      actual.cuentas.push(cuenta);
-      if (producto?.nombre && normalizar(producto.nombre) !== "producto") actual.nombre = producto.nombre;
-      if (producto?.tipo_venta || producto?.categoria) actual.categoria = producto.tipo_venta || producto.categoria || actual.categoria;
-      actual.accent = getAccent(producto || undefined);
-      map.set(id, actual);
-    });
-
-    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [cuentasActivas, productoPorId]);
-
-  const plataformaSeleccionada = selectedPlatformId
-    ? plataformas.find((plataforma) => plataforma.id === selectedPlatformId) || null
-    : null;
+  const menu: { id: SectionId; label: string; icon: string }[] = [
+    { id: "dashboard", label: "Dashboard", icon: "⌂" },
+    { id: "compras", label: "Mis compras", icon: "▣" },
+    { id: "accesos", label: "Mis accesos", icon: "✦" },
+    { id: "vencimientos", label: "Vencimientos", icon: "◷" },
+    { id: "creditos", label: "Créditos", icon: "◆" },
+    { id: "soporte", label: "Soporte", icon: "⚠" },
+    { id: "telegram", label: "Telegram", icon: "✈" },
+  ];
 
   const copiarTexto = async (texto: string) => {
     try {
       await navigator.clipboard.writeText(texto);
       toast.success("Datos copiados correctamente");
     } catch {
-      toast.error("No se pudo copiar. Intenta nuevamente.");
+      toast.error("No se pudo copiar");
     }
   };
 
-  const cerrarSesion = async () => {
-    await supabase.auth.signOut();
-    if (typeof window !== "undefined") localStorage.removeItem("usuario");
-    router.push("/login");
+
+  const crearSoporte = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!usuario?.id) {
+      toast.error("Debes iniciar sesión para reportar soporte");
+      return;
+    }
+
+    if (!soporteCuentaId) {
+      toast.error("Selecciona la cuenta que vas a reportar");
+      return;
+    }
+
+    if (!soporteMensaje.trim()) {
+      toast.error("Describe brevemente el problema");
+      return;
+    }
+
+    const cuenta = cuentasActivas.find((item) => item.id === soporteCuentaId);
+    const producto = cuenta ? productoPorId.get(cuenta.producto_id) : null;
+
+    if (!cuenta) {
+      toast.error("No se encontró la cuenta seleccionada");
+      return;
+    }
+
+    try {
+      setEnviandoSoporte(true);
+
+      const payload = {
+        usuario_id: usuario.id,
+        cuenta_id: cuenta.id,
+        pedido_id: cuenta.pedido_id || null,
+        producto_id: cuenta.producto_id || null,
+        cliente_nombre: usuario.nombre || "Cliente",
+        cliente_correo: usuario.correo || "",
+        producto_nombre: producto?.nombre || "Producto",
+        cuenta_correo: cuenta.correo || "",
+        problema: soporteProblema,
+        mensaje: soporteMensaje.trim(),
+        estado: "pendiente",
+        dias_compensacion: 0,
+        fecha_reporte: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from("soporte_tickets")
+        .insert([payload])
+        .select("*")
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setSoportes((prev) => [data as SoporteTicket, ...prev]);
+      }
+
+      setSoporteCuentaId("");
+      setSoporteProblema("Cuenta caída");
+      setSoporteMensaje("");
+      toast.success("Soporte enviado al admin");
+    } catch (error) {
+      const detalle = error instanceof Error ? error.message : "Error desconocido";
+      console.error("Error creando soporte:", error);
+      toast.error(`No se pudo enviar soporte: ${detalle}`);
+    } finally {
+      setEnviandoSoporte(false);
+    }
   };
+
+
+  if (loading) {
+    return (
+      <main className={styles.loadingPage}>
+        <div className={styles.loadingCard}>
+          <div className={styles.loader} />
+          <p>Cargando tu panel...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className={styles.page}>
@@ -461,53 +418,54 @@ export default function ClientePage() {
             <span>{usuario?.correo || "Cliente Jonas Stream"}</span>
             <em>{usuario?.estado || "activo"}</em>
           </div>
-
-          <button type="button" onClick={cerrarSesion} className={styles.primaryButton}>
-            Cerrar sesión
-          </button>
         </aside>
 
         <section className={styles.content}>
-          <section className={styles.heroPanel}>
-            <span className={styles.kicker}>{loading ? "Actualizando datos" : "Bienvenido de vuelta"}</span>
+          <div className={styles.heroPanel}>
+            <span className={styles.kicker}>Bienvenido de vuelta</span>
             <h1>
               Hola, <span>{nombre}</span>
             </h1>
-            <p>Gestiona tus compras, plataformas entregadas, vencimientos y créditos desde un solo lugar.</p>
+            <p>Gestiona tus compras, accesos entregados, vencimientos y créditos desde un solo lugar.</p>
             <div className={styles.heroActions}>
               <Link href="/tienda">Ir a tienda</Link>
               <Link href="/carrito">Ver carrito</Link>
             </div>
-          </section>
+          </div>
 
           {activeSection === "dashboard" && (
             <div className={styles.sectionStack}>
               <div className={styles.statsGrid}>
                 <StatCard title="Saldo disponible" value={formatMoney(saldo)} subtitle="Créditos Jonas Stream" />
-                <StatCard title="Plataformas" value={String(plataformas.length)} subtitle="Servicios con accesos" />
                 <StatCard title="Accesos activos" value={String(cuentasActivas.length)} subtitle="Cuentas entregadas" />
+                <StatCard title="Por vencer" value={String(proximosVencimientos.length)} subtitle="En los próximos 7 días" />
+                <StatCard title="Soportes abiertos" value={String(soportesAbiertos.length)} subtitle="Pendientes o en proceso" />
               </div>
 
-              <Panel title="Resumen de accesos">
-                {plataformas.length === 0 ? (
-                  <EmptyText text={loading ? "Cargando tus accesos..." : "Todavía no tienes plataformas entregadas."} />
+              <GlassCard title="Próximos vencimientos">
+                {proximosVencimientos.length === 0 ? (
+                  <EmptyText text="No tienes vencimientos próximos." />
                 ) : (
-                  <PlatformGrid plataformas={plataformas} onOpen={(id) => { setSelectedPlatformId(id); setActiveSection("accesos"); }} />
+                  <div className={styles.listStack}>
+                    {proximosVencimientos.map((cuenta) => (
+                      <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} />
+                    ))}
+                  </div>
                 )}
-              </Panel>
+              </GlassCard>
             </div>
           )}
 
           {activeSection === "compras" && (
-            <Panel title="Mis compras">
+            <GlassCard title="Mis compras">
               {pedidos.length === 0 ? (
-                <EmptyText text={loading ? "Cargando compras..." : "Aún no tienes compras registradas."} />
+                <EmptyText text="Aún no tienes compras registradas." />
               ) : (
                 <div className={styles.listStack}>
                   {pedidos.map((pedido) => {
                     const items = itemsPorPedido.get(pedido.id) || [];
                     const nombres = items
-                      .map((item) => getProductName(productoPorId.get(normalizarId(item.producto_id)) || extraerProductoRelacionado(item)))
+                      .map((item) => productoPorId.get(String(item.producto_id || ""))?.nombre || "Producto")
                       .join(", ");
 
                     return (
@@ -519,162 +477,183 @@ export default function ClientePage() {
                         </div>
                         <div className={styles.orderRight}>
                           <strong>{formatMoney(pedido.total)}</strong>
-                          <span className={getStatusClass(pedido.estado)}>{pedido.estado || "pendiente"}</span>
+                          <span className={`${styles.statusBadge} ${estadoPedidoClass(pedido.estado)}`}>{pedido.estado || "pendiente"}</span>
                         </div>
                       </div>
                     );
                   })}
                 </div>
               )}
-            </Panel>
+            </GlassCard>
           )}
 
           {activeSection === "accesos" && (
-            <Panel title={plataformaSeleccionada ? `Accesos de ${plataformaSeleccionada.nombre}` : "Mis accesos por plataforma"}>
+            <GlassCard title="Mis accesos">
               {cuentasActivas.length === 0 ? (
-                <EmptyText text={loading ? "Cargando accesos..." : "Todavía no tienes accesos entregados."} />
-              ) : plataformaSeleccionada ? (
-                <div className={styles.platformDetailStack}>
-                  <button type="button" className={styles.backButton} onClick={() => setSelectedPlatformId(null)}>
-                    ← Volver a plataformas
-                  </button>
-
-                  <div className={`${styles.platformHeaderCard} ${styles[`accent_${plataformaSeleccionada.accent}`] || styles.accent_default}`}>
-                    <div>
-                      <span>PLATAFORMA SELECCIONADA</span>
-                      <h3>{plataformaSeleccionada.nombre}</h3>
-                      <p>{plataformaSeleccionada.categoria} · {plataformaSeleccionada.cuentas.length} acceso(s)</p>
-                    </div>
-                    <strong>{plataformaSeleccionada.cuentas.length}</strong>
-                  </div>
-
-                  <div className={styles.accessTableWrap}>
-                    <table className={styles.accessTable}>
-                      <thead>
-                        <tr>
-                          <th>Acceso</th>
-                          <th>Clave</th>
-                          <th>Inicio</th>
-                          <th>Vencimiento</th>
-                          <th>Estado</th>
-                          <th>Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {plataformaSeleccionada.cuentas.map((cuenta) => (
-                          <AccessRow
-                            key={cuenta.id}
-                            cuenta={cuenta}
-                            producto={productoPorId.get(normalizarId(cuenta.producto_id)) || getRelatedProduct(cuenta.productos) || getRelatedProduct(cuenta.producto) || undefined}
-                            usuario={usuario}
-                            copiarTexto={copiarTexto}
-                          />
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <EmptyText text="Todavía no tienes accesos entregados. Compra con créditos o espera que el admin apruebe tu pedido normal." />
               ) : (
-                <div className={styles.platformStack}>
-                  <div className={styles.panelHintBox}>
-                    <strong>VISTA ORDENADA</strong>
-                    <p>Primero ves tus plataformas. Entra a una para ver correos, claves, vencimientos y solicitar renovación por WhatsApp.</p>
-                  </div>
-                  <PlatformGrid plataformas={plataformas} onOpen={setSelectedPlatformId} />
+                <div className={styles.accessGrid}>
+                  {cuentasActivas.map((cuenta) => {
+                    const producto = productoPorId.get(cuenta.producto_id);
+                    const textoCopiar = [
+                      `Producto: ${producto?.nombre || "Producto"}`,
+                      `Correo: ${cuenta.correo}`,
+                      `Contraseña: ${cuenta.clave}`,
+                      `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
+                    ].join("\n");
+
+                    return (
+                      <div key={cuenta.id} className={styles.accessCard}>
+                        <div className={styles.accessTop}>
+                          <div>
+                            <h3>{producto?.nombre || "Producto"}</h3>
+                            <p>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</p>
+                          </div>
+                          <span>Activo</span>
+                        </div>
+
+                        <InfoRow label="Correo" value={cuenta.correo || "No disponible"} />
+                        <InfoRow label="Contraseña" value={cuenta.clave || "No disponible"} />
+                        <InfoRow label="Inicio" value={formatDate(cuenta.cliente_inicio)} />
+                        <InfoRow label="Vencimiento" value={formatDate(cuenta.cliente_fin || cuenta.fecha_fin)} />
+
+                        <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>Copiar datos</button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </Panel>
+            </GlassCard>
           )}
 
           {activeSection === "vencimientos" && (
-            <Panel title="Vencimientos">
+            <GlassCard title="Vencimientos">
               {cuentasActivas.length === 0 ? (
-                <EmptyText text={loading ? "Cargando vencimientos..." : "No tienes productos con vencimiento."} />
+                <EmptyText text="No tienes productos con vencimiento." />
               ) : (
-                <div className={styles.accessTableWrap}>
-                  <table className={styles.accessTable}>
-                    <thead>
-                      <tr>
-                        <th>Producto</th>
-                        <th>Acceso</th>
-                        <th>Vencimiento</th>
-                        <th>Días</th>
-                        <th>Estado</th>
-                        <th>Renovación</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cuentasActivas
-                        .slice()
-                        .sort((a, b) => String(a.cliente_fin || a.fecha_fin || "").localeCompare(String(b.cliente_fin || b.fecha_fin || "")))
-                        .map((cuenta) => {
-                          const producto = productoPorId.get(normalizarId(cuenta.producto_id)) || getRelatedProduct(cuenta.productos) || getRelatedProduct(cuenta.producto) || undefined;
-                          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
-                          const status = dias === null ? "SIN FECHA" : dias < 0 ? "VENCIDO" : dias <= 7 ? "POR VENCER" : "ACTIVO";
-                          return (
-                            <tr key={cuenta.id}>
-                              <td><strong>{getProductName(producto, cuenta)}</strong><small>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</small></td>
-                              <td><strong>{cuenta.correo || "Sin correo"}</strong><small>Clave: {cuenta.clave || "Sin clave"}</small></td>
-                              <td><strong>{formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong></td>
-                              <td><strong>{dias === null ? "-" : dias < 0 ? `${Math.abs(dias)} vencido(s)` : `${dias} día(s)`}</strong></td>
-                              <td><span className={dias !== null && dias < 0 ? `${styles.statusBadge} ${styles.statusBad}` : dias !== null && dias <= 7 ? `${styles.statusBadge} ${styles.statusWait}` : `${styles.statusBadge} ${styles.statusOk}`}>{status}</span></td>
-                              <td>
-                                <a className={styles.tableWhatsappButton} href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))} target="_blank" rel="noopener noreferrer">
-                                  Solicitar renovación
-                                </a>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
+                <div className={styles.listStack}>
+                  {cuentasActivas.map((cuenta) => (
+                    <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} showButton />
+                  ))}
                 </div>
               )}
-            </Panel>
+            </GlassCard>
           )}
 
           {activeSection === "creditos" && (
-            <Panel title="Créditos">
-              <div className={styles.statsGrid}>
-                <StatCard title="Saldo actual" value={formatMoney(saldo)} subtitle="Disponible para comprar" />
-                <StatCard title="Gastado" value={formatMoney(productosGastados)} subtitle="Compras con créditos" />
-                <StatCard title="Movimientos" value={String(creditos.length + pedidos.length)} subtitle="Recargas y compras" />
+            <GlassCard title="Créditos">
+              <div className={styles.creditHero}>
+                <span>Saldo actual</span>
+                <strong>{formatMoney(saldo)}</strong>
               </div>
 
-              <div className={styles.listStack} style={{ marginTop: 16 }}>
-                {creditos.map((credito) => (
-                  <div key={credito.id} className={styles.creditRow}>
-                    <div>
-                      <strong>Recarga / saldo de créditos</strong>
-                      <span>{formatDate(credito.created_at)} · Estado: {credito.estado || "activo"}</span>
-                    </div>
-                    <em>{formatMoney(credito.saldo)}</em>
-                  </div>
-                ))}
-
-                {pedidos
-                  .filter((pedido) => normalizar(pedido.metodo_pago).includes("crédito") || normalizar(pedido.metodo_pago).includes("credito"))
-                  .map((pedido) => (
-                    <div key={`gasto-${pedido.id}`} className={styles.creditRow}>
+              {creditos.length === 0 ? (
+                <EmptyText text="No tienes créditos asignados todavía." />
+              ) : (
+                <div className={styles.listStack}>
+                  {creditos.map((credito) => (
+                    <div key={credito.id} className={styles.creditRow}>
                       <div>
-                        <strong>Compra con créditos</strong>
-                        <span>Pedido #{pedido.id.slice(0, 8)} · {formatDate(pedido.created_at)}</span>
+                        <strong>Créditos Jonas Stream</strong>
+                        <span>Estado: {credito.estado || "activo"}</span>
                       </div>
-                      <em>-{formatMoney(pedido.total)}</em>
+                      <em>{formatMoney(credito.saldo)}</em>
                     </div>
                   ))}
+                </div>
+              )}
+            </GlassCard>
+          )}
+
+
+          {activeSection === "soporte" && (
+            <GlassCard title="Soporte">
+              <div className={styles.supportGrid}>
+                <form onSubmit={crearSoporte} className={styles.supportForm}>
+                  <div>
+                    <span className={styles.supportKicker}>Reportar cuenta</span>
+                    <h3>Enviar soporte al admin</h3>
+                    <p>
+                      Selecciona una cuenta entregada, escribe el problema y el admin verá la fecha y hora del reporte.
+                    </p>
+                  </div>
+
+                  <label className={styles.formGroup}>
+                    <span>Cuenta afectada</span>
+                    <select value={soporteCuentaId} onChange={(event) => setSoporteCuentaId(event.target.value)}>
+                      <option value="">Selecciona una cuenta</option>
+                      {cuentasActivas.map((cuenta) => {
+                        const producto = productoPorId.get(cuenta.producto_id);
+                        return (
+                          <option key={cuenta.id} value={cuenta.id}>
+                            {(producto?.nombre || "Producto") + " - " + cuenta.correo}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
+
+                  <label className={styles.formGroup}>
+                    <span>Tipo de problema</span>
+                    <select value={soporteProblema} onChange={(event) => setSoporteProblema(event.target.value)}>
+                      <option>Cuenta caída</option>
+                      <option>Clave incorrecta</option>
+                      <option>Correo no ingresa</option>
+                      <option>Perfil ocupado</option>
+                      <option>Renovación pendiente</option>
+                      <option>Otro problema</option>
+                    </select>
+                  </label>
+
+                  <label className={styles.formGroup}>
+                    <span>Detalle del soporte</span>
+                    <textarea
+                      value={soporteMensaje}
+                      onChange={(event) => setSoporteMensaje(event.target.value)}
+                      placeholder="Ejemplo: La cuenta no inicia sesión desde hoy, me sale contraseña incorrecta."
+                      rows={5}
+                    />
+                  </label>
+
+                  <button type="submit" disabled={enviandoSoporte} className={styles.primaryButton}>
+                    {enviandoSoporte ? "Enviando..." : "Enviar soporte"}
+                  </button>
+                </form>
+
+                <div className={styles.supportInfoBox}>
+                  <span>Flujo del soporte</span>
+                  <strong>Pendiente → En proceso → Entregado</strong>
+                  <p>
+                    Si el admin demora en responder, podrá sumar días de compensación automáticamente o modificarlo manualmente.
+                  </p>
+                </div>
               </div>
-            </Panel>
+
+              <div className={styles.supportListHeader}>
+                <h3>Mis reportes</h3>
+                <span>{soportes.length} soporte(s)</span>
+              </div>
+
+              {soportes.length === 0 ? (
+                <EmptyText text="Aún no tienes reportes de soporte." />
+              ) : (
+                <div className={styles.supportList}>
+                  {soportes.map((ticket) => (
+                    <SoporteItem key={ticket.id} ticket={ticket} />
+                  ))}
+                </div>
+              )}
+            </GlassCard>
           )}
 
           {activeSection === "telegram" && (
-            <Panel title="Telegram">
+            <GlassCard title="Telegram">
               <div className={styles.telegramBox}>
                 <h3>Vincula tu Telegram</h3>
                 <p>Recibe avisos de compras, accesos y vencimientos directamente en Telegram. Esta sección queda lista para conectar tu bot más adelante.</p>
                 <button type="button" className={styles.primaryButton}>Vincular Telegram</button>
               </div>
-            </Panel>
+            </GlassCard>
           )}
         </section>
       </div>
@@ -692,12 +671,12 @@ function StatCard({ title, value, subtitle }: { title: string; value: string; su
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function GlassCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className={styles.panel}>
+    <div className={styles.panel}>
       <h2>{title}</h2>
       {children}
-    </section>
+    </div>
   );
 }
 
@@ -705,74 +684,84 @@ function EmptyText({ text }: { text: string }) {
   return <div className={styles.emptyState}>{text}</div>;
 }
 
-function PlatformGrid({ plataformas, onOpen }: { plataformas: PlataformaGrupo[]; onOpen: (id: string) => void }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className={styles.platformGrid}>
-      {plataformas.map((plataforma) => {
-        const fechas = plataforma.cuentas
-          .map((cuenta) => cuenta.cliente_fin || cuenta.fecha_fin)
-          .filter(Boolean)
-          .sort() as string[];
-        const vencidos = plataforma.cuentas.filter((cuenta) => {
-          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
-          return dias !== null && dias < 0;
-        }).length;
-        const porVencer = plataforma.cuentas.filter((cuenta) => {
-          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
-          return dias !== null && dias >= 0 && dias <= 7;
-        }).length;
-
-        return (
-          <button
-            type="button"
-            key={plataforma.id}
-            onClick={() => onOpen(plataforma.id)}
-            className={`${styles.platformCard} ${styles[`accent_${plataforma.accent}`] || styles.accent_default}`}
-          >
-            <div className={styles.platformTopline}>
-              <div>
-                <span>PLATAFORMA</span>
-                <strong>{plataforma.nombre}</strong>
-              </div>
-              <em>{plataforma.cuentas.length}</em>
-            </div>
-            <div className={styles.platformMiniGrid}>
-              <div><strong>{plataforma.cuentas.length}</strong><span>Activos</span></div>
-              <div><strong>{porVencer}</strong><span>Por vencer</span></div>
-              <div><strong>{vencidos}</strong><span>Vencidos</span></div>
-            </div>
-            <p>Próximo vence: {formatDate(fechas[0])}</p>
-            <b>Ver accesos →</b>
-          </button>
-        );
-      })}
+    <div className={styles.infoRow}>
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
 
-function AccessRow({ cuenta, producto, usuario, copiarTexto }: { cuenta: CuentaProducto; producto?: Producto; usuario?: Usuario | null; copiarTexto: (texto: string) => void }) {
-  const textoCopiar = [
-    `Producto: ${getProductName(producto, cuenta)}`,
-    `Correo: ${cuenta.correo}`,
-    `Contraseña: ${cuenta.clave}`,
-    `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
-  ].join("\n");
+
+function soporteEstadoClass(estado?: string | null) {
+  const value = String(estado || "pendiente").toLowerCase();
+  if (value === "entregado" || value === "finalizado" || value === "resuelto") return styles.supportDelivered;
+  if (value === "en_proceso" || value === "proceso") return styles.supportProcess;
+  return styles.supportPending;
+}
+
+function soporteEstadoLabel(estado?: string | null) {
+  const value = String(estado || "pendiente").toLowerCase();
+  if (value === "entregado" || value === "finalizado" || value === "resuelto") return "Soporte entregado";
+  if (value === "en_proceso" || value === "proceso") return "Soporte en proceso";
+  return "Soporte pendiente";
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Sin fecha";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Sin fecha";
+  return date.toLocaleString("es-PE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function SoporteItem({ ticket }: { ticket: SoporteTicket }) {
+  return (
+    <div className={styles.supportItem}>
+      <div>
+        <div className={styles.supportItemTop}>
+          <h3>{ticket.producto_nombre || "Producto"}</h3>
+          <span className={`${styles.supportBadge} ${soporteEstadoClass(ticket.estado)}`}>
+            {soporteEstadoLabel(ticket.estado)}
+          </span>
+        </div>
+
+        <p>{ticket.problema || "Soporte"}</p>
+        <small>Cuenta: {ticket.cuenta_correo || "No indicada"}</small>
+        <small>Reportado: {formatDateTime(ticket.fecha_reporte || ticket.created_at)}</small>
+
+        {ticket.mensaje ? <em>{ticket.mensaje}</em> : null}
+        {ticket.respuesta_admin ? <b>Respuesta admin: {ticket.respuesta_admin}</b> : null}
+      </div>
+
+      <div className={styles.supportDays}>
+        <span>Días compensados</span>
+        <strong>{Number(ticket.dias_compensacion || 0)}</strong>
+      </div>
+    </div>
+  );
+}
+
+function VencimientoItem({ cuenta, producto, showButton = false }: { cuenta: CuentaProducto; producto?: Producto; showButton?: boolean }) {
+  const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+  const danger = dias !== null && dias <= 2;
+  const warning = dias !== null && dias > 2 && dias <= 7;
 
   return (
-    <tr>
-      <td><strong>{cuenta.correo || "Sin correo"}</strong><small>{getProductName(producto, cuenta)}</small></td>
-      <td><strong>{cuenta.clave || "Sin clave"}</strong></td>
-      <td><strong>{formatDate(cuenta.cliente_inicio || cuenta.fecha_inicio)}</strong></td>
-      <td><strong>{formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong></td>
-      <td><span className={`${styles.statusBadge} ${styles.statusOk}`}>Activo</span></td>
-      <td>
-        <div className={styles.tableActions}>
-          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.tableCopyButton}>Copiar</button>
-          <a className={styles.tableWhatsappButton} href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))} target="_blank" rel="noopener noreferrer">
-            Renovar
-          </a>
-        </div>
-      </td>
-    </tr>
+    <div className={`${styles.expireItem} ${danger ? styles.expireDanger : warning ? styles.expireWarning : ""}`}>
+      <div>
+        <h3>{producto?.nombre || "Producto"}</h3>
+        <p>{dias === null ? "Sin fecha de vencimiento" : dias < 0 ? `Venció hace ${Math.abs(dias)} día(s)` : `Vence en ${dias} día(s)`}</p>
+        <small>Vencimiento: {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</small>
+      </div>
+
+      {showButton && <Link href="/tienda">Renovar</Link>}
+    </div>
   );
 }
