@@ -46,6 +46,7 @@ type PedidoItem = {
   producto_id?: string | null;
   cantidad?: number | null;
   precio?: number | null;
+  productos?: Producto | Producto[] | null;
 };
 
 type CuentaProducto = {
@@ -165,8 +166,18 @@ function getAccent(producto?: Producto) {
 function getProductName(producto?: Producto, cuenta?: CuentaProducto) {
   const nombre = producto?.nombre?.trim();
   if (nombre) return nombre;
-  if (cuenta?.producto_id) return `Plataforma ${cuenta.producto_id.slice(0, 6)}`;
-  return "Plataforma";
+  return "Producto";
+}
+
+function normalizarId(value?: string | null) {
+  return String(value || "").trim();
+}
+
+function extraerProductoRelacionado(item: PedidoItem): Producto | null {
+  const relacionado = item.productos;
+  if (!relacionado) return null;
+  if (Array.isArray(relacionado)) return relacionado[0] || null;
+  return relacionado;
 }
 
 export default function ClientePage() {
@@ -297,7 +308,7 @@ export default function ClientePage() {
       if (pedidoIds.length > 0) {
         const { data } = await supabase
           .from("pedido_items")
-          .select("*")
+          .select("*, productos:producto_id(id,nombre,imagen,categoria,tipo_venta)")
           .in("pedido_id", pedidoIds);
         itemsData = (data || []) as PedidoItem[];
       }
@@ -305,33 +316,34 @@ export default function ClientePage() {
 
       const productoIds = Array.from(
         new Set([
-          ...cuentasData.map((cuenta) => cuenta.producto_id).filter(Boolean),
-          ...itemsData.map((item) => item.producto_id).filter(Boolean),
-        ] as string[])
+          ...cuentasData.map((cuenta) => normalizarId(cuenta.producto_id)).filter(Boolean),
+          ...itemsData.map((item) => normalizarId(item.producto_id)).filter(Boolean),
+        ])
       );
 
-      let productosData: Producto[] = [];
+      const productosMap = new Map<string, Producto>();
+
+      itemsData.forEach((item) => {
+        const relacionado = extraerProductoRelacionado(item);
+        if (relacionado?.id) productosMap.set(normalizarId(relacionado.id), relacionado);
+      });
+
       if (productoIds.length > 0) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("productos")
-          .select("id,nombre,imagen,categoria,tipo_venta,accent")
+          .select("id,nombre,imagen,categoria,tipo_venta")
           .in("id", productoIds);
-        productosData = (data || []) as Producto[];
-      }
 
-      // Fallback por si Supabase no devuelve accent o hay una política parcial.
-      if (productosData.length < productoIds.length) {
-        const faltantes = productoIds.filter((id) => !productosData.some((producto) => producto.id === id));
-        if (faltantes.length > 0) {
-          const { data } = await supabase
-            .from("productos")
-            .select("id,nombre,imagen,categoria,tipo_venta")
-            .in("id", faltantes);
-          productosData = [...productosData, ...((data || []) as Producto[])];
+        if (error) {
+          console.error("Error cargando nombres de productos:", error);
         }
+
+        ((data || []) as Producto[]).forEach((producto) => {
+          if (producto.id) productosMap.set(normalizarId(producto.id), producto);
+        });
       }
 
-      setProductos(productosData);
+      setProductos(Array.from(productosMap.values()));
     } catch (error) {
       console.error("Error cargando panel cliente:", error);
     } finally {
@@ -344,7 +356,7 @@ export default function ClientePage() {
     .filter((credito) => normalizar(credito.estado || "activo") === "activo")
     .reduce((acc, credito) => acc + Number(credito.saldo || 0), 0);
 
-  const productoPorId = useMemo(() => new Map(productos.map((producto) => [producto.id, producto])), [productos]);
+  const productoPorId = useMemo(() => new Map(productos.map((producto) => [normalizarId(producto.id), producto])), [productos]);
 
   const itemsPorPedido = useMemo(() => {
     const map = new Map<string, PedidoItem[]>();
@@ -362,7 +374,7 @@ export default function ClientePage() {
     const map = new Map<string, PlataformaGrupo>();
 
     cuentasActivas.forEach((cuenta) => {
-      const producto = productoPorId.get(cuenta.producto_id);
+      const producto = productoPorId.get(normalizarId(cuenta.producto_id));
       const id = producto?.id || cuenta.producto_id || "sin-producto";
       const nombreProducto = getProductName(producto, cuenta);
       const actual = map.get(id) || {
@@ -500,7 +512,7 @@ export default function ClientePage() {
                   {pedidos.map((pedido) => {
                     const items = itemsPorPedido.get(pedido.id) || [];
                     const nombres = items
-                      .map((item) => productoPorId.get(String(item.producto_id || ""))?.nombre || "Producto")
+                      .map((item) => productoPorId.get(normalizarId(item.producto_id))?.nombre || "Producto")
                       .join(", ");
 
                     return (
@@ -558,7 +570,7 @@ export default function ClientePage() {
                           <AccessRow
                             key={cuenta.id}
                             cuenta={cuenta}
-                            producto={productoPorId.get(cuenta.producto_id)}
+                            producto={productoPorId.get(normalizarId(cuenta.producto_id))}
                             usuario={usuario}
                             copiarTexto={copiarTexto}
                           />
@@ -601,7 +613,7 @@ export default function ClientePage() {
                         .slice()
                         .sort((a, b) => String(a.cliente_fin || a.fecha_fin || "").localeCompare(String(b.cliente_fin || b.fecha_fin || "")))
                         .map((cuenta) => {
-                          const producto = productoPorId.get(cuenta.producto_id);
+                          const producto = productoPorId.get(normalizarId(cuenta.producto_id));
                           const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
                           const status = dias === null ? "SIN FECHA" : dias < 0 ? "VENCIDO" : dias <= 7 ? "POR VENCER" : "ACTIVO";
                           return (
