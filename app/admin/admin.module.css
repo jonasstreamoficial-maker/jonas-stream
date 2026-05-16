@@ -6459,3 +6459,93 @@
     width: 100%;
   }
 }
+
+
+
+/* CRM Google Contacts por etiquetas */
+.contactImportGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.crmSelect {
+  width: 180px;
+  min-height: 42px;
+}
+
+.crmPreviewCard {
+  min-height: 210px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 16% 10%, rgba(0, 251, 255, 0.16), transparent 35%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.09), rgba(3, 19, 22, 0.76));
+  box-shadow: inset 0 0 34px rgba(0, 251, 255, 0.04);
+}
+
+.crmPreviewCard h4 {
+  margin: 0;
+  color: #ECFFFF;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.05;
+  text-shadow: 0 0 28px rgba(0, 251, 255, 0.18);
+}
+
+.crmPreviewCard span {
+  color: #9BC8CB;
+  font-weight: 850;
+}
+
+.contactLabelGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.contactLabelCard {
+  width: 100%;
+  padding: 20px;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(0, 251, 255, 0.13), transparent 34%),
+    rgba(3, 19, 22, 0.78);
+  color: #ECFFFF;
+  transition: 0.18s ease;
+  box-shadow: inset 0 0 32px rgba(0, 251, 255, 0.04);
+}
+
+.contactLabelCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 251, 255, 0.52);
+  box-shadow:
+    0 18px 50px rgba(0, 251, 255, 0.1),
+    inset 0 0 34px rgba(0, 251, 255, 0.06);
+}
+
+.contactLabelEmpty {
+  opacity: 0.74;
+  border-color: rgba(155, 200, 203, 0.16);
+}
+
+.contactLabelEmpty em {
+  color: #9BC8CB !important;
+}
+
+@media (max-width: 980px) {
+  .contactImportGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .crmSelect {
+    width: 100%;
+  }
+}

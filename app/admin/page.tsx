@@ -236,6 +236,14 @@ const estadosUsuario = ["todos", "pendiente", "aprobado", "rechazado"]
 const rolesUsuario = ["todos", "cliente", "proveedor", "admin"]
 const etiquetasGoogleContactos = ["| ADMIN |", "| CV |", "| JS |", "| RATAS |", "| SE |", "| SR |", "| SV |"]
 
+const normalizarEtiquetaClave = (etiqueta?: string | null) =>
+  String(etiqueta || "| SV |")
+    .replace(/\|/g, "")
+    .trim()
+    .toUpperCase() || "SV"
+
+const formatearEtiquetaContacto = (valor?: string | null) => `| ${normalizarEtiquetaClave(valor)} |`
+
 const normalizarTexto = (valor?: string | number | null) => String(valor ?? "").trim().toLowerCase()
 const limpiarNumeroContacto = (valor?: string | null) => String(valor ?? "").replace(/[^\d]/g, "")
 const separarNombreContacto = (nombreCompleto?: string | null) => {
@@ -410,6 +418,13 @@ export default function AdminPage() {
   const [importandoCuentas, setImportandoCuentas] = useState(false)
   const [archivoImportacionNombre, setArchivoImportacionNombre] = useState("")
   const inputImportarCuentasRef = useRef<HTMLInputElement | null>(null)
+  const [etiquetaContactosActiva, setEtiquetaContactosActiva] = useState<string | null>(null)
+  const [etiquetaImportacionContactos, setEtiquetaImportacionContactos] = useState("| SV |")
+  const [textoImportacionContactos, setTextoImportacionContactos] = useState("")
+  const [archivoImportacionContactosNombre, setArchivoImportacionContactosNombre] = useState("")
+  const [importandoContactos, setImportandoContactos] = useState(false)
+  const [busquedaContactoEtiqueta, setBusquedaContactoEtiqueta] = useState("")
+  const inputImportarContactosRef = useRef<HTMLInputElement | null>(null)
 
   const [configId, setConfigId] = useState<string | null>(null)
   const [formConfig, setFormConfig] = useState(configuracionInicial)
@@ -2209,6 +2224,59 @@ export default function AdminPage() {
       .sort((a, b) => b.total - a.total || a.producto.nombre.localeCompare(b.producto.nombre))
   }, [productos, cuentasProducto])
 
+
+  const resumenContactosPorEtiqueta = useMemo(() => {
+    const etiquetasDesdeUsuarios = Array.from(
+      new Set(
+        usuarios
+          .map((item) => formatearEtiquetaContacto(item.etiqueta_contacto))
+          .filter(Boolean)
+      )
+    )
+
+    const etiquetas = Array.from(new Set([...etiquetasGoogleContactos, ...etiquetasDesdeUsuarios]))
+
+    return etiquetas
+      .map((etiqueta) => {
+        const contactos = usuarios.filter((item) => formatearEtiquetaContacto(item.etiqueta_contacto) === etiqueta)
+        const aprobados = contactos.filter((item) => item.estado === "aprobado" || item.estado === "activo").length
+        const pendientes = contactos.filter((item) => item.estado === "pendiente").length
+        const admins = contactos.filter((item) => item.rol === "admin").length
+        const telefonos = contactos.filter((item) => obtenerTelefonoContacto(item)).length
+        const ultimoNumero = contactos.reduce((max, item) => Math.max(max, Number(item.numero_orden || item.prefijo_cliente || 0)), 0)
+
+        return {
+          etiqueta,
+          codigo: normalizarEtiquetaClave(etiqueta),
+          total: contactos.length,
+          aprobados,
+          pendientes,
+          admins,
+          telefonos,
+          ultimoNumero,
+        }
+      })
+      .filter((item) => item.total > 0 || etiquetasGoogleContactos.includes(item.etiqueta))
+      .sort((a, b) => b.total - a.total || a.codigo.localeCompare(b.codigo))
+  }, [usuarios])
+
+  const resumenEtiquetaActiva = etiquetaContactosActiva
+    ? resumenContactosPorEtiqueta.find((item) => item.etiqueta === etiquetaContactosActiva) || null
+    : null
+
+  const contactosEtiquetaActiva = useMemo(() => {
+    if (!etiquetaContactosActiva) return []
+    const query = normalizarTexto(busquedaContactoEtiqueta)
+
+    return usuarios.filter((item) => {
+      const coincideEtiqueta = formatearEtiquetaContacto(item.etiqueta_contacto) === etiquetaContactosActiva
+      const texto = normalizarTexto(`${item.nombre} ${item.correo} ${item.telefono} ${item.celular_completo} ${item.numero_orden}`)
+      return coincideEtiqueta && (!query || texto.includes(query))
+    })
+  }, [usuarios, etiquetaContactosActiva, busquedaContactoEtiqueta])
+
+
+
   const productoCuentasActivo = productoCuentasActivoId
     ? productos.find((producto) => producto.id === productoCuentasActivoId) || null
     : null
@@ -2465,6 +2533,139 @@ export default function AdminPage() {
     setImportandoCuentas(false)
     await cargarDatos()
   }
+
+
+  const cargarArchivoContactosTXT = async (archivo?: File | null) => {
+    if (!archivo) return
+
+    if (!archivo.name.toLowerCase().endsWith(".txt") && !archivo.name.toLowerCase().endsWith(".csv")) {
+      toast.error("Sube un archivo .txt o .csv")
+      return
+    }
+
+    try {
+      const contenido = await archivo.text()
+      setTextoImportacionContactos(contenido)
+      setArchivoImportacionContactosNombre(archivo.name)
+      const lineas = contenido.split(/\r?\n/).map((linea) => linea.trim()).filter(Boolean).length
+      toast.success(`${lineas} contacto(s) cargados`)
+    } catch {
+      toast.error("No se pudo leer el archivo de contactos")
+    }
+  }
+
+  const handleArchivoContactosChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    await cargarArchivoContactosTXT(e.target.files?.[0] || null)
+    e.target.value = ""
+  }
+
+  const handleDropContactos = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    await cargarArchivoContactosTXT(e.dataTransfer.files?.[0] || null)
+  }
+
+  const limpiarArchivoContactos = () => {
+    setTextoImportacionContactos("")
+    setArchivoImportacionContactosNombre("")
+  }
+
+  const parsearLineaContacto = (lineaOriginal: string, index: number, ordenBase: number) => {
+    const linea = lineaOriginal.trim()
+    const emailMatch = linea.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
+    const telefonoMatch = linea.replace(/^\d+\s*\|\s*[A-Z]+\s*\|/i, "").match(/(\+?\d[\d\s().-]{7,}\d)/)
+    const ordenMatch = linea.match(/^\s*(\d{1,6})\s*(?:\||-|,|;)?/)
+    const telefono = limpiarNumeroContacto(telefonoMatch?.[1] || "")
+    const numeroOrden = ordenMatch?.[1] ? Number(ordenMatch[1]) : ordenBase + index
+    const etiquetaLimpia = normalizarEtiquetaClave(etiquetaImportacionContactos)
+
+    let nombre = linea
+      .replace(emailMatch?.[0] || "", "")
+      .replace(telefonoMatch?.[1] || "", "")
+      .replace(/^\s*\d{1,6}\s*(?:\||-|,|;)?\s*/i, "")
+      .replace(new RegExp(`\\|?\\s*${etiquetaLimpia}\\s*\\|?`, "i"), "")
+      .replace(/[|;,]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+
+    if (!nombre) nombre = `Contacto ${numeroOrden}`
+
+    return {
+      nombre,
+      correo: emailMatch?.[0]?.toLowerCase() || `contacto-${etiquetaLimpia.toLowerCase()}-${numeroOrden}-${Date.now()}-${index}@jonas.local`,
+      telefono,
+      numeroOrden,
+      etiqueta: formatearEtiquetaContacto(etiquetaImportacionContactos),
+    }
+  }
+
+  const importarContactosDesdeTXT = async () => {
+    const lineas = textoImportacionContactos
+      .split(/\r?\n/)
+      .map((linea) => linea.trim())
+      .filter(Boolean)
+
+    if (lineas.length === 0) {
+      toast.error("Arrastra o selecciona un TXT/CSV con contactos")
+      return
+    }
+
+    setImportandoContactos(true)
+
+    const etiquetaFinal = formatearEtiquetaContacto(etiquetaImportacionContactos)
+    const contactosExistentes = usuarios.filter((item) => formatearEtiquetaContacto(item.etiqueta_contacto) === etiquetaFinal)
+    const mayorOrden = contactosExistentes.reduce((max, item) => Math.max(max, Number(item.numero_orden || item.prefijo_cliente || 0)), 0)
+    const ordenBase = mayorOrden > 0 ? mayorOrden + 1 : 1
+
+    const existentes = new Set(
+      usuarios.map((item) => `${formatearEtiquetaContacto(item.etiqueta_contacto)}-${limpiarNumeroContacto(item.telefono || item.celular_completo || item.celular || "")}-${normalizarTexto(item.correo)}`)
+    )
+
+    const vistos = new Set<string>()
+    const contactos = lineas
+      .map((linea, index) => parsearLineaContacto(linea, index, ordenBase))
+      .filter((contacto) => {
+        const clave = `${contacto.etiqueta}-${contacto.telefono}-${normalizarTexto(contacto.correo)}`
+        if (vistos.has(clave) || existentes.has(clave)) return false
+        vistos.add(clave)
+        return true
+      })
+
+    if (contactos.length === 0) {
+      toast.error("Todos los contactos ya existen o están duplicados")
+      setImportandoContactos(false)
+      return
+    }
+
+    const payload = contactos.map((contacto) => ({
+      nombre: contacto.nombre,
+      correo: contacto.correo,
+      telefono: contacto.telefono,
+      celular: contacto.telefono.startsWith("51") ? contacto.telefono.slice(2) : contacto.telefono,
+      celular_completo: contacto.telefono,
+      codigo_pais: contacto.telefono.startsWith("51") ? "+51" : null,
+      pais: contacto.telefono.startsWith("51") ? "Perú" : null,
+      rol: "cliente",
+      estado: "aprobado",
+      etiqueta_contacto: contacto.etiqueta,
+      numero_orden: contacto.numeroOrden,
+    }))
+
+    const { error } = await supabase.from("usuarios").insert(payload)
+
+    if (error) {
+      toast.error(`No se pudieron importar contactos: ${error.message}`)
+      setImportandoContactos(false)
+      return
+    }
+
+    await registrarLog("importar_contactos", "usuarios", undefined, `${payload.length} contacto(s) importados en ${etiquetaFinal}`)
+    registrarEvento(`${payload.length} contacto(s) importados en ${etiquetaFinal}`)
+    toast.success(`${payload.length} contacto(s) importados en ${etiquetaFinal}`)
+    limpiarArchivoContactos()
+    setImportandoContactos(false)
+    await cargarDatos()
+  }
+
 
 
 
@@ -4510,6 +4711,246 @@ export default function AdminPage() {
                   Limpiar archivo
                 </button>
               </div>
+            </article>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>CRM Google Contacts</p>
+                  <h3>{etiquetaContactosActiva ? `Contactos de ${etiquetaContactosActiva}` : "Resumen de etiquetas"}</h3>
+                  <span className={styles.panelHint}>
+                    {etiquetaContactosActiva
+                      ? "Gestiona los contactos de esta etiqueta, exporta CSV para Google y revisa el orden de clientes."
+                      : "Importa contactos por etiqueta igual que el banco de cuentas. Aquí verás | SV |, | SE |, | JS |, | RATAS | y las demás etiquetas."}
+                  </span>
+                </div>
+
+                {etiquetaContactosActiva ? (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => {
+                      setEtiquetaContactosActiva(null)
+                      setBusquedaContactoEtiqueta("")
+                    }}
+                  >
+                    ← Volver a etiquetas
+                  </button>
+                ) : (
+                  <div className={styles.tableActions}>
+                    <select
+                      value={etiquetaImportacionContactos}
+                      onChange={(e) => setEtiquetaImportacionContactos(e.target.value)}
+                      className={`${styles.input} ${styles.crmSelect}`}
+                    >
+                      {etiquetasGoogleContactos.map((etiqueta) => (
+                        <option key={etiqueta} value={etiqueta}>{etiqueta}</option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => exportarUsuariosGoogleContacts(usuarios)} className={styles.secondaryButton}>
+                      Exportar todos
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!etiquetaContactosActiva && (
+                <>
+                  <div className={styles.contactImportGrid}>
+                    <div>
+                      <div className={styles.noticeBox}>
+                        Primero selecciona la etiqueta destino. Luego importa tu TXT/CSV. El sistema asigna esa etiqueta, teléfono y número de orden automáticamente.
+                      </div>
+
+                      <input
+                        ref={inputImportarContactosRef}
+                        type="file"
+                        accept=".txt,.csv,text/plain,text/csv"
+                        onChange={handleArchivoContactosChange}
+                        className={styles.hiddenFileInput}
+                      />
+
+                      <div
+                        className={styles.importDropzone}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={handleDropContactos}
+                        onClick={() => inputImportarContactosRef.current?.click()}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") inputImportarContactosRef.current?.click()
+                        }}
+                      >
+                        <div className={styles.importDropIcon}>CSV</div>
+                        <div>
+                          <strong>{archivoImportacionContactosNombre || `Importar contactos a ${etiquetaImportacionContactos}`}</strong>
+                          <p>Formatos soportados: 348 | SV | Abigail Llanos 51977196929 · o nombre, teléfono, correo.</p>
+                          <small>
+                            {textoImportacionContactos
+                              ? `${textoImportacionContactos.split(/\r?\n/).filter((linea) => linea.trim()).length} contacto(s) listos`
+                              : "Click para seleccionar archivo .txt o .csv"}
+                          </small>
+                        </div>
+                      </div>
+
+                      <div className={styles.formActions}>
+                        <button type="button" onClick={importarContactosDesdeTXT} disabled={importandoContactos || !textoImportacionContactos.trim()} className={styles.primaryButton}>
+                          {importandoContactos ? "Importando..." : `Importar a ${etiquetaImportacionContactos}`}
+                        </button>
+                        <button type="button" onClick={limpiarArchivoContactos} className={styles.secondaryButton}>
+                          Limpiar archivo
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className={styles.crmPreviewCard}>
+                      <p className={styles.kicker}>Formato Google</p>
+                      <h4>348 | {normalizarEtiquetaClave(etiquetaImportacionContactos)} | Abigail Llanos</h4>
+                      <span>Teléfono: 51977196929 · Grupo: {etiquetaImportacionContactos}</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.contactLabelGrid}>
+                    {resumenContactosPorEtiqueta.map((item) => (
+                      <button
+                        key={item.etiqueta}
+                        type="button"
+                        className={`${styles.contactLabelCard} ${item.total === 0 ? styles.contactLabelEmpty : ""}`}
+                        onClick={() => {
+                          setEtiquetaContactosActiva(item.etiqueta)
+                          setEtiquetaGoogleContactos(item.etiqueta)
+                        }}
+                      >
+                        <div className={styles.accountPlatformTop}>
+                          <div>
+                            <span>Etiqueta Google</span>
+                            <strong>{item.etiqueta}</strong>
+                          </div>
+                          <em>{item.total}</em>
+                        </div>
+
+                        <div className={styles.accountPlatformStats}>
+                          <div>
+                            <b>{item.aprobados}</b>
+                            <small>Aprobados</small>
+                          </div>
+                          <div>
+                            <b>{item.pendientes}</b>
+                            <small>Pendientes</small>
+                          </div>
+                          <div>
+                            <b>{item.telefonos}</b>
+                            <small>Con teléfono</small>
+                          </div>
+                          <div>
+                            <b>{item.ultimoNumero || 0}</b>
+                            <small>Último N°</small>
+                          </div>
+                        </div>
+
+                        <div className={styles.accountPlatformFooter}>
+                          <span>{item.admins} admin · {item.total - item.admins} clientes</span>
+                          <strong>Gestionar contactos →</strong>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {etiquetaContactosActiva && (
+                <>
+                  <div className={styles.accountDetailHero}>
+                    <div>
+                      <p className={styles.kicker}>Etiqueta seleccionada</p>
+                      <h4>{etiquetaContactosActiva}</h4>
+                      <span>
+                        {resumenEtiquetaActiva?.total || 0} contacto(s) · último número {resumenEtiquetaActiva?.ultimoNumero || 0}
+                      </span>
+                    </div>
+
+                    <div className={styles.accountDetailStats}>
+                      <div>
+                        <strong>{resumenEtiquetaActiva?.aprobados || 0}</strong>
+                        <span>Aprobados</span>
+                      </div>
+                      <div>
+                        <strong>{resumenEtiquetaActiva?.pendientes || 0}</strong>
+                        <span>Pendientes</span>
+                      </div>
+                      <div>
+                        <strong>{resumenEtiquetaActiva?.telefonos || 0}</strong>
+                        <span>Con teléfono</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.filtersGridCompact}>
+                    <input
+                      type="search"
+                      placeholder="Buscar contacto, correo, teléfono o número..."
+                      value={busquedaContactoEtiqueta}
+                      onChange={(e) => setBusquedaContactoEtiqueta(e.target.value)}
+                      className={styles.input}
+                    />
+                    <button type="button" onClick={() => exportarUsuariosGoogleContacts(contactosEtiquetaActiva)} className={styles.primaryButton}>
+                      Exportar CSV Google
+                    </button>
+                  </div>
+
+                  <div className={styles.tableWrap}>
+                    <table className={styles.proTable}>
+                      <thead>
+                        <tr>
+                          <th>N°</th>
+                          <th>Contacto</th>
+                          <th>Correo</th>
+                          <th>Teléfono</th>
+                          <th>Estado</th>
+                          <th>Acceso</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {contactosEtiquetaActiva.map((contacto, index) => {
+                          const numero = obtenerNumeroOrdenContacto(contacto, index, 1)
+                          const { nombre, segundoNombre } = obtenerNombreContacto(contacto)
+
+                          return (
+                            <tr key={contacto.id}>
+                              <td><strong>{numero}</strong></td>
+                              <td>
+                                <strong>{nombre}</strong>
+                                <small>{segundoNombre || "Sin segundo nombre"}</small>
+                                <small>{numero} {etiquetaContactosActiva} {nombre} {segundoNombre}</small>
+                              </td>
+                              <td>{contacto.correo}</td>
+                              <td>
+                                <strong>{obtenerTelefonoContacto(contacto) || "Sin teléfono"}</strong>
+                                <small>{contacto.pais || "Sin país"}</small>
+                              </td>
+                              <td><StatusBadge estado={contacto.estado} /></td>
+                              <td>
+                                <div className={styles.tableActions}>
+                                  <button type="button" onClick={() => actualizarEstado(contacto.id, "aprobado")} className={styles.successButton}>
+                                    Aprobar
+                                  </button>
+                                  <button type="button" onClick={() => actualizarEstado(contacto.id, "rechazado")} className={styles.dangerButton}>
+                                    Rechazar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {contactosEtiquetaActiva.length === 0 && (
+                    <EmptyState title="Sin contactos en esta etiqueta" text="Importa un archivo o asigna usuarios a esta etiqueta." />
+                  )}
+                </>
+              )}
             </article>
 
             <article className={styles.panel}>
