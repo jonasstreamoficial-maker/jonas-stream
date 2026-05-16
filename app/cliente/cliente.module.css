@@ -713,3 +713,525 @@
     width: 100%;
   }
 }
+
+/* ==========================================================
+   PANEL CLIENTE PRO - AGRUPADO POR PLATAFORMAS
+   Pensado para clientes con muchos accesos: primero plataformas, luego lista interna.
+   ========================================================== */
+
+.panelSubHeader {
+  margin: -4px 0 18px;
+  padding: 16px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.panelSubHeader p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.kickerSoft {
+  display: inline-flex;
+  width: fit-content;
+  color: var(--cyan-strong);
+  font-size: 0.68rem;
+  font-weight: 1000;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.platformGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 16px;
+}
+
+.platformCard {
+  position: relative;
+  overflow: hidden;
+  min-height: 210px;
+  padding: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 95% 0%, var(--platform-glow, rgba(0, 251, 255, 0.12)), transparent 36%),
+    linear-gradient(135deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.62));
+  color: var(--white);
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.28),
+    inset 0 0 34px rgba(0, 229, 255, 0.045);
+  transition: 0.22s ease;
+}
+
+.platformCard:hover {
+  transform: translateY(-3px);
+  border-color: var(--platform-border, rgba(0, 251, 255, 0.48));
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.34),
+    0 0 28px var(--platform-shadow, rgba(0, 251, 255, 0.13)),
+    inset 0 0 36px rgba(0, 251, 255, 0.055);
+}
+
+.platformCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--platform-color, var(--cyan-strong)), transparent);
+  box-shadow: 0 0 22px var(--platform-shadow, rgba(0, 251, 255, 0.4));
+}
+
+.platformCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.platformCardTop span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--platform-color, var(--cyan));
+  font-size: 0.72rem;
+  font-weight: 1000;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.platformCardTop strong {
+  display: block;
+  color: var(--white);
+  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.platformCardTop em {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 20px;
+  color: var(--cyan-strong);
+  background: rgba(1, 231, 239, 0.1);
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  font-style: normal;
+  font-size: 1.5rem;
+  font-weight: 1000;
+  box-shadow: inset 0 0 24px rgba(0, 251, 255, 0.04);
+}
+
+.platformStatsMini {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.platformStatsMini div {
+  min-height: 68px;
+  padding: 11px;
+  border-radius: 17px;
+  border: 1px solid rgba(1, 231, 239, 0.13);
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.platformStatsMini strong,
+.platformStatsMini span {
+  display: block;
+}
+
+.platformStatsMini strong {
+  color: var(--success);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.platformStatsMini span {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.platformFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 850;
+}
+
+.platformFooter strong {
+  color: var(--cyan-strong);
+  white-space: nowrap;
+}
+
+.platformDetailStack {
+  display: grid;
+  gap: 16px;
+}
+
+.platformDetailHero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.95fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 92% 0%, var(--platform-glow, rgba(0, 251, 255, 0.12)), transparent 34%),
+    rgba(0, 0, 0, 0.24);
+}
+
+.platformDetailHero::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--platform-color, var(--cyan-strong)), transparent);
+  box-shadow: 0 0 22px var(--platform-shadow, rgba(0, 251, 255, 0.4));
+}
+
+.platformDetailHero h3 {
+  margin: 8px 0 4px;
+  color: var(--white);
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.platformDetailHero p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.platformDetailStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.platformDetailStats div {
+  min-height: 70px;
+  padding: 12px;
+  border-radius: 17px;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.platformDetailStats strong,
+.platformDetailStats span {
+  display: block;
+}
+
+.platformDetailStats strong {
+  color: var(--success);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.platformDetailStats span {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.backButton {
+  min-height: 42px;
+  border-radius: 999px;
+  padding: 0 15px;
+  border: 1px solid rgba(1, 231, 239, 0.28);
+  background: rgba(1, 231, 239, 0.08);
+  color: var(--cyan-strong);
+  font-weight: 950;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.accessToolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.accessToolbar input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  background: rgba(0, 0, 0, 0.34);
+  color: var(--white);
+  border-radius: 16px;
+  padding: 0 15px;
+  outline: none;
+  font: inherit;
+  font-weight: 850;
+}
+
+.accessToolbar input:focus {
+  border-color: rgba(0, 251, 255, 0.64);
+  box-shadow: 0 0 0 4px rgba(0, 251, 255, 0.08);
+}
+
+.accessToolbar input::placeholder {
+  color: rgba(155, 200, 203, 0.72);
+}
+
+.accessToolbar span {
+  padding: 11px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(1, 231, 239, 0.2);
+  background: rgba(1, 231, 239, 0.07);
+  color: var(--cyan-strong);
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.accessTableWrap {
+  overflow-x: auto;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.accessTable {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+.accessTable th,
+.accessTable td {
+  padding: 15px;
+  border-bottom: 1px solid rgba(1, 231, 239, 0.1);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.accessTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.accessTable th {
+  color: var(--cyan-strong);
+  background: rgba(1, 231, 239, 0.055);
+  font-size: 0.7rem;
+  font-weight: 1000;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.accessTable td strong,
+.accessTable td span {
+  display: block;
+}
+
+.accessTable td strong {
+  color: var(--white);
+  font-weight: 950;
+}
+
+.accessTable td span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.badgeOk,
+.badgeWarning,
+.badgeDanger {
+  display: inline-flex;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badgeOk {
+  color: var(--success);
+  background: rgba(124, 255, 178, 0.1);
+  border: 1px solid rgba(124, 255, 178, 0.25);
+}
+
+.badgeWarning {
+  color: var(--warning);
+  background: rgba(255, 224, 130, 0.1);
+  border: 1px solid rgba(255, 224, 130, 0.28);
+}
+
+.badgeDanger {
+  color: var(--danger);
+  background: rgba(255, 143, 163, 0.1);
+  border: 1px solid rgba(255, 143, 163, 0.28);
+}
+
+.tableActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.secondaryButton,
+.whatsappButtonSmall {
+  min-height: 36px;
+  border-radius: 999px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 950;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.secondaryButton {
+  border: 1px solid rgba(1, 231, 239, 0.28);
+  background: rgba(1, 231, 239, 0.08);
+  color: var(--cyan-strong);
+}
+
+.whatsappButtonSmall {
+  border: 1px solid rgba(124, 255, 178, 0.32);
+  background: rgba(124, 255, 178, 0.09);
+  color: var(--success);
+}
+
+.secondaryButton:hover,
+.whatsappButtonSmall:hover,
+.backButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(1, 231, 239, 0.13);
+}
+
+.platformNetflix {
+  --platform-color: #ff2d2d;
+  --platform-glow: rgba(255, 45, 45, 0.18);
+  --platform-shadow: rgba(255, 45, 45, 0.22);
+  --platform-border: rgba(255, 45, 45, 0.42);
+}
+
+.platformYoutube {
+  --platform-color: #ff0033;
+  --platform-glow: rgba(255, 0, 51, 0.18);
+  --platform-shadow: rgba(255, 0, 51, 0.22);
+  --platform-border: rgba(255, 0, 51, 0.42);
+}
+
+.platformMax {
+  --platform-color: #8b5cff;
+  --platform-glow: rgba(139, 92, 255, 0.2);
+  --platform-shadow: rgba(139, 92, 255, 0.22);
+  --platform-border: rgba(139, 92, 255, 0.44);
+}
+
+.platformDisney {
+  --platform-color: #4fc3ff;
+  --platform-glow: rgba(79, 195, 255, 0.18);
+  --platform-shadow: rgba(79, 195, 255, 0.22);
+  --platform-border: rgba(79, 195, 255, 0.44);
+}
+
+.platformPrime {
+  --platform-color: #00a8e1;
+  --platform-glow: rgba(0, 168, 225, 0.18);
+  --platform-shadow: rgba(0, 168, 225, 0.22);
+  --platform-border: rgba(0, 168, 225, 0.44);
+}
+
+.platformCrunchy {
+  --platform-color: #ff640a;
+  --platform-glow: rgba(255, 100, 10, 0.2);
+  --platform-shadow: rgba(255, 100, 10, 0.22);
+  --platform-border: rgba(255, 100, 10, 0.44);
+}
+
+.platformSpotify {
+  --platform-color: #1ed760;
+  --platform-glow: rgba(30, 215, 96, 0.18);
+  --platform-shadow: rgba(30, 215, 96, 0.22);
+  --platform-border: rgba(30, 215, 96, 0.44);
+}
+
+.platformParamount {
+  --platform-color: #0064ff;
+  --platform-glow: rgba(0, 100, 255, 0.18);
+  --platform-shadow: rgba(0, 100, 255, 0.22);
+  --platform-border: rgba(0, 100, 255, 0.44);
+}
+
+.platformVix {
+  --platform-color: #ffb000;
+  --platform-glow: rgba(255, 176, 0, 0.18);
+  --platform-shadow: rgba(255, 176, 0, 0.22);
+  --platform-border: rgba(255, 176, 0, 0.44);
+}
+
+.platformIptv {
+  --platform-color: #00fbff;
+  --platform-glow: rgba(0, 251, 255, 0.18);
+  --platform-shadow: rgba(0, 251, 255, 0.22);
+  --platform-border: rgba(0, 251, 255, 0.44);
+}
+
+.platformDefault {
+  --platform-color: var(--cyan-strong);
+  --platform-glow: rgba(0, 251, 255, 0.14);
+  --platform-shadow: rgba(0, 251, 255, 0.18);
+  --platform-border: rgba(0, 251, 255, 0.44);
+}
+
+@media (max-width: 1180px) {
+  .platformDetailHero {
+    grid-template-columns: 1fr;
+  }
+
+  .platformDetailStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .platformGrid,
+  .platformStatsMini,
+  .platformDetailStats,
+  .accessToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .platformCardTop,
+  .platformFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .backButton,
+  .accessToolbar span,
+  .tableActions,
+  .secondaryButton,
+  .whatsappButtonSmall {
+    width: 100%;
+  }
+}

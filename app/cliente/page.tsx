@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import styles from "./cliente.module.css";
@@ -69,7 +69,27 @@ type Credito = {
 
 type SectionId = "dashboard" | "compras" | "accesos" | "vencimientos" | "creditos" | "telegram";
 
+type PlataformaResumen = {
+  productoId: string;
+  producto?: Producto;
+  cuentas: CuentaProducto[];
+  total: number;
+  activos: number;
+  porVencer: number;
+  vencidos: number;
+  proximoVencimiento?: string | null;
+};
+
 const WHATSAPP_NUMBER = "51900557949";
+
+const menu: { id: SectionId; label: string; icon: string }[] = [
+  { id: "dashboard", label: "Dashboard", icon: "⌂" },
+  { id: "compras", label: "Mis compras", icon: "▣" },
+  { id: "accesos", label: "Mis accesos", icon: "✦" },
+  { id: "vencimientos", label: "Vencimientos", icon: "◷" },
+  { id: "creditos", label: "Créditos", icon: "◆" },
+  { id: "telegram", label: "Telegram", icon: "✈" },
+];
 
 function buildWhatsAppLink(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -85,15 +105,6 @@ function buildRenewMessage(cuenta: CuentaProducto, producto?: Producto, usuario?
     `Fecha de vencimiento: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
   ].join("\n");
 }
-
-const menu: { id: SectionId; label: string; icon: string }[] = [
-  { id: "dashboard", label: "Dashboard", icon: "⌂" },
-  { id: "compras", label: "Mis compras", icon: "▣" },
-  { id: "accesos", label: "Mis accesos", icon: "✦" },
-  { id: "vencimientos", label: "Vencimientos", icon: "◷" },
-  { id: "creditos", label: "Créditos", icon: "◆" },
-  { id: "telegram", label: "Telegram", icon: "✈" },
-];
 
 function formatMoney(value?: number | null) {
   return `S/ ${Number(value || 0).toFixed(2)}`;
@@ -121,7 +132,11 @@ function getDiasRestantes(fecha?: string | null) {
 }
 
 function normalizar(value?: string | null) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function getStatusClass(estado?: string | null) {
@@ -129,6 +144,21 @@ function getStatusClass(estado?: string | null) {
   if (value === "completado" || value === "entregado" || value === "pagado") return `${styles.statusBadge} ${styles.statusOk}`;
   if (value === "cancelado" || value === "rechazado") return `${styles.statusBadge} ${styles.statusBad}`;
   return `${styles.statusBadge} ${styles.statusWait}`;
+}
+
+function getPlatformClass(nombre?: string | null) {
+  const value = normalizar(nombre);
+  if (value.includes("netflix")) return "platformNetflix";
+  if (value.includes("youtube")) return "platformYoutube";
+  if (value.includes("max") || value.includes("hbo")) return "platformMax";
+  if (value.includes("disney")) return "platformDisney";
+  if (value.includes("prime") || value.includes("amazon")) return "platformPrime";
+  if (value.includes("crunchy")) return "platformCrunchy";
+  if (value.includes("spotify")) return "platformSpotify";
+  if (value.includes("paramount")) return "platformParamount";
+  if (value.includes("vix")) return "platformVix";
+  if (value.includes("iptv")) return "platformIptv";
+  return "platformDefault";
 }
 
 export default function ClientePage() {
@@ -142,6 +172,8 @@ export default function ClientePage() {
   const [cuentas, setCuentas] = useState<CuentaProducto[]>([]);
   const [creditos, setCreditos] = useState<Credito[]>([]);
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
+  const [plataformaActivaId, setPlataformaActivaId] = useState<string | null>(null);
+  const [busquedaAcceso, setBusquedaAcceso] = useState("");
 
   useEffect(() => {
     cargarPanelCliente();
@@ -152,7 +184,7 @@ export default function ClientePage() {
       setLoading(true);
 
       const { data: authData } = await supabase.auth.getUser();
-      let authUser = authData?.user || null;
+      const authUser = authData?.user || null;
 
       let usuarioLocal: Usuario | null = null;
       if (typeof window !== "undefined") {
@@ -307,6 +339,59 @@ export default function ClientePage() {
 
   const cuentasActivas = cuentas.filter((cuenta) => normalizar(cuenta.estado) === "entregada");
 
+  const plataformasResumen = useMemo<PlataformaResumen[]>(() => {
+    const map = new Map<string, CuentaProducto[]>();
+
+    cuentasActivas.forEach((cuenta) => {
+      const key = cuenta.producto_id || "sin-producto";
+      const actuales = map.get(key) || [];
+      actuales.push(cuenta);
+      map.set(key, actuales);
+    });
+
+    return Array.from(map.entries())
+      .map(([productoId, cuentasPlataforma]) => {
+        const producto = productoPorId.get(productoId);
+        const vencimientos = cuentasPlataforma
+          .map((cuenta) => cuenta.cliente_fin || cuenta.fecha_fin)
+          .filter(Boolean)
+          .sort() as string[];
+        const porVencer = cuentasPlataforma.filter((cuenta) => {
+          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+          return dias !== null && dias >= 0 && dias <= 7;
+        }).length;
+        const vencidos = cuentasPlataforma.filter((cuenta) => {
+          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+          return dias !== null && dias < 0;
+        }).length;
+
+        return {
+          productoId,
+          producto,
+          cuentas: cuentasPlataforma.sort((a, b) => String(a.correo).localeCompare(String(b.correo))),
+          total: cuentasPlataforma.length,
+          activos: cuentasPlataforma.length - vencidos,
+          porVencer,
+          vencidos,
+          proximoVencimiento: vencimientos[0] || null,
+        };
+      })
+      .sort((a, b) => (b.total - a.total) || String(a.producto?.nombre || "Producto").localeCompare(String(b.producto?.nombre || "Producto")));
+  }, [cuentasActivas, productoPorId]);
+
+  const plataformaActiva = plataformasResumen.find((item) => item.productoId === plataformaActivaId) || null;
+
+  const cuentasFiltradasPlataforma = useMemo(() => {
+    if (!plataformaActiva) return [];
+    const query = normalizar(busquedaAcceso);
+    if (!query) return plataformaActiva.cuentas;
+
+    return plataformaActiva.cuentas.filter((cuenta) => {
+      const producto = productoPorId.get(cuenta.producto_id);
+      return normalizar(`${cuenta.correo} ${cuenta.clave} ${producto?.nombre} ${cuenta.notas}`).includes(query);
+    });
+  }, [busquedaAcceso, plataformaActiva, productoPorId]);
+
   const proximosVencimientos = useMemo(() => {
     return cuentasActivas
       .filter((cuenta) => {
@@ -322,6 +407,14 @@ export default function ClientePage() {
       alert("Datos copiados");
     } catch {
       alert("No se pudo copiar");
+    }
+  };
+
+  const cambiarSeccion = (section: SectionId) => {
+    setActiveSection(section);
+    if (section !== "accesos") {
+      setPlataformaActivaId(null);
+      setBusquedaAcceso("");
     }
   };
 
@@ -360,7 +453,7 @@ export default function ClientePage() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => cambiarSeccion(item.id)}
                 className={`${styles.navButton} ${activeSection === item.id ? styles.navButtonActive : ""}`}
               >
                 <span>{item.icon}</span>
@@ -397,9 +490,23 @@ export default function ClientePage() {
             <div className={styles.sectionStack}>
               <div className={styles.statsGrid}>
                 <StatCard title="Saldo disponible" value={formatMoney(saldo)} subtitle="Créditos Jonas Stream" />
-                <StatCard title="Accesos activos" value={String(cuentasActivas.length)} subtitle="Cuentas entregadas" />
+                <StatCard title="Accesos activos" value={String(cuentasActivas.length)} subtitle={`${plataformasResumen.length} plataforma(s)`} />
                 <StatCard title="Por vencer" value={String(proximosVencimientos.length)} subtitle="En los próximos 7 días" />
               </div>
+
+              <Panel title="Resumen de plataformas">
+                {plataformasResumen.length === 0 ? (
+                  <EmptyText text="Todavía no tienes accesos entregados." />
+                ) : (
+                  <PlatformSummaryGrid
+                    plataformas={plataformasResumen}
+                    onOpen={(productoId) => {
+                      setActiveSection("accesos");
+                      setPlataformaActivaId(productoId);
+                    }}
+                  />
+                )}
+              </Panel>
 
               <Panel title="Próximos vencimientos">
                 {proximosVencimientos.length === 0 ? (
@@ -447,52 +554,87 @@ export default function ClientePage() {
           )}
 
           {activeSection === "accesos" && (
-            <Panel title="Mis accesos">
+            <Panel title={plataformaActiva ? `Accesos de ${plataformaActiva.producto?.nombre || "Producto"}` : "Mis accesos por plataforma"}>
               {cuentasActivas.length === 0 ? (
                 <EmptyText text="Todavía no tienes accesos entregados. Compra con créditos o espera que el admin apruebe tu pedido normal." />
+              ) : !plataformaActiva ? (
+                <>
+                  <div className={styles.panelSubHeader}>
+                    <div>
+                      <span className={styles.kickerSoft}>Vista ordenada</span>
+                      <p>Primero ves tus plataformas. Entra a una para ver correos, claves, vencimientos y solicitar renovación por WhatsApp.</p>
+                    </div>
+                  </div>
+                  <PlatformSummaryGrid plataformas={plataformasResumen} onOpen={setPlataformaActivaId} />
+                </>
               ) : (
-                <div className={styles.accessGrid}>
-                  {cuentasActivas.map((cuenta) => {
-                    const producto = productoPorId.get(cuenta.producto_id);
-                    const textoCopiar = [
-                      `Producto: ${producto?.nombre || "Producto"}`,
-                      `Correo: ${cuenta.correo}`,
-                      `Contraseña: ${cuenta.clave}`,
-                      `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
-                    ].join("\n");
+                <div className={styles.platformDetailStack}>
+                  <PlatformDetailHeader
+                    resumen={plataformaActiva}
+                    onBack={() => {
+                      setPlataformaActivaId(null);
+                      setBusquedaAcceso("");
+                    }}
+                  />
 
-                    return (
-                      <article key={cuenta.id} className={styles.accessCard}>
-                        <div className={styles.accessTop}>
-                          <div>
-                            <h3>{producto?.nombre || "Producto"}</h3>
-                            <p>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</p>
-                          </div>
-                          <span>Activo</span>
-                        </div>
+                  <div className={styles.accessToolbar}>
+                    <input
+                      type="search"
+                      value={busquedaAcceso}
+                      onChange={(e) => setBusquedaAcceso(e.target.value)}
+                      placeholder={`Buscar cuenta en ${plataformaActiva.producto?.nombre || "esta plataforma"}...`}
+                    />
+                    <span>{cuentasFiltradasPlataforma.length} acceso(s)</span>
+                  </div>
 
-                        <InfoRow label="Correo" value={cuenta.correo || "No disponible"} />
-                        <InfoRow label="Contraseña" value={cuenta.clave || "No disponible"} />
-                        <InfoRow label="Inicio" value={formatDate(cuenta.cliente_inicio)} />
-                        <InfoRow label="Vencimiento" value={formatDate(cuenta.cliente_fin || cuenta.fecha_fin)} />
+                  <div className={styles.accessTableWrap}>
+                    <table className={styles.accessTable}>
+                      <thead>
+                        <tr>
+                          <th>Acceso</th>
+                          <th>Vigencia</th>
+                          <th>Estado</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cuentasFiltradasPlataforma.map((cuenta) => {
+                          const producto = productoPorId.get(cuenta.producto_id);
+                          const textoCopiar = [
+                            `Producto: ${producto?.nombre || "Producto"}`,
+                            `Correo: ${cuenta.correo}`,
+                            `Contraseña: ${cuenta.clave}`,
+                            `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
+                          ].join("\n");
+                          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
 
-                        <div className={styles.accessActions}>
-                          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>
-                            Copiar datos
-                          </button>
-
-                          <a
-                            href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.whatsappButton}
-                          >
-                            Solicitar renovación
-                          </a>
-                        </div>
-                      </article>
-                    );
-                  })}
+                          return (
+                            <tr key={cuenta.id}>
+                              <td>
+                                <strong>{cuenta.correo || "No disponible"}</strong>
+                                <span>Clave: {cuenta.clave || "No disponible"}</span>
+                              </td>
+                              <td>
+                                <strong>{formatDate(cuenta.cliente_inicio)} → {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong>
+                                <span>{dias === null ? "Sin vencimiento" : dias < 0 ? `Venció hace ${Math.abs(dias)} día(s)` : `Vence en ${dias} día(s)`}</span>
+                              </td>
+                              <td>
+                                <em className={dias !== null && dias < 0 ? styles.badgeDanger : dias !== null && dias <= 7 ? styles.badgeWarning : styles.badgeOk}>
+                                  {dias !== null && dias < 0 ? "Vencido" : dias !== null && dias <= 7 ? "Por vencer" : "Activo"}
+                                </em>
+                              </td>
+                              <td>
+                                <div className={styles.tableActions}>
+                                  <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.secondaryButton}>Copiar</button>
+                                  <a href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))} target="_blank" rel="noopener noreferrer" className={styles.whatsappButtonSmall}>Renovar</a>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </Panel>
@@ -562,7 +704,7 @@ function StatCard({ title, value, subtitle }: { title: string; value: string; su
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className={styles.panel}>
       <h2>{title}</h2>
@@ -575,12 +717,75 @@ function EmptyText({ text }: { text: string }) {
   return <div className={styles.emptyState}>{text}</div>;
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function PlatformSummaryGrid({ plataformas, onOpen }: { plataformas: PlataformaResumen[]; onOpen: (productoId: string) => void }) {
   return (
-    <div className={styles.infoRow}>
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className={styles.platformGrid}>
+      {plataformas.map((item) => {
+        const nombre = item.producto?.nombre || "Producto";
+        const platformClass = styles[getPlatformClass(nombre) as keyof typeof styles] || "";
+
+        return (
+          <button
+            key={item.productoId}
+            type="button"
+            onClick={() => onOpen(item.productoId)}
+            className={`${styles.platformCard} ${platformClass}`}
+          >
+            <div className={styles.platformCardTop}>
+              <div>
+                <span>Plataforma</span>
+                <strong>{nombre}</strong>
+              </div>
+              <em>{item.total}</em>
+            </div>
+
+            <div className={styles.platformStatsMini}>
+              <div>
+                <strong>{item.activos}</strong>
+                <span>Activos</span>
+              </div>
+              <div>
+                <strong>{item.porVencer}</strong>
+                <span>Por vencer</span>
+              </div>
+              <div>
+                <strong>{item.vencidos}</strong>
+                <span>Vencidos</span>
+              </div>
+            </div>
+
+            <div className={styles.platformFooter}>
+              <span>Próximo vence: {formatDate(item.proximoVencimiento)}</span>
+              <strong>Ver accesos →</strong>
+            </div>
+          </button>
+        );
+      })}
     </div>
+  );
+}
+
+function PlatformDetailHeader({ resumen, onBack }: { resumen: PlataformaResumen; onBack: () => void }) {
+  const nombre = resumen.producto?.nombre || "Producto";
+  const platformClass = styles[getPlatformClass(nombre) as keyof typeof styles] || "";
+
+  return (
+    <section className={`${styles.platformDetailHero} ${platformClass}`}>
+      <div>
+        <span className={styles.kickerSoft}>Plataforma seleccionada</span>
+        <h3>{nombre}</h3>
+        <p>{resumen.producto?.categoria || resumen.producto?.tipo_venta || "Accesos digitales"}</p>
+      </div>
+
+      <div className={styles.platformDetailStats}>
+        <div><strong>{resumen.total}</strong><span>Total</span></div>
+        <div><strong>{resumen.activos}</strong><span>Activos</span></div>
+        <div><strong>{resumen.porVencer}</strong><span>Por vencer</span></div>
+        <div><strong>{resumen.vencidos}</strong><span>Vencidos</span></div>
+      </div>
+
+      <button type="button" onClick={onBack} className={styles.backButton}>← Volver a plataformas</button>
+    </section>
   );
 }
 
