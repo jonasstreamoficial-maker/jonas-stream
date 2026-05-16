@@ -37,6 +37,7 @@ type Producto = {
   imagen?: string | null;
   categoria?: string | null;
   tipo_venta?: string | null;
+  accent?: string | null;
 };
 
 type PedidoItem = {
@@ -45,6 +46,8 @@ type PedidoItem = {
   producto_id?: string | null;
   cantidad?: number | null;
   precio?: number | null;
+  productos?: Producto | Producto[] | null;
+  producto?: Producto | Producto[] | null;
 };
 
 type CuentaProducto = {
@@ -61,6 +64,8 @@ type CuentaProducto = {
   usuario_id?: string | null;
   notas?: string | null;
   created_at?: string | null;
+  productos?: Producto | Producto[] | null;
+  producto?: Producto | Producto[] | null;
 };
 
 type Credito = {
@@ -85,15 +90,22 @@ const menu: { id: SectionId; label: string; icon: string }[] = [
   { id: "accesos", label: "Mis accesos", icon: "✦" },
   { id: "vencimientos", label: "Vencimientos", icon: "◷" },
   { id: "creditos", label: "Créditos", icon: "◆" },
-  { id: "telegram", label: "Telegram", icon: "➜" },
+  { id: "telegram", label: "Telegram", icon: "✈" },
 ];
-
-function normalizar(value?: string | null) {
-  return String(value || "").trim().toLowerCase();
-}
 
 function buildWhatsAppLink(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+function buildRenewMessage(cuenta: CuentaProducto, producto?: Producto, usuario?: Usuario | null) {
+  return [
+    "Hola Jonas Stream, quiero renovar mi cuenta.",
+    "",
+    `Producto: ${getProductName(producto, cuenta)}`,
+    `Correo de acceso: ${cuenta.correo || "No disponible"}`,
+    `Mi correo registrado: ${usuario?.correo || "No disponible"}`,
+    `Fecha de vencimiento: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
+  ].join("\n");
 }
 
 function formatMoney(value?: number | null) {
@@ -115,69 +127,72 @@ function getDiasRestantes(fecha?: string | null) {
   if (!fecha) return null;
   const fin = fecha.includes("T") ? new Date(fecha) : new Date(`${fecha}T00:00:00`);
   if (Number.isNaN(fin.getTime())) return null;
-
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
   fin.setHours(0, 0, 0, 0);
-
   return Math.ceil((fin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function normalizar(value?: string | null) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizarId(value?: string | null) {
+  return String(value || "").trim();
+}
+
 function getStatusClass(estado?: string | null) {
-  const value = normalizar(estado);
-  if (value === "completado" || value === "aprobado" || value === "entregado") {
-    return `${styles.statusBadge} ${styles.statusOk}`;
-  }
-  if (value === "cancelado" || value === "rechazado") {
-    return `${styles.statusBadge} ${styles.statusBad}`;
-  }
+  const value = normalizar(estado || "pendiente");
+  if (value === "completado" || value === "entregado" || value === "pagado") return `${styles.statusBadge} ${styles.statusOk}`;
+  if (value === "cancelado" || value === "rechazado") return `${styles.statusBadge} ${styles.statusBad}`;
   return `${styles.statusBadge} ${styles.statusWait}`;
 }
 
-function getProductName(producto?: Producto | null) {
-  const nombre = producto?.nombre?.trim();
-  return nombre || "Producto";
-}
-
-function getAccent(producto?: Producto | null) {
-  const nombre = normalizar(producto?.nombre);
-  if (nombre.includes("netflix")) return "netflix";
-  if (nombre.includes("youtube")) return "youtube";
-  if (nombre.includes("max") || nombre.includes("hbo")) return "max";
-  if (nombre.includes("crunchy")) return "crunchyroll";
-  if (nombre.includes("disney")) return "disney";
-  if (nombre.includes("prime")) return "prime";
-  if (nombre.includes("spotify")) return "spotify";
-  if (nombre.includes("canva")) return "canva";
-  if (nombre.includes("iptv")) return "iptv";
+function getAccentFromText(text?: string | null) {
+  const value = normalizar(text);
+  if (value.includes("netflix")) return "netflix";
+  if (value.includes("youtube")) return "youtube";
+  if (value.includes("max") || value.includes("hbo")) return "max";
+  if (value.includes("disney")) return "disney";
+  if (value.includes("prime") || value.includes("amazon")) return "prime";
+  if (value.includes("crunchy")) return "crunchy";
+  if (value.includes("spotify")) return "spotify";
+  if (value.includes("paramount")) return "paramount";
+  if (value.includes("canva")) return "canva";
+  if (value.includes("office") || value.includes("365")) return "office";
+  if (value.includes("iptv")) return "iptv";
+  if (value.includes("viki")) return "viki";
+  if (value.includes("vix")) return "vix";
   return "default";
 }
 
-function buildRenewMessage(cuenta: CuentaProducto, producto?: Producto | null, usuario?: Usuario | null) {
-  return [
-    "Hola Jonas Stream, quiero renovar mi cuenta.",
-    "",
-    `Producto: ${getProductName(producto)}`,
-    `Correo de acceso: ${cuenta.correo || "No disponible"}`,
-    `Mi correo registrado: ${usuario?.correo || "No disponible"}`,
-    `Fecha de vencimiento: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
-  ].join("\n");
+function getAccent(producto?: Producto) {
+  return getAccentFromText(producto?.accent || producto?.nombre || producto?.categoria || producto?.tipo_venta);
 }
 
-function buildReportMessage(cuenta: CuentaProducto, producto?: Producto | null, usuario?: Usuario | null) {
-  return [
-    "Hola Jonas Stream, quiero reportar un problema con mi cuenta.",
-    "",
-    `Producto: ${getProductName(producto)}`,
-    `Correo de acceso: ${cuenta.correo || "No disponible"}`,
-    `Mi correo registrado: ${usuario?.correo || "No disponible"}`,
-    "Problema:",
-  ].join("\n");
+function getRelatedProduct(value?: Producto | Producto[] | null) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0] || null;
+  return value;
+}
+
+function getProductName(producto?: Producto | null, cuenta?: CuentaProducto) {
+  const nombre = producto?.nombre?.trim();
+  if (nombre && normalizar(nombre) !== "producto") return nombre;
+  const cuentaRelacionada = getRelatedProduct(cuenta?.productos) || getRelatedProduct(cuenta?.producto);
+  const nombreCuenta = cuentaRelacionada?.nombre?.trim();
+  if (nombreCuenta && normalizar(nombreCuenta) !== "producto") return nombreCuenta;
+  return "Producto";
+}
+
+function extraerProductoRelacionado(item: PedidoItem): Producto | null {
+  return getRelatedProduct(item.productos) || getRelatedProduct(item.producto);
 }
 
 export default function ClientePage() {
   const router = useRouter();
 
+  const [loading, setLoading] = useState(true);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [pedidoItems, setPedidoItems] = useState<PedidoItem[]>([]);
@@ -186,7 +201,6 @@ export default function ClientePage() {
   const [creditos, setCreditos] = useState<Credito[]>([]);
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
-  const [cargandoDatos, setCargandoDatos] = useState(false);
 
   useEffect(() => {
     cargarPanelCliente();
@@ -194,14 +208,13 @@ export default function ClientePage() {
   }, []);
 
   const cargarPanelCliente = async () => {
-    setCargandoDatos(true);
-
     try {
+      setLoading(true);
+
       const { data: authData } = await supabase.auth.getUser();
       const authUser = authData?.user || null;
 
       let usuarioLocal: Usuario | null = null;
-
       if (typeof window !== "undefined") {
         try {
           const raw = localStorage.getItem("usuario");
@@ -213,6 +226,7 @@ export default function ClientePage() {
 
       if (!authUser && !usuarioLocal?.id) {
         router.replace("/login");
+        setLoading(false);
         return;
       }
 
@@ -227,7 +241,6 @@ export default function ClientePage() {
           .select("id,nombre,correo,rol,estado,celular,celular_completo")
           .eq("id", userId)
           .maybeSingle();
-
         usuarioData = data as Usuario | null;
       }
 
@@ -237,7 +250,6 @@ export default function ClientePage() {
           .select("id,nombre,correo,rol,estado,celular,celular_completo")
           .eq("correo", userEmail)
           .maybeSingle();
-
         usuarioData = data as Usuario | null;
       }
 
@@ -269,21 +281,17 @@ export default function ClientePage() {
 
       const cuentasQuery = supabase
         .from("cuentas_producto")
-        .select("*")
+        .select("*, productos:producto_id(id,nombre,imagen,categoria,tipo_venta)")
         .order("cliente_fin", { ascending: true });
 
-      if (usuarioIdReal) {
-        cuentasQuery.eq("usuario_id", usuarioIdReal);
-      }
+      if (usuarioIdReal) cuentasQuery.eq("usuario_id", usuarioIdReal);
 
       const creditosQuery = supabase
         .from("creditos")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (usuarioIdReal) {
-        creditosQuery.eq("usuario_id", usuarioIdReal);
-      }
+      if (usuarioIdReal) creditosQuery.eq("usuario_id", usuarioIdReal);
 
       const [pedidosResult, cuentasResult, creditosResult] = await Promise.all([
         pedidosQuery,
@@ -302,99 +310,99 @@ export default function ClientePage() {
       setCreditos(creditosData);
 
       const pedidoIds = pedidosData.map((pedido) => pedido.id);
-
       let itemsData: PedidoItem[] = [];
       if (pedidoIds.length > 0) {
         const { data } = await supabase
           .from("pedido_items")
-          .select("*")
+          .select("*, productos:producto_id(id,nombre,imagen,categoria,tipo_venta)")
           .in("pedido_id", pedidoIds);
-
         itemsData = (data || []) as PedidoItem[];
       }
-
       setPedidoItems(itemsData);
 
       const productoIds = Array.from(
-        new Set(
-          [
-            ...cuentasData.map((cuenta) => cuenta.producto_id).filter(Boolean),
-            ...itemsData.map((item) => item.producto_id).filter(Boolean),
-          ] as string[]
-        )
+        new Set([
+          ...cuentasData.map((cuenta) => normalizarId(cuenta.producto_id)).filter(Boolean),
+          ...itemsData.map((item) => normalizarId(item.producto_id)).filter(Boolean),
+        ])
       );
 
-      let productosData: Producto[] = [];
+      const productosMap = new Map<string, Producto>();
+
+      cuentasData.forEach((cuenta) => {
+        const relacionado = getRelatedProduct(cuenta.productos) || getRelatedProduct(cuenta.producto);
+        if (relacionado?.id) productosMap.set(normalizarId(relacionado.id), relacionado);
+      });
+
+      itemsData.forEach((item) => {
+        const relacionado = extraerProductoRelacionado(item);
+        if (relacionado?.id) productosMap.set(normalizarId(relacionado.id), relacionado);
+      });
 
       if (productoIds.length > 0) {
-        /*
-          IMPORTANTE:
-          No pedimos "accent" porque si esa columna no existe en Supabase,
-          la consulta falla completa y por eso salía "Producto".
-        */
         const { data, error } = await supabase
           .from("productos")
           .select("id,nombre,imagen,categoria,tipo_venta")
           .in("id", productoIds);
 
-        if (error) {
-          console.error("ERROR CARGANDO PRODUCTOS PARA PANEL CLIENTE:", error);
-        }
+        if (error) console.error("Error cargando nombres de productos:", error);
 
-        productosData = (data || []) as Producto[];
+        ((data || []) as Producto[]).forEach((producto) => {
+          if (producto.id) productosMap.set(normalizarId(producto.id), producto);
+        });
       }
 
-      setProductos(productosData);
+      setProductos(Array.from(productosMap.values()));
     } catch (error) {
       console.error("Error cargando panel cliente:", error);
+      setLoading(false);
     } finally {
-      setCargandoDatos(false);
+      setLoading(false);
     }
   };
 
   const nombre = usuario?.nombre || usuario?.correo?.split("@")[0] || "Cliente";
-
   const saldo = creditos
     .filter((credito) => normalizar(credito.estado || "activo") === "activo")
     .reduce((acc, credito) => acc + Number(credito.saldo || 0), 0);
 
-  const productoPorId = useMemo(() => {
-    return new Map(productos.map((producto) => [producto.id, producto]));
-  }, [productos]);
+  const productoPorId = useMemo(() => new Map(productos.map((producto) => [normalizarId(producto.id), producto])), [productos]);
 
   const itemsPorPedido = useMemo(() => {
     const map = new Map<string, PedidoItem[]>();
-
     pedidoItems.forEach((item) => {
       const actuales = map.get(item.pedido_id) || [];
       actuales.push(item);
       map.set(item.pedido_id, actuales);
     });
-
     return map;
   }, [pedidoItems]);
 
   const cuentasActivas = cuentas.filter((cuenta) => normalizar(cuenta.estado) === "entregada");
 
+  const productosGastados = pedidos
+    .filter((pedido) => normalizar(pedido.metodo_pago).includes("crédito") || normalizar(pedido.metodo_pago).includes("credito"))
+    .reduce((acc, pedido) => acc + Number(pedido.total || 0), 0);
+
   const plataformas = useMemo<PlataformaGrupo[]>(() => {
     const map = new Map<string, PlataformaGrupo>();
 
     cuentasActivas.forEach((cuenta) => {
-      const producto = productoPorId.get(cuenta.producto_id);
-      const id = producto?.id || cuenta.producto_id || "sin-producto";
+      const producto = productoPorId.get(normalizarId(cuenta.producto_id)) || getRelatedProduct(cuenta.productos) || getRelatedProduct(cuenta.producto) || null;
+      const id = normalizarId(producto?.id || cuenta.producto_id || "sin-producto");
+      const nombreProducto = getProductName(producto, cuenta);
       const actual = map.get(id) || {
         id,
-        nombre: getProductName(producto),
+        nombre: nombreProducto,
         categoria: producto?.tipo_venta || producto?.categoria || "Acceso digital",
-        accent: getAccent(producto),
+        accent: getAccent(producto || undefined),
         cuentas: [],
       };
 
-      actual.nombre = getProductName(producto);
-      actual.categoria = producto?.tipo_venta || producto?.categoria || actual.categoria;
-      actual.accent = getAccent(producto);
       actual.cuentas.push(cuenta);
-
+      if (producto?.nombre && normalizar(producto.nombre) !== "producto") actual.nombre = producto.nombre;
+      if (producto?.tipo_venta || producto?.categoria) actual.categoria = producto.tipo_venta || producto.categoria || actual.categoria;
+      actual.accent = getAccent(producto || undefined);
       map.set(id, actual);
     });
 
@@ -404,10 +412,6 @@ export default function ClientePage() {
   const plataformaSeleccionada = selectedPlatformId
     ? plataformas.find((plataforma) => plataforma.id === selectedPlatformId) || null
     : null;
-
-  const comprasConCreditos = pedidos.filter((pedido) => normalizar(pedido.metodo_pago).includes("crédito") || normalizar(pedido.metodo_pago).includes("credito"));
-  const totalGastadoCreditos = comprasConCreditos.reduce((acc, pedido) => acc + Number(pedido.total || 0), 0);
-  const totalRecargadoActual = creditos.reduce((acc, credito) => acc + Number(credito.saldo || 0), 0);
 
   const copiarTexto = async (texto: string) => {
     try {
@@ -464,7 +468,7 @@ export default function ClientePage() {
 
         <section className={styles.content}>
           <section className={styles.heroPanel}>
-            <span className={styles.kicker}>{cargandoDatos ? "Sincronizando datos" : "Bienvenido de vuelta"}</span>
+            <span className={styles.kicker}>{loading ? "Actualizando datos" : "Bienvenido de vuelta"}</span>
             <h1>
               Hola, <span>{nombre}</span>
             </h1>
@@ -485,7 +489,7 @@ export default function ClientePage() {
 
               <Panel title="Resumen de accesos">
                 {plataformas.length === 0 ? (
-                  <EmptyText text={cargandoDatos ? "Cargando accesos..." : "Todavía no tienes plataformas entregadas."} />
+                  <EmptyText text={loading ? "Cargando tus accesos..." : "Todavía no tienes plataformas entregadas."} />
                 ) : (
                   <PlatformGrid plataformas={plataformas} onOpen={(id) => { setSelectedPlatformId(id); setActiveSection("accesos"); }} />
                 )}
@@ -496,13 +500,13 @@ export default function ClientePage() {
           {activeSection === "compras" && (
             <Panel title="Mis compras">
               {pedidos.length === 0 ? (
-                <EmptyText text={cargandoDatos ? "Cargando compras..." : "Aún no tienes compras registradas."} />
+                <EmptyText text={loading ? "Cargando compras..." : "Aún no tienes compras registradas."} />
               ) : (
                 <div className={styles.listStack}>
                   {pedidos.map((pedido) => {
                     const items = itemsPorPedido.get(pedido.id) || [];
                     const nombres = items
-                      .map((item) => getProductName(productoPorId.get(String(item.producto_id || ""))))
+                      .map((item) => getProductName(productoPorId.get(normalizarId(item.producto_id)) || extraerProductoRelacionado(item)))
                       .join(", ");
 
                     return (
@@ -527,7 +531,7 @@ export default function ClientePage() {
           {activeSection === "accesos" && (
             <Panel title={plataformaSeleccionada ? `Accesos de ${plataformaSeleccionada.nombre}` : "Mis accesos por plataforma"}>
               {cuentasActivas.length === 0 ? (
-                <EmptyText text={cargandoDatos ? "Cargando accesos..." : "Todavía no tienes accesos entregados. Compra con créditos o espera que el admin apruebe tu pedido normal."} />
+                <EmptyText text={loading ? "Cargando accesos..." : "Todavía no tienes accesos entregados."} />
               ) : plataformaSeleccionada ? (
                 <div className={styles.platformDetailStack}>
                   <button type="button" className={styles.backButton} onClick={() => setSelectedPlatformId(null)}>
@@ -560,7 +564,7 @@ export default function ClientePage() {
                           <AccessRow
                             key={cuenta.id}
                             cuenta={cuenta}
-                            producto={productoPorId.get(cuenta.producto_id)}
+                            producto={productoPorId.get(normalizarId(cuenta.producto_id)) || getRelatedProduct(cuenta.productos) || getRelatedProduct(cuenta.producto) || undefined}
                             usuario={usuario}
                             copiarTexto={copiarTexto}
                           />
@@ -584,7 +588,7 @@ export default function ClientePage() {
           {activeSection === "vencimientos" && (
             <Panel title="Vencimientos">
               {cuentasActivas.length === 0 ? (
-                <EmptyText text={cargandoDatos ? "Cargando vencimientos..." : "No tienes productos con vencimiento."} />
+                <EmptyText text={loading ? "Cargando vencimientos..." : "No tienes productos con vencimiento."} />
               ) : (
                 <div className={styles.accessTableWrap}>
                   <table className={styles.accessTable}>
@@ -603,27 +607,16 @@ export default function ClientePage() {
                         .slice()
                         .sort((a, b) => String(a.cliente_fin || a.fecha_fin || "").localeCompare(String(b.cliente_fin || b.fecha_fin || "")))
                         .map((cuenta) => {
-                          const producto = productoPorId.get(cuenta.producto_id);
+                          const producto = productoPorId.get(normalizarId(cuenta.producto_id)) || getRelatedProduct(cuenta.productos) || getRelatedProduct(cuenta.producto) || undefined;
                           const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
                           const status = dias === null ? "SIN FECHA" : dias < 0 ? "VENCIDO" : dias <= 7 ? "POR VENCER" : "ACTIVO";
-
                           return (
                             <tr key={cuenta.id}>
-                              <td>
-                                <strong>{getProductName(producto)}</strong>
-                                <small>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</small>
-                              </td>
-                              <td>
-                                <strong>{cuenta.correo || "Sin correo"}</strong>
-                                <small>Clave: {cuenta.clave || "Sin clave"}</small>
-                              </td>
+                              <td><strong>{getProductName(producto, cuenta)}</strong><small>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</small></td>
+                              <td><strong>{cuenta.correo || "Sin correo"}</strong><small>Clave: {cuenta.clave || "Sin clave"}</small></td>
                               <td><strong>{formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong></td>
                               <td><strong>{dias === null ? "-" : dias < 0 ? `${Math.abs(dias)} vencido(s)` : `${dias} día(s)`}</strong></td>
-                              <td>
-                                <span className={dias !== null && dias < 0 ? `${styles.statusBadge} ${styles.statusBad}` : dias !== null && dias <= 7 ? `${styles.statusBadge} ${styles.statusWait}` : `${styles.statusBadge} ${styles.statusOk}`}>
-                                  {status}
-                                </span>
-                              </td>
+                              <td><span className={dias !== null && dias < 0 ? `${styles.statusBadge} ${styles.statusBad}` : dias !== null && dias <= 7 ? `${styles.statusBadge} ${styles.statusWait}` : `${styles.statusBadge} ${styles.statusOk}`}>{status}</span></td>
                               <td>
                                 <a className={styles.tableWhatsappButton} href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))} target="_blank" rel="noopener noreferrer">
                                   Solicitar renovación
@@ -643,66 +636,32 @@ export default function ClientePage() {
             <Panel title="Créditos">
               <div className={styles.statsGrid}>
                 <StatCard title="Saldo actual" value={formatMoney(saldo)} subtitle="Disponible para comprar" />
-                <StatCard title="Gastado en compras" value={formatMoney(totalGastadoCreditos)} subtitle="Pedidos pagados con créditos" />
-                <StatCard title="Saldo asignado" value={formatMoney(totalRecargadoActual)} subtitle="Créditos activos actuales" />
+                <StatCard title="Gastado" value={formatMoney(productosGastados)} subtitle="Compras con créditos" />
+                <StatCard title="Movimientos" value={String(creditos.length + pedidos.length)} subtitle="Recargas y compras" />
               </div>
 
-              <div className={styles.sectionStack} style={{ marginTop: 16 }}>
-                <Panel title="Historial de gastos">
-                  {comprasConCreditos.length === 0 ? (
-                    <EmptyText text="Todavía no tienes compras pagadas con créditos." />
-                  ) : (
-                    <div className={styles.accessTableWrap}>
-                      <table className={styles.accessTable}>
-                        <thead>
-                          <tr>
-                            <th>Fecha</th>
-                            <th>Pedido</th>
-                            <th>Producto</th>
-                            <th>Monto</th>
-                            <th>Estado</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {comprasConCreditos.map((pedido) => {
-                            const items = itemsPorPedido.get(pedido.id) || [];
-                            const nombres = items
-                              .map((item) => getProductName(productoPorId.get(String(item.producto_id || ""))))
-                              .join(", ");
-
-                            return (
-                              <tr key={pedido.id}>
-                                <td><strong>{formatDate(pedido.created_at)}</strong></td>
-                                <td><strong>#{pedido.id.slice(0, 8)}</strong></td>
-                                <td><strong>{nombres || "Pedido Jonas Stream"}</strong></td>
-                                <td><strong>{formatMoney(pedido.total)}</strong></td>
-                                <td><span className={getStatusClass(pedido.estado)}>{pedido.estado || "pendiente"}</span></td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+              <div className={styles.listStack} style={{ marginTop: 16 }}>
+                {creditos.map((credito) => (
+                  <div key={credito.id} className={styles.creditRow}>
+                    <div>
+                      <strong>Recarga / saldo de créditos</strong>
+                      <span>{formatDate(credito.created_at)} · Estado: {credito.estado || "activo"}</span>
                     </div>
-                  )}
-                </Panel>
+                    <em>{formatMoney(credito.saldo)}</em>
+                  </div>
+                ))}
 
-                <Panel title="Créditos activos">
-                  {creditos.length === 0 ? (
-                    <EmptyText text="No tienes créditos asignados todavía." />
-                  ) : (
-                    <div className={styles.listStack}>
-                      {creditos.map((credito) => (
-                        <div key={credito.id} className={styles.creditRow}>
-                          <div>
-                            <strong>Créditos Jonas Stream</strong>
-                            <span>Estado: {credito.estado || "activo"} · {formatDate(credito.created_at)}</span>
-                          </div>
-                          <em>{formatMoney(credito.saldo)}</em>
-                        </div>
-                      ))}
+                {pedidos
+                  .filter((pedido) => normalizar(pedido.metodo_pago).includes("crédito") || normalizar(pedido.metodo_pago).includes("credito"))
+                  .map((pedido) => (
+                    <div key={`gasto-${pedido.id}`} className={styles.creditRow}>
+                      <div>
+                        <strong>Compra con créditos</strong>
+                        <span>Pedido #{pedido.id.slice(0, 8)} · {formatDate(pedido.created_at)}</span>
+                      </div>
+                      <em>-{formatMoney(pedido.total)}</em>
                     </div>
-                  )}
-                </Panel>
+                  ))}
               </div>
             </Panel>
           )}
@@ -753,12 +712,10 @@ function PlatformGrid({ plataformas, onOpen }: { plataformas: PlataformaGrupo[];
           .map((cuenta) => cuenta.cliente_fin || cuenta.fecha_fin)
           .filter(Boolean)
           .sort() as string[];
-
         const vencidos = plataforma.cuentas.filter((cuenta) => {
           const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
           return dias !== null && dias < 0;
         }).length;
-
         const porVencer = plataforma.cuentas.filter((cuenta) => {
           const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
           return dias !== null && dias >= 0 && dias <= 7;
@@ -778,13 +735,11 @@ function PlatformGrid({ plataformas, onOpen }: { plataformas: PlataformaGrupo[];
               </div>
               <em>{plataforma.cuentas.length}</em>
             </div>
-
             <div className={styles.platformMiniGrid}>
               <div><strong>{plataforma.cuentas.length}</strong><span>Activos</span></div>
               <div><strong>{porVencer}</strong><span>Por vencer</span></div>
               <div><strong>{vencidos}</strong><span>Vencidos</span></div>
             </div>
-
             <p>Próximo vence: {formatDate(fechas[0])}</p>
             <b>Ver accesos →</b>
           </button>
@@ -794,19 +749,9 @@ function PlatformGrid({ plataformas, onOpen }: { plataformas: PlataformaGrupo[];
   );
 }
 
-function AccessRow({
-  cuenta,
-  producto,
-  usuario,
-  copiarTexto,
-}: {
-  cuenta: CuentaProducto;
-  producto?: Producto;
-  usuario?: Usuario | null;
-  copiarTexto: (texto: string) => void;
-}) {
+function AccessRow({ cuenta, producto, usuario, copiarTexto }: { cuenta: CuentaProducto; producto?: Producto; usuario?: Usuario | null; copiarTexto: (texto: string) => void }) {
   const textoCopiar = [
-    `Producto: ${getProductName(producto)}`,
+    `Producto: ${getProductName(producto, cuenta)}`,
     `Correo: ${cuenta.correo}`,
     `Contraseña: ${cuenta.clave}`,
     `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
@@ -814,36 +759,16 @@ function AccessRow({
 
   return (
     <tr>
-      <td>
-        <strong>{cuenta.correo || "Sin correo"}</strong>
-        <small>{getProductName(producto)}</small>
-      </td>
+      <td><strong>{cuenta.correo || "Sin correo"}</strong><small>{getProductName(producto, cuenta)}</small></td>
       <td><strong>{cuenta.clave || "Sin clave"}</strong></td>
       <td><strong>{formatDate(cuenta.cliente_inicio || cuenta.fecha_inicio)}</strong></td>
       <td><strong>{formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong></td>
       <td><span className={`${styles.statusBadge} ${styles.statusOk}`}>Activo</span></td>
       <td>
         <div className={styles.tableActions}>
-          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.tableCopyButton}>
-            Copiar
-          </button>
-
-          <a
-            className={styles.tableWhatsappButton}
-            href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.tableCopyButton}>Copiar</button>
+          <a className={styles.tableWhatsappButton} href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))} target="_blank" rel="noopener noreferrer">
             Renovar
-          </a>
-
-          <a
-            className={styles.tableWhatsappButton}
-            href={buildWhatsAppLink(buildReportMessage(cuenta, producto, usuario))}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Reportar
           </a>
         </div>
       </td>
