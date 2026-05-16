@@ -6549,3 +6549,131 @@
     width: 100%;
   }
 }
+
+
+/* ==========================================================
+   FIX FINAL SIDEBAR FIJO - JONAS STREAM
+   Mantiene la barra izquierda fija mientras bajas en el panel.
+   El menú interno hace scroll sin perder logo ni usuario.
+   ========================================================== */
+
+.adminShell {
+  min-height: 100vh !important;
+  height: auto !important;
+  display: grid !important;
+  grid-template-columns: 290px minmax(0, 1fr) !important;
+  align-items: start !important;
+  overflow: visible !important;
+}
+
+.loadingPage {
+  overflow: hidden !important;
+}
+
+.adminShell.adminShell,
+.adminShell {
+  overflow: visible !important;
+}
+
+.sidebar {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  align-self: start !important;
+  width: 290px !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+  z-index: 50 !important;
+}
+
+.content {
+  min-width: 0 !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.nav {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 6px !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(1, 231, 239, 0.35) rgba(1, 231, 239, 0.06);
+}
+
+.nav::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.nav::-webkit-scrollbar-track {
+  border-radius: 999px !important;
+  background: rgba(1, 231, 239, 0.055) !important;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  border-radius: 999px !important;
+  background: rgba(1, 231, 239, 0.38) !important;
+  box-shadow: 0 0 14px rgba(0, 251, 255, 0.18) !important;
+}
+
+.brandBox {
+  flex: 0 0 auto !important;
+}
+
+.sidebarFooter {
+  flex: 0 0 auto !important;
+  margin-top: 0 !important;
+}
+
+/* En pantallas grandes, el panel izquierdo siempre queda visible */
+@media (min-width: 1101px) {
+  .adminShell {
+    grid-template-columns: 290px minmax(0, 1fr) !important;
+  }
+
+  .sidebar {
+    position: sticky !important;
+    top: 0 !important;
+  }
+}
+
+/* En tablet/móvil vuelve a flujo normal para no romper responsive */
+@media (max-width: 1100px) {
+  .adminShell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sidebar {
+    position: relative !important;
+    top: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .nav {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  .sidebarFooter {
+    margin-top: 16px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .adminShell {
+    display: block !important;
+  }
+
+  .sidebar {
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(1, 231, 239, 0.18) !important;
+  }
+}
