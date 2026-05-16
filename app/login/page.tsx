@@ -13,7 +13,6 @@ type Usuario = {
   id: string;
   nombre: string;
   correo: string;
-  contrasena: string;
   rol: string;
   estado: string;
 };
@@ -41,67 +40,67 @@ export default function LoginPage() {
     const correoNormalizado = correo.trim().toLowerCase();
 
     try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: correoNormalizado,
+        password: contrasena,
+      });
+
+      if (authError || !authData.user) {
+        setMensajeDebug(`ERROR AUTH: ${authError?.message || "No se pudo iniciar sesion"}`);
+        toast.error("Correo o contrasena incorrectos");
+        setCargando(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("usuarios")
-        .select("id,nombre,correo,contrasena,rol,estado")
-        .eq("correo", correoNormalizado)
+        .select("id,nombre,correo,rol,estado")
+        .eq("id", authData.user.id)
         .maybeSingle();
 
       if (error) {
-        setMensajeDebug(`ERROR SUPABASE: ${error.message}`);
-        toast.error("Error consultando usuario");
+        await supabase.auth.signOut();
+        setMensajeDebug(`ERROR PERFIL: ${error.message}`);
+        toast.error("No se pudo leer tu perfil");
         setCargando(false);
         return;
       }
 
       if (!data) {
-        setMensajeDebug(
-          `USUARIO NO ENCONTRADO EN TABLA usuarios: ${correoNormalizado}. Revisa que el correo sea exactamente igual al de Supabase y que exista una policy SELECT para anon.`,
-        );
-        toast.error("Usuario no encontrado");
+        await supabase.auth.signOut();
+        setMensajeDebug("No existe perfil en public.usuarios con el mismo ID de Auth. Revisa que registro cree ambos con el mismo id.");
+        toast.error("Perfil no encontrado");
         setCargando(false);
         return;
       }
 
       const usuario = data as Usuario;
 
-      if (String(usuario.contrasena || "") !== contrasena) {
-        setMensajeDebug("CONTRASEÑA INCORRECTA: no coincide con la tabla usuarios.");
-        toast.error("Contraseña incorrecta");
-        setCargando(false);
-        return;
-      }
-
       if (usuario.estado === "pendiente") {
-        setMensajeDebug("CUENTA PENDIENTE: el usuario existe pero no está aprobado.");
-        toast("Tu cuenta está pendiente de aprobación");
+        await supabase.auth.signOut();
+        setMensajeDebug("CUENTA PENDIENTE: el admin aun no aprobo esta cuenta.");
+        toast("Tu cuenta esta pendiente de aprobacion");
         setCargando(false);
         return;
       }
 
       if (usuario.estado === "rechazado") {
-        setMensajeDebug("CUENTA RECHAZADA: el usuario está bloqueado.");
+        await supabase.auth.signOut();
+        setMensajeDebug("CUENTA RECHAZADA: el usuario esta bloqueado.");
         toast.error("Tu cuenta fue rechazada");
         setCargando(false);
         return;
       }
 
       if (usuario.estado !== "aprobado" && usuario.estado !== "activo") {
+        await supabase.auth.signOut();
         setMensajeDebug(`CUENTA NO HABILITADA: estado actual ${usuario.estado}`);
-        toast.error("Tu cuenta no está habilitada");
+        toast.error("Tu cuenta no esta habilitada");
         setCargando(false);
         return;
       }
 
-      const usuarioSeguro = {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        correo: usuario.correo,
-        rol: usuario.rol,
-        estado: usuario.estado,
-      };
-
-      localStorage.setItem("usuario", JSON.stringify(usuarioSeguro));
+      localStorage.setItem("usuario", JSON.stringify(usuario));
       localStorage.setItem("jonas_login_ok", new Date().toISOString());
 
       toast.success("Bienvenido 🚀");
@@ -118,11 +117,11 @@ export default function LoginPage() {
 
       window.setTimeout(() => {
         window.location.assign(destino);
-      }, 350);
+      }, 250);
     } catch (error) {
       const detalle = error instanceof Error ? error.message : "Error desconocido";
       setMensajeDebug(`ERROR GENERAL: ${detalle}`);
-      toast.error("Error al iniciar sesión");
+      toast.error("Error al iniciar sesion");
       setCargando(false);
     }
   };
@@ -154,7 +153,7 @@ export default function LoginPage() {
               rel="noopener noreferrer"
               className={styles.topLinkPrimary}
             >
-              CONTÁCTANOS
+              CONTACTANOS
             </a>
           </div>
         </div>
@@ -170,7 +169,7 @@ export default function LoginPage() {
           </h1>
 
           <p className={styles.heroText}>
-            Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo de cuenta.
+            Inicia sesion para acceder a tu panel de Jonas Stream segun tu tipo de cuenta.
           </p>
 
           <div className={styles.accessGrid} aria-label="Accesos disponibles">
@@ -186,12 +185,12 @@ export default function LoginPage() {
 
             <div className={styles.accessCard}>
               <span>ADMIN</span>
-              <strong>Administra usuarios, ventas y configuración.</strong>
+              <strong>Administra usuarios, ventas y configuracion.</strong>
             </div>
           </div>
 
           <p className={styles.panelNote}>
-            Si tu cuenta está pendiente, espera la aprobación o comunícate con soporte.
+            Si tu cuenta esta pendiente, espera la aprobacion o comunicate con soporte.
           </p>
         </div>
 
@@ -200,12 +199,12 @@ export default function LoginPage() {
 
           <div className={styles.formHeader}>
             <span className={styles.formKicker}>CUENTA JONAS STREAM</span>
-            <h2>Iniciar sesión</h2>
-            <p>Ingresa con tu correo y contraseña registrados.</p>
+            <h2>Iniciar sesion</h2>
+            <p>Ingresa con tu correo y contrasena registrados.</p>
           </div>
 
           <div className={styles.inputGroup}>
-            <label htmlFor="correo">Correo electrónico</label>
+            <label htmlFor="correo">Correo electronico</label>
 
             <div className={styles.inputWrap}>
               <input
@@ -221,7 +220,7 @@ export default function LoginPage() {
           </div>
 
           <div className={styles.inputGroup}>
-            <label htmlFor="contrasena">Contraseña</label>
+            <label htmlFor="contrasena">Contrasena</label>
 
             <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
               <input
@@ -229,7 +228,7 @@ export default function LoginPage() {
                 type={mostrarContrasena ? "text" : "password"}
                 value={contrasena}
                 onChange={(e) => setContrasena(e.target.value)}
-                placeholder="Ingresa tu contraseña"
+                placeholder="Ingresa tu contrasena"
                 autoComplete="current-password"
                 required
               />
@@ -238,7 +237,7 @@ export default function LoginPage() {
                 type="button"
                 className={styles.passwordToggle}
                 onClick={() => setMostrarContrasena((prev) => !prev)}
-                aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-label={mostrarContrasena ? "Ocultar contrasena" : "Mostrar contrasena"}
               >
                 {mostrarContrasena ? "OCULTAR" : "VER"}
               </button>
@@ -282,9 +281,9 @@ export default function LoginPage() {
         <div className={styles.footerLegal}>
           © 2026 Jonas Stream. Todos los derechos reservados.
           <div className={styles.footerLinks}>
-            <Link href="/terminos">Términos y Condiciones</Link>
+            <Link href="/terminos">Terminos y Condiciones</Link>
             <span className={styles.footerSeparator}>•</span>
-            <Link href="/privacidad">Política de Privacidad</Link>
+            <Link href="/privacidad">Politica de Privacidad</Link>
           </div>
         </div>
       </footer>

@@ -8,11 +8,12 @@ import { supabase } from "@/lib/supabase";
 import styles from "./page.module.css";
 
 const WHATSAPP_NUMBER = "51900557949";
+const ETIQUETA_DEFAULT = "| SV |";
 
 const paises = [
-  { pais: "Perú", codigo: "+51" },
+  { pais: "Peru", codigo: "+51" },
   { pais: "Guatemala", codigo: "+502" },
-  { pais: "México", codigo: "+52" },
+  { pais: "Mexico", codigo: "+52" },
   { pais: "Colombia", codigo: "+57" },
   { pais: "Ecuador", codigo: "+593" },
   { pais: "Bolivia", codigo: "+591" },
@@ -22,23 +23,23 @@ const paises = [
   { pais: "Paraguay", codigo: "+595" },
   { pais: "Venezuela", codigo: "+58" },
   { pais: "Brasil", codigo: "+55" },
-  { pais: "Panamá", codigo: "+507" },
+  { pais: "Panama", codigo: "+507" },
   { pais: "Costa Rica", codigo: "+506" },
   { pais: "El Salvador", codigo: "+503" },
   { pais: "Honduras", codigo: "+504" },
   { pais: "Nicaragua", codigo: "+505" },
-  { pais: "República Dominicana", codigo: "+1" },
+  { pais: "Republica Dominicana", codigo: "+1" },
   { pais: "Puerto Rico", codigo: "+1" },
   { pais: "Estados Unidos", codigo: "+1" },
-  { pais: "Canadá", codigo: "+1" },
-  { pais: "España", codigo: "+34" },
+  { pais: "Canada", codigo: "+1" },
+  { pais: "Espana", codigo: "+34" },
   { pais: "Alemania", codigo: "+49" },
   { pais: "Francia", codigo: "+33" },
   { pais: "Italia", codigo: "+39" },
   { pais: "Portugal", codigo: "+351" },
   { pais: "Reino Unido", codigo: "+44" },
   { pais: "Australia", codigo: "+61" },
-  { pais: "Japón", codigo: "+81" },
+  { pais: "Japon", codigo: "+81" },
   { pais: "China", codigo: "+86" },
 ];
 
@@ -51,10 +52,11 @@ function limpiarCelular(value: string) {
 }
 
 function separarNombreCompleto(nombreCompleto: string) {
-  const partes = nombreCompleto.trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
-  const primerNombre = partes[0] || "";
-  const segundoNombre = partes.slice(1).join(" ");
-  return { primerNombre, segundoNombre };
+  const partes = nombreCompleto.trim().split(/\s+/).filter(Boolean);
+  return {
+    primerNombre: partes[0] || "",
+    segundoNombre: partes.slice(1).join(" "),
+  };
 }
 
 export default function RegistroPage() {
@@ -62,7 +64,7 @@ export default function RegistroPage() {
 
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
-  const [pais, setPais] = useState("Perú");
+  const [pais, setPais] = useState("Peru");
   const [celular, setCelular] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
@@ -75,7 +77,7 @@ export default function RegistroPage() {
 
   const celularLimpio = limpiarCelular(celular);
   const celularCompleto = `${paisSeleccionado.codigo}${celularLimpio}`;
-  const telefonoSinMas = celularCompleto.replace("+", "");
+  const telefonoSinMas = celularCompleto.replace(/[^\d]/g, "");
 
   const registrarUsuario = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,91 +88,97 @@ export default function RegistroPage() {
     const correoNormalizado = correo.trim().toLowerCase();
     const { primerNombre, segundoNombre } = separarNombreCompleto(nombreLimpio);
 
-    if (nombreLimpio.length < 3) {
+    if (nombreLimpio.length < 3 || !primerNombre) {
       toast.error("Ingresa tu nombre completo");
       return;
     }
 
-    if (!correoNormalizado.includes("@")) {
-      toast.error("Ingresa un correo válido");
-      return;
-    }
-
     if (celularLimpio.length < 6) {
-      toast.error("Ingresa un número de celular válido");
+      toast.error("Ingresa un numero de celular valido");
       return;
     }
 
     if (contrasena.length < 6) {
-      toast.error("La contraseña debe tener mínimo 6 caracteres");
+      toast.error("La contrasena debe tener minimo 6 caracteres");
       return;
     }
 
     if (contrasena !== confirmarContrasena) {
-      toast.error("Las contraseñas no coinciden");
+      toast.error("Las contrasenas no coinciden");
       return;
     }
 
     setCargando(true);
 
     try {
-      const { data: usuarioExistente, error: errorBusqueda } = await supabase
-        .from("usuarios")
-        .select("id")
-        .eq("correo", correoNormalizado)
-        .maybeSingle();
+      const { data, error } = await supabase.auth.signUp({
+        email: correoNormalizado,
+        password: contrasena,
+        options: {
+          data: {
+            nombre: primerNombre,
+            nombre_completo: nombreLimpio,
+            segundo_nombre: segundoNombre,
+            pais: paisSeleccionado.pais,
+            codigo_pais: paisSeleccionado.codigo,
+            celular: celularLimpio,
+            celular_completo: celularCompleto,
+            telefono: telefonoSinMas,
+            etiqueta_contacto: ETIQUETA_DEFAULT,
+          },
+        },
+      });
 
-      if (errorBusqueda) {
-        toast.error("No se pudo verificar el correo");
+      if (error) {
+        toast.error(error.message);
         setCargando(false);
         return;
       }
 
-      if (usuarioExistente) {
-        toast.error("Este correo ya está registrado");
+      const user = data.user;
+
+      if (!user) {
+        toast.error("No se pudo crear el usuario");
         setCargando(false);
         return;
       }
 
-      const { count } = await supabase
-        .from("usuarios")
-        .select("id", { count: "exact", head: true });
-
-      const numeroOrden = Number(count || 0) + 409;
-      const nuevoId = crypto.randomUUID();
-
-      const { error: errorPerfil } = await supabase.from("usuarios").insert({
-        id: nuevoId,
-        nombre: nombreLimpio,
+      const perfil = {
+        id: user.id,
+        nombre: primerNombre,
         segundo_nombre: segundoNombre || null,
         correo: correoNormalizado,
-        contrasena,
         pais: paisSeleccionado.pais,
         codigo_pais: paisSeleccionado.codigo,
         celular: celularLimpio,
         celular_completo: celularCompleto,
         telefono: telefonoSinMas,
-        numero_orden: numeroOrden,
-        prefijo_cliente: String(numeroOrden),
-        etiqueta_contacto: "| SV |",
+        etiqueta_contacto: ETIQUETA_DEFAULT,
         rol: "cliente",
         estado: "pendiente",
-      });
+      };
+
+      const { error: errorPerfil } = await supabase
+        .from("usuarios")
+        .upsert(perfil, { onConflict: "id" });
 
       if (errorPerfil) {
-        console.error("Error creando usuario:", errorPerfil);
-        toast.error(errorPerfil.message || "No se pudo guardar el usuario");
+        toast.error(`Usuario creado en Auth, pero fallo el perfil: ${errorPerfil.message}`);
         setCargando(false);
         return;
       }
 
-      toast.success("Registro enviado. Espera aprobación del admin.");
+      await supabase.auth.signOut();
+      toast.success("Registro enviado. Espera aprobacion del admin.");
       router.push("/login");
     } catch (error) {
-      console.error("Error inesperado:", error);
-      toast.error("Error inesperado al crear la cuenta");
+      const detalle = error instanceof Error ? error.message : "Error desconocido";
+      toast.error(detalle);
       setCargando(false);
+      return;
     }
+
+    setCargando(false);
   };
 
   return (
@@ -195,7 +203,7 @@ export default function RegistroPage() {
             </Link>
 
             <Link href="/login" className={styles.topLink}>
-              INICIAR SESIÓN
+              INICIAR SESION
             </Link>
 
             <a
@@ -204,7 +212,7 @@ export default function RegistroPage() {
               rel="noopener noreferrer"
               className={styles.topLinkPrimary}
             >
-              CONTÁCTANOS
+              CONTACTANOS
             </a>
           </div>
         </div>
@@ -219,14 +227,14 @@ export default function RegistroPage() {
         </h1>
 
         <p className={styles.heroText}>
-          Regístrate para solicitar acceso a Jonas Stream. Tu cuenta quedará pendiente hasta que el
+          Registrate para solicitar acceso a Jonas Stream. Tu cuenta quedara pendiente hasta que el
           administrador revise y apruebe tu solicitud.
         </p>
 
         <div className={styles.accessGrid}>
           <div className={styles.accessCard}>
             <span>01</span>
-            <strong>Envías tu solicitud</strong>
+            <strong>Envias tu solicitud</strong>
           </div>
 
           <div className={styles.accessCard}>
@@ -241,7 +249,7 @@ export default function RegistroPage() {
         </div>
 
         <p className={styles.panelNote}>
-          El administrador verá tu país, código y número completo para contactarte más rápido.
+          El administrador vera tu pais, codigo y numero completo para contactarte mas rapido.
         </p>
       </section>
 
@@ -264,7 +272,7 @@ export default function RegistroPage() {
                   type="text"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Tu nombre completo"
+                  placeholder="Ejemplo: Cristhian Yaipen"
                   autoComplete="name"
                   required
                 />
@@ -272,7 +280,7 @@ export default function RegistroPage() {
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="correo">Correo electrónico</label>
+              <label htmlFor="correo">Correo electronico</label>
               <div className={styles.inputWrap}>
                 <input
                   id="correo"
@@ -287,7 +295,7 @@ export default function RegistroPage() {
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="pais">País</label>
+              <label htmlFor="pais">Pais</label>
               <div className={styles.inputWrap}>
                 <select
                   id="pais"
@@ -317,7 +325,7 @@ export default function RegistroPage() {
                   type="tel"
                   value={celular}
                   onChange={(e) => setCelular(limpiarCelular(e.target.value))}
-                  placeholder="Ingresa tu número"
+                  placeholder="Ingresa tu numero"
                   autoComplete="tel-national"
                   required
                 />
@@ -325,20 +333,20 @@ export default function RegistroPage() {
 
               {celularLimpio.length > 0 && (
                 <p className={styles.phonePreview}>
-                  Número completo: <strong>{celularCompleto}</strong>
+                  Numero completo: <strong>{telefonoSinMas}</strong>
                 </p>
               )}
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="contrasena">Contraseña</label>
+              <label htmlFor="contrasena">Contrasena</label>
               <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
                 <input
                   id="contrasena"
                   type={mostrarContrasena ? "text" : "password"}
                   value={contrasena}
                   onChange={(e) => setContrasena(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Minimo 6 caracteres"
                   autoComplete="new-password"
                   required
                 />
@@ -347,7 +355,7 @@ export default function RegistroPage() {
                   type="button"
                   className={styles.passwordToggle}
                   onClick={() => setMostrarContrasena((prev) => !prev)}
-                  aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-label={mostrarContrasena ? "Ocultar contrasena" : "Mostrar contrasena"}
                 >
                   {mostrarContrasena ? "OCULTAR" : "VER"}
                 </button>
@@ -355,14 +363,14 @@ export default function RegistroPage() {
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="confirmarContrasena">Confirmar contraseña</label>
+              <label htmlFor="confirmarContrasena">Confirmar contrasena</label>
               <div className={styles.inputWrap}>
                 <input
                   id="confirmarContrasena"
                   type={mostrarContrasena ? "text" : "password"}
                   value={confirmarContrasena}
                   onChange={(e) => setConfirmarContrasena(e.target.value)}
-                  placeholder="Repite tu contraseña"
+                  placeholder="Repite tu contrasena"
                   autoComplete="new-password"
                   required
                 />
@@ -379,7 +387,7 @@ export default function RegistroPage() {
               Ya tengo cuenta
             </Link>
 
-            <span>Tu cuenta se creará como cliente y quedará pendiente de aprobación.</span>
+            <span>Tu cuenta se creara como cliente y quedara pendiente de aprobacion.</span>
           </div>
         </form>
       </section>
@@ -389,9 +397,9 @@ export default function RegistroPage() {
           © 2026 Jonas Stream. Todos los derechos reservados.
 
           <div className={styles.footerLinks}>
-            <Link href="/terminos">Términos y Condiciones</Link>
+            <Link href="/terminos">Terminos y Condiciones</Link>
             <span className={styles.footerSeparator}>•</span>
-            <Link href="/privacidad">Política de Privacidad</Link>
+            <Link href="/privacidad">Politica de Privacidad</Link>
           </div>
         </div>
       </footer>
