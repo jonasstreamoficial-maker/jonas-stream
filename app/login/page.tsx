@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -11,41 +11,26 @@ const WHATSAPP_NUMBER = "51900557949";
 
 type Usuario = {
   id: string;
-  nombre: string | null;
+  nombre: string;
   correo: string;
-  contrasena?: string | null;
-  rol: string | null;
-  estado: string | null;
-  pais?: string | null;
-  codigo_pais?: string | null;
-  celular?: string | null;
-  celular_completo?: string | null;
-  telefono?: string | null;
+  contrasena: string;
+  rol: string;
+  estado: string;
 };
 
 function buildWhatsAppLink(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
-function normalizarCorreo(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function nombreDesdeCorreo(email: string) {
-  const base = email.split("@")[0] || "cliente";
-  return base.replace(/[._-]+/g, " ").trim() || "cliente";
-}
-
 export default function LoginPage() {
   const router = useRouter();
-
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [cargando, setCargando] = useState(false);
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
   const [mensajeDebug, setMensajeDebug] = useState<string | null>(null);
 
-  const iniciarSesion = async (e: FormEvent<HTMLFormElement>) => {
+  const iniciarSesion = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (cargando) return;
@@ -53,85 +38,78 @@ export default function LoginPage() {
     setCargando(true);
     setMensajeDebug(null);
 
-    const correoNormalizado = normalizarCorreo(correo);
-    const contrasenaLimpia = contrasena.trim();
-
-    if (!correoNormalizado || !contrasenaLimpia) {
-      toast.error("Ingresa correo y contraseña");
-      setCargando(false);
-      return;
-    }
+    const correoNormalizado = correo.trim().toLowerCase();
 
     try {
       const { data, error } = await supabase
         .from("usuarios")
-        .select("*")
-        .ilike("correo", correoNormalizado)
+        .select("id,nombre,correo,contrasena,rol,estado")
+        .eq("correo", correoNormalizado)
         .maybeSingle();
 
       if (error) {
-        setMensajeDebug(`ERROR USUARIOS: ${error.message}`);
+        setMensajeDebug(`ERROR SUPABASE: ${error.message}`);
         toast.error("Error consultando usuario");
         setCargando(false);
         return;
       }
 
       if (!data) {
-        setMensajeDebug("USUARIO NO ENCONTRADO EN TABLA usuarios");
+        setMensajeDebug(
+          `USUARIO NO ENCONTRADO EN TABLA usuarios: ${correoNormalizado}. Revisa que el correo sea exactamente igual al de Supabase y que exista una policy SELECT para anon.`,
+        );
         toast.error("Usuario no encontrado");
         setCargando(false);
         return;
       }
 
-      const usuarioData = data as Usuario;
-      const passwordGuardado = String(usuarioData.contrasena || "").trim();
+      const usuario = data as Usuario;
 
-      if (passwordGuardado !== contrasenaLimpia) {
-        setMensajeDebug("CONTRASEÑA INCORRECTA");
+      if (String(usuario.contrasena || "") !== contrasena) {
+        setMensajeDebug("CONTRASEÑA INCORRECTA: no coincide con la tabla usuarios.");
         toast.error("Contraseña incorrecta");
         setCargando(false);
         return;
       }
 
-      const estado = String(usuarioData.estado || "").toLowerCase().trim();
-      const rol = String(usuarioData.rol || "cliente").toLowerCase().trim();
-
-      if (estado === "pendiente") {
-        setMensajeDebug("CUENTA PENDIENTE: espera aprobación del admin.");
+      if (usuario.estado === "pendiente") {
+        setMensajeDebug("CUENTA PENDIENTE: el usuario existe pero no está aprobado.");
         toast("Tu cuenta está pendiente de aprobación");
         setCargando(false);
         return;
       }
 
-      if (estado === "rechazado") {
-        setMensajeDebug("CUENTA RECHAZADA: comunícate con soporte.");
+      if (usuario.estado === "rechazado") {
+        setMensajeDebug("CUENTA RECHAZADA: el usuario está bloqueado.");
         toast.error("Tu cuenta fue rechazada");
         setCargando(false);
         return;
       }
 
-      if (estado !== "aprobado" && estado !== "activo") {
-        setMensajeDebug(`CUENTA NO HABILITADA: estado actual ${usuarioData.estado}`);
+      if (usuario.estado !== "aprobado" && usuario.estado !== "activo") {
+        setMensajeDebug(`CUENTA NO HABILITADA: estado actual ${usuario.estado}`);
         toast.error("Tu cuenta no está habilitada");
         setCargando(false);
         return;
       }
 
-      const usuarioSesion = {
-        ...usuarioData,
-        rol,
-        estado,
+      const usuarioSeguro = {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: usuario.rol,
+        estado: usuario.estado,
       };
 
-      localStorage.setItem("usuario", JSON.stringify(usuarioSesion));
+      localStorage.setItem("usuario", JSON.stringify(usuarioSeguro));
       localStorage.setItem("jonas_login_ok", new Date().toISOString());
 
       toast.success("Bienvenido 🚀");
 
       const destino =
-        rol === "admin"
+        usuario.rol === "admin"
           ? "/admin"
-          : rol === "proveedor"
+          : usuario.rol === "proveedor"
             ? "/proveedor"
             : "/cliente";
 
@@ -140,10 +118,9 @@ export default function LoginPage() {
 
       window.setTimeout(() => {
         window.location.assign(destino);
-      }, 250);
+      }, 350);
     } catch (error) {
       const detalle = error instanceof Error ? error.message : "Error desconocido";
-      console.error(error);
       setMensajeDebug(`ERROR GENERAL: ${detalle}`);
       toast.error("Error al iniciar sesión");
       setCargando(false);
@@ -174,8 +151,8 @@ export default function LoginPage() {
             <a
               href={buildWhatsAppLink("Hola Jonas Stream, necesito ayuda con mi acceso.")}
               target="_blank"
-              rel="noreferrer"
-              className={`${styles.topLink} ${styles.topLinkPrimary}`}
+              rel="noopener noreferrer"
+              className={styles.topLinkPrimary}
             >
               CONTÁCTANOS
             </a>
@@ -183,106 +160,132 @@ export default function LoginPage() {
         </div>
       </header>
 
-      <section className={styles.accessGrid}>
-        <article className={styles.heroPanel}>
-          <span className={styles.heroBadge}>ACCESO OFICIAL</span>
+      <section className={styles.loginShell}>
+        <div className={styles.brandPanel}>
+          <div className={styles.heroBadge}>ACCESO OFICIAL</div>
 
           <h1 className={styles.heroTitle}>
-            ENTRA A TU <strong>CUENTA</strong>
+            ENTRA A TU
+            <span> CUENTA</span>
           </h1>
 
           <p className={styles.heroText}>
             Inicia sesión para acceder a tu panel de Jonas Stream según tu tipo de cuenta.
           </p>
 
-          <div className={styles.accessGrid}>
+          <div className={styles.accessGrid} aria-label="Accesos disponibles">
             <div className={styles.accessCard}>
               <span>CLIENTE</span>
-              <p>Consulta tus pedidos y servicios activos.</p>
+              <strong>Consulta tus pedidos y servicios activos.</strong>
             </div>
 
             <div className={styles.accessCard}>
               <span>PROVEEDOR</span>
-              <p>Gestiona productos y disponibilidad.</p>
+              <strong>Gestiona productos y disponibilidad.</strong>
             </div>
 
             <div className={styles.accessCard}>
               <span>ADMIN</span>
-              <p>Administra usuarios, ventas y configuración.</p>
+              <strong>Administra usuarios, ventas y configuración.</strong>
             </div>
           </div>
 
-          <div className={styles.panelNote}>
+          <p className={styles.panelNote}>
             Si tu cuenta está pendiente, espera la aprobación o comunícate con soporte.
-          </div>
-        </article>
+          </p>
+        </div>
 
-        <article className={styles.registerCard}>
+        <form onSubmit={iniciarSesion} className={styles.loginCard}>
+          <div className={styles.cardGlow} />
+
           <div className={styles.formHeader}>
             <span className={styles.formKicker}>CUENTA JONAS STREAM</span>
-            <h2>INICIAR SESIÓN</h2>
+            <h2>Iniciar sesión</h2>
             <p>Ingresa con tu correo y contraseña registrados.</p>
           </div>
 
-          <form onSubmit={iniciarSesion} className={styles.formSection}>
-            <label className={styles.inputGroup}>
-              <span>CORREO ELECTRÓNICO</span>
-              <div className={styles.inputWrap}>
-                <input
-                  type="email"
-                  value={correo}
-                  onChange={(e) => setCorreo(e.target.value)}
-                  placeholder="cliente@test.com"
-                  autoComplete="email"
-                />
-              </div>
-            </label>
+          <div className={styles.inputGroup}>
+            <label htmlFor="correo">Correo electrónico</label>
 
-            <label className={styles.inputGroup}>
-              <span>CONTRASEÑA</span>
-              <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
-                <input
-                  type={mostrarContrasena ? "text" : "password"}
-                  value={contrasena}
-                  onChange={(e) => setContrasena(e.target.value)}
-                  placeholder="••••••"
-                  autoComplete="current-password"
-                />
+            <div className={styles.inputWrap}>
+              <input
+                id="correo"
+                type="email"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+                placeholder="tunombre@correo.com"
+                autoComplete="email"
+                required
+              />
+            </div>
+          </div>
 
-                <button
-                  type="button"
-                  onClick={() => setMostrarContrasena((prev) => !prev)}
-                  className={styles.passwordToggle}
-                >
-                  {mostrarContrasena ? "OCULTAR" : "VER"}
-                </button>
-              </div>
-            </label>
+          <div className={styles.inputGroup}>
+            <label htmlFor="contrasena">Contraseña</label>
 
-            {mensajeDebug && <div className={styles.panelNote}>{mensajeDebug}</div>}
+            <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
+              <input
+                id="contrasena"
+                type={mostrarContrasena ? "text" : "password"}
+                value={contrasena}
+                onChange={(e) => setContrasena(e.target.value)}
+                placeholder="Ingresa tu contraseña"
+                autoComplete="current-password"
+                required
+              />
 
-            <button type="submit" disabled={cargando} className={styles.submitButton}>
-              {cargando ? "INGRESANDO..." : "ENTRAR AL PANEL"}
-            </button>
+              <button
+                type="button"
+                className={styles.passwordToggle}
+                onClick={() => setMostrarContrasena((prev) => !prev)}
+                aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {mostrarContrasena ? "OCULTAR" : "VER"}
+              </button>
+            </div>
+          </div>
 
+          {mensajeDebug && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "12px 14px",
+                borderRadius: 16,
+                border: "1px solid rgba(255, 143, 163, 0.38)",
+                background: "rgba(255, 143, 163, 0.1)",
+                color: "#ffd7df",
+                fontSize: 12,
+                fontWeight: 800,
+                lineHeight: 1.5,
+                wordBreak: "break-word",
+              }}
+            >
+              {mensajeDebug}
+            </div>
+          )}
+
+          <button type="submit" disabled={cargando} className={styles.submitButton}>
+            {cargando ? "Ingresando..." : "Entrar al panel"}
+          </button>
+
+          <div className={styles.formFooter}>
             <Link href="/" className={styles.secondaryLink}>
-              VOLVER AL INICIO
+              Volver al inicio
             </Link>
 
-            <p className={styles.formFooter}>Acceso exclusivo para usuarios registrados.</p>
-          </form>
-        </article>
+            <span>Acceso exclusivo para usuarios registrados.</span>
+          </div>
+        </form>
       </section>
 
       <footer className={styles.footerWrap}>
         <div className={styles.footerLegal}>
           © 2026 Jonas Stream. Todos los derechos reservados.
-        </div>
-
-        <div className={styles.footerLinks}>
-          <Link href="/terminos">Términos y Condiciones</Link>
-          <span className={styles.footerSeparator}>•</span>
-          <Link href="/privacidad">Política de Privacidad</Link>
+          <div className={styles.footerLinks}>
+            <Link href="/terminos">Términos y Condiciones</Link>
+            <span className={styles.footerSeparator}>•</span>
+            <Link href="/privacidad">Política de Privacidad</Link>
+          </div>
         </div>
       </footer>
     </main>
