@@ -63,59 +63,34 @@ export default function LoginPage() {
     }
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: correoNormalizado,
-        password: contrasenaLimpia,
-      });
+      const { data, error } = await supabase
+        .from("usuarios")
+        .select("*")
+        .ilike("correo", correoNormalizado)
+        .maybeSingle();
 
-      if (authError || !authData.user) {
-        setMensajeDebug(`ERROR AUTH: ${authError?.message || "No se pudo iniciar sesión"}`);
-        toast.error("Correo o contraseña incorrectos");
+      if (error) {
+        setMensajeDebug(`ERROR USUARIOS: ${error.message}`);
+        toast.error("Error consultando usuario");
         setCargando(false);
         return;
       }
 
-      let usuarioData: Usuario | null = null;
-
-      const { data: usuarioPorId, error: errorPorId } = await supabase
-        .from("usuarios")
-        .select("*")
-        .eq("id", authData.user.id)
-        .maybeSingle();
-
-      if (errorPorId) {
-        setMensajeDebug(`ERROR USUARIOS ID: ${errorPorId.message}`);
+      if (!data) {
+        setMensajeDebug("USUARIO NO ENCONTRADO EN TABLA usuarios");
+        toast.error("Usuario no encontrado");
+        setCargando(false);
+        return;
       }
 
-      usuarioData = usuarioPorId as Usuario | null;
+      const usuarioData = data as Usuario;
+      const passwordGuardado = String(usuarioData.contrasena || "").trim();
 
-      if (!usuarioData) {
-        const nuevoPerfil = {
-          id: authData.user.id,
-          nombre:
-            String(authData.user.user_metadata?.nombre || "").trim() ||
-            String(authData.user.user_metadata?.name || "").trim() ||
-            nombreDesdeCorreo(correoNormalizado),
-          correo: correoNormalizado,
-          rol: "cliente",
-          estado: "activo",
-        };
-
-        const { data: perfilCreado, error: errorCrearPerfil } = await supabase
-          .from("usuarios")
-          .insert([nuevoPerfil])
-          .select("*")
-          .single();
-
-        if (errorCrearPerfil) {
-          setMensajeDebug(`USUARIO NO ENCONTRADO EN TABLA usuarios: ${errorCrearPerfil.message}`);
-          toast.error("Usuario no encontrado en tabla usuarios");
-          await supabase.auth.signOut();
-          setCargando(false);
-          return;
-        }
-
-        usuarioData = perfilCreado as Usuario;
+      if (passwordGuardado !== contrasenaLimpia) {
+        setMensajeDebug("CONTRASEÑA INCORRECTA");
+        toast.error("Contraseña incorrecta");
+        setCargando(false);
+        return;
       }
 
       const estado = String(usuarioData.estado || "").toLowerCase().trim();
@@ -124,7 +99,6 @@ export default function LoginPage() {
       if (estado === "pendiente") {
         setMensajeDebug("CUENTA PENDIENTE: espera aprobación del admin.");
         toast("Tu cuenta está pendiente de aprobación");
-        await supabase.auth.signOut();
         setCargando(false);
         return;
       }
@@ -132,7 +106,6 @@ export default function LoginPage() {
       if (estado === "rechazado") {
         setMensajeDebug("CUENTA RECHAZADA: comunícate con soporte.");
         toast.error("Tu cuenta fue rechazada");
-        await supabase.auth.signOut();
         setCargando(false);
         return;
       }
@@ -140,7 +113,6 @@ export default function LoginPage() {
       if (estado !== "aprobado" && estado !== "activo") {
         setMensajeDebug(`CUENTA NO HABILITADA: estado actual ${usuarioData.estado}`);
         toast.error("Tu cuenta no está habilitada");
-        await supabase.auth.signOut();
         setCargando(false);
         return;
       }
@@ -156,7 +128,12 @@ export default function LoginPage() {
 
       toast.success("Bienvenido 🚀");
 
-      const destino = rol === "admin" ? "/admin" : rol === "proveedor" ? "/proveedor" : "/cliente";
+      const destino =
+        rol === "admin"
+          ? "/admin"
+          : rol === "proveedor"
+            ? "/proveedor"
+            : "/cliente";
 
       router.replace(destino);
       router.refresh();
