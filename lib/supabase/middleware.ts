@@ -1,6 +1,12 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+function destinoPorRol(rol?: string | null) {
+  if (rol === "admin") return "/admin"
+  if (rol === "proveedor") return "/proveedor"
+  return "/cliente"
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 
@@ -44,18 +50,49 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (pathname.startsWith("/login") && user) {
-    const { data: perfil } = await supabase
-      .from("usuarios")
-      .select("rol,estado")
-      .eq("id", user.id)
-      .maybeSingle()
+  if (!user) return response
 
-    if (perfil && (perfil.estado === "aprobado" || perfil.estado === "activo")) {
+  const { data: perfil } = await supabase
+    .from("usuarios")
+    .select("rol,estado")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  const aprobado = perfil?.estado === "aprobado" || perfil?.estado === "activo"
+
+  if (rutaPrivada && (!perfil || !aprobado)) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/login"
+    url.searchParams.set("estado", "pendiente")
+    return NextResponse.redirect(url)
+  }
+
+  if (rutaPrivada && perfil) {
+    const destino = destinoPorRol(perfil.rol)
+
+    if (pathname.startsWith("/admin") && perfil.rol !== "admin") {
       const url = request.nextUrl.clone()
-      url.pathname = perfil.rol === "admin" ? "/admin" : perfil.rol === "proveedor" ? "/proveedor" : "/cliente"
+      url.pathname = destino
       return NextResponse.redirect(url)
     }
+
+    if (pathname.startsWith("/proveedor") && perfil.rol !== "proveedor" && perfil.rol !== "admin") {
+      const url = request.nextUrl.clone()
+      url.pathname = destino
+      return NextResponse.redirect(url)
+    }
+
+    if (pathname.startsWith("/cliente") && perfil.rol !== "cliente" && perfil.rol !== "admin") {
+      const url = request.nextUrl.clone()
+      url.pathname = destino
+      return NextResponse.redirect(url)
+    }
+  }
+
+  if (pathname.startsWith("/login") && perfil && aprobado) {
+    const url = request.nextUrl.clone()
+    url.pathname = destinoPorRol(perfil.rol)
+    return NextResponse.redirect(url)
   }
 
   return response
