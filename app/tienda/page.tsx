@@ -191,11 +191,17 @@ export default function TiendaPage() {
   };
 
   const manejarFavorito = async (productoId: string) => {
-    const estado = await toggleFavorito(productoId);
+    try {
+      const estado = await toggleFavorito(productoId);
 
-    setFavoritos((prev) =>
-      estado ? [...prev, productoId] : prev.filter((id) => id !== productoId)
-    );
+      setFavoritos((prev) =>
+        estado ? [...prev, productoId] : prev.filter((id) => id !== productoId)
+      );
+
+      toast.success(estado ? "Agregado a favoritos" : "Quitado de favoritos");
+    } catch {
+      toast.error("No se pudo actualizar favoritos");
+    }
   };
 
   const cargarTienda = async () => {
@@ -252,6 +258,13 @@ export default function TiendaPage() {
   }, [cartItems]);
 
   const comprarProducto = (producto: Producto) => {
+    const status = normalizeStatus(producto);
+
+    if (status === "AGOTADO") {
+      toast.error("Este producto está agotado");
+      return;
+    }
+
     agregarAlCarrito({
       id: producto.id,
       nombre: producto.nombre || "Producto",
@@ -267,6 +280,7 @@ export default function TiendaPage() {
 
   const cambiarCantidad = (productoId: string, cantidad: number) => {
     const actual = leerCarritoLocal();
+    const itemActual = actual.find((item) => item.id === productoId);
 
     const actualizado =
       cantidad <= 0
@@ -276,6 +290,10 @@ export default function TiendaPage() {
     guardarCarritoLocal(actualizado);
     setCartItems(actualizado);
     setCantidadCarrito(actualizado.reduce((total, item) => total + item.cantidad, 0));
+
+    if (cantidad <= 0 && itemActual) {
+      toast.success("Producto quitado del carrito");
+    }
   };
 
   const quitarProducto = (productoId: string) => {
@@ -287,10 +305,15 @@ export default function TiendaPage() {
   };
 
   const limpiarVistaCarrito = () => {
+    if (cartItems.length === 0) {
+      toast.error("El carrito ya está vacío");
+      return;
+    }
+
     guardarCarritoLocal([]);
     setCartItems([]);
     setCantidadCarrito(0);
-    toast.success("Carrito limpiado");
+    toast.success("Carrito limpiado correctamente");
   };
 
   const abrirWhatsApp = (producto: Producto) => {

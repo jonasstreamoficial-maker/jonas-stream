@@ -1667,9 +1667,9 @@ export default function AdminPage() {
 
     try {
       await navigator.clipboard.writeText(texto)
-      toast.success("Datos copiados")
+      toast.success("Datos de la cuenta copiados correctamente")
     } catch {
-      toast.error("No se pudo copiar")
+      toast.error("No se pudo copiar la cuenta")
     }
   }
 

@@ -1025,3 +1025,62 @@
     width: 100%;
   }
 }
+
+
+/* ==========================================================
+   UX PREMIUM ADDONS - JONAS STREAM
+   ========================================================== */
+
+/* SCROLLBAR PRO */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #031316;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    #01e7ef,
+    #00fbff
+  );
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(0,251,255,.35);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00fbff;
+}
+
+/* SMOOTH EXPERIENCE */
+* {
+  scroll-behavior: smooth;
+}
+
+/* PREMIUM TABLE HOVER */
+.accessTable tr:hover td {
+  background: rgba(1,231,239,.04);
+  transition: background .2s ease;
+}
+
+/* HERO GLOW EFFECT */
+.heroPanel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%,
+    rgba(0,251,255,.05),
+    transparent 60%);
+  animation: pulseGlow 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulseGlow {
+  0% { opacity: .4; }
+  50% { opacity: 1; }
+  100% { opacity: .4; }
+}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import toast from "react-hot-toast";
 import styles from "./cliente.module.css";
 
 const WHATSAPP_NUMBER = "51900557949";
@@ -416,9 +417,9 @@ export default function ClientePage() {
   const copiarTexto = async (texto: string) => {
     try {
       await navigator.clipboard.writeText(texto);
-      alert("Datos copiados");
+      toast.success("Datos copiados correctamente");
     } catch {
-      alert("No se pudo copiar");
+      toast.error("No se pudo copiar. Intenta nuevamente.");
     }
   };
 
