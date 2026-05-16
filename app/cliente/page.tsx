@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import styles from "./cliente.module.css";
+
+const WHATSAPP_NUMBER = "51900557949";
+
+type SectionId = "dashboard" | "compras" | "accesos" | "vencimientos" | "creditos" | "telegram";
 
 type Usuario = {
   id: string;
@@ -33,6 +37,7 @@ type Producto = {
   imagen?: string | null;
   categoria?: string | null;
   tipo_venta?: string | null;
+  accent?: string | null;
 };
 
 type PedidoItem = {
@@ -61,26 +66,19 @@ type CuentaProducto = {
 
 type Credito = {
   id: string;
-  usuario_id: string;
+  usuario_id?: string | null;
   saldo?: number | null;
   estado?: string | null;
   created_at?: string | null;
 };
 
-type SectionId = "dashboard" | "compras" | "accesos" | "vencimientos" | "creditos" | "telegram";
-
-type PlataformaResumen = {
-  productoId: string;
-  producto?: Producto;
+type PlataformaGrupo = {
+  id: string;
+  nombre: string;
+  categoria: string;
+  accent: string;
   cuentas: CuentaProducto[];
-  total: number;
-  activos: number;
-  porVencer: number;
-  vencidos: number;
-  proximoVencimiento?: string | null;
 };
-
-const WHATSAPP_NUMBER = "51900557949";
 
 const menu: { id: SectionId; label: string; icon: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: "⌂" },
@@ -99,7 +97,7 @@ function buildRenewMessage(cuenta: CuentaProducto, producto?: Producto, usuario?
   return [
     "Hola Jonas Stream, quiero renovar mi cuenta.",
     "",
-    `Producto: ${producto?.nombre || "Producto"}`,
+    `Producto: ${getProductName(producto, cuenta)}`,
     `Correo de acceso: ${cuenta.correo || "No disponible"}`,
     `Mi correo registrado: ${usuario?.correo || "No disponible"}`,
     `Fecha de vencimiento: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
@@ -132,11 +130,7 @@ function getDiasRestantes(fecha?: string | null) {
 }
 
 function normalizar(value?: string | null) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+  return String(value || "").trim().toLowerCase();
 }
 
 function getStatusClass(estado?: string | null) {
@@ -146,19 +140,33 @@ function getStatusClass(estado?: string | null) {
   return `${styles.statusBadge} ${styles.statusWait}`;
 }
 
-function getPlatformClass(nombre?: string | null) {
-  const value = normalizar(nombre);
-  if (value.includes("netflix")) return "platformNetflix";
-  if (value.includes("youtube")) return "platformYoutube";
-  if (value.includes("max") || value.includes("hbo")) return "platformMax";
-  if (value.includes("disney")) return "platformDisney";
-  if (value.includes("prime") || value.includes("amazon")) return "platformPrime";
-  if (value.includes("crunchy")) return "platformCrunchy";
-  if (value.includes("spotify")) return "platformSpotify";
-  if (value.includes("paramount")) return "platformParamount";
-  if (value.includes("vix")) return "platformVix";
-  if (value.includes("iptv")) return "platformIptv";
-  return "platformDefault";
+function getAccentFromText(text?: string | null) {
+  const value = normalizar(text);
+  if (value.includes("netflix")) return "netflix";
+  if (value.includes("youtube")) return "youtube";
+  if (value.includes("max") || value.includes("hbo")) return "max";
+  if (value.includes("disney")) return "disney";
+  if (value.includes("prime") || value.includes("amazon")) return "prime";
+  if (value.includes("crunchy")) return "crunchy";
+  if (value.includes("spotify")) return "spotify";
+  if (value.includes("paramount")) return "paramount";
+  if (value.includes("canva")) return "canva";
+  if (value.includes("office") || value.includes("365")) return "office";
+  if (value.includes("iptv")) return "iptv";
+  if (value.includes("viki")) return "viki";
+  if (value.includes("vix")) return "vix";
+  return "default";
+}
+
+function getAccent(producto?: Producto) {
+  return getAccentFromText(producto?.accent || producto?.nombre || producto?.categoria || producto?.tipo_venta);
+}
+
+function getProductName(producto?: Producto, cuenta?: CuentaProducto) {
+  const nombre = producto?.nombre?.trim();
+  if (nombre) return nombre;
+  if (cuenta?.producto_id) return `Plataforma ${cuenta.producto_id.slice(0, 6)}`;
+  return "Plataforma";
 }
 
 export default function ClientePage() {
@@ -172,11 +180,11 @@ export default function ClientePage() {
   const [cuentas, setCuentas] = useState<CuentaProducto[]>([]);
   const [creditos, setCreditos] = useState<Credito[]>([]);
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
-  const [plataformaActivaId, setPlataformaActivaId] = useState<string | null>(null);
-  const [busquedaAcceso, setBusquedaAcceso] = useState("");
+  const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
 
   useEffect(() => {
     cargarPanelCliente();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cargarPanelCliente = async () => {
@@ -285,8 +293,6 @@ export default function ClientePage() {
       setCreditos(creditosData);
 
       const pedidoIds = pedidosData.map((pedido) => pedido.id);
-      const productoIdsFromCuentas = cuentasData.map((cuenta) => cuenta.producto_id).filter(Boolean);
-
       let itemsData: PedidoItem[] = [];
       if (pedidoIds.length > 0) {
         const { data } = await supabase
@@ -299,20 +305,33 @@ export default function ClientePage() {
 
       const productoIds = Array.from(
         new Set([
-          ...productoIdsFromCuentas,
+          ...cuentasData.map((cuenta) => cuenta.producto_id).filter(Boolean),
           ...itemsData.map((item) => item.producto_id).filter(Boolean),
-        ] as string[]),
+        ] as string[])
       );
 
+      let productosData: Producto[] = [];
       if (productoIds.length > 0) {
         const { data } = await supabase
           .from("productos")
-          .select("id,nombre,imagen,categoria,tipo_venta")
+          .select("id,nombre,imagen,categoria,tipo_venta,accent")
           .in("id", productoIds);
-        setProductos((data || []) as Producto[]);
-      } else {
-        setProductos([]);
+        productosData = (data || []) as Producto[];
       }
+
+      // Fallback por si Supabase no devuelve accent o hay una política parcial.
+      if (productosData.length < productoIds.length) {
+        const faltantes = productoIds.filter((id) => !productosData.some((producto) => producto.id === id));
+        if (faltantes.length > 0) {
+          const { data } = await supabase
+            .from("productos")
+            .select("id,nombre,imagen,categoria,tipo_venta")
+            .in("id", faltantes);
+          productosData = [...productosData, ...((data || []) as Producto[])];
+        }
+      }
+
+      setProductos(productosData);
     } catch (error) {
       console.error("Error cargando panel cliente:", error);
     } finally {
@@ -339,58 +358,34 @@ export default function ClientePage() {
 
   const cuentasActivas = cuentas.filter((cuenta) => normalizar(cuenta.estado) === "entregada");
 
-  const plataformasResumen = useMemo<PlataformaResumen[]>(() => {
-    const map = new Map<string, CuentaProducto[]>();
+  const plataformas = useMemo<PlataformaGrupo[]>(() => {
+    const map = new Map<string, PlataformaGrupo>();
 
     cuentasActivas.forEach((cuenta) => {
-      const key = cuenta.producto_id || "sin-producto";
-      const actuales = map.get(key) || [];
-      actuales.push(cuenta);
-      map.set(key, actuales);
+      const producto = productoPorId.get(cuenta.producto_id);
+      const id = producto?.id || cuenta.producto_id || "sin-producto";
+      const nombreProducto = getProductName(producto, cuenta);
+      const actual = map.get(id) || {
+        id,
+        nombre: nombreProducto,
+        categoria: producto?.tipo_venta || producto?.categoria || "Acceso digital",
+        accent: getAccent(producto),
+        cuentas: [],
+      };
+
+      actual.cuentas.push(cuenta);
+      if (producto?.nombre) actual.nombre = producto.nombre;
+      if (producto?.tipo_venta || producto?.categoria) actual.categoria = producto.tipo_venta || producto.categoria || actual.categoria;
+      actual.accent = getAccent(producto);
+      map.set(id, actual);
     });
 
-    return Array.from(map.entries())
-      .map(([productoId, cuentasPlataforma]) => {
-        const producto = productoPorId.get(productoId);
-        const vencimientos = cuentasPlataforma
-          .map((cuenta) => cuenta.cliente_fin || cuenta.fecha_fin)
-          .filter(Boolean)
-          .sort() as string[];
-        const porVencer = cuentasPlataforma.filter((cuenta) => {
-          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
-          return dias !== null && dias >= 0 && dias <= 7;
-        }).length;
-        const vencidos = cuentasPlataforma.filter((cuenta) => {
-          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
-          return dias !== null && dias < 0;
-        }).length;
-
-        return {
-          productoId,
-          producto,
-          cuentas: cuentasPlataforma.sort((a, b) => String(a.correo).localeCompare(String(b.correo))),
-          total: cuentasPlataforma.length,
-          activos: cuentasPlataforma.length - vencidos,
-          porVencer,
-          vencidos,
-          proximoVencimiento: vencimientos[0] || null,
-        };
-      })
-      .sort((a, b) => (b.total - a.total) || String(a.producto?.nombre || "Producto").localeCompare(String(b.producto?.nombre || "Producto")));
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [cuentasActivas, productoPorId]);
 
-  const plataformaActiva = plataformasResumen.find((item) => item.productoId === plataformaActivaId) || null;
-
-  const cuentasFiltradasPlataforma = useMemo(() => {
-    if (!plataformaActiva) return [];
-    const query = normalizar(busquedaAcceso);
-    if (!query) return plataformaActiva.cuentas;
-
-    return plataformaActiva.cuentas.filter((cuenta) => {
-      const producto = productoPorId.get(cuenta.producto_id);
-      return normalizar(`${cuenta.correo} ${cuenta.clave} ${producto?.nombre} ${cuenta.notas}`).includes(query);
-    });
-  }, [busquedaAcceso, plataformaActiva, productoPorId]);
+  const plataformaSeleccionada = selectedPlatformId
+    ? plataformas.find((plataforma) => plataforma.id === selectedPlatformId) || null
+    : null;
 
   const proximosVencimientos = useMemo(() => {
     return cuentasActivas
@@ -398,7 +393,7 @@ export default function ClientePage() {
         const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
         return dias !== null && dias <= 7;
       })
-      .slice(0, 5);
+      .slice(0, 8);
   }, [cuentasActivas]);
 
   const copiarTexto = async (texto: string) => {
@@ -407,14 +402,6 @@ export default function ClientePage() {
       alert("Datos copiados");
     } catch {
       alert("No se pudo copiar");
-    }
-  };
-
-  const cambiarSeccion = (section: SectionId) => {
-    setActiveSection(section);
-    if (section !== "accesos") {
-      setPlataformaActivaId(null);
-      setBusquedaAcceso("");
     }
   };
 
@@ -453,7 +440,7 @@ export default function ClientePage() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => cambiarSeccion(item.id)}
+                onClick={() => setActiveSection(item.id)}
                 className={`${styles.navButton} ${activeSection === item.id ? styles.navButtonActive : ""}`}
               >
                 <span>{item.icon}</span>
@@ -479,7 +466,7 @@ export default function ClientePage() {
             <h1>
               Hola, <span>{nombre}</span>
             </h1>
-            <p>Gestiona tus compras, accesos entregados, vencimientos y créditos desde un solo lugar.</p>
+            <p>Gestiona tus compras, plataformas entregadas, vencimientos y créditos desde un solo lugar.</p>
             <div className={styles.heroActions}>
               <Link href="/tienda">Ir a tienda</Link>
               <Link href="/carrito">Ver carrito</Link>
@@ -490,33 +477,15 @@ export default function ClientePage() {
             <div className={styles.sectionStack}>
               <div className={styles.statsGrid}>
                 <StatCard title="Saldo disponible" value={formatMoney(saldo)} subtitle="Créditos Jonas Stream" />
-                <StatCard title="Accesos activos" value={String(cuentasActivas.length)} subtitle={`${plataformasResumen.length} plataforma(s)`} />
-                <StatCard title="Por vencer" value={String(proximosVencimientos.length)} subtitle="En los próximos 7 días" />
+                <StatCard title="Plataformas" value={String(plataformas.length)} subtitle="Servicios con accesos" />
+                <StatCard title="Accesos activos" value={String(cuentasActivas.length)} subtitle="Cuentas entregadas" />
               </div>
 
-              <Panel title="Resumen de plataformas">
-                {plataformasResumen.length === 0 ? (
-                  <EmptyText text="Todavía no tienes accesos entregados." />
+              <Panel title="Resumen de accesos">
+                {plataformas.length === 0 ? (
+                  <EmptyText text="Todavía no tienes plataformas entregadas." />
                 ) : (
-                  <PlatformSummaryGrid
-                    plataformas={plataformasResumen}
-                    onOpen={(productoId) => {
-                      setActiveSection("accesos");
-                      setPlataformaActivaId(productoId);
-                    }}
-                  />
-                )}
-              </Panel>
-
-              <Panel title="Próximos vencimientos">
-                {proximosVencimientos.length === 0 ? (
-                  <EmptyText text="No tienes vencimientos próximos." />
-                ) : (
-                  <div className={styles.listStack}>
-                    {proximosVencimientos.map((cuenta) => (
-                      <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} usuario={usuario} />
-                    ))}
-                  </div>
+                  <PlatformGrid plataformas={plataformas} onOpen={(id) => { setSelectedPlatformId(id); setActiveSection("accesos"); }} />
                 )}
               </Panel>
             </div>
@@ -554,37 +523,22 @@ export default function ClientePage() {
           )}
 
           {activeSection === "accesos" && (
-            <Panel title={plataformaActiva ? `Accesos de ${plataformaActiva.producto?.nombre || "Producto"}` : "Mis accesos por plataforma"}>
+            <Panel title={plataformaSeleccionada ? `Accesos de ${plataformaSeleccionada.nombre}` : "Mis accesos por plataforma"}>
               {cuentasActivas.length === 0 ? (
                 <EmptyText text="Todavía no tienes accesos entregados. Compra con créditos o espera que el admin apruebe tu pedido normal." />
-              ) : !plataformaActiva ? (
-                <>
-                  <div className={styles.panelSubHeader}>
-                    <div>
-                      <span className={styles.kickerSoft}>Vista ordenada</span>
-                      <p>Primero ves tus plataformas. Entra a una para ver correos, claves, vencimientos y solicitar renovación por WhatsApp.</p>
-                    </div>
-                  </div>
-                  <PlatformSummaryGrid plataformas={plataformasResumen} onOpen={setPlataformaActivaId} />
-                </>
-              ) : (
+              ) : plataformaSeleccionada ? (
                 <div className={styles.platformDetailStack}>
-                  <PlatformDetailHeader
-                    resumen={plataformaActiva}
-                    onBack={() => {
-                      setPlataformaActivaId(null);
-                      setBusquedaAcceso("");
-                    }}
-                  />
+                  <button type="button" className={styles.backButton} onClick={() => setSelectedPlatformId(null)}>
+                    ← Volver a plataformas
+                  </button>
 
-                  <div className={styles.accessToolbar}>
-                    <input
-                      type="search"
-                      value={busquedaAcceso}
-                      onChange={(e) => setBusquedaAcceso(e.target.value)}
-                      placeholder={`Buscar cuenta en ${plataformaActiva.producto?.nombre || "esta plataforma"}...`}
-                    />
-                    <span>{cuentasFiltradasPlataforma.length} acceso(s)</span>
+                  <div className={`${styles.platformHeaderCard} ${styles[`accent_${plataformaSeleccionada.accent}`] || styles.accent_default}`}>
+                    <div>
+                      <span>PLATAFORMA SELECCIONADA</span>
+                      <h3>{plataformaSeleccionada.nombre}</h3>
+                      <p>{plataformaSeleccionada.categoria} · {plataformaSeleccionada.cuentas.length} acceso(s)</p>
+                    </div>
+                    <strong>{plataformaSeleccionada.cuentas.length}</strong>
                   </div>
 
                   <div className={styles.accessTableWrap}>
@@ -592,49 +546,34 @@ export default function ClientePage() {
                       <thead>
                         <tr>
                           <th>Acceso</th>
-                          <th>Vigencia</th>
+                          <th>Clave</th>
+                          <th>Inicio</th>
+                          <th>Vencimiento</th>
                           <th>Estado</th>
                           <th>Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {cuentasFiltradasPlataforma.map((cuenta) => {
-                          const producto = productoPorId.get(cuenta.producto_id);
-                          const textoCopiar = [
-                            `Producto: ${producto?.nombre || "Producto"}`,
-                            `Correo: ${cuenta.correo}`,
-                            `Contraseña: ${cuenta.clave}`,
-                            `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
-                          ].join("\n");
-                          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
-
-                          return (
-                            <tr key={cuenta.id}>
-                              <td>
-                                <strong>{cuenta.correo || "No disponible"}</strong>
-                                <span>Clave: {cuenta.clave || "No disponible"}</span>
-                              </td>
-                              <td>
-                                <strong>{formatDate(cuenta.cliente_inicio)} → {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong>
-                                <span>{dias === null ? "Sin vencimiento" : dias < 0 ? `Venció hace ${Math.abs(dias)} día(s)` : `Vence en ${dias} día(s)`}</span>
-                              </td>
-                              <td>
-                                <em className={dias !== null && dias < 0 ? styles.badgeDanger : dias !== null && dias <= 7 ? styles.badgeWarning : styles.badgeOk}>
-                                  {dias !== null && dias < 0 ? "Vencido" : dias !== null && dias <= 7 ? "Por vencer" : "Activo"}
-                                </em>
-                              </td>
-                              <td>
-                                <div className={styles.tableActions}>
-                                  <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.secondaryButton}>Copiar</button>
-                                  <a href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))} target="_blank" rel="noopener noreferrer" className={styles.whatsappButtonSmall}>Renovar</a>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {plataformaSeleccionada.cuentas.map((cuenta) => (
+                          <AccessRow
+                            key={cuenta.id}
+                            cuenta={cuenta}
+                            producto={productoPorId.get(cuenta.producto_id)}
+                            usuario={usuario}
+                            copiarTexto={copiarTexto}
+                          />
+                        ))}
                       </tbody>
                     </table>
                   </div>
+                </div>
+              ) : (
+                <div className={styles.platformStack}>
+                  <div className={styles.panelHintBox}>
+                    <strong>VISTA ORDENADA</strong>
+                    <p>Primero ves tus plataformas. Entra a una para ver correos, claves, vencimientos y solicitar renovación por WhatsApp.</p>
+                  </div>
+                  <PlatformGrid plataformas={plataformas} onOpen={setSelectedPlatformId} />
                 </div>
               )}
             </Panel>
@@ -645,10 +584,43 @@ export default function ClientePage() {
               {cuentasActivas.length === 0 ? (
                 <EmptyText text="No tienes productos con vencimiento." />
               ) : (
-                <div className={styles.listStack}>
-                  {cuentasActivas.map((cuenta) => (
-                    <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} usuario={usuario} showButton />
-                  ))}
+                <div className={styles.accessTableWrap}>
+                  <table className={styles.accessTable}>
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Acceso</th>
+                        <th>Vencimiento</th>
+                        <th>Días</th>
+                        <th>Estado</th>
+                        <th>Renovación</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cuentasActivas
+                        .slice()
+                        .sort((a, b) => String(a.cliente_fin || a.fecha_fin || "").localeCompare(String(b.cliente_fin || b.fecha_fin || "")))
+                        .map((cuenta) => {
+                          const producto = productoPorId.get(cuenta.producto_id);
+                          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+                          const status = dias === null ? "SIN FECHA" : dias < 0 ? "VENCIDO" : dias <= 7 ? "POR VENCER" : "ACTIVO";
+                          return (
+                            <tr key={cuenta.id}>
+                              <td><strong>{getProductName(producto, cuenta)}</strong><small>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</small></td>
+                              <td><strong>{cuenta.correo || "Sin correo"}</strong><small>Clave: {cuenta.clave || "Sin clave"}</small></td>
+                              <td><strong>{formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong></td>
+                              <td><strong>{dias === null ? "-" : dias < 0 ? `${Math.abs(dias)} vencido(s)` : `${dias} día(s)`}</strong></td>
+                              <td><span className={dias !== null && dias < 0 ? `${styles.statusBadge} ${styles.statusBad}` : dias !== null && dias <= 7 ? `${styles.statusBadge} ${styles.statusWait}` : `${styles.statusBadge} ${styles.statusOk}`}>{status}</span></td>
+                              <td>
+                                <a className={styles.tableWhatsappButton} href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))} target="_blank" rel="noopener noreferrer">
+                                  Solicitar renovación
+                                </a>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </Panel>
@@ -704,7 +676,7 @@ function StatCard({ title, value, subtitle }: { title: string; value: string; su
   );
 }
 
-function Panel({ title, children }: { title: string; children: ReactNode }) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className={styles.panel}>
       <h2>{title}</h2>
@@ -717,47 +689,44 @@ function EmptyText({ text }: { text: string }) {
   return <div className={styles.emptyState}>{text}</div>;
 }
 
-function PlatformSummaryGrid({ plataformas, onOpen }: { plataformas: PlataformaResumen[]; onOpen: (productoId: string) => void }) {
+function PlatformGrid({ plataformas, onOpen }: { plataformas: PlataformaGrupo[]; onOpen: (id: string) => void }) {
   return (
     <div className={styles.platformGrid}>
-      {plataformas.map((item) => {
-        const nombre = item.producto?.nombre || "Producto";
-        const platformClass = styles[getPlatformClass(nombre) as keyof typeof styles] || "";
+      {plataformas.map((plataforma) => {
+        const fechas = plataforma.cuentas
+          .map((cuenta) => cuenta.cliente_fin || cuenta.fecha_fin)
+          .filter(Boolean)
+          .sort() as string[];
+        const vencidos = plataforma.cuentas.filter((cuenta) => {
+          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+          return dias !== null && dias < 0;
+        }).length;
+        const porVencer = plataforma.cuentas.filter((cuenta) => {
+          const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+          return dias !== null && dias >= 0 && dias <= 7;
+        }).length;
 
         return (
           <button
-            key={item.productoId}
             type="button"
-            onClick={() => onOpen(item.productoId)}
-            className={`${styles.platformCard} ${platformClass}`}
+            key={plataforma.id}
+            onClick={() => onOpen(plataforma.id)}
+            className={`${styles.platformCard} ${styles[`accent_${plataforma.accent}`] || styles.accent_default}`}
           >
-            <div className={styles.platformCardTop}>
+            <div className={styles.platformTopline}>
               <div>
-                <span>Plataforma</span>
-                <strong>{nombre}</strong>
+                <span>PLATAFORMA</span>
+                <strong>{plataforma.nombre}</strong>
               </div>
-              <em>{item.total}</em>
+              <em>{plataforma.cuentas.length}</em>
             </div>
-
-            <div className={styles.platformStatsMini}>
-              <div>
-                <strong>{item.activos}</strong>
-                <span>Activos</span>
-              </div>
-              <div>
-                <strong>{item.porVencer}</strong>
-                <span>Por vencer</span>
-              </div>
-              <div>
-                <strong>{item.vencidos}</strong>
-                <span>Vencidos</span>
-              </div>
+            <div className={styles.platformMiniGrid}>
+              <div><strong>{plataforma.cuentas.length}</strong><span>Activos</span></div>
+              <div><strong>{porVencer}</strong><span>Por vencer</span></div>
+              <div><strong>{vencidos}</strong><span>Vencidos</span></div>
             </div>
-
-            <div className={styles.platformFooter}>
-              <span>Próximo vence: {formatDate(item.proximoVencimiento)}</span>
-              <strong>Ver accesos →</strong>
-            </div>
+            <p>Próximo vence: {formatDate(fechas[0])}</p>
+            <b>Ver accesos →</b>
           </button>
         );
       })}
@@ -765,58 +734,29 @@ function PlatformSummaryGrid({ plataformas, onOpen }: { plataformas: PlataformaR
   );
 }
 
-function PlatformDetailHeader({ resumen, onBack }: { resumen: PlataformaResumen; onBack: () => void }) {
-  const nombre = resumen.producto?.nombre || "Producto";
-  const platformClass = styles[getPlatformClass(nombre) as keyof typeof styles] || "";
+function AccessRow({ cuenta, producto, usuario, copiarTexto }: { cuenta: CuentaProducto; producto?: Producto; usuario?: Usuario | null; copiarTexto: (texto: string) => void }) {
+  const textoCopiar = [
+    `Producto: ${getProductName(producto, cuenta)}`,
+    `Correo: ${cuenta.correo}`,
+    `Contraseña: ${cuenta.clave}`,
+    `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
+  ].join("\n");
 
   return (
-    <section className={`${styles.platformDetailHero} ${platformClass}`}>
-      <div>
-        <span className={styles.kickerSoft}>Plataforma seleccionada</span>
-        <h3>{nombre}</h3>
-        <p>{resumen.producto?.categoria || resumen.producto?.tipo_venta || "Accesos digitales"}</p>
-      </div>
-
-      <div className={styles.platformDetailStats}>
-        <div><strong>{resumen.total}</strong><span>Total</span></div>
-        <div><strong>{resumen.activos}</strong><span>Activos</span></div>
-        <div><strong>{resumen.porVencer}</strong><span>Por vencer</span></div>
-        <div><strong>{resumen.vencidos}</strong><span>Vencidos</span></div>
-      </div>
-
-      <button type="button" onClick={onBack} className={styles.backButton}>← Volver a plataformas</button>
-    </section>
-  );
-}
-
-function VencimientoItem({ cuenta, producto, usuario, showButton = false }: { cuenta: CuentaProducto; producto?: Producto; usuario?: Usuario | null; showButton?: boolean }) {
-  const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
-  const danger = dias !== null && dias <= 2;
-  const warning = dias !== null && dias > 2 && dias <= 7;
-
-  return (
-    <div className={`${styles.expireItem} ${danger ? styles.expireDanger : warning ? styles.expireWarning : ""}`}>
-      <div>
-        <h3>{producto?.nombre || "Producto"}</h3>
-        <p>
-          {dias === null
-            ? "Sin fecha de vencimiento"
-            : dias < 0
-            ? `Venció hace ${Math.abs(dias)} día(s)`
-            : `Vence en ${dias} día(s)`}
-        </p>
-        <small>Vencimiento: {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</small>
-      </div>
-
-      {showButton && (
-        <a
-          href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Solicitar renovación
-        </a>
-      )}
-    </div>
+    <tr>
+      <td><strong>{cuenta.correo || "Sin correo"}</strong><small>{getProductName(producto, cuenta)}</small></td>
+      <td><strong>{cuenta.clave || "Sin clave"}</strong></td>
+      <td><strong>{formatDate(cuenta.cliente_inicio || cuenta.fecha_inicio)}</strong></td>
+      <td><strong>{formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong></td>
+      <td><span className={`${styles.statusBadge} ${styles.statusOk}`}>Activo</span></td>
+      <td>
+        <div className={styles.tableActions}>
+          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.tableCopyButton}>Copiar</button>
+          <a className={styles.tableWhatsappButton} href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))} target="_blank" rel="noopener noreferrer">
+            Renovar
+          </a>
+        </div>
+      </td>
+    </tr>
   );
 }
