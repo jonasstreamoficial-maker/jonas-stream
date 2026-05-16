@@ -25,12 +25,6 @@ type Usuario = {
   codigo_pais?: string | null
   celular?: string | null
   celular_completo?: string | null
-  telefono?: string | null
-  segundo_nombre?: string | null
-  prefijo_cliente?: string | null
-  etiqueta_contacto?: string | null
-  numero_orden?: number | null
-  created_at?: string | null
 }
 
 type Producto = {
@@ -245,27 +239,6 @@ const separarNombreContacto = (nombreCompleto?: string | null) => {
     segundoNombre: partes.slice(1).join(" "),
   }
 }
-const obtenerTelefonoContacto = (usuario?: Usuario | null) =>
-  limpiarNumeroContacto(
-    usuario?.telefono ||
-      usuario?.celular_completo ||
-      `${usuario?.codigo_pais || ""}${usuario?.celular || ""}`
-  )
-const obtenerNombreContacto = (usuario?: Usuario | null) => {
-  const nombreBase = String(usuario?.nombre || "").trim()
-  const segundoGuardado = String(usuario?.segundo_nombre || "").trim()
-
-  if (segundoGuardado) {
-    const partes = nombreBase.split(/\s+/).filter(Boolean)
-    return { nombre: partes[0] || nombreBase, segundoNombre: segundoGuardado }
-  }
-
-  return separarNombreContacto(nombreBase)
-}
-const obtenerNumeroOrdenContacto = (usuario: Usuario, index: number, inicio: number) =>
-  String(usuario.prefijo_cliente || usuario.numero_orden || inicio + index)
-const obtenerEtiquetaContacto = (usuario: Usuario, etiquetaFallback: string) =>
-  usuario.etiqueta_contacto || etiquetaFallback || "| SV |"
 const escaparCSV = (valor?: string | number | null) => {
   const texto = String(valor ?? "")
   return `"${texto.replace(/"/g, '""')}"`
@@ -1299,7 +1272,7 @@ export default function AdminPage() {
     }
 
     const inicio = Math.max(1, Number(ordenGoogleContactos || 1))
-    const etiqueta = etiquetaGoogleContactos || "| SV |"
+    const etiquetaFallback = etiquetaGoogleContactos || "| SV |"
 
     const headers = [
       "Name Prefix",
@@ -1316,17 +1289,21 @@ export default function AdminPage() {
       const { nombre, segundoNombre } = obtenerNombreContacto(usuarioExportar)
       const telefono = obtenerTelefonoContacto(usuarioExportar)
       const numeroOrden = obtenerNumeroOrdenContacto(usuarioExportar, index, inicio)
-      const etiquetaFinal = obtenerEtiquetaContacto(usuarioExportar, etiqueta)
+      const codigoEtiqueta = etiquetaLimpiaContacto(usuarioExportar.etiqueta_contacto || etiquetaFallback)
+      const etiquetaFinal = etiquetaVisualContacto(codigoEtiqueta)
+      const prefijoGoogle = `${numeroOrden} | ${codigoEtiqueta} |`
       const notas = [
         "Jonas Stream",
+        `Contacto: ${prefijoGoogle} ${nombre} ${segundoNombre}`.trim(),
         `N cliente: ${numeroOrden}`,
+        `Etiqueta: ${etiquetaFinal}`,
         `Rol: ${usuarioExportar.rol || "cliente"}`,
         `Estado: ${usuarioExportar.estado || "pendiente"}`,
         usuarioExportar.pais ? `Pais: ${usuarioExportar.pais}` : "",
       ].filter(Boolean).join(" | ")
 
       return [
-        numeroOrden,
+        prefijoGoogle,
         nombre,
         segundoNombre,
         "",
@@ -1337,14 +1314,15 @@ export default function AdminPage() {
       ].map(escaparCSV).join(",")
     })
 
+    const etiquetaArchivo = etiquetaLimpiaContacto(etiquetaFallback)
     const csv = "\uFEFF" + [headers.join(","), ...filas].join("\n")
     const fecha = fechaISO()
     descargarArchivoTexto(
-      `google-contacts-jonas-stream-${etiqueta.replace(/[^a-zA-Z0-9]+/g, "-")}-${fecha}.csv`,
+      `google-contacts-jonas-stream-${etiquetaArchivo}-${fecha}.csv`,
       csv
     )
     registrarEvento(`Exportación Google Contacts: ${usuariosAExportar.length} contacto(s)`)
-    registrarLog("exportar_google_contacts", "usuarios", undefined, `${usuariosAExportar.length} contacto(s) exportados con etiqueta ${etiqueta}`)
+    registrarLog("exportar_google_contacts", "usuarios", undefined, `${usuariosAExportar.length} contacto(s) exportados`)
     toast.success(`CSV listo para Google Contacts: ${usuariosAExportar.length} contacto(s)`)
   }
 
@@ -2095,13 +2073,43 @@ export default function AdminPage() {
 
   const usuariosFiltrados = useMemo(() => {
     return usuarios.filter((u) => {
-      const texto = normalizarTexto(`${u.nombre} ${u.correo} ${u.rol} ${u.estado}`)
+      const texto = normalizarTexto(`${u.nombre} ${u.correo} ${u.rol} ${u.estado} ${u.etiqueta_contacto} ${u.numero_orden} ${u.prefijo_cliente}`)
       const coincideBusqueda = texto.includes(normalizarTexto(busquedaUsuario))
       const coincideEstado = filtroEstadoUsuario === "todos" || u.estado === filtroEstadoUsuario
       const coincideRol = filtroRolUsuario === "todos" || u.rol === filtroRolUsuario
       return coincideBusqueda && coincideEstado && coincideRol
     })
   }, [usuarios, busquedaUsuario, filtroEstadoUsuario, filtroRolUsuario])
+
+  const etiquetaLimpiaContacto = (etiqueta?: string | null) =>
+    String(etiqueta || "| SV |").replace(/\|/g, "").trim().toUpperCase() || "SV"
+
+  const etiquetaVisualContacto = (etiqueta?: string | null) => `| ${etiquetaLimpiaContacto(etiqueta)} |`
+
+  const resumenEtiquetasContactos = useMemo(() => {
+    const base = etiquetasGoogleContactos.map((etiqueta) => {
+      const codigo = etiquetaLimpiaContacto(etiqueta)
+      const usuariosEtiqueta = usuarios.filter(
+        (u) => etiquetaLimpiaContacto(u.etiqueta_contacto) === codigo
+      )
+      const aprobados = usuariosEtiqueta.filter((u) => u.estado === "aprobado" || u.estado === "activo").length
+      const pendientes = usuariosEtiqueta.filter((u) => u.estado === "pendiente").length
+      const rechazados = usuariosEtiqueta.filter((u) => u.estado === "rechazado").length
+
+      return {
+        codigo,
+        etiqueta: etiquetaVisualContacto(etiqueta),
+        total: usuariosEtiqueta.length,
+        aprobados,
+        pendientes,
+        rechazados,
+        clientes: usuariosEtiqueta.filter((u) => u.rol === "cliente").length,
+        usuarios: usuariosEtiqueta,
+      }
+    })
+
+    return base.filter((item) => item.total > 0 || ["SV", "SE", "JS"].includes(item.codigo))
+  }, [usuarios])
 
   const comprobantesUnificados = useMemo<ComprobanteUnificado[]>(() => {
     if (comprobantes.length > 0) {
@@ -3715,16 +3723,66 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              <section className={styles.contactLabelsPanel}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>CRM Google Contacts</p>
+                    <h3>Resumen por etiquetas</h3>
+                    <span className={styles.panelHint}>
+                      Tus contactos se exportan como: <strong>348 | SV | Abigail Llanos</strong> y quedan dentro de la etiqueta <strong>| SV |</strong>.
+                    </span>
+                  </div>
+                  <span className={styles.countBadge}>{resumenEtiquetasContactos.length} etiquetas</span>
+                </div>
+
+                <div className={styles.contactLabelsGrid}>
+                  {resumenEtiquetasContactos.map((grupo) => (
+                    <article key={grupo.codigo} className={styles.contactLabelCard}>
+                      <div className={styles.contactLabelTop}>
+                        <div>
+                          <span>Etiqueta Google</span>
+                          <strong>{grupo.etiqueta}</strong>
+                        </div>
+                        <b>{grupo.total}</b>
+                      </div>
+
+                      <div className={styles.contactLabelStats}>
+                        <div><strong>{grupo.clientes}</strong><span>Clientes</span></div>
+                        <div><strong>{grupo.aprobados}</strong><span>Aprobados</span></div>
+                        <div><strong>{grupo.pendientes}</strong><span>Pendientes</span></div>
+                        <div><strong>{grupo.rechazados}</strong><span>Rechazados</span></div>
+                      </div>
+
+                      <div className={styles.contactLabelActions}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBusquedaUsuario(grupo.codigo)
+                            setFiltroEstadoUsuario("todos")
+                            setFiltroRolUsuario("todos")
+                          }}
+                          className={styles.secondaryButton}
+                        >
+                          Ver clientes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => exportarUsuariosGoogleContacts(grupo.usuarios)}
+                          className={styles.primaryButton}
+                        >
+                          Exportar CSV
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
               <div className={styles.googleContactsBox}>
                 <div>
                   <p className={styles.kicker}>Google Contacts</p>
                   <h4>Exportar contactos con tu orden</h4>
-                  <span>Formato exacto: Prefijo = N° cliente, Nombre = primer nombre, Segundo nombre = resto del nombre, Apellidos vacío, Teléfono sin + y etiqueta seleccionada.</span>
-                  <div className={styles.contactPreviewLine}>
-                    <b>{ordenGoogleContactos || "409"}</b>
-                    <b>{etiquetaGoogleContactos}</b>
-                    <span>Ejemplo: 409 · Cristhian · Yaipen · 51900554949</span>
-                  </div>
+                  <span>Formato: Prefijo = número de orden, Nombre = primer nombre, Segundo nombre = resto del nombre, Apellidos vacío, Teléfono sin + y etiqueta seleccionada.</span>
                 </div>
 
                 <div className={styles.googleContactsControls}>
@@ -3775,11 +3833,11 @@ export default function AdminPage() {
                   <table className={styles.proTable}>
                     <thead>
                       <tr>
-                        <th>N° cliente</th>
-                        <th>Contacto</th>
-                        <th>Correo</th>
-                        <th>Teléfono</th>
+                        <th>N°</th>
                         <th>Etiqueta</th>
+                        <th>Usuario</th>
+                        <th>Correo</th>
+                        <th>Celular</th>
                         <th>Rol</th>
                         <th>Estado</th>
                         <th>Acceso</th>
@@ -3788,29 +3846,25 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {usuariosFiltrados.map((u, index) => {
-                        const inicioOrden = Math.max(1, Number(ordenGoogleContactos || 1))
-                        const contactoNombre = obtenerNombreContacto(u)
-                        const numeroContacto = obtenerNumeroOrdenContacto(u, index, inicioOrden)
-                        const telefonoContacto = obtenerTelefonoContacto(u)
-                        const etiquetaContacto = obtenerEtiquetaContacto(u, etiquetaGoogleContactos)
-
-                        return (
+                      {usuariosFiltrados.map((u) => (
                         <tr key={u.id} className={u.estado === "pendiente" ? styles.userPendingRow : u.estado === "rechazado" ? styles.userRejectedRow : ""}>
                           <td>
-                            <span className={styles.contactNumberBadge}>{numeroContacto}</span>
-                            <small>ID {u.id.slice(0, 8)}</small>
+                            <strong>{u.numero_orden || u.prefijo_cliente || "—"}</strong>
+                            <small>Orden</small>
                           </td>
                           <td>
-                            <strong>{contactoNombre.nombre || "Usuario"}</strong>
-                            <small>Segundo nombre: {contactoNombre.segundoNombre || "Sin segundo nombre"}</small>
+                            <span className={styles.contactLabelPill}>{etiquetaVisualContacto(u.etiqueta_contacto)}</span>
+                            <small>{u.prefijo_cliente ? `Prefijo ${u.prefijo_cliente}` : "Google Contacts"}</small>
+                          </td>
+                          <td>
+                            <strong>{u.nombre || "Usuario sin nombre"}</strong>
+                            <small>{u.numero_orden || u.prefijo_cliente || "—"} | {etiquetaLimpiaContacto(u.etiqueta_contacto)} | {u.nombre || "Usuario"}</small>
                           </td>
                           <td>{u.correo}</td>
                           <td>
-                            {telefonoContacto || "Sin celular"}
+                            {limpiarNumeroContacto(u.celular_completo || `${u.codigo_pais || ""}${u.celular || ""}`) || "Sin celular"}
                             {u.pais && <small>{u.pais}</small>}
                           </td>
-                          <td><span className={styles.labelChip}>{etiquetaContacto}</span></td>
                           <td><span className={styles.roleChip}>{u.rol}</span></td>
                           <td><StatusBadge estado={u.estado} /></td>
                           <td>
@@ -3834,23 +3888,17 @@ export default function AdminPage() {
                             </td>
                           )}
                         </tr>
-                        )
-                      })}
+                      ))}
                     </tbody>
                   </table>
                 </div>
               ) : (
                 <div className={styles.cardsGrid}>
-                  {usuariosFiltrados.map((u, index) => {
+                  {usuariosFiltrados.map((u) => {
                     const iniciales = u.nombre?.slice(0, 2).toUpperCase() || "US"
                     const esPendiente = u.estado === "pendiente"
                     const esRechazado = u.estado === "rechazado"
                     const esAdmin = u.rol === "admin"
-                    const inicioOrden = Math.max(1, Number(ordenGoogleContactos || 1))
-                    const contactoNombre = obtenerNombreContacto(u)
-                    const numeroContacto = obtenerNumeroOrdenContacto(u, index, inicioOrden)
-                    const telefonoContacto = obtenerTelefonoContacto(u)
-                    const etiquetaContacto = obtenerEtiquetaContacto(u, etiquetaGoogleContactos)
 
                     return (
                       <article key={u.id} className={`${styles.userCard} ${styles.userCardPro} ${esPendiente ? styles.cardWarning : ""} ${esRechazado ? styles.cardDanger : ""}`}>
@@ -3863,28 +3911,13 @@ export default function AdminPage() {
                         </div>
 
                         <div>
-                          <h4>{u.nombre || "Usuario sin nombre"}</h4>
+                          <h4>{u.numero_orden || u.prefijo_cliente || "—"} | {etiquetaLimpiaContacto(u.etiqueta_contacto)} | {u.nombre || "Usuario sin nombre"}</h4>
                           <p>{u.correo}</p>
-                          <p className={styles.userPhoneLine}>{telefonoContacto || "Sin celular"}{u.pais ? ` · ${u.pais}` : ""}</p>
-                        </div>
-
-                        <div className={styles.contactMetaGrid}>
-                          <div>
-                            <span>Prefijo</span>
-                            <strong>{numeroContacto}</strong>
+                          <div className={styles.userContactMeta}>
+                            <span>{etiquetaVisualContacto(u.etiqueta_contacto)}</span>
+                            <span>N° {u.numero_orden || u.prefijo_cliente || "—"}</span>
                           </div>
-                          <div>
-                            <span>Nombre</span>
-                            <strong>{contactoNombre.nombre || "Usuario"}</strong>
-                          </div>
-                          <div>
-                            <span>Segundo nombre</span>
-                            <strong>{contactoNombre.segundoNombre || "—"}</strong>
-                          </div>
-                          <div>
-                            <span>Etiqueta</span>
-                            <strong>{etiquetaContacto}</strong>
-                          </div>
+                          <p className={styles.userPhoneLine}>{obtenerTelefonoContacto(u) || "Sin celular"}{u.pais ? ` · ${u.pais}` : ""}</p>
                         </div>
 
                         <div className={styles.userAccessSummary}>
