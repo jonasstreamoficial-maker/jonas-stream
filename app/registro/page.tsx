@@ -8,12 +8,11 @@ import { supabase } from "@/lib/supabase";
 import styles from "./page.module.css";
 
 const WHATSAPP_NUMBER = "51900557949";
-const ETIQUETA_DEFAULT = "| SV |";
 
 const paises = [
-  { pais: "Peru", codigo: "+51" },
+  { pais: "Perú", codigo: "+51" },
   { pais: "Guatemala", codigo: "+502" },
-  { pais: "Mexico", codigo: "+52" },
+  { pais: "México", codigo: "+52" },
   { pais: "Colombia", codigo: "+57" },
   { pais: "Ecuador", codigo: "+593" },
   { pais: "Bolivia", codigo: "+591" },
@@ -23,23 +22,23 @@ const paises = [
   { pais: "Paraguay", codigo: "+595" },
   { pais: "Venezuela", codigo: "+58" },
   { pais: "Brasil", codigo: "+55" },
-  { pais: "Panama", codigo: "+507" },
+  { pais: "Panamá", codigo: "+507" },
   { pais: "Costa Rica", codigo: "+506" },
   { pais: "El Salvador", codigo: "+503" },
   { pais: "Honduras", codigo: "+504" },
   { pais: "Nicaragua", codigo: "+505" },
-  { pais: "Republica Dominicana", codigo: "+1" },
+  { pais: "República Dominicana", codigo: "+1" },
   { pais: "Puerto Rico", codigo: "+1" },
   { pais: "Estados Unidos", codigo: "+1" },
-  { pais: "Canada", codigo: "+1" },
-  { pais: "Espana", codigo: "+34" },
+  { pais: "Canadá", codigo: "+1" },
+  { pais: "España", codigo: "+34" },
   { pais: "Alemania", codigo: "+49" },
   { pais: "Francia", codigo: "+33" },
   { pais: "Italia", codigo: "+39" },
   { pais: "Portugal", codigo: "+351" },
   { pais: "Reino Unido", codigo: "+44" },
   { pais: "Australia", codigo: "+61" },
-  { pais: "Japon", codigo: "+81" },
+  { pais: "Japón", codigo: "+81" },
   { pais: "China", codigo: "+86" },
 ];
 
@@ -52,11 +51,10 @@ function limpiarCelular(value: string) {
 }
 
 function separarNombreCompleto(nombreCompleto: string) {
-  const partes = nombreCompleto.trim().split(/\s+/).filter(Boolean);
-  return {
-    primerNombre: partes[0] || "",
-    segundoNombre: partes.slice(1).join(" "),
-  };
+  const partes = nombreCompleto.trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
+  const primerNombre = partes[0] || "";
+  const segundoNombre = partes.slice(1).join(" ");
+  return { primerNombre, segundoNombre };
 }
 
 export default function RegistroPage() {
@@ -64,12 +62,19 @@ export default function RegistroPage() {
 
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
-  const [pais, setPais] = useState("Peru");
+  const [pais, setPais] = useState("Perú");
   const [celular, setCelular] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [modalRegistro, setModalRegistro] = useState<{
+    tipo: "exito" | "error";
+    titulo: string;
+    mensaje: string;
+    detalle?: string;
+  } | null>(null);
+
 
   const paisSeleccionado = useMemo(() => {
     return paises.find((item) => item.pais === pais) || paises[0];
@@ -77,7 +82,7 @@ export default function RegistroPage() {
 
   const celularLimpio = limpiarCelular(celular);
   const celularCompleto = `${paisSeleccionado.codigo}${celularLimpio}`;
-  const telefonoSinMas = celularCompleto.replace(/[^\d]/g, "");
+  const telefonoSinMas = celularCompleto.replace("+", "");
 
   const registrarUsuario = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -93,25 +98,31 @@ export default function RegistroPage() {
       return;
     }
 
+    if (!correoNormalizado.includes("@")) {
+      toast.error("Ingresa un correo válido");
+      return;
+    }
+
     if (celularLimpio.length < 6) {
-      toast.error("Ingresa un numero de celular valido");
+      toast.error("Ingresa un número de celular válido");
       return;
     }
 
     if (contrasena.length < 6) {
-      toast.error("La contrasena debe tener minimo 6 caracteres");
+      toast.error("La contraseña debe tener mínimo 6 caracteres");
       return;
     }
 
     if (contrasena !== confirmarContrasena) {
-      toast.error("Las contrasenas no coinciden");
+      toast.error("Las contraseñas no coinciden");
       return;
     }
 
     setCargando(true);
+    setModalRegistro(null);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: correoNormalizado,
         password: contrasena,
         options: {
@@ -124,61 +135,116 @@ export default function RegistroPage() {
             celular: celularLimpio,
             celular_completo: celularCompleto,
             telefono: telefonoSinMas,
-            etiqueta_contacto: ETIQUETA_DEFAULT,
+            rol: "cliente",
+            estado: "pendiente",
           },
         },
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (authError) {
+        const mensaje = authError.message?.toLowerCase().includes("already")
+          ? "Este correo ya está registrado."
+          : authError.message || "No se pudo crear el usuario en Supabase Auth.";
+
+        setModalRegistro({
+          tipo: "error",
+          titulo: "No se pudo crear la cuenta",
+          mensaje,
+          detalle: "Revisa el correo, contraseña o intenta con otro correo.",
+        });
+
+        toast.error("No se pudo crear la cuenta");
         setCargando(false);
         return;
       }
 
-      const user = data.user;
+      const userId = authData.user?.id;
 
-      if (!user) {
-        toast.error("No se pudo crear el usuario");
+      if (!userId) {
+        setModalRegistro({
+          tipo: "error",
+          titulo: "Registro incompleto",
+          mensaje: "Supabase no devolvió el ID del usuario.",
+          detalle: "Verifica que Email Provider esté activo y Confirm Email esté desactivado por ahora.",
+        });
+
+        toast.error("Registro incompleto");
         setCargando(false);
         return;
       }
 
-      const perfil = {
-        id: user.id,
-        nombre: primerNombre,
+      const { count } = await supabase
+        .from("usuarios")
+        .select("id", { count: "exact", head: true });
+
+      const numeroOrden = Number(count || 0) + 409;
+
+      const { error: errorPerfil } = await supabase.from("usuarios").insert({
+        id: userId,
+        nombre: nombreLimpio,
         segundo_nombre: segundoNombre || null,
         correo: correoNormalizado,
+        contrasena,
         pais: paisSeleccionado.pais,
         codigo_pais: paisSeleccionado.codigo,
         celular: celularLimpio,
         celular_completo: celularCompleto,
         telefono: telefonoSinMas,
-        etiqueta_contacto: ETIQUETA_DEFAULT,
+        numero_orden: numeroOrden,
+        prefijo_cliente: String(numeroOrden),
+        etiqueta_contacto: "| SV |",
         rol: "cliente",
         estado: "pendiente",
-      };
-
-      const { error: errorPerfil } = await supabase
-        .from("usuarios")
-        .upsert(perfil, { onConflict: "id" });
+      });
 
       if (errorPerfil) {
-        toast.error(`Usuario creado en Auth, pero fallo el perfil: ${errorPerfil.message}`);
+        console.error("Error creando perfil:", errorPerfil);
+
+        setModalRegistro({
+          tipo: "error",
+          titulo: "Cuenta creada, pero falta el perfil",
+          mensaje: "El usuario se creó en Supabase Auth, pero no se guardó en la tabla usuarios.",
+          detalle: errorPerfil.message || "Revisa las políticas RLS de public.usuarios.",
+        });
+
+        toast.error("Falta guardar perfil");
         setCargando(false);
         return;
       }
 
       await supabase.auth.signOut();
-      toast.success("Registro enviado. Espera aprobacion del admin.");
-      router.push("/login");
-    } catch (error) {
-      const detalle = error instanceof Error ? error.message : "Error desconocido";
-      toast.error(detalle);
-      setCargando(false);
-      return;
-    }
 
-    setCargando(false);
+      setModalRegistro({
+        tipo: "exito",
+        titulo: "Solicitud enviada",
+        mensaje: "Tu cuenta fue creada correctamente y quedó pendiente de aprobación.",
+        detalle: "Cuando el administrador apruebe tu acceso, podrás iniciar sesión con tu correo y contraseña.",
+      });
+
+      toast.success("Solicitud enviada");
+
+      setNombre("");
+      setCorreo("");
+      setCelular("");
+      setContrasena("");
+      setConfirmarContrasena("");
+
+      window.setTimeout(() => {
+        router.push("/login");
+      }, 3200);
+    } catch (error) {
+      console.error("Error inesperado:", error);
+
+      setModalRegistro({
+        tipo: "error",
+        titulo: "Error inesperado",
+        mensaje: "No se pudo completar el registro.",
+        detalle: "Intenta nuevamente o contacta a soporte.",
+      });
+
+      toast.error("Error inesperado al crear la cuenta");
+      setCargando(false);
+    }
   };
 
   return (
@@ -203,7 +269,7 @@ export default function RegistroPage() {
             </Link>
 
             <Link href="/login" className={styles.topLink}>
-              INICIAR SESION
+              INICIAR SESIÓN
             </Link>
 
             <a
@@ -212,7 +278,7 @@ export default function RegistroPage() {
               rel="noopener noreferrer"
               className={styles.topLinkPrimary}
             >
-              CONTACTANOS
+              CONTÁCTANOS
             </a>
           </div>
         </div>
@@ -227,14 +293,14 @@ export default function RegistroPage() {
         </h1>
 
         <p className={styles.heroText}>
-          Registrate para solicitar acceso a Jonas Stream. Tu cuenta quedara pendiente hasta que el
+          Regístrate para solicitar acceso a Jonas Stream. Tu cuenta quedará pendiente hasta que el
           administrador revise y apruebe tu solicitud.
         </p>
 
         <div className={styles.accessGrid}>
           <div className={styles.accessCard}>
             <span>01</span>
-            <strong>Envias tu solicitud</strong>
+            <strong>Envías tu solicitud</strong>
           </div>
 
           <div className={styles.accessCard}>
@@ -249,7 +315,7 @@ export default function RegistroPage() {
         </div>
 
         <p className={styles.panelNote}>
-          El administrador vera tu pais, codigo y numero completo para contactarte mas rapido.
+          El administrador verá tu país, código y número completo para contactarte más rápido.
         </p>
       </section>
 
@@ -272,7 +338,7 @@ export default function RegistroPage() {
                   type="text"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ejemplo: Cristhian Yaipen"
+                  placeholder="Tu nombre completo"
                   autoComplete="name"
                   required
                 />
@@ -280,7 +346,7 @@ export default function RegistroPage() {
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="correo">Correo electronico</label>
+              <label htmlFor="correo">Correo electrónico</label>
               <div className={styles.inputWrap}>
                 <input
                   id="correo"
@@ -295,7 +361,7 @@ export default function RegistroPage() {
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="pais">Pais</label>
+              <label htmlFor="pais">País</label>
               <div className={styles.inputWrap}>
                 <select
                   id="pais"
@@ -325,7 +391,7 @@ export default function RegistroPage() {
                   type="tel"
                   value={celular}
                   onChange={(e) => setCelular(limpiarCelular(e.target.value))}
-                  placeholder="Ingresa tu numero"
+                  placeholder="Ingresa tu número"
                   autoComplete="tel-national"
                   required
                 />
@@ -333,20 +399,20 @@ export default function RegistroPage() {
 
               {celularLimpio.length > 0 && (
                 <p className={styles.phonePreview}>
-                  Numero completo: <strong>{telefonoSinMas}</strong>
+                  Número completo: <strong>{celularCompleto}</strong>
                 </p>
               )}
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="contrasena">Contrasena</label>
+              <label htmlFor="contrasena">Contraseña</label>
               <div className={`${styles.inputWrap} ${styles.passwordWrap}`}>
                 <input
                   id="contrasena"
                   type={mostrarContrasena ? "text" : "password"}
                   value={contrasena}
                   onChange={(e) => setContrasena(e.target.value)}
-                  placeholder="Minimo 6 caracteres"
+                  placeholder="Mínimo 6 caracteres"
                   autoComplete="new-password"
                   required
                 />
@@ -355,7 +421,7 @@ export default function RegistroPage() {
                   type="button"
                   className={styles.passwordToggle}
                   onClick={() => setMostrarContrasena((prev) => !prev)}
-                  aria-label={mostrarContrasena ? "Ocultar contrasena" : "Mostrar contrasena"}
+                  aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
                 >
                   {mostrarContrasena ? "OCULTAR" : "VER"}
                 </button>
@@ -363,14 +429,14 @@ export default function RegistroPage() {
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="confirmarContrasena">Confirmar contrasena</label>
+              <label htmlFor="confirmarContrasena">Confirmar contraseña</label>
               <div className={styles.inputWrap}>
                 <input
                   id="confirmarContrasena"
                   type={mostrarContrasena ? "text" : "password"}
                   value={confirmarContrasena}
                   onChange={(e) => setConfirmarContrasena(e.target.value)}
-                  placeholder="Repite tu contrasena"
+                  placeholder="Repite tu contraseña"
                   autoComplete="new-password"
                   required
                 />
@@ -387,19 +453,74 @@ export default function RegistroPage() {
               Ya tengo cuenta
             </Link>
 
-            <span>Tu cuenta se creara como cliente y quedara pendiente de aprobacion.</span>
+            <span>Tu cuenta se creará como cliente y quedará pendiente de aprobación.</span>
           </div>
         </form>
       </section>
+
+      {modalRegistro && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+          <div
+            className={`${styles.modalCard} ${
+              modalRegistro.tipo === "exito" ? styles.modalSuccess : styles.modalError
+            }`}
+          >
+            <div className={styles.modalGlow} />
+            <div className={styles.modalIcon}>
+              {modalRegistro.tipo === "exito" ? "✓" : "!"}
+            </div>
+
+            <div className={styles.modalContent}>
+              <span className={styles.modalKicker}>
+                {modalRegistro.tipo === "exito" ? "REGISTRO RECIBIDO" : "REVISAR REGISTRO"}
+              </span>
+
+              <h3>{modalRegistro.titulo}</h3>
+              <p>{modalRegistro.mensaje}</p>
+
+              {modalRegistro.detalle && <small>{modalRegistro.detalle}</small>}
+
+              <div className={styles.modalActions}>
+                {modalRegistro.tipo === "exito" ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push("/login")}
+                    className={styles.modalPrimary}
+                  >
+                    Ir a iniciar sesión
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setModalRegistro(null)}
+                    className={styles.modalPrimary}
+                  >
+                    Corregir datos
+                  </button>
+                )}
+
+                <a
+                  href={buildWhatsAppLink("Hola Jonas Stream, necesito ayuda con mi registro.")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.modalSecondary}
+                >
+                  Contactar soporte
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className={styles.footerWrap}>
         <div className={styles.footerLegal}>
           © 2026 Jonas Stream. Todos los derechos reservados.
 
           <div className={styles.footerLinks}>
-            <Link href="/terminos">Terminos y Condiciones</Link>
+            <Link href="/terminos">Términos y Condiciones</Link>
             <span className={styles.footerSeparator}>•</span>
-            <Link href="/privacidad">Politica de Privacidad</Link>
+            <Link href="/privacidad">Política de Privacidad</Link>
           </div>
         </div>
       </footer>
