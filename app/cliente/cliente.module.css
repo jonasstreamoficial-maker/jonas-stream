@@ -619,3 +619,97 @@
     width: 100%;
   }
 }
+
+
+/* ==========================================================
+   PANEL CLIENTE PRO - RENOVACION POR WHATSAPP
+   Mantiene funciones simples de cliente y copia el acabado visual premium del admin.
+   ========================================================== */
+
+.accessActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.whatsappButton {
+  min-height: 46px;
+  border-radius: 15px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  color: var(--success);
+  font-weight: 950;
+  border: 1px solid rgba(124, 255, 178, 0.32);
+  background:
+    radial-gradient(circle at 0% 50%, rgba(124, 255, 178, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(124, 255, 178, 0.11), rgba(3, 19, 22, 0.68));
+  box-shadow:
+    inset 0 0 24px rgba(124, 255, 178, 0.04),
+    0 0 18px rgba(124, 255, 178, 0.08);
+  transition: 0.22s ease;
+}
+
+.whatsappButton:hover,
+.expireItem a:hover,
+.primaryButton:hover,
+.heroActions a:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 251, 255, 0.48);
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.16);
+}
+
+.accessCard {
+  position: relative;
+  overflow: hidden;
+}
+
+.accessCard::before,
+.orderItem::before,
+.expireItem::before,
+.creditRow::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--cyan-strong), transparent);
+  box-shadow: 0 0 18px rgba(0, 251, 255, 0.42);
+  opacity: 0.78;
+}
+
+.orderItem,
+.expireItem,
+.creditRow {
+  position: relative;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.expireItem a {
+  min-height: 42px;
+  border-radius: 999px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--success);
+  font-weight: 950;
+  border: 1px solid rgba(124, 255, 178, 0.32);
+  background: rgba(124, 255, 178, 0.09);
+}
+
+@media (max-width: 760px) {
+  .accessActions {
+    grid-template-columns: 1fr;
+  }
+
+  .whatsappButton {
+    width: 100%;
+  }
+}

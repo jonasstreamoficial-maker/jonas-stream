@@ -69,6 +69,23 @@ type Credito = {
 
 type SectionId = "dashboard" | "compras" | "accesos" | "vencimientos" | "creditos" | "telegram";
 
+const WHATSAPP_NUMBER = "51900557949";
+
+function buildWhatsAppLink(message: string) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+function buildRenewMessage(cuenta: CuentaProducto, producto?: Producto, usuario?: Usuario | null) {
+  return [
+    "Hola Jonas Stream, quiero renovar mi cuenta.",
+    "",
+    `Producto: ${producto?.nombre || "Producto"}`,
+    `Correo de acceso: ${cuenta.correo || "No disponible"}`,
+    `Mi correo registrado: ${usuario?.correo || "No disponible"}`,
+    `Fecha de vencimiento: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
+  ].join("\n");
+}
+
 const menu: { id: SectionId; label: string; icon: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: "⌂" },
   { id: "compras", label: "Mis compras", icon: "▣" },
@@ -390,7 +407,7 @@ export default function ClientePage() {
                 ) : (
                   <div className={styles.listStack}>
                     {proximosVencimientos.map((cuenta) => (
-                      <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} />
+                      <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} usuario={usuario} />
                     ))}
                   </div>
                 )}
@@ -459,9 +476,20 @@ export default function ClientePage() {
                         <InfoRow label="Inicio" value={formatDate(cuenta.cliente_inicio)} />
                         <InfoRow label="Vencimiento" value={formatDate(cuenta.cliente_fin || cuenta.fecha_fin)} />
 
-                        <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>
-                          Copiar datos
-                        </button>
+                        <div className={styles.accessActions}>
+                          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>
+                            Copiar datos
+                          </button>
+
+                          <a
+                            href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.whatsappButton}
+                          >
+                            Solicitar renovación
+                          </a>
+                        </div>
                       </article>
                     );
                   })}
@@ -477,7 +505,7 @@ export default function ClientePage() {
               ) : (
                 <div className={styles.listStack}>
                   {cuentasActivas.map((cuenta) => (
-                    <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} showButton />
+                    <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} usuario={usuario} showButton />
                   ))}
                 </div>
               )}
@@ -556,7 +584,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function VencimientoItem({ cuenta, producto, showButton = false }: { cuenta: CuentaProducto; producto?: Producto; showButton?: boolean }) {
+function VencimientoItem({ cuenta, producto, usuario, showButton = false }: { cuenta: CuentaProducto; producto?: Producto; usuario?: Usuario | null; showButton?: boolean }) {
   const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
   const danger = dias !== null && dias <= 2;
   const warning = dias !== null && dias > 2 && dias <= 7;
@@ -575,7 +603,15 @@ function VencimientoItem({ cuenta, producto, showButton = false }: { cuenta: Cue
         <small>Vencimiento: {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</small>
       </div>
 
-      {showButton && <Link href="/tienda">Renovar</Link>}
+      {showButton && (
+        <a
+          href={buildWhatsAppLink(buildRenewMessage(cuenta, producto, usuario))}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Solicitar renovación
+        </a>
+      )}
     </div>
   );
 }
