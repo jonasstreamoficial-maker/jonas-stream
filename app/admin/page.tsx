@@ -4174,7 +4174,7 @@ export default function AdminPage() {
                                 <strong>{obtenerTelefonoContacto(contacto) || "Sin teléfono"}</strong>
                                 <small>{contacto.pais || "Sin país"}</small>
                               </td>
-                              <td><StatusBadge status={contacto.estado} /></td>
+                              <td><StatusBadge estado={contacto.estado} /></td>
                               <td>
                                 <div className={styles.tableActions}>
                                   <button type="button" onClick={() => actualizarEstado(contacto.id, "aprobado")} className={styles.successButton}>
