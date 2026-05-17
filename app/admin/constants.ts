@@ -65,6 +65,17 @@ export const navGroups: { title: string; items: TabId[] }[] = [
 ]
 
 export const estadosPedido = ["todos", "pendiente", "completado", "cancelado"]
+
 export const estadosUsuario = ["todos", "pendiente", "aprobado", "rechazado"]
+
 export const rolesUsuario = ["todos", "cliente", "proveedor", "admin"]
-export const etiquetasGoogleContactos = ["| ADMIN |", "| CV |", "| JS |", "| RATAS |", "| SE |", "| SR |", "| SV |"]
+
+export const etiquetasGoogleContactos = [
+  "| ADMIN |",
+  "| CV |",
+  "| JS |",
+  "| RATAS |",
+  "| SE |",
+  "| SR |",
+  "| SV |",
+]
