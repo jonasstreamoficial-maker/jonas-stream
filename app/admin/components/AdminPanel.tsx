@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
 import styles from "../admin.module.css"
+import AdminSidebar from "./AdminSidebar"
+import AdminTopbar from "./AdminTopbar"
 
 type Usuario = {
   id: string
@@ -2554,114 +2556,30 @@ export default function AdminPanel() {
     <main className={styles.adminShell}>
       <div className={styles.backgroundGlow}></div>
 
-      <aside className={styles.sidebar}>
-        <div className={styles.brandBox}>
-          <div className={styles.brandMark}>JS</div>
-          <div>
-            <p className={styles.brandEyebrow}>Admin panel</p>
-            <h1>Jonas Stream</h1>
-          </div>
-        </div>
-
-        <nav className={styles.nav}>
-          {navGroups.map((group) => (
-            <div key={group.title} className={styles.navGroup}>
-              <p className={styles.navGroupTitle}>{group.title}</p>
-              <div className={styles.navGroupItems}>
-                {group.items.map((tabId) => {
-                  const tab = tabs.find((item) => item.id === tabId)
-                  if (!tab) return null
-
-                  const badgeValue =
-                    tab.id === "pedidos"
-                      ? pedidosPendientes
-                      : tab.id === "usuarios"
-                      ? usuariosPendientes
-                      : tab.id === "inventario"
-                      ? productosCriticos.length
-                      : 0
-
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setTabActiva(tab.id)}
-                      className={`${styles.navButton} ${tabActiva === tab.id ? styles.navButtonActive : ""}`}
-                    >
-                      <span className={styles.navIcon}>{tab.icon}</span>
-                      <strong>{tab.label}</strong>
-                      {badgeValue > 0 && <em>{badgeValue}</em>}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        <div className={styles.sidebarFooter}>
-          <div className={styles.userMiniCard}>
-            <div className={styles.userMiniAvatar}>{usuario?.nombre?.slice(0, 2).toUpperCase() || "JS"}</div>
-            <div>
-              <p>{usuario?.nombre}</p>
-              <span>{usuario?.correo}</span>
-            </div>
-          </div>
-          <div className={styles.sidebarFooterMeta}>
-            <div className={styles.rolePill}>{usuario?.rol}</div>
-            <div className={styles.sessionPill}>Online</div>
-          </div>
-          <button type="button" onClick={cerrarSesion} className={styles.logoutButton}>
-            Cerrar sesión
-          </button>
-        </div>
-      </aside>
+      <AdminSidebar
+        usuario={usuario}
+        tabs={tabs}
+        navGroups={navGroups}
+        tabActiva={tabActiva}
+        badgeByTab={{
+          pedidos: pedidosPendientes,
+          usuarios: usuariosPendientes,
+          inventario: productosCriticos.length,
+        }}
+        onSelectTab={(tabId) => setTabActiva(tabId as TabId)}
+        onLogout={cerrarSesion}
+      />
 
       <section className={styles.content}>
-        <header className={styles.topbar}>
-          <div>
-            <p className={styles.kicker}>Control central</p>
-            <h2>{tabs.find((tab) => tab.id === tabActiva)?.label}</h2>
-            <span>Gestiona ventas, catálogo, usuarios, comprobantes e inventario sin tocar RLS todavía.</span>
-          </div>
-
-          <div className={styles.commandCenter}>
-            <div className={styles.searchBox}>
-              <span>⌘</span>
-              <input
-                type="search"
-                placeholder="Buscar producto, pedido o usuario..."
-                value={busquedaGlobal}
-                onChange={(e) => setBusquedaGlobal(e.target.value)}
-              />
-              {resultadosGlobales.length > 0 && (
-                <div className={styles.searchResults}>
-                  {resultadosGlobales.map((item, index) => (
-                    <button
-                      key={`${item.tipo}-${item.titulo}-${index}`}
-                      type="button"
-                      onClick={() => {
-                        setTabActiva(item.tab)
-                        setBusquedaGlobal("")
-                      }}
-                    >
-                      <span>{item.tipo}</span>
-                      <strong>{item.titulo}</strong>
-                      <small>{item.detalle}</small>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <button type="button" onClick={() => cargarDatos()} className={styles.refreshButton}>Actualizar</button>
-            {ultimaActualizacion && <div className={styles.topbarPill}>Sync {ultimaActualizacion}</div>}
-            <div className={styles.topbarPill}>
-              <span className={styles.statusDot}></span>
-              Supabase conectado
-            </div>
-          </div>
-        </header>
+        <AdminTopbar
+          titulo={tabs.find((tab) => tab.id === tabActiva)?.label || "Admin"}
+          busquedaGlobal={busquedaGlobal}
+          resultadosGlobales={resultadosGlobales}
+          ultimaActualizacion={ultimaActualizacion}
+          onBusquedaGlobalChange={setBusquedaGlobal}
+          onSelectResultTab={(tabId) => setTabActiva(tabId as TabId)}
+          onRefresh={() => cargarDatos()}
+        />
 
         <section className={`${styles.proRibbon} ${styles.proRibbonCompact}`}>
           <div className={styles.proRibbonMain}>
