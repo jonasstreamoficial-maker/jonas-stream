@@ -15,301 +15,49 @@ import { supabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
 import styles from "./admin.module.css"
 
-type Usuario = {
-  id: string
-  nombre: string
-  correo: string
-  rol: string
-  estado: string
-  pais?: string | null
-  codigo_pais?: string | null
-  celular?: string | null
-  celular_completo?: string | null
-}
-
-type Producto = {
-  id: string
-  nombre: string
-  descripcion: string
-  precio: number
-  precio_antes: number | null
-  stock: number
-  imagen?: string | null
-  categoria: string
-  tipo_venta: string
-  whatsapp: string
-  estado: string
-  publicacion: boolean
-  destacado: boolean
-  oferta: boolean
-  duracion?: string | null
-  proveedor?: string | null
-  renovable?: boolean | null
-  stock_texto?: string | null
-  estado_catalogo?: string | null
-  badge?: string | null
-  accent?: string | null
-  created_at?: string | null
-}
-
-type Pedido = {
-  id: string
-  cliente_nombre: string
-  cliente_correo: string
-  usuario_id?: string | null
-  total: number
-  estado: string
-  metodo_pago: string
-  created_at: string
-  comprobante_url?: string | null
-  comprobante?: string | null
-  captura_pago?: string | null
-  voucher_url?: string | null
-  producto_nombre?: string | null
-  cantidad?: number | null
-}
-
-type Comprobante = {
-  id: string
-  pedido_id?: string | null
-  usuario_id?: string | null
-  cliente_nombre?: string | null
-  cliente_correo?: string | null
-  url?: string | null
-  archivo_url?: string | null
-  imagen_url?: string | null
-  comprobante_url?: string | null
-  estado?: string | null
-  metodo_pago?: string | null
-  monto?: number | null
-  detalle?: string | null
-  created_at?: string | null
-}
-
-type AdminLog = {
-  id: string
-  accion: string
-  entidad: string
-  entidad_id?: string | null
-  actor_nombre?: string | null
-  actor_correo?: string | null
-  detalle?: string | null
-  created_at: string
-}
-
-type ConfiguracionTienda = {
-  id: string
-  nombre_tienda: string
-  slogan: string
-  banner_titulo: string
-  banner_texto: string
-  banner_boton: string
-  whatsapp: string
-}
-
-type Credito = {
-  id: string
-  usuario_id: string
-  saldo: number
-  estado: string
-  created_at?: string | null
-}
-
-type CuentaProducto = {
-  id: string
-  producto_id: string
-  correo: string
-  clave: string
-  fecha_inicio?: string | null
-  fecha_fin?: string | null
-  cliente_inicio?: string | null
-  cliente_fin?: string | null
-  estado: string
-  pedido_id?: string | null
-  usuario_id?: string | null
-  notas?: string | null
-  created_at?: string | null
-}
-
-type ComprobanteUnificado = {
-  id: string
-  pedidoId?: string | null
-  cliente: string
-  correo: string
-  monto: number
-  metodo: string
-  estado: string
-  url: string | null
-  fecha?: string | null
-  origen: "tabla" | "pedido"
-}
-
-type MetricTone = "success" | "warning" | "danger" | "info" | "neutral"
-
-type OrdenProducto = "recientes" | "nombre" | "precio_mayor" | "precio_menor" | "stock_menor"
-type OrdenPedido = "recientes" | "monto_mayor" | "monto_menor"
-
-type ConfirmacionAdmin = {
-  abierta: boolean
-  titulo: string
-  descripcion: string
-  textoConfirmar: string
-  tono: "danger" | "success" | "warning"
-  onConfirmar: (() => Promise<void> | void) | null
-}
-
-
-const USD_RATE = 3.75
-
-const productoInicial = {
-  nombre: "",
-  descripcion: "",
-  precio: "",
-  precio_antes: "",
-  stock: "",
-  categoria: "",
-  tipo_venta: "",
-  whatsapp: "",
-  estado: "activo",
-  publicacion: true,
-  destacado: false,
-  oferta: false,
-  duracion: "1 mes",
-  proveedor: "Jonas Stream",
-  renovable: true,
-  stock_texto: "",
-  estado_catalogo: "ACTIVO",
-  badge: "",
-  accent: "prime",
-}
-
-const configuracionInicial = {
-  nombre_tienda: "",
-  slogan: "",
-  banner_titulo: "",
-  banner_texto: "",
-  banner_boton: "",
-  whatsapp: "",
-}
-
-const crearCuentaInicial = () => ({
-  producto_id: "",
-  correo: "",
-  clave: "",
-  fecha_inicio: fechaISO(),
-  fecha_fin: sumarDiasISO(30),
-  estado: "disponible",
-  notas: "",
-})
-
-const tabs = [
-  { id: "dashboard", label: "Dashboard", icon: "▣" },
-  { id: "productos", label: "Productos", icon: "◈" },
-  { id: "pedidos", label: "Pedidos", icon: "◉" },
-  { id: "usuarios", label: "Usuarios", icon: "◎" },
-  { id: "comprobantes", label: "Comprobantes", icon: "▤" },
-  { id: "inventario", label: "Inventario", icon: "▦" },
-  { id: "cuentas", label: "Cuentas", icon: "▧" },
-  { id: "creditos", label: "Créditos", icon: "✦" },
-  { id: "historial", label: "Historial", icon: "◷" },
-  { id: "configuracion", label: "Soporte", icon: "✚" },
-] as const
-
-type TabId = (typeof tabs)[number]["id"]
-
-
-const navGroups: { title: string; items: TabId[] }[] = [
-  { title: "Inicio", items: ["dashboard"] },
-  { title: "Operación", items: ["pedidos", "comprobantes", "inventario"] },
-  { title: "Gestión", items: ["productos", "cuentas", "usuarios", "creditos"] },
-  { title: "Sistema", items: ["historial", "configuracion"] },
-]
-
-const estadosPedido = ["todos", "pendiente", "completado", "cancelado"]
-const estadosUsuario = ["todos", "pendiente", "aprobado", "rechazado"]
-const rolesUsuario = ["todos", "cliente", "proveedor", "admin"]
-const etiquetasGoogleContactos = ["| ADMIN |", "| CV |", "| JS |", "| RATAS |", "| SE |", "| SR |", "| SV |"]
-
-const normalizarTexto = (valor?: string | number | null) => String(valor ?? "").trim().toLowerCase()
-const limpiarNumeroContacto = (valor?: string | null) => String(valor ?? "").replace(/[^\d]/g, "")
-const separarNombreContacto = (nombreCompleto?: string | null) => {
-  const partes = String(nombreCompleto ?? "").trim().split(/\s+/).filter(Boolean)
-  return {
-    nombre: partes[0] || "",
-    segundoNombre: partes.slice(1).join(" "),
-  }
-}
-const escaparCSV = (valor?: string | number | null) => {
-  const texto = String(valor ?? "")
-  return `"${texto.replace(/"/g, '""')}"`
-}
-const descargarArchivoTexto = (nombreArchivo: string, contenido: string, tipo = "text/csv;charset=utf-8;") => {
-  const blob = new Blob([contenido], { type: tipo })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = nombreArchivo
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
-}
-const formatearSoles = (valor: number) => `S/ ${Number(valor || 0).toFixed(2)}`
-const fechaLegible = (fecha?: string | null) => {
-  if (!fecha) return "Sin fecha"
-  const date = new Date(fecha)
-  if (Number.isNaN(date.getTime())) return "Sin fecha"
-  return date.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" })
-}
-const fechaISO = (fecha = new Date()) => fecha.toISOString().slice(0, 10)
-const sumarDiasISO = (dias: number, base = new Date()) => {
-  const fecha = new Date(base)
-  fecha.setDate(fecha.getDate() + dias)
-  return fechaISO(fecha)
-}
-const fechaCorta = (fecha?: string | null) => {
-  if (!fecha) return "Sin fecha"
-  const date = new Date(`${fecha}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return "Sin fecha"
-  return date.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })
-}
-const diasRestantes = (fecha?: string | null) => {
-  if (!fecha) return null
-  const fin = new Date(`${fecha}T00:00:00`)
-  if (Number.isNaN(fin.getTime())) return null
-  const hoy = new Date()
-  hoy.setHours(0, 0, 0, 0)
-  fin.setHours(0, 0, 0, 0)
-  return Math.ceil((fin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
-}
-const obtenerEstadoStockVisual = (stockValor: number) => {
-  const stock = Math.max(0, Number(stockValor || 0))
-
-  if (stock <= 0) {
-    return { label: "AGOTADO", detalle: "Consultar reposición", tono: "danger" as const }
-  }
-
-  if (stock <= 3) {
-    return { label: "LIMITADO", detalle: "Últimas unidades", tono: "warning" as const }
-  }
-
-  return { label: "ACTIVO", detalle: "Stock disponible", tono: "success" as const }
-}
-
-const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
-  const posibleComprobante = item as Partial<Pedido & Comprobante>
-
-  return (
-    posibleComprobante.url ||
-    posibleComprobante.archivo_url ||
-    posibleComprobante.imagen_url ||
-    posibleComprobante.comprobante_url ||
-    posibleComprobante.comprobante ||
-    posibleComprobante.captura_pago ||
-    posibleComprobante.voucher_url ||
-    null
-  )
-}
+import type {
+  AdminLog,
+  Comprobante,
+  ComprobanteUnificado,
+  ConfiguracionTienda,
+  ConfirmacionAdmin,
+  Credito,
+  CuentaProducto,
+  MetricTone,
+  OrdenPedido,
+  OrdenProducto,
+  Pedido,
+  Producto,
+  TabId,
+  Usuario,
+} from "./types"
+import {
+  USD_RATE,
+  configuracionInicial,
+  crearCuentaInicial,
+  estadosPedido,
+  estadosUsuario,
+  etiquetasGoogleContactos,
+  navGroups,
+  productoInicial,
+  rolesUsuario,
+  tabs,
+} from "./constants"
+import {
+  descargarArchivoTexto,
+  diasRestantes,
+  escaparCSV,
+  fechaCorta,
+  fechaISO,
+  fechaLegible,
+  formatearSoles,
+  limpiarNumeroContacto,
+  normalizarTexto,
+  obtenerComprobanteUrl,
+  obtenerEstadoStockVisual,
+  separarNombreContacto,
+  sumarDiasISO,
+} from "./utils"
 
 export default function AdminPage() {
   const router = useRouter()
