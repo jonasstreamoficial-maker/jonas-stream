@@ -6677,3 +6677,104 @@
     border-bottom: 1px solid rgba(1, 231, 239, 0.18) !important;
   }
 }
+
+@media (max-width: 640px) {
+  .adminShell {
+    display: block;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 100%;
+    padding: 14px;
+    overflow-x: hidden;
+  }
+
+  .sidebar,
+  .adminSidebar {
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+    height: auto;
+  }
+
+  .panel,
+  .inventoryHeroPro,
+  .usersHeroPro,
+  .paymentHeroPro,
+  .auditHeroPro,
+  .dashboardCommandHero,
+  .proRibbon {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .inventoryHeroPro,
+  .usersHeroPro,
+  .paymentHeroPro,
+  .auditHeroPro,
+  .dashboardCommandHero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .inventoryHeroStats,
+  .usersHeroStats,
+  .paymentHeroPanel,
+  .auditHeroPanel,
+  .metricsGridPro,
+  .metricsGridCompact,
+  .miniStatsGrid,
+  .dashboardAlertGrid,
+  .proRibbonStats {
+    grid-template-columns: 1fr !important;
+    width: 100%;
+  }
+
+  .inventoryHeroPro h3,
+  .usersHeroPro h3,
+  .paymentHeroPro h3,
+  .auditHeroPro h3,
+  .dashboardCommandHero h3,
+  .panel h3,
+  .content h1 {
+    font-size: clamp(1.6rem, 8vw, 2.3rem) !important;
+    line-height: 1.05 !important;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .usersHeroCopy,
+  .paymentHeroCopy,
+  .auditHeroCopy,
+  .commandHeroMain {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .usersHeroActions,
+  .dashboardHeroActions,
+  .autoInventoryActions,
+  .toolbarInline,
+  .bulkActions,
+  .tableActions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .primaryButton,
+  .secondaryButton,
+  .successButton,
+  .dangerButton,
+  .dangerGhostButton {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .tableWrap {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+}
