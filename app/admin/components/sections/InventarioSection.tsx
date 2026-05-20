@@ -6,11 +6,26 @@ import styles from "../../admin.module.css"
 type Producto = {
   id: string
   nombre: string
+  descripcion: string
+  precio: number
+  precio_antes: number | null
   stock: number
-  categoria?: string | null
+  imagen?: string | null
+  categoria: string
+  tipo_venta: string
+  whatsapp: string
+  estado: string
+  publicacion: boolean
+  destacado: boolean
+  oferta: boolean
+  duracion?: string | null
   proveedor?: string | null
+  renovable?: boolean | null
+  stock_texto?: string | null
   estado_catalogo?: string | null
-  publicacion?: boolean | null
+  badge?: string | null
+  accent?: string | null
+  created_at?: string | null
 }
 
 type InventarioSectionProps = {
