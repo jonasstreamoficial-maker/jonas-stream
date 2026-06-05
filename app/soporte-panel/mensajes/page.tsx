@@ -112,12 +112,15 @@ function obtenerTextoBotonPrincipal(
 
   if (base.includes("netflix")) return "Abrir Netflix"
   if (base.includes("disney")) return "Abrir Disney+"
+
   if (base.includes("prime") || base.includes("amazon")) {
     return "Abrir Prime Video"
   }
+
   if (base.includes("crunchyroll") || base.includes("crunchy")) {
     return "Abrir Crunchyroll"
   }
+
   if (base.includes("youtube")) return "Abrir YouTube"
   if (base.includes("spotify")) return "Abrir Spotify"
   if (base.includes("max.com") || base.includes("hbo")) return "Abrir Max"
@@ -196,9 +199,22 @@ export default function SoporteMensajesPage() {
   const [mensajeSeleccionado, setMensajeSeleccionado] =
     useState<SoporteMensaje | null>(null)
   const [busqueda, setBusqueda] = useState("")
+  const [filtroCorreoUrl, setFiltroCorreoUrl] = useState("")
   const [filtroLectura, setFiltroLectura] = useState("todos")
   const [cargando, setCargando] = useState(false)
   const [aviso, setAviso] = useState("")
+  const [seleccionInicialHecha, setSeleccionInicialHecha] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const correo = params.get("correo")
+
+    if (correo) {
+      const correoLimpio = correo.trim().toLowerCase()
+      setBusqueda(correoLimpio)
+      setFiltroCorreoUrl(correoLimpio)
+    }
+  }, [])
 
   useEffect(() => {
     const validarAcceso = async () => {
@@ -326,6 +342,14 @@ export default function SoporteMensajesPage() {
     }
   }
 
+  const limpiarFiltroCorreo = () => {
+    setBusqueda("")
+    setFiltroCorreoUrl("")
+    setMensajeSeleccionado(null)
+    setSeleccionInicialHecha(false)
+    window.history.replaceState({}, "", "/soporte-panel/mensajes")
+  }
+
   const mensajesFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
 
@@ -354,14 +378,29 @@ export default function SoporteMensajesPage() {
     })
   }, [mensajes, clientes, busqueda, filtroLectura])
 
-  const resumen = useMemo(() => {
-    return {
-      total: mensajes.length,
-      noLeidos: mensajes.filter((mensaje) => !mensaje.leido).length,
-      leidos: mensajes.filter((mensaje) => mensaje.leido).length,
-      correos: new Set(mensajes.map((mensaje) => mensaje.correo_destino)).size,
+  useEffect(() => {
+    if (
+      !filtroCorreoUrl ||
+      seleccionInicialHecha ||
+      mensajesFiltrados.length === 0
+    ) {
+      return
     }
-  }, [mensajes])
+
+    setMensajeSeleccionado(mensajesFiltrados[0])
+    setSeleccionInicialHecha(true)
+  }, [filtroCorreoUrl, seleccionInicialHecha, mensajesFiltrados])
+
+  const resumen = useMemo(() => {
+    const base = busqueda.trim() ? mensajesFiltrados : mensajes
+
+    return {
+      total: base.length,
+      noLeidos: base.filter((mensaje) => !mensaje.leido).length,
+      leidos: base.filter((mensaje) => mensaje.leido).length,
+      correos: new Set(base.map((mensaje) => mensaje.correo_destino)).size,
+    }
+  }, [mensajes, mensajesFiltrados, busqueda])
 
   if (verificando) {
     return (
@@ -384,7 +423,7 @@ export default function SoporteMensajesPage() {
             <h1 style={styles.title}>Mensajes recibidos</h1>
             <p style={styles.description}>
               Bandeja interna para revisar correos recibidos por cuentas
-              asignadas a clientes.
+              asignadas.
             </p>
           </div>
 
@@ -410,6 +449,23 @@ export default function SoporteMensajesPage() {
             </button>
           </div>
         </header>
+
+        {filtroCorreoUrl && (
+          <div style={styles.filterAlert}>
+            <div>
+              <span style={styles.label}>Filtro activo por correo</span>
+              <strong>{filtroCorreoUrl}</strong>
+            </div>
+
+            <button
+              type="button"
+              onClick={limpiarFiltroCorreo}
+              style={styles.buttonSecondary}
+            >
+              Ver todos los mensajes
+            </button>
+          </div>
+        )}
 
         <div style={styles.statsGrid}>
           <StatCard label="Total mensajes" value={resumen.total} />
@@ -444,7 +500,11 @@ export default function SoporteMensajesPage() {
               style={styles.input}
               placeholder="Buscar mensaje, cliente, correo, remitente..."
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
+              onChange={(e) => {
+                setBusqueda(e.target.value)
+                setFiltroCorreoUrl("")
+                setSeleccionInicialHecha(false)
+              }}
             />
 
             <select
@@ -460,8 +520,8 @@ export default function SoporteMensajesPage() {
 
           {mensajesFiltrados.length === 0 ? (
             <p style={styles.muted}>
-              No hay mensajes registrados todavía. Cuando conectemos cPanel,
-              aparecerán aquí automáticamente.
+              No hay mensajes para este filtro. Verifica que el correo tenga
+              mensajes recibidos.
             </p>
           ) : (
             <div style={styles.layout}>
@@ -553,7 +613,7 @@ function MensajePreview({
 }) {
   const cuerpo =
     mensaje.cuerpo_texto ||
-    "Este mensaje no tiene cuerpo en texto. Cuando conectemos cPanel, aquí aparecerá el contenido del correo."
+    "Este mensaje no tiene cuerpo en texto. Aquí aparecerá el contenido del correo."
 
   const linkPrincipal = extraerLinkPrincipal(
     cuerpo,
@@ -733,6 +793,17 @@ const styles: Record<string, CSSProperties> = {
     padding: "16px",
     minWidth: "260px",
     boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+  },
+  filterAlert: {
+    border: "1px solid rgba(1, 231, 239, 0.25)",
+    background: "rgba(1, 231, 239, 0.08)",
+    borderRadius: "18px",
+    padding: "16px",
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "16px",
+    alignItems: "center",
+    marginBottom: "20px",
   },
   statsGrid: {
     display: "grid",
