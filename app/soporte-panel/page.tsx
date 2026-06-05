@@ -1,6 +1,61 @@
-import styles from "./soporte-panel.module.css";
+"use client"
+
+import { useState, type FormEvent } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+import styles from "./soporte-panel.module.css"
 
 export default function SoportePanelPage() {
+  const router = useRouter()
+
+  const [correo, setCorreo] = useState("")
+  const [password, setPassword] = useState("")
+  const [cargando, setCargando] = useState(false)
+  const [mensaje, setMensaje] = useState("")
+
+  const ingresarSoporte = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setMensaje("")
+
+    if (!correo.trim() || !password.trim()) {
+      setMensaje("Completa usuario y contraseña.")
+      return
+    }
+
+    setCargando(true)
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: correo.trim(),
+      password: password.trim(),
+    })
+
+    if (error || !data.user) {
+      setMensaje("Usuario o contraseña incorrectos.")
+      setCargando(false)
+      return
+    }
+
+    const { data: usuario, error: errorUsuario } = await supabase
+      .from("usuarios")
+      .select("id,nombre,correo,rol,estado")
+      .eq("id", data.user.id)
+      .single()
+
+    if (
+      errorUsuario ||
+      !usuario ||
+      usuario.rol !== "admin" ||
+      (usuario.estado !== "aprobado" && usuario.estado !== "activo")
+    ) {
+      await supabase.auth.signOut()
+      setMensaje("No tienes permiso para ingresar al soporte panel.")
+      setCargando(false)
+      return
+    }
+
+    router.push("/soporte-panel/dashboard")
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.gridBackground}></div>
@@ -56,13 +111,15 @@ export default function SoportePanelPage() {
               </div>
             </div>
 
-            <form className={styles.form}>
+            <form className={styles.form} onSubmit={ingresarSoporte}>
               <label>
                 Usuario
                 <input
-                  type="text"
+                  type="email"
                   placeholder="admin@jonasstream.xyz"
                   autoComplete="username"
+                  value={correo}
+                  onChange={(e) => setCorreo(e.target.value)}
                 />
               </label>
 
@@ -72,15 +129,35 @@ export default function SoportePanelPage() {
                   type="password"
                   placeholder="••••••••••••"
                   autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </label>
 
-              <button type="button">Ingresar al soporte panel</button>
+              {mensaje && (
+                <div
+                  style={{
+                    border: "1px solid rgba(255, 67, 67, 0.36)",
+                    background: "rgba(255, 67, 67, 0.12)",
+                    color: "#ECFFFF",
+                    borderRadius: "14px",
+                    padding: "12px",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {mensaje}
+                </div>
+              )}
+
+              <button type="submit" disabled={cargando}>
+                {cargando ? "Validando acceso..." : "Ingresar al soporte panel"}
+              </button>
             </form>
 
             <div className={styles.securityNotice}>
-              <strong>Seguridad activa:</strong> los clientes vencidos o
-              suspendidos no podrán visualizar mensajes ni recibir alertas.
+              <strong>Seguridad activa:</strong> solo administradores autorizados
+              podrán ingresar al soporte panel.
             </div>
 
             <div className={styles.quickPreview}>
@@ -117,5 +194,5 @@ export default function SoportePanelPage() {
         </div>
       </section>
     </main>
-  );
+  )
 }
