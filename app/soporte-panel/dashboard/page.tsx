@@ -78,6 +78,42 @@ const crearFormInicial = () => ({
   notas: "",
 })
 
+const detectarPlataformaPorCorreo = (correo: string) => {
+  const texto = correo.toLowerCase()
+
+  if (texto.includes("netflix")) return "Netflix"
+  if (texto.includes("disney")) return "Disney+"
+  if (texto.includes("prime") || texto.includes("amazon")) return "Prime Video"
+  if (texto.includes("crunchy") || texto.includes("crunchyroll")) return "Crunchyroll"
+  if (texto.includes("vix")) return "Vix"
+  if (texto.includes("max") || texto.includes("hbo")) return "Max"
+  if (texto.includes("spotify")) return "Spotify"
+  if (texto.includes("youtube")) return "YouTube Premium"
+  if (texto.includes("apptv") || texto.includes("iptv")) return "IPTV / App TV"
+  if (texto.includes("appmus")) return "App Música"
+
+  return "Otro"
+}
+
+const extraerCorreosJonas = (texto: string) => {
+  const encontrados =
+    texto.match(/[a-zA-Z0-9._%+\-]+@jonasstream\.xyz/gi) || []
+
+  return Array.from(
+    new Set(encontrados.map((correo) => correo.trim().toLowerCase()))
+  )
+}
+
+const partirEnBloques = <T,>(array: T[], size: number) => {
+  const bloques: T[][] = []
+
+  for (let i = 0; i < array.length; i += size) {
+    bloques.push(array.slice(i, i + size))
+  }
+
+  return bloques
+}
+
 export default function SoporteDashboardPage() {
   const router = useRouter()
 
@@ -92,6 +128,9 @@ export default function SoporteDashboardPage() {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [form, setForm] = useState(crearFormInicial)
   const [mensaje, setMensaje] = useState("")
+  const [correosMasivos, setCorreosMasivos] = useState("")
+  const [importandoMasivo, setImportandoMasivo] = useState(false)
+  const [resultadoMasivo, setResultadoMasivo] = useState("")
 
   useEffect(() => {
     const validarAcceso = async () => {
@@ -249,6 +288,88 @@ export default function SoporteDashboardPage() {
 
     setGuardando(false)
     limpiarFormulario()
+    await cargarDatos()
+  }
+
+  const importarCorreosMasivamente = async () => {
+    setMensaje("")
+    setResultadoMasivo("")
+
+    const correosDetectados = extraerCorreosJonas(correosMasivos)
+
+    if (correosDetectados.length === 0) {
+      setResultadoMasivo("No se detectaron correos válidos de jonasstream.xyz.")
+      return
+    }
+
+    const existentes = new Set(
+      cuentas.map((cuenta) => cuenta.correo_asignado.toLowerCase())
+    )
+
+    const correosNuevos = correosDetectados.filter(
+      (correo) => !existentes.has(correo)
+    )
+
+    const omitidos = correosDetectados.length - correosNuevos.length
+
+    if (correosNuevos.length === 0) {
+      setResultadoMasivo(
+        `No se importó nada. Los ${correosDetectados.length} correo(s) ya estaban registrados.`
+      )
+      return
+    }
+
+    const confirmar = window.confirm(
+      `Se importarán ${correosNuevos.length} correo(s) nuevos.\n\nSe generará PIN automático y estado activo.\n\n¿Continuar?`
+    )
+
+    if (!confirmar) return
+
+    setImportandoMasivo(true)
+
+    const fechaInicio = hoyISO()
+    const fechaVencimiento = sumarDiasISO(30)
+
+    const payloads = correosNuevos.map((correo) => ({
+      nombre: correo,
+      celular: null,
+      correo_cliente: null,
+      plataforma: detectarPlataformaPorCorreo(correo),
+      correo_asignado: correo,
+      pin_acceso: generarPin(),
+      fecha_inicio: fechaInicio,
+      fecha_vencimiento: fechaVencimiento,
+      estado: "activo" as EstadoCuenta,
+      telegram_chat_id: null,
+      notas: "Importado masivamente desde dashboard.",
+      creado_por: usuario?.id || null,
+      updated_at: new Date().toISOString(),
+    }))
+
+    const bloques = partirEnBloques(payloads, 100)
+    let insertados = 0
+
+    for (const bloque of bloques) {
+      const { error } = await supabase.from("soporte_clientes").insert(bloque)
+
+      if (error) {
+        setResultadoMasivo(
+          `Error al importar. Se insertaron ${insertados} antes del error. Revisa si hay correos duplicados o restricciones en Supabase.`
+        )
+        setImportandoMasivo(false)
+        await cargarDatos()
+        return
+      }
+
+      insertados += bloque.length
+    }
+
+    setResultadoMasivo(
+      `Importación completa: ${insertados} correo(s) registrados. Omitidos por ya existir: ${omitidos}.`
+    )
+
+    setCorreosMasivos("")
+    setImportandoMasivo(false)
     await cargarDatos()
   }
 
@@ -529,6 +650,22 @@ Tu entretenimiento, sin complicaciones.`
     }
   }, [cuentas])
 
+  const previsualizacionImportacion = useMemo(() => {
+    const correos = extraerCorreosJonas(correosMasivos)
+    const existentes = new Set(
+      cuentas.map((cuenta) => cuenta.correo_asignado.toLowerCase())
+    )
+
+    const nuevos = correos.filter((correo) => !existentes.has(correo))
+    const repetidos = correos.length - nuevos.length
+
+    return {
+      detectados: correos.length,
+      nuevos: nuevos.length,
+      repetidos,
+    }
+  }, [correosMasivos, cuentas])
+
   if (verificando) {
     return (
       <main style={stylesPage.centerPage}>
@@ -613,6 +750,8 @@ Tu entretenimiento, sin complicaciones.`
               <option value="Max">Max</option>
               <option value="Spotify">Spotify</option>
               <option value="YouTube Premium">YouTube Premium</option>
+              <option value="IPTV / App TV">IPTV / App TV</option>
+              <option value="App Música">App Música</option>
               <option value="Otro">Otro</option>
             </select>
 
@@ -712,6 +851,73 @@ Tu entretenimiento, sin complicaciones.`
               )}
             </div>
           </form>
+        </section>
+
+        <section style={stylesPage.panel}>
+          <div style={stylesPage.panelHeader}>
+            <div>
+              <p style={stylesPage.kicker}>IMPORTADOR MASIVO</p>
+              <h2 style={{ margin: "10px 0" }}>Registrar correos desde cPanel</h2>
+              <p style={stylesPage.muted}>
+                Pega aquí tus correos ya creados en cPanel. El sistema los registra
+                en el dashboard con PIN automático, estado activo y vencimiento de 30 días.
+              </p>
+            </div>
+          </div>
+
+          <textarea
+            style={stylesPage.textareaImport}
+            placeholder={`Pega tus correos aquí, uno por línea:
+
+netflix001@jonasstream.xyz
+netflix002@jonasstream.xyz
+disney001@jonasstream.xyz
+prime001@jonasstream.xyz
+crunchy001@jonasstream.xyz`}
+            value={correosMasivos}
+            onChange={(e) => setCorreosMasivos(e.target.value)}
+          />
+
+          <div style={stylesPage.importSummary}>
+            <div>
+              <span style={stylesPage.smallText}>Detectados</span>
+              <strong>{previsualizacionImportacion.detectados}</strong>
+            </div>
+
+            <div>
+              <span style={stylesPage.smallText}>Nuevos</span>
+              <strong>{previsualizacionImportacion.nuevos}</strong>
+            </div>
+
+            <div>
+              <span style={stylesPage.smallText}>Ya registrados</span>
+              <strong>{previsualizacionImportacion.repetidos}</strong>
+            </div>
+          </div>
+
+          {resultadoMasivo && <div style={stylesPage.notice}>{resultadoMasivo}</div>}
+
+          <div style={stylesPage.formActions}>
+            <button
+              type="button"
+              onClick={importarCorreosMasivamente}
+              disabled={importandoMasivo}
+              style={stylesPage.buttonPrimary}
+            >
+              {importandoMasivo ? "Importando..." : "Importar y generar PIN"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCorreosMasivos("")
+                setResultadoMasivo("")
+              }}
+              style={stylesPage.buttonSecondary}
+            >
+              Limpiar
+            </button>
+          </div>
         </section>
 
         <section style={stylesPage.panel}>
@@ -1100,6 +1306,26 @@ const stylesPage: Record<string, CSSProperties> = {
     background: "rgba(0, 0, 0, 0.34)",
     color: "#ECFFFF",
     fontSize: "14px",
+  },
+  textareaImport: {
+    width: "100%",
+    minHeight: "180px",
+    border: "1px solid rgba(1, 231, 239, 0.18)",
+    outline: "none",
+    borderRadius: "15px",
+    padding: "16px",
+    background: "rgba(0, 0, 0, 0.34)",
+    color: "#ECFFFF",
+    fontSize: "14px",
+    lineHeight: 1.6,
+    resize: "vertical",
+    marginBottom: "16px",
+  },
+  importSummary: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: "14px",
+    marginBottom: "16px",
   },
   formActions: {
     gridColumn: "1 / -1",
