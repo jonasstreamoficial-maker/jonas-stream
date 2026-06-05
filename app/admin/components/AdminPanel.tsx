@@ -13,10 +13,7 @@ import {
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import toast from "react-hot-toast"
-import styles from "../admin.module.css"
-import AdminSidebar from "./AdminSidebar"
-import AdminTopbar from "./AdminTopbar"
-import InventarioSection from "./sections/InventarioSection"
+import styles from "./admin.module.css"
 
 type Usuario = {
   id: string
@@ -314,7 +311,7 @@ const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
   )
 }
 
-export default function AdminPanel() {
+export default function AdminPage() {
   const router = useRouter()
 
   const [autorizado, setAutorizado] = useState(false)
@@ -2557,30 +2554,114 @@ export default function AdminPanel() {
     <main className={styles.adminShell}>
       <div className={styles.backgroundGlow}></div>
 
-      <AdminSidebar
-        usuario={usuario}
-        tabs={tabs}
-        navGroups={navGroups}
-        tabActiva={tabActiva}
-        badgeByTab={{
-          pedidos: pedidosPendientes,
-          usuarios: usuariosPendientes,
-          inventario: productosCriticos.length,
-        }}
-        onSelectTab={(tabId) => setTabActiva(tabId as TabId)}
-        onLogout={cerrarSesion}
-      />
+      <aside className={styles.sidebar}>
+        <div className={styles.brandBox}>
+          <div className={styles.brandMark}>JS</div>
+          <div>
+            <p className={styles.brandEyebrow}>Admin panel</p>
+            <h1>Jonas Stream</h1>
+          </div>
+        </div>
+
+        <nav className={styles.nav}>
+          {navGroups.map((group) => (
+            <div key={group.title} className={styles.navGroup}>
+              <p className={styles.navGroupTitle}>{group.title}</p>
+              <div className={styles.navGroupItems}>
+                {group.items.map((tabId) => {
+                  const tab = tabs.find((item) => item.id === tabId)
+                  if (!tab) return null
+
+                  const badgeValue =
+                    tab.id === "pedidos"
+                      ? pedidosPendientes
+                      : tab.id === "usuarios"
+                      ? usuariosPendientes
+                      : tab.id === "inventario"
+                      ? productosCriticos.length
+                      : 0
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setTabActiva(tab.id)}
+                      className={`${styles.navButton} ${tabActiva === tab.id ? styles.navButtonActive : ""}`}
+                    >
+                      <span className={styles.navIcon}>{tab.icon}</span>
+                      <strong>{tab.label}</strong>
+                      {badgeValue > 0 && <em>{badgeValue}</em>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className={styles.sidebarFooter}>
+          <div className={styles.userMiniCard}>
+            <div className={styles.userMiniAvatar}>{usuario?.nombre?.slice(0, 2).toUpperCase() || "JS"}</div>
+            <div>
+              <p>{usuario?.nombre}</p>
+              <span>{usuario?.correo}</span>
+            </div>
+          </div>
+          <div className={styles.sidebarFooterMeta}>
+            <div className={styles.rolePill}>{usuario?.rol}</div>
+            <div className={styles.sessionPill}>Online</div>
+          </div>
+          <button type="button" onClick={cerrarSesion} className={styles.logoutButton}>
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
 
       <section className={styles.content}>
-        <AdminTopbar
-          titulo={tabs.find((tab) => tab.id === tabActiva)?.label || "Admin"}
-          busquedaGlobal={busquedaGlobal}
-          resultadosGlobales={resultadosGlobales}
-          ultimaActualizacion={ultimaActualizacion}
-          onBusquedaGlobalChange={setBusquedaGlobal}
-          onSelectResultTab={(tabId) => setTabActiva(tabId as TabId)}
-          onRefresh={() => cargarDatos()}
-        />
+        <header className={styles.topbar}>
+          <div>
+            <p className={styles.kicker}>Control central</p>
+            <h2>{tabs.find((tab) => tab.id === tabActiva)?.label}</h2>
+            <span>Gestiona ventas, catálogo, usuarios, comprobantes e inventario sin tocar RLS todavía.</span>
+          </div>
+
+          <div className={styles.commandCenter}>
+            <div className={styles.searchBox}>
+              <span>⌘</span>
+              <input
+                type="search"
+                placeholder="Buscar producto, pedido o usuario..."
+                value={busquedaGlobal}
+                onChange={(e) => setBusquedaGlobal(e.target.value)}
+              />
+              {resultadosGlobales.length > 0 && (
+                <div className={styles.searchResults}>
+                  {resultadosGlobales.map((item, index) => (
+                    <button
+                      key={`${item.tipo}-${item.titulo}-${index}`}
+                      type="button"
+                      onClick={() => {
+                        setTabActiva(item.tab)
+                        setBusquedaGlobal("")
+                      }}
+                    >
+                      <span>{item.tipo}</span>
+                      <strong>{item.titulo}</strong>
+                      <small>{item.detalle}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button type="button" onClick={() => cargarDatos()} className={styles.refreshButton}>Actualizar</button>
+            {ultimaActualizacion && <div className={styles.topbarPill}>Sync {ultimaActualizacion}</div>}
+            <div className={styles.topbarPill}>
+              <span className={styles.statusDot}></span>
+              Supabase conectado
+            </div>
+          </div>
+        </header>
 
         <section className={`${styles.proRibbon} ${styles.proRibbonCompact}`}>
           <div className={styles.proRibbonMain}>
@@ -4076,430 +4157,174 @@ export default function AdminPanel() {
         )}
 
         {tabActiva === "inventario" && (
-          <InventarioSection
-            productos={productos}
-            productosAgotados={productosAgotados}
-            productosBajoStock={productosBajoStock}
-            saludInventario={saludInventario}
-            productosInventarioFiltrados={productosInventarioFiltrados}
-            sincronizandoInventario={sincronizandoInventario}
-            busquedaInventario={busquedaInventario}
-            filtroInventario={filtroInventario}
-            setBusquedaInventario={setBusquedaInventario}
-            setFiltroInventario={setFiltroInventario}
-            setFiltroStockProducto={setFiltroStockProducto}
-            setTabActiva={(tabId) => setTabActiva(tabId as TabId)}
-            sincronizarInventarioAutomatico={sincronizarInventarioAutomatico}
-            ajustarStockProducto={ajustarStockProducto}
-            reponerProductoRapido={reponerProductoRapido}
-            editarProducto={editarProducto}
-            MetricCard={MetricCard}
-            EmptyState={EmptyState}
-          />
+          <div className={styles.sectionStack}>
+            <section className={styles.inventoryHeroPro}>
+              <div>
+                <span className={styles.proTag}>FASE 6 · INVENTARIO AUTO</span>
+                <h3>Centro de stock inteligente</h3>
+                <p>
+                  Controla agotados, bajo stock, reposiciones rápidas y descuento automático al completar pedidos
+                  cuando el producto del pedido coincide con el catálogo.
+                </p>
+              </div>
+              <div className={styles.inventoryHeroStats}>
+                <button type="button" onClick={() => setFiltroInventario("agotado")}>
+                  <strong>{productosAgotados.length}</strong>
+                  <span>Agotados</span>
+                </button>
+                <button type="button" onClick={() => setFiltroInventario("bajo")}>
+                  <strong>{productosBajoStock.length}</strong>
+                  <span>Bajo stock</span>
+                </button>
+                <button type="button" onClick={() => setFiltroInventario("estable")}>
+                  <strong>{productos.filter((p) => Number(p.stock) > 3).length}</strong>
+                  <span>Estables</span>
+                </button>
+              </div>
+            </section>
+
+            <div className={styles.metricsGridCompact}>
+              <MetricCard title="Stock estable" value={productos.filter((p) => Number(p.stock) > 3).length} detail="Productos sin alerta" tone="success" />
+              <MetricCard title="Bajo stock" value={productosBajoStock.length} detail="1 a 3 unidades" tone="warning" />
+              <MetricCard title="Agotados" value={productosAgotados.length} detail="Reponer urgente" tone="danger" />
+              <MetricCard title="Salud" value={`${saludInventario}%`} detail="Estado general" tone="info" />
+            </div>
+
+            <article className={`${styles.panel} ${styles.autoInventoryPanel} ${styles.autoInventoryPanelPro}`}>
+              <div>
+                <p className={styles.kicker}>Automatización</p>
+                <h3>Inventario automático</h3>
+                <p>
+                  Sincroniza estados visuales: stock 0 pasa a AGOTADO y se oculta; stock 1-3 pasa a LIMITADO;
+                  stock mayor a 3 queda ACTIVO. Al completar pedidos o aprobar comprobantes, el panel descuenta la cantidad comprada por coincidencia de nombre.
+                </p>
+              </div>
+              <div className={styles.autoInventoryActions}>
+                <button type="button" disabled={sincronizandoInventario} onClick={sincronizarInventarioAutomatico} className={styles.primaryButton}>
+                  {sincronizandoInventario ? "Sincronizando..." : "Sincronizar inventario"}
+                </button>
+                <button type="button" onClick={() => { setFiltroInventario("critico"); setBusquedaInventario("") }} className={styles.secondaryButton}>Ver críticos</button>
+                <button type="button" onClick={() => { setFiltroStockProducto("agotado"); setTabActiva("productos") }} className={styles.dangerButton}>Editar agotados</button>
+              </div>
+            </article>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Operación</p>
+                  <h3>Control de inventario</h3>
+                  <span className={styles.panelHint}>Filtra, repone, descuenta o edita productos sin salir del módulo.</span>
+                </div>
+                <span className={styles.countBadge}>{productosInventarioFiltrados.length} productos</span>
+              </div>
+
+              <div className={styles.inventoryToolbarPro}>
+                <input
+                  type="text"
+                  placeholder="Buscar producto, categoría o proveedor..."
+                  value={busquedaInventario}
+                  onChange={(e) => setBusquedaInventario(e.target.value)}
+                  className={styles.input}
+                />
+                <div className={styles.toggleGroup}>
+                  <button type="button" onClick={() => setFiltroInventario("critico")} className={filtroInventario === "critico" ? styles.toggleActive : ""}>Críticos</button>
+                  <button type="button" onClick={() => setFiltroInventario("agotado")} className={filtroInventario === "agotado" ? styles.toggleActive : ""}>Agotados</button>
+                  <button type="button" onClick={() => setFiltroInventario("bajo")} className={filtroInventario === "bajo" ? styles.toggleActive : ""}>Bajo</button>
+                  <button type="button" onClick={() => setFiltroInventario("estable")} className={filtroInventario === "estable" ? styles.toggleActive : ""}>Estable</button>
+                  <button type="button" onClick={() => setFiltroInventario("todos")} className={filtroInventario === "todos" ? styles.toggleActive : ""}>Todo</button>
+                </div>
+              </div>
+
+              <div className={styles.inventoryGridPro}>
+                {productosInventarioFiltrados.length === 0 ? (
+                  <EmptyState title="Sin productos" text="No hay productos que coincidan con el filtro de inventario." />
+                ) : productosInventarioFiltrados.map((producto) => {
+                  const stock = Number(producto.stock || 0)
+                  const esAgotado = stock <= 0
+                  const esBajo = stock > 0 && stock <= 3
+                  const porcentajeStock = Math.min(100, Math.max(0, (stock / 10) * 100))
+
+                  return (
+                    <article key={producto.id} className={`${styles.inventoryCardPro} ${esAgotado ? styles.inventoryCardDanger : esBajo ? styles.inventoryCardWarning : ""}`}>
+                      <div className={styles.inventoryCardTop}>
+                        <div>
+                          <span className={styles.inventoryLabel}>{producto.categoria || "Sin categoría"}</span>
+                          <h4>{producto.nombre}</h4>
+                          <p>{producto.proveedor || "Jonas Stream"} · {producto.estado_catalogo || "ACTIVO"}</p>
+                        </div>
+                        <div className={esAgotado ? styles.stockPillDanger : esBajo ? styles.stockPill : styles.stockPillOk}>{stock} und.</div>
+                      </div>
+
+                      <div className={styles.stockMeter}>
+                        <span style={{ width: `${porcentajeStock}%` }}></span>
+                      </div>
+
+                      <div className={styles.inventoryStatusLine}>
+                        <strong>{esAgotado ? "Reponer ahora" : esBajo ? "Stock limitado" : "Inventario estable"}</strong>
+                        <small>{producto.publicacion ? "Publicado" : "Oculto"}</small>
+                      </div>
+
+                      <div className={styles.inventoryQuickActions}>
+                        <button type="button" onClick={() => ajustarStockProducto(producto, -1)} className={styles.dangerGhostButton}>-1</button>
+                        <button type="button" onClick={() => ajustarStockProducto(producto, 1)} className={styles.secondaryButton}>+1</button>
+                        <button type="button" onClick={() => ajustarStockProducto(producto, 5)} className={styles.secondaryButton}>+5</button>
+                        <button type="button" onClick={() => reponerProductoRapido(producto, 10)} className={styles.successButton}>+10</button>
+                        <button type="button" onClick={() => editarProducto(producto)} className={styles.primaryButton}>Editar</button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </article>
+          </div>
         )}
 
         {tabActiva === "cuentas" && (
-          <div className={styles.sectionStack}>
-            <section className={styles.metricsGridCompact}>
-              <MetricCard title="Cuentas" value={cuentasProducto.length} detail={`${cuentasEntregadas} entregadas`} tone="info" />
-              <MetricCard title="Disponibles" value={cuentasDisponibles} detail="Listas para entregar" tone="success" />
-              <MetricCard title="Por vencer" value={cuentasPorVencer} detail="Vencen en 7 días" tone="warning" />
-              <MetricCard title="Bloqueadas" value={cuentasBloqueadas} detail="No vender / vencidas" tone="danger" />
-            </section>
-
-            <article className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <p className={styles.kicker}>Banco de cuentas completas</p>
-                  <h3>{editandoCuentaId ? "Editar cuenta" : "Agregar cuenta completa"}</h3>
-                  <span className={styles.panelHint}>
-                    Las fechas se crean automáticamente: inicio hoy y finalización en 30 días. Puedes editarlas si necesitas.
-                  </span>
-                </div>
-                {editandoCuentaId && <span className={styles.editBadge}>Modo edición</span>}
-              </div>
-
-              <form onSubmit={guardarCuenta} className={styles.formGrid}>
-                <select
-                  name="producto_id"
-                  value={formCuenta.producto_id}
-                  onChange={handleCuentaChange}
-                  className={styles.input}
-                >
-                  <option value="">Seleccionar producto</option>
-                  {productos.map((producto) => (
-                    <option key={producto.id} value={producto.id}>
-                      {producto.nombre}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  name="estado"
-                  value={formCuenta.estado}
-                  onChange={handleCuentaChange}
-                  className={styles.input}
-                >
-                  <option value="disponible">Disponible</option>
-                  <option value="entregada">Entregada</option>
-                  <option value="bloqueada">Bloqueada</option>
-                  <option value="vencida">Vencida</option>
-                </select>
-
-                <input
-                  name="correo"
-                  type="email"
-                  placeholder="Correo de la cuenta"
-                  value={formCuenta.correo}
-                  onChange={handleCuentaChange}
-                  className={styles.input}
-                />
-
-                <input
-                  name="clave"
-                  type="text"
-                  placeholder="Contraseña"
-                  value={formCuenta.clave}
-                  onChange={handleCuentaChange}
-                  className={styles.input}
-                />
-
-                <label className={styles.dateFieldLabel}>
-                  <span>Fecha inicio</span>
-                  <input
-                    name="fecha_inicio"
-                    type="date"
-                    value={formCuenta.fecha_inicio}
-                    onChange={handleCuentaChange}
-                    className={styles.input}
-                  />
-                </label>
-
-                <label className={styles.dateFieldLabel}>
-                  <span>Fecha fin automática (+30 días)</span>
-                  <input
-                    name="fecha_fin"
-                    type="date"
-                    value={formCuenta.fecha_fin}
-                    onChange={handleCuentaChange}
-                    className={styles.input}
-                  />
-                </label>
-
-                <textarea
-                  name="notas"
-                  placeholder="Notas internas opcionales"
-                  value={formCuenta.notas}
-                  onChange={handleCuentaChange}
-                  className={`${styles.input} ${styles.textarea}`}
-                />
-
-                <div className={styles.formActions}>
-                  <button type="submit" className={styles.primaryButton} disabled={guardandoCuenta}>
-                    {guardandoCuenta ? "Guardando..." : editandoCuentaId ? "Actualizar cuenta" : "Guardar cuenta"}
-                  </button>
-                  {editandoCuentaId && (
-                    <button type="button" className={styles.secondaryButton} onClick={limpiarFormularioCuenta}>
-                      Cancelar edición
-                    </button>
-                  )}
-                </div>
-              </form>
-            </article>
-
-            <article className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <p className={styles.kicker}>Importación y respaldo</p>
-                  <h3>Importar cuentas por archivo TXT</h3>
-                  <span className={styles.panelHint}>Arrastra tu archivo .txt con una cuenta por línea. Formato: correo1@gmail.com:123456</span>
-                </div>
-                <div className={styles.tableActions}>
-                  <button type="button" onClick={() => exportarCuentasCSV(false)} className={styles.secondaryButton}>Exportar CSV</button>
-                  <button type="button" onClick={() => exportarCuentasCSV(true)} className={styles.secondaryButton}>Exportar filtradas</button>
-                  <button type="button" onClick={exportarRespaldoCuentas} className={styles.successButton}>Respaldo cuentas</button>
-                </div>
-              </div>
-
-              <div className={styles.noticeBox}>
-                Primero selecciona arriba el producto, fechas, estado y notas. Luego arrastra tu TXT. Ejemplo: correo1@gmail.com:123456. El sistema omite duplicadas del mismo producto.
-              </div>
-
-              <input
-                ref={inputImportarCuentasRef}
-                type="file"
-                accept=".txt,text/plain"
-                onChange={handleArchivoImportacionChange}
-                className={styles.hiddenFileInput}
-              />
-
-              <div
-                className={styles.importDropzone}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDropImportacion}
-                onClick={() => inputImportarCuentasRef.current?.click()}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") inputImportarCuentasRef.current?.click()
-                }}
-              >
-                <div className={styles.importDropIcon}>TXT</div>
-                <div>
-                  <strong>{archivoImportacionNombre || "Arrastra aquí tu archivo de cuentas"}</strong>
-                  <p>Formato: correo1@gmail.com:123456 · correo2@gmail.com:clave456</p>
-                  <small>{textoImportacionCuentas ? `${textoImportacionCuentas.split(/\r?\n/).filter((linea) => linea.trim()).length} línea(s) listas para importar` : "Click para seleccionar archivo .txt"}</small>
-                </div>
-              </div>
-
-              <div className={styles.formActions}>
-                <button type="button" onClick={importarCuentasDesdeTXT} disabled={importandoCuentas || guardandoCuenta || !textoImportacionCuentas.trim()} className={styles.primaryButton}>
-                  {importandoCuentas ? "Importando..." : "Importar cuentas TXT"}
-                </button>
-                <button type="button" onClick={limpiarArchivoImportacion} className={styles.secondaryButton}>
-                  Limpiar archivo
-                </button>
-              </div>
-            </article>
-
-            <article className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <p className={styles.kicker}>Control de cuentas por plataforma</p>
-                  <h3>{productoCuentasActivo ? `Cuentas de ${productoCuentasActivo.nombre}` : "Resumen de cuentas"}</h3>
-                  <span className={styles.panelHint}>
-                    {productoCuentasActivo
-                      ? "Aquí ves solo las cuentas de esta plataforma: clientes asignados, vigencias, estado y acciones."
-                      : "Primero ves el resumen por producto. Entra a una plataforma para ver clientes y cuentas sin hacer una lista infinita."}
-                  </span>
-                </div>
-
-                {productoCuentasActivo && (
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => setProductoCuentasActivoId(null)}
-                  >
-                    ← Volver al resumen
-                  </button>
-                )}
-              </div>
-
-              {!productoCuentasActivo && (
-                resumenCuentasPorProducto.length === 0 ? (
-                  <EmptyState title="Sin cuentas" text="Agrega tus primeras cuentas completas para ordenar el stock real." />
-                ) : (
-                  <div className={styles.accountSummaryGrid}>
-                    {resumenCuentasPorProducto.map((item) => (
-                      <button
-                        key={item.producto.id}
-                        type="button"
-                        className={`${styles.accountPlatformCard} ${
-                          item.disponibles <= 0
-                            ? styles.accountPlatformDanger
-                            : item.disponibles <= 3
-                            ? styles.accountPlatformWarning
-                            : styles.accountPlatformSuccess
-                        }`}
-                        onClick={() => {
-                          setProductoCuentasActivoId(item.producto.id)
-                          setBusquedaCuenta("")
-                          setFiltroEstadoCuenta("todos")
-                        }}
-                      >
-                        <div className={styles.accountPlatformTop}>
-                          <div>
-                            <span>{item.producto.categoria || "Plataforma"}</span>
-                            <strong>{item.producto.nombre}</strong>
-                          </div>
-                          <em>{item.total}</em>
-                        </div>
-
-                        <div className={styles.accountPlatformStats}>
-                          <div>
-                            <b>{item.disponibles}</b>
-                            <small>Disponibles</small>
-                          </div>
-                          <div>
-                            <b>{item.entregadas}</b>
-                            <small>Ocupadas</small>
-                          </div>
-                          <div>
-                            <b>{item.bloqueadas}</b>
-                            <small>Bloqueadas</small>
-                          </div>
-                          <div>
-                            <b>{item.porVencer}</b>
-                            <small>Por vencer</small>
-                          </div>
-                        </div>
-
-                        <div className={styles.accountPlatformFooter}>
-                          <span>Stock tienda: {item.producto.stock}</span>
-                          <strong>Gestionar cuentas →</strong>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )
-              )}
-
-              {productoCuentasActivo && (
-                <>
-                  <div className={styles.accountDetailHero}>
-                    <div>
-                      <p className={styles.kicker}>Plataforma seleccionada</p>
-                      <h4>{productoCuentasActivo.nombre}</h4>
-                      <span>{productoCuentasActivo.categoria || "Sin categoría"} · Stock tienda {productoCuentasActivo.stock}</span>
-                    </div>
-
-                    <div className={styles.accountDetailStats}>
-                      <div>
-                        <strong>{resumenCuentasActivo?.total || 0}</strong>
-                        <span>Total</span>
-                      </div>
-                      <div>
-                        <strong>{resumenCuentasActivo?.disponibles || 0}</strong>
-                        <span>Libres</span>
-                      </div>
-                      <div>
-                        <strong>{resumenCuentasActivo?.entregadas || 0}</strong>
-                        <span>Ocupadas</span>
-                      </div>
-                      <div>
-                        <strong>{resumenCuentasActivo?.bloqueadas || 0}</strong>
-                        <span>Bloqueadas</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.filtersGridCompact}>
-                    <input
-                      type="search"
-                      placeholder={`Buscar cuenta, cliente o nota en ${productoCuentasActivo.nombre}...`}
-                      value={busquedaCuenta}
-                      onChange={(e) => setBusquedaCuenta(e.target.value)}
-                      className={styles.input}
-                    />
-
-                    <select
-                      value={filtroEstadoCuenta}
-                      onChange={(e) => setFiltroEstadoCuenta(e.target.value)}
-                      className={styles.input}
-                    >
-                      <option value="todos">Todos</option>
-                      <option value="disponible">Disponibles</option>
-                      <option value="entregada">Entregadas / ocupadas</option>
-                      <option value="bloqueada">Bloqueadas</option>
-                      <option value="vencida">Vencidas</option>
-                    </select>
-                  </div>
-
-                  {cuentasDetalleProducto.length === 0 ? (
-                    <EmptyState title="Sin cuentas en este filtro" text="Cambia el filtro o importa cuentas para esta plataforma." />
-                  ) : (
-                    <div className={styles.tableWrap}>
-                      <table className={styles.proTable}>
-                        <thead>
-                          <tr>
-                            <th>Acceso</th>
-                            <th>Cliente asignado</th>
-                            <th>Vigencia admin</th>
-                            <th>Vigencia cliente</th>
-                            <th>Estado</th>
-                            <th>Notas</th>
-                            <th>Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {cuentasDetalleProducto.map((cuenta) => {
-                            const usuarioCuenta = cuenta.usuario_id ? obtenerUsuarioPorId(cuenta.usuario_id) : null
-                            const diasAdmin = diasRestantes(cuenta.fecha_fin)
-                            const adminVencida = diasAdmin !== null && diasAdmin < 0
-                            const adminPorVencer = diasAdmin !== null && diasAdmin >= 0 && diasAdmin <= 7
-                            const diasCliente = diasRestantes(cuenta.cliente_fin)
-                            const clienteVencido = diasCliente !== null && diasCliente < 0
-                            const clientePorVencer = diasCliente !== null && diasCliente >= 0 && diasCliente <= 7
-                            const estadoNormalizado = normalizarTexto(cuenta.estado)
-                            const estaEntregada = estadoNormalizado === "entregada"
-                            const estaBloqueada = estadoNormalizado === "bloqueada"
-
-                            return (
-                              <tr key={cuenta.id}>
-                                <td>
-                                  <strong>{cuenta.correo}</strong>
-                                  <small>Clave: {cuenta.clave}</small>
-                                </td>
-                                <td>
-                                  <strong>{usuarioCuenta?.nombre || (cuenta.usuario_id ? "Cliente asignado" : "Sin cliente")}</strong>
-                                  <small>{usuarioCuenta?.correo || (cuenta.usuario_id ? cuenta.usuario_id.slice(0, 8) : "Todavía no entregada")}</small>
-                                  {cuenta.pedido_id && <small>Pedido #{cuenta.pedido_id.slice(0, 8)}</small>}
-                                </td>
-                                <td>
-                                  <strong>{fechaCorta(cuenta.fecha_inicio)} → {fechaCorta(cuenta.fecha_fin)}</strong>
-                                  <small className={adminVencida ? styles.textDanger : adminPorVencer ? styles.textWarning : styles.textSuccess}>
-                                    {diasAdmin === null
-                                      ? "Sin cálculo"
-                                      : adminVencida
-                                      ? `Venció hace ${Math.abs(diasAdmin)} día(s)`
-                                      : diasAdmin === 0
-                                      ? "Vence hoy"
-                                      : `Vence en ${diasAdmin} día(s)`}
-                                  </small>
-                                </td>
-                                <td>
-                                  <strong>{cuenta.cliente_inicio && cuenta.cliente_fin ? `${fechaCorta(cuenta.cliente_inicio)} → ${fechaCorta(cuenta.cliente_fin)}` : "Sin entrega"}</strong>
-                                  <small className={clienteVencido ? styles.textDanger : clientePorVencer ? styles.textWarning : styles.textSuccess}>
-                                    {!cuenta.cliente_fin
-                                      ? "Se llenará al aprobar pedido"
-                                      : diasCliente === null
-                                      ? "Sin cálculo"
-                                      : clienteVencido
-                                      ? `Cliente venció hace ${Math.abs(diasCliente)} día(s)`
-                                      : diasCliente === 0
-                                      ? "Cliente vence hoy"
-                                      : `Cliente vence en ${diasCliente} día(s)`}
-                                  </small>
-                                </td>
-                                <td>
-                                  <span
-                                    className={`${styles.statusBadge} ${
-                                      estadoNormalizado === "disponible"
-                                        ? styles.statusSuccess
-                                        : estadoNormalizado === "entregada"
-                                        ? styles.statusWarning
-                                        : styles.statusDanger
-                                    }`}
-                                  >
-                                    {cuenta.estado}
-                                  </span>
-                                </td>
-                                <td>{cuenta.notas || <span className={styles.mutedText}>Sin notas</span>}</td>
-                                <td>
-                                  <div className={styles.tableActions}>
-                                    <button type="button" className={styles.secondaryButton} onClick={() => copiarDatosCuenta(cuenta)}>Copiar</button>
-                                    {estaEntregada && <button type="button" className={styles.successButton} onClick={() => renovarCuentaCliente(cuenta)}>Renovar +30</button>}
-                                    {estaEntregada && <button type="button" className={styles.dangerGhostButton} onClick={() => quitarAccesoCuenta(cuenta)}>Quitar acceso</button>}
-                                    {estaBloqueada ? (
-                                      <button type="button" className={styles.successButton} onClick={() => cambiarEstadoCuentaOperativa(cuenta, "disponible")}>Liberar</button>
-                                    ) : (
-                                      <button type="button" className={styles.dangerGhostButton} onClick={() => cambiarEstadoCuentaOperativa(cuenta, "bloqueada")}>Bloquear</button>
-                                    )}
-                                    <button type="button" className={styles.successButton} onClick={() => editarCuenta(cuenta)}>Editar</button>
-                                    <button type="button" className={styles.dangerGhostButton} onClick={() => eliminarCuenta(cuenta)}>Eliminar</button>
-                                  </div>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
-              )}
-            </article>
-          </div>
+          <CuentasSection
+            cuentasProducto={cuentasProducto}
+            cuentasEntregadas={cuentasEntregadas}
+            cuentasDisponibles={cuentasDisponibles}
+            cuentasPorVencer={cuentasPorVencer}
+            cuentasBloqueadas={cuentasBloqueadas}
+            editandoCuentaId={editandoCuentaId}
+            formCuenta={formCuenta}
+            guardarCuenta={guardarCuenta}
+            handleCuentaChange={handleCuentaChange}
+            productos={productos}
+            guardandoCuenta={guardandoCuenta}
+            limpiarFormularioCuenta={limpiarFormularioCuenta}
+            exportarCuentasCSV={exportarCuentasCSV}
+            exportarRespaldoCuentas={exportarRespaldoCuentas}
+            inputImportarCuentasRef={inputImportarCuentasRef}
+            handleArchivoImportacionChange={handleArchivoImportacionChange}
+            handleDropImportacion={handleDropImportacion}
+            archivoImportacionNombre={archivoImportacionNombre}
+            textoImportacionCuentas={textoImportacionCuentas}
+            importarCuentasDesdeTXT={importarCuentasDesdeTXT}
+            importandoCuentas={importandoCuentas}
+            limpiarArchivoImportacion={limpiarArchivoImportacion}
+            productoCuentasActivo={productoCuentasActivo}
+            setProductoCuentasActivoId={setProductoCuentasActivoId}
+            setBusquedaCuenta={setBusquedaCuenta}
+            setFiltroEstadoCuenta={setFiltroEstadoCuenta}
+            resumenCuentasPorProducto={resumenCuentasPorProducto}
+            resumenCuentasActivo={resumenCuentasActivo}
+            busquedaCuenta={busquedaCuenta}
+            filtroEstadoCuenta={filtroEstadoCuenta}
+            cuentasDetalleProducto={cuentasDetalleProducto}
+            obtenerUsuarioPorId={obtenerUsuarioPorId}
+            diasRestantes={diasRestantes}
+            fechaCorta={fechaCorta}
+            normalizarTexto={normalizarTexto}
+            copiarDatosCuenta={copiarDatosCuenta}
+            renovarCuentaCliente={renovarCuentaCliente}
+            quitarAccesoCuenta={quitarAccesoCuenta}
+            cambiarEstadoCuentaOperativa={cambiarEstadoCuentaOperativa}
+            editarCuenta={editarCuenta}
+            eliminarCuenta={eliminarCuenta}
+            MetricCard={MetricCard}
+            EmptyState={EmptyState}
+          />
         )}
 
         {tabActiva === "creditos" && (
