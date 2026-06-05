@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import type { CSSProperties } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -32,6 +33,71 @@ type SoporteMensaje = {
   leido: boolean
   fecha_mensaje: string
   created_at: string
+}
+
+function limpiarUrl(url: string) {
+  return url.replace(/[)\].,;]+$/g, "")
+}
+
+function obtenerNombreLink(url: string) {
+  const urlLower = url.toLowerCase()
+
+  if (urlLower.includes("netflix.com")) return "Abrir Netflix"
+  if (urlLower.includes("disney")) return "Abrir Disney+"
+  if (urlLower.includes("primevideo") || urlLower.includes("amazon")) {
+    return "Abrir Prime Video"
+  }
+  if (urlLower.includes("crunchyroll")) return "Abrir Crunchyroll"
+  if (urlLower.includes("youtube")) return "Abrir YouTube"
+  if (urlLower.includes("spotify")) return "Abrir Spotify"
+  if (urlLower.includes("max.com") || urlLower.includes("hbomax")) return "Abrir Max"
+
+  return "Abrir enlace"
+}
+
+function extraerLinks(texto: string) {
+  if (!texto) return []
+
+  const textoNormalizado = texto.replace(/\[(https?:\/\/[^\]]+)\]/gi, "$1")
+  const encontrados = textoNormalizado.match(/https?:\/\/[^\s<>"']+/gi) || []
+
+  return Array.from(new Set(encontrados.map((url) => limpiarUrl(url))))
+}
+
+function TextoConLinks({ texto }: { texto: string }) {
+  if (!texto) return null
+
+  const textoNormalizado = texto.replace(/\[(https?:\/\/[^\]]+)\]/gi, "$1")
+  const partes = textoNormalizado.split(/(https?:\/\/[^\s<>"']+)/gi)
+
+  return (
+    <>
+      {partes.map((parte, index) => {
+        const esLink = /^https?:\/\//i.test(parte)
+
+        if (!esLink) {
+          return <span key={index}>{parte}</span>
+        }
+
+        const urlLimpia = limpiarUrl(parte)
+        const sobrante = parte.slice(urlLimpia.length)
+
+        return (
+          <span key={index}>
+            <a
+              href={urlLimpia}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.linkInline}
+            >
+              {obtenerNombreLink(urlLimpia)}
+            </a>
+            {sobrante}
+          </span>
+        )
+      })}
+    </>
+  )
 }
 
 export default function SoporteMensajesPage() {
@@ -334,9 +400,7 @@ export default function SoporteMensajesPage() {
                       }}
                     >
                       <div style={styles.messageTop}>
-                        <strong>
-                          {mensaje.asunto || "Sin asunto"}
-                        </strong>
+                        <strong>{mensaje.asunto || "Sin asunto"}</strong>
 
                         <span
                           style={{
@@ -401,13 +465,17 @@ function MensajePreview({
   onMarcarLeido: (mensaje: SoporteMensaje, leido: boolean) => void
   onEliminar: (mensaje: SoporteMensaje) => void
 }) {
+  const cuerpo =
+    mensaje.cuerpo_texto ||
+    "Este mensaje no tiene cuerpo en texto. Cuando conectemos cPanel, aquí aparecerá el contenido del correo."
+
+  const links = extraerLinks(cuerpo)
+
   return (
     <div>
       <p style={styles.kicker}>DETALLE DEL MENSAJE</p>
 
-      <h2 style={{ margin: "10px 0" }}>
-        {mensaje.asunto || "Sin asunto"}
-      </h2>
+      <h2 style={{ margin: "10px 0" }}>{mensaje.asunto || "Sin asunto"}</h2>
 
       <div style={styles.infoGrid}>
         <div>
@@ -417,7 +485,9 @@ function MensajePreview({
 
         <div>
           <span style={styles.label}>Plataforma</span>
-          <strong>{mensaje.plataforma || cliente?.plataforma || "No definida"}</strong>
+          <strong>
+            {mensaje.plataforma || cliente?.plataforma || "No definida"}
+          </strong>
         </div>
 
         <div>
@@ -443,11 +513,28 @@ function MensajePreview({
         </div>
       </div>
 
+      {links.length > 0 && (
+        <div style={styles.linksBox}>
+          <span style={styles.label}>Enlaces detectados</span>
+
+          <div style={styles.linksList}>
+            {links.map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.linkButton}
+              >
+                {obtenerNombreLink(url)}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={styles.bodyBox}>
-        <p>
-          {mensaje.cuerpo_texto ||
-            "Este mensaje no tiene cuerpo en texto. Cuando conectemos cPanel, aquí aparecerá el contenido del correo."}
-        </p>
+        <TextoConLinks texto={cuerpo} />
       </div>
 
       <div style={styles.actions}>
@@ -480,7 +567,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
   )
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
     background:
@@ -677,6 +764,45 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "12px",
     marginBottom: "5px",
   },
+  linksBox: {
+    marginTop: "22px",
+    border: "1px solid rgba(1, 231, 239, 0.18)",
+    background: "rgba(1, 231, 239, 0.06)",
+    borderRadius: "18px",
+    padding: "16px",
+  },
+  linksList: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "10px",
+  },
+  linkButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px solid rgba(1, 231, 239, 0.45)",
+    background: "linear-gradient(135deg, rgba(1, 231, 239, 0.16), rgba(0, 251, 255, 0.08))",
+    color: "#00FBFF",
+    borderRadius: "14px",
+    padding: "11px 14px",
+    fontWeight: 950,
+    textDecoration: "none",
+    boxShadow: "0 0 25px rgba(1, 231, 239, 0.16)",
+  },
+  linkInline: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "4px 4px",
+    border: "1px solid rgba(1, 231, 239, 0.45)",
+    background: "rgba(1, 231, 239, 0.10)",
+    color: "#00FBFF",
+    borderRadius: "12px",
+    padding: "7px 11px",
+    fontWeight: 900,
+    textDecoration: "none",
+  },
   bodyBox: {
     marginTop: "22px",
     border: "1px solid rgba(1, 231, 239, 0.14)",
@@ -686,6 +812,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#ECFFFF",
     lineHeight: 1.7,
     whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
   },
   actions: {
     display: "flex",
