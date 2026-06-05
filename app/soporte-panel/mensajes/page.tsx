@@ -39,22 +39,6 @@ function limpiarUrl(url: string) {
   return url.replace(/[)\].,;]+$/g, "")
 }
 
-function obtenerNombreLink(url: string) {
-  const urlLower = url.toLowerCase()
-
-  if (urlLower.includes("netflix.com")) return "Abrir Netflix"
-  if (urlLower.includes("disney")) return "Abrir Disney+"
-  if (urlLower.includes("primevideo") || urlLower.includes("amazon")) {
-    return "Abrir Prime Video"
-  }
-  if (urlLower.includes("crunchyroll")) return "Abrir Crunchyroll"
-  if (urlLower.includes("youtube")) return "Abrir YouTube"
-  if (urlLower.includes("spotify")) return "Abrir Spotify"
-  if (urlLower.includes("max.com") || urlLower.includes("hbomax")) return "Abrir Max"
-
-  return "Abrir enlace"
-}
-
 function extraerLinks(texto: string) {
   if (!texto) return []
 
@@ -64,40 +48,142 @@ function extraerLinks(texto: string) {
   return Array.from(new Set(encontrados.map((url) => limpiarUrl(url))))
 }
 
-function TextoConLinks({ texto }: { texto: string }) {
-  if (!texto) return null
-
-  const textoNormalizado = texto.replace(/\[(https?:\/\/[^\]]+)\]/gi, "$1")
-  const partes = textoNormalizado.split(/(https?:\/\/[^\s<>"']+)/gi)
+function esLinkSecundario(url: string) {
+  const lower = url.toLowerCase()
 
   return (
-    <>
-      {partes.map((parte, index) => {
-        const esLink = /^https?:\/\//i.test(parte)
-
-        if (!esLink) {
-          return <span key={index}>{parte}</span>
-        }
-
-        const urlLimpia = limpiarUrl(parte)
-        const sobrante = parte.slice(urlLimpia.length)
-
-        return (
-          <span key={index}>
-            <a
-              href={urlLimpia}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={styles.linkInline}
-            >
-              {obtenerNombreLink(urlLimpia)}
-            </a>
-            {sobrante}
-          </span>
-        )
-      })}
-    </>
+    lower.includes("help.netflix") ||
+    lower.includes("help.netflix.com") ||
+    lower.includes("privacy") ||
+    lower.includes("privacidad") ||
+    lower.includes("terms") ||
+    lower.includes("terminos") ||
+    lower.includes("términos") ||
+    lower.includes("contactus") ||
+    lower.includes("contact") ||
+    lower.includes("centro") ||
+    lower.includes("ayuda") ||
+    lower.includes("unsubscribe") ||
+    lower.includes("cancel") ||
+    lower.includes("support")
   )
+}
+
+function obtenerTextoBotonPrincipal(
+  url: string,
+  texto: string,
+  asunto?: string | null,
+  plataforma?: string | null
+) {
+  const base = `${url} ${texto} ${asunto || ""} ${
+    plataforma || ""
+  }`.toLowerCase()
+
+  if (
+    base.includes("crear tu cuenta") ||
+    base.includes("crear cuenta") ||
+    base.includes("epr?code") ||
+    base.includes("signup") ||
+    base.includes("register")
+  ) {
+    return "Crear cuenta"
+  }
+
+  if (
+    base.includes("olvid") ||
+    base.includes("contraseña") ||
+    base.includes("password") ||
+    base.includes("reset") ||
+    base.includes("loginhelp") ||
+    base.includes("recover")
+  ) {
+    return "Restablecer contraseña"
+  }
+
+  if (
+    base.includes("código") ||
+    base.includes("codigo") ||
+    base.includes("code=") ||
+    base.includes("verificar") ||
+    base.includes("verify")
+  ) {
+    return "Abrir código"
+  }
+
+  if (base.includes("netflix")) return "Abrir Netflix"
+  if (base.includes("disney")) return "Abrir Disney+"
+  if (base.includes("prime") || base.includes("amazon")) {
+    return "Abrir Prime Video"
+  }
+  if (base.includes("crunchyroll") || base.includes("crunchy")) {
+    return "Abrir Crunchyroll"
+  }
+  if (base.includes("youtube")) return "Abrir YouTube"
+  if (base.includes("spotify")) return "Abrir Spotify"
+  if (base.includes("max.com") || base.includes("hbo")) return "Abrir Max"
+  if (base.includes("vix")) return "Abrir Vix"
+
+  return "Abrir enlace principal"
+}
+
+function extraerLinkPrincipal(
+  texto: string,
+  asunto?: string | null,
+  plataforma?: string | null
+) {
+  const links = extraerLinks(texto)
+
+  if (links.length === 0) return null
+
+  const linksUtiles = links.filter((url) => !esLinkSecundario(url))
+
+  const principal =
+    linksUtiles.find((url) => {
+      const lower = url.toLowerCase()
+
+      return (
+        lower.includes("epr?code") ||
+        lower.includes("code=") ||
+        lower.includes("password") ||
+        lower.includes("reset") ||
+        lower.includes("loginhelp") ||
+        lower.includes("verify") ||
+        lower.includes("signup") ||
+        lower.includes("register")
+      )
+    }) ||
+    linksUtiles.find((url) => {
+      const lower = url.toLowerCase()
+
+      return (
+        lower.includes("netflix") ||
+        lower.includes("disney") ||
+        lower.includes("primevideo") ||
+        lower.includes("amazon") ||
+        lower.includes("crunchyroll") ||
+        lower.includes("youtube") ||
+        lower.includes("spotify") ||
+        lower.includes("max.com") ||
+        lower.includes("vix")
+      )
+    }) ||
+    linksUtiles[0] ||
+    links[0]
+
+  return {
+    url: principal,
+    texto: obtenerTextoBotonPrincipal(principal, texto, asunto, plataforma),
+  }
+}
+
+function limpiarCuerpoParaVista(texto: string) {
+  if (!texto) return ""
+
+  return texto
+    .replace(/\[(https?:\/\/[^\]]+)\]/gi, "")
+    .replace(/https?:\/\/[^\s<>"']+/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
 }
 
 export default function SoporteMensajesPage() {
@@ -469,7 +555,13 @@ function MensajePreview({
     mensaje.cuerpo_texto ||
     "Este mensaje no tiene cuerpo en texto. Cuando conectemos cPanel, aquí aparecerá el contenido del correo."
 
-  const links = extraerLinks(cuerpo)
+  const linkPrincipal = extraerLinkPrincipal(
+    cuerpo,
+    mensaje.asunto,
+    mensaje.plataforma || cliente?.plataforma
+  )
+
+  const cuerpoLimpio = limpiarCuerpoParaVista(cuerpo)
 
   return (
     <div>
@@ -513,29 +605,24 @@ function MensajePreview({
         </div>
       </div>
 
-      {links.length > 0 && (
+      {linkPrincipal && (
         <div style={styles.linksBox}>
-          <span style={styles.label}>Enlaces detectados</span>
+          <span style={styles.label}>Acción principal</span>
 
           <div style={styles.linksList}>
-            {links.map((url) => (
-              <a
-                key={url}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={styles.linkButton}
-              >
-                {obtenerNombreLink(url)}
-              </a>
-            ))}
+            <a
+              href={linkPrincipal.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.linkButton}
+            >
+              {linkPrincipal.texto}
+            </a>
           </div>
         </div>
       )}
 
-      <div style={styles.bodyBox}>
-        <TextoConLinks texto={cuerpo} />
-      </div>
+      <div style={styles.bodyBox}>{cuerpoLimpio}</div>
 
       <div style={styles.actions}>
         <button
@@ -782,26 +869,14 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     border: "1px solid rgba(1, 231, 239, 0.45)",
-    background: "linear-gradient(135deg, rgba(1, 231, 239, 0.16), rgba(0, 251, 255, 0.08))",
+    background:
+      "linear-gradient(135deg, rgba(1, 231, 239, 0.16), rgba(0, 251, 255, 0.08))",
     color: "#00FBFF",
     borderRadius: "14px",
     padding: "11px 14px",
     fontWeight: 950,
     textDecoration: "none",
     boxShadow: "0 0 25px rgba(1, 231, 239, 0.16)",
-  },
-  linkInline: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "4px 4px",
-    border: "1px solid rgba(1, 231, 239, 0.45)",
-    background: "rgba(1, 231, 239, 0.10)",
-    color: "#00FBFF",
-    borderRadius: "12px",
-    padding: "7px 11px",
-    fontWeight: 900,
-    textDecoration: "none",
   },
   bodyBox: {
     marginTop: "22px",
