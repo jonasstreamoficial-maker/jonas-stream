@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -12,6 +12,8 @@ type UsuarioAdmin = {
   estado: string
 }
 
+type EstadoCuenta = "activo" | "vencido" | "suspendido" | "bloqueado"
+
 type SoporteCliente = {
   id: string
   nombre: string
@@ -19,9 +21,10 @@ type SoporteCliente = {
   correo_cliente: string | null
   plataforma: string
   correo_asignado: string
+  pin_acceso: string | null
   fecha_inicio: string
   fecha_vencimiento: string
-  estado: "activo" | "vencido" | "suspendido" | "bloqueado"
+  estado: EstadoCuenta
   telegram_chat_id: string | null
   notas: string | null
   creado_por: string | null
@@ -29,12 +32,28 @@ type SoporteCliente = {
   updated_at: string
 }
 
+type SoporteMensaje = {
+  id: string
+  correo_destino: string
+  plataforma: string | null
+  remitente: string | null
+  asunto: string | null
+  fecha_mensaje: string | null
+  created_at: string | null
+}
+
+const ENLACE_CODIGOS = "https://jonasstream.xyz/codigos"
+
 const hoyISO = () => new Date().toISOString().slice(0, 10)
 
 const sumarDiasISO = (dias: number, base = new Date()) => {
   const fecha = new Date(base)
   fecha.setDate(fecha.getDate() + dias)
   return fecha.toISOString().slice(0, 10)
+}
+
+const generarPin = () => {
+  return String(Math.floor(100000 + Math.random() * 900000))
 }
 
 const diasRestantes = (fecha: string) => {
@@ -45,31 +64,33 @@ const diasRestantes = (fecha: string) => {
   return Math.ceil((fin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-const formInicial = {
+const crearFormInicial = () => ({
   nombre: "",
   celular: "",
   correo_cliente: "",
   plataforma: "Netflix",
   correo_asignado: "",
+  pin_acceso: generarPin(),
   fecha_inicio: hoyISO(),
   fecha_vencimiento: sumarDiasISO(30),
-  estado: "activo" as SoporteCliente["estado"],
+  estado: "activo" as EstadoCuenta,
   telegram_chat_id: "",
   notas: "",
-}
+})
 
 export default function SoporteDashboardPage() {
   const router = useRouter()
 
   const [verificando, setVerificando] = useState(true)
   const [usuario, setUsuario] = useState<UsuarioAdmin | null>(null)
-  const [clientes, setClientes] = useState<SoporteCliente[]>([])
-  const [cargandoClientes, setCargandoClientes] = useState(false)
+  const [cuentas, setCuentas] = useState<SoporteCliente[]>([])
+  const [mensajesRecientes, setMensajesRecientes] = useState<SoporteMensaje[]>([])
+  const [cargandoCuentas, setCargandoCuentas] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [busqueda, setBusqueda] = useState("")
   const [filtroEstado, setFiltroEstado] = useState("todos")
   const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [form, setForm] = useState(formInicial)
+  const [form, setForm] = useState(crearFormInicial)
   const [mensaje, setMensaje] = useState("")
 
   useEffect(() => {
@@ -103,28 +124,41 @@ export default function SoporteDashboardPage() {
 
       setUsuario(usuarioDB as UsuarioAdmin)
       setVerificando(false)
-      await cargarClientes()
+      await cargarDatos()
     }
 
     validarAcceso()
   }, [router])
 
-  const cargarClientes = async () => {
-    setCargandoClientes(true)
+  const cargarDatos = async () => {
+    setCargandoCuentas(true)
 
-    const { data, error } = await supabase
-      .from("soporte_clientes")
-      .select("*")
-      .order("created_at", { ascending: false })
+    const [cuentasRes, mensajesRes] = await Promise.all([
+      supabase
+        .from("soporte_clientes")
+        .select("*")
+        .order("created_at", { ascending: false }),
 
-    if (error) {
-      setMensaje("No se pudieron cargar los clientes.")
-      setCargandoClientes(false)
+      supabase
+        .from("soporte_mensajes")
+        .select("id,correo_destino,plataforma,remitente,asunto,fecha_mensaje,created_at")
+        .order("fecha_mensaje", { ascending: false })
+        .limit(2000),
+    ])
+
+    if (cuentasRes.error) {
+      setMensaje("No se pudieron cargar los correos registrados.")
+      setCargandoCuentas(false)
       return
     }
 
-    setClientes((data || []) as SoporteCliente[])
-    setCargandoClientes(false)
+    if (mensajesRes.error) {
+      setMensaje("Se cargaron los correos, pero no se pudieron cargar los mensajes recientes.")
+    }
+
+    setCuentas((cuentasRes.data || []) as SoporteCliente[])
+    setMensajesRecientes((mensajesRes.data || []) as SoporteMensaje[])
+    setCargandoCuentas(false)
   }
 
   const cerrarSesion = async () => {
@@ -133,27 +167,35 @@ export default function SoporteDashboardPage() {
   }
 
   const limpiarFormulario = () => {
-    setForm(formInicial)
+    setForm(crearFormInicial())
     setEditandoId(null)
     setMensaje("")
   }
 
-  const guardarCliente = async (e: FormEvent<HTMLFormElement>) => {
+  const guardarCuenta = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setMensaje("")
 
-    if (!form.nombre.trim()) {
-      setMensaje("Completa el nombre del cliente.")
-      return
-    }
+    const correoAsignado = form.correo_asignado.trim().toLowerCase()
+    const pin = form.pin_acceso.trim()
 
     if (!form.plataforma.trim()) {
-      setMensaje("Selecciona o escribe la plataforma.")
+      setMensaje("Selecciona la plataforma.")
       return
     }
 
-    if (!form.correo_asignado.trim()) {
+    if (!correoAsignado) {
       setMensaje("Completa el correo asignado.")
+      return
+    }
+
+    if (!correoAsignado.includes("@jonasstream.xyz")) {
+      setMensaje("El correo asignado debe ser del dominio jonasstream.xyz.")
+      return
+    }
+
+    if (!pin || pin.length < 4) {
+      setMensaje("Coloca un PIN de acceso válido.")
       return
     }
 
@@ -165,11 +207,12 @@ export default function SoporteDashboardPage() {
     setGuardando(true)
 
     const payload = {
-      nombre: form.nombre.trim(),
+      nombre: form.nombre.trim() || correoAsignado,
       celular: form.celular.trim() || null,
       correo_cliente: form.correo_cliente.trim() || null,
       plataforma: form.plataforma.trim(),
-      correo_asignado: form.correo_asignado.trim().toLowerCase(),
+      correo_asignado: correoAsignado,
+      pin_acceso: pin,
       fecha_inicio: form.fecha_inicio,
       fecha_vencimiento: form.fecha_vencimiento,
       estado: form.estado,
@@ -186,68 +229,125 @@ export default function SoporteDashboardPage() {
         .eq("id", editandoId)
 
       if (error) {
-        setMensaje("No se pudo actualizar el cliente.")
+        setMensaje("No se pudo actualizar el correo. Revisa si el PIN existe en Supabase.")
         setGuardando(false)
         return
       }
 
-      setMensaje("Cliente actualizado correctamente.")
+      setMensaje("Correo actualizado correctamente.")
     } else {
       const { error } = await supabase.from("soporte_clientes").insert([payload])
 
       if (error) {
-        setMensaje("No se pudo registrar el cliente.")
+        setMensaje("No se pudo registrar el correo. Revisa si ya existe o si falta la columna pin_acceso.")
         setGuardando(false)
         return
       }
 
-      setMensaje("Cliente registrado correctamente.")
+      setMensaje("Correo registrado correctamente.")
     }
 
     setGuardando(false)
     limpiarFormulario()
-    await cargarClientes()
+    await cargarDatos()
   }
 
-  const editarCliente = (cliente: SoporteCliente) => {
-    setEditandoId(cliente.id)
+  const editarCuenta = (cuenta: SoporteCliente) => {
+    setEditandoId(cuenta.id)
     setForm({
-      nombre: cliente.nombre || "",
-      celular: cliente.celular || "",
-      correo_cliente: cliente.correo_cliente || "",
-      plataforma: cliente.plataforma || "Netflix",
-      correo_asignado: cliente.correo_asignado || "",
-      fecha_inicio: cliente.fecha_inicio || hoyISO(),
-      fecha_vencimiento: cliente.fecha_vencimiento || sumarDiasISO(30),
-      estado: cliente.estado || "activo",
-      telegram_chat_id: cliente.telegram_chat_id || "",
-      notas: cliente.notas || "",
+      nombre: cuenta.nombre || "",
+      celular: cuenta.celular || "",
+      correo_cliente: cuenta.correo_cliente || "",
+      plataforma: cuenta.plataforma || "Netflix",
+      correo_asignado: cuenta.correo_asignado || "",
+      pin_acceso: cuenta.pin_acceso || "",
+      fecha_inicio: cuenta.fecha_inicio || hoyISO(),
+      fecha_vencimiento: cuenta.fecha_vencimiento || sumarDiasISO(30),
+      estado: cuenta.estado || "activo",
+      telegram_chat_id: cuenta.telegram_chat_id || "",
+      notas: cuenta.notas || "",
     })
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const cambiarEstado = async (
-    cliente: SoporteCliente,
-    nuevoEstado: SoporteCliente["estado"]
-  ) => {
+  const cambiarEstado = async (cuenta: SoporteCliente, nuevoEstado: EstadoCuenta) => {
     const { error } = await supabase
       .from("soporte_clientes")
       .update({
         estado: nuevoEstado,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", cliente.id)
+      .eq("id", cuenta.id)
 
     if (error) {
       setMensaje("No se pudo cambiar el estado.")
       return
     }
 
-    await cargarClientes()
+    setMensaje(`Estado actualizado a ${nuevoEstado}.`)
+    await cargarDatos()
   }
 
-  const renovarCliente = async (cliente: SoporteCliente) => {
-    const fechaActual = new Date(`${cliente.fecha_vencimiento}T00:00:00`)
+  const generarNuevoPin = async (cuenta: SoporteCliente) => {
+    const nuevoPin = generarPin()
+
+    const confirmar = window.confirm(
+      `¿Generar nuevo PIN para ${cuenta.correo_asignado}?\n\nNuevo PIN: ${nuevoPin}`
+    )
+
+    if (!confirmar) return
+
+    const { error } = await supabase
+      .from("soporte_clientes")
+      .update({
+        pin_acceso: nuevoPin,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", cuenta.id)
+
+    if (error) {
+      setMensaje("No se pudo generar el nuevo PIN.")
+      return
+    }
+
+    setMensaje(`Nuevo PIN generado para ${cuenta.correo_asignado}: ${nuevoPin}`)
+    await cargarDatos()
+  }
+
+  const editarPinRapido = async (cuenta: SoporteCliente) => {
+    const nuevoPin = window.prompt(
+      `Nuevo PIN para ${cuenta.correo_asignado}:`,
+      cuenta.pin_acceso || ""
+    )
+
+    if (nuevoPin === null) return
+
+    const pinLimpio = nuevoPin.trim()
+
+    if (!pinLimpio || pinLimpio.length < 4) {
+      setMensaje("El PIN debe tener al menos 4 caracteres.")
+      return
+    }
+
+    const { error } = await supabase
+      .from("soporte_clientes")
+      .update({
+        pin_acceso: pinLimpio,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", cuenta.id)
+
+    if (error) {
+      setMensaje("No se pudo actualizar el PIN.")
+      return
+    }
+
+    setMensaje(`PIN actualizado para ${cuenta.correo_asignado}.`)
+    await cargarDatos()
+  }
+
+  const renovarCuenta = async (cuenta: SoporteCliente) => {
+    const fechaActual = new Date(`${cuenta.fecha_vencimiento}T00:00:00`)
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
 
@@ -261,19 +361,20 @@ export default function SoporteDashboardPage() {
         fecha_vencimiento: nuevaFecha,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", cliente.id)
+      .eq("id", cuenta.id)
 
     if (error) {
-      setMensaje("No se pudo renovar el cliente.")
+      setMensaje("No se pudo renovar la cuenta.")
       return
     }
 
-    await cargarClientes()
+    setMensaje(`Cuenta renovada hasta ${nuevaFecha}.`)
+    await cargarDatos()
   }
 
-  const eliminarCliente = async (cliente: SoporteCliente) => {
+  const eliminarCuenta = async (cuenta: SoporteCliente) => {
     const confirmar = window.confirm(
-      `¿Eliminar a ${cliente.nombre}? Esta acción no se puede deshacer.`
+      `¿Eliminar ${cuenta.correo_asignado}? Esta acción no se puede deshacer.`
     )
 
     if (!confirmar) return
@@ -281,30 +382,30 @@ export default function SoporteDashboardPage() {
     const { error } = await supabase
       .from("soporte_clientes")
       .delete()
-      .eq("id", cliente.id)
+      .eq("id", cuenta.id)
 
     if (error) {
-      setMensaje("No se pudo eliminar el cliente.")
+      setMensaje("No se pudo eliminar el correo.")
       return
     }
 
-    await cargarClientes()
+    setMensaje("Correo eliminado correctamente.")
+    await cargarDatos()
   }
 
   const actualizarVencidos = async () => {
     const hoy = hoyISO()
 
-    const vencidos = clientes.filter(
-      (cliente) =>
-        cliente.estado === "activo" && cliente.fecha_vencimiento < hoy
+    const vencidos = cuentas.filter(
+      (cuenta) => cuenta.estado === "activo" && cuenta.fecha_vencimiento < hoy
     )
 
     if (vencidos.length === 0) {
-      setMensaje("No hay clientes vencidos por actualizar.")
+      setMensaje("No hay correos vencidos por actualizar.")
       return
     }
 
-    const ids = vencidos.map((cliente) => cliente.id)
+    const ids = vencidos.map((cuenta) => cuenta.id)
 
     const { error } = await supabase
       .from("soporte_clientes")
@@ -319,62 +420,114 @@ export default function SoporteDashboardPage() {
       return
     }
 
-    setMensaje(`${vencidos.length} cliente(s) marcados como vencidos.`)
-    await cargarClientes()
+    setMensaje(`${vencidos.length} correo(s) marcados como vencidos.`)
+    await cargarDatos()
   }
 
-  const clientesFiltrados = useMemo(() => {
+  const copiarAcceso = async (cuenta: SoporteCliente) => {
+    const texto = `Acceso a códigos JONAS STREAM
+
+Ingresa aquí:
+${ENLACE_CODIGOS}
+
+Correo asignado:
+${cuenta.correo_asignado}
+
+PIN:
+${cuenta.pin_acceso || "SIN PIN"}
+
+Tu entretenimiento, sin complicaciones.`
+
+    try {
+      await navigator.clipboard.writeText(texto)
+      setMensaje(`Acceso copiado para ${cuenta.correo_asignado}.`)
+    } catch {
+      setMensaje("No se pudo copiar automáticamente. Copia el correo y PIN manualmente.")
+    }
+  }
+
+  const abrirMensajes = (cuenta: SoporteCliente) => {
+    router.push(`/soporte-panel/mensajes?correo=${encodeURIComponent(cuenta.correo_asignado)}`)
+  }
+
+  const resumenMensajes = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        total: number
+        ultimoAsunto: string | null
+        ultimaFecha: string | null
+        remitente: string | null
+      }
+    >()
+
+    for (const mensaje of mensajesRecientes) {
+      const correo = String(mensaje.correo_destino || "").toLowerCase()
+      if (!correo) continue
+
+      const actual = map.get(correo)
+
+      if (!actual) {
+        map.set(correo, {
+          total: 1,
+          ultimoAsunto: mensaje.asunto || "Sin asunto",
+          ultimaFecha: mensaje.fecha_mensaje || mensaje.created_at || null,
+          remitente: mensaje.remitente || null,
+        })
+      } else {
+        actual.total += 1
+      }
+    }
+
+    return map
+  }, [mensajesRecientes])
+
+  const cuentasFiltradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
 
-    return clientes.filter((cliente) => {
+    return cuentas.filter((cuenta) => {
       const texto = [
-        cliente.nombre,
-        cliente.celular,
-        cliente.correo_cliente,
-        cliente.plataforma,
-        cliente.correo_asignado,
-        cliente.estado,
+        cuenta.nombre,
+        cuenta.celular,
+        cuenta.correo_cliente,
+        cuenta.plataforma,
+        cuenta.correo_asignado,
+        cuenta.pin_acceso,
+        cuenta.estado,
       ]
         .join(" ")
         .toLowerCase()
 
       const coincideBusqueda = !q || texto.includes(q)
-      const coincideEstado =
-        filtroEstado === "todos" || cliente.estado === filtroEstado
+      const coincideEstado = filtroEstado === "todos" || cuenta.estado === filtroEstado
 
       return coincideBusqueda && coincideEstado
     })
-  }, [clientes, busqueda, filtroEstado])
+  }, [cuentas, busqueda, filtroEstado])
 
   const resumen = useMemo(() => {
-    const activos = clientes.filter(
-      (cliente) =>
-        cliente.estado === "activo" &&
-        diasRestantes(cliente.fecha_vencimiento) >= 0
+    const activos = cuentas.filter(
+      (cuenta) =>
+        cuenta.estado === "activo" && diasRestantes(cuenta.fecha_vencimiento) >= 0
     ).length
 
-    const vencidos = clientes.filter(
-      (cliente) =>
-        cliente.estado === "vencido" ||
-        diasRestantes(cliente.fecha_vencimiento) < 0
+    const vencidos = cuentas.filter(
+      (cuenta) =>
+        cuenta.estado === "vencido" || diasRestantes(cuenta.fecha_vencimiento) < 0
     ).length
 
-    const suspendidos = clientes.filter(
-      (cliente) => cliente.estado === "suspendido"
-    ).length
+    const suspendidos = cuentas.filter((cuenta) => cuenta.estado === "suspendido").length
 
-    const bloqueados = clientes.filter(
-      (cliente) => cliente.estado === "bloqueado"
-    ).length
+    const sinPin = cuentas.filter((cuenta) => !cuenta.pin_acceso).length
 
     return {
       activos,
       vencidos,
       suspendidos,
-      bloqueados,
-      total: clientes.length,
+      sinPin,
+      total: cuentas.length,
     }
-  }, [clientes])
+  }, [cuentas])
 
   if (verificando) {
     return (
@@ -394,10 +547,10 @@ export default function SoporteDashboardPage() {
         <header style={stylesPage.header}>
           <div>
             <p style={stylesPage.kicker}>JONAS STREAM · SOPORTE PANEL</p>
-            <h1 style={stylesPage.title}>Dashboard de soporte</h1>
+            <h1 style={stylesPage.title}>Control de correos y PIN</h1>
             <p style={stylesPage.description}>
-              Administración de clientes, correos asignados, renovaciones,
-              vencimientos y acceso operativo del soporte.
+              Administra correos asignados, PIN de acceso y estado de consulta para
+              que tus clientes revisen sus códigos desde /codigos.
             </p>
           </div>
 
@@ -413,22 +566,22 @@ export default function SoporteDashboardPage() {
         </header>
 
         <div style={stylesPage.statsGrid}>
-          <StatCard label="Clientes activos" value={resumen.activos} />
-          <StatCard label="Clientes vencidos" value={resumen.vencidos} />
+          <StatCard label="Correos activos" value={resumen.activos} />
+          <StatCard label="Correos vencidos" value={resumen.vencidos} />
           <StatCard label="Suspendidos" value={resumen.suspendidos} />
-          <StatCard label="Total clientes" value={resumen.total} />
+          <StatCard label="Sin PIN" value={resumen.sinPin} />
         </div>
 
         <section style={stylesPage.panel}>
           <div style={stylesPage.panelHeader}>
             <div>
-              <p style={stylesPage.kicker}>GESTIÓN DE CLIENTES</p>
+              <p style={stylesPage.kicker}>GESTIÓN DE ACCESOS</p>
               <h2 style={{ margin: "10px 0" }}>
-                {editandoId ? "Editar cliente" : "Registrar cliente"}
+                {editandoId ? "Editar correo asignado" : "Registrar correo asignado"}
               </h2>
               <p style={stylesPage.muted}>
-                Registra el cliente, la plataforma, el correo asignado y la fecha
-                de vencimiento.
+                Registra el correo, la plataforma y el PIN que usará el cliente para
+                entrar a la página pública de códigos.
               </p>
             </div>
 
@@ -439,28 +592,12 @@ export default function SoporteDashboardPage() {
 
           {mensaje && <div style={stylesPage.notice}>{mensaje}</div>}
 
-          <form onSubmit={guardarCliente} style={stylesPage.formGrid}>
+          <form onSubmit={guardarCuenta} style={stylesPage.formGrid}>
             <input
               style={stylesPage.input}
-              placeholder="Nombre del cliente"
+              placeholder="Etiqueta o cliente, opcional"
               value={form.nombre}
               onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-            />
-
-            <input
-              style={stylesPage.input}
-              placeholder="Celular / WhatsApp"
-              value={form.celular}
-              onChange={(e) => setForm({ ...form, celular: e.target.value })}
-            />
-
-            <input
-              style={stylesPage.input}
-              placeholder="Correo personal del cliente"
-              value={form.correo_cliente}
-              onChange={(e) =>
-                setForm({ ...form, correo_cliente: e.target.value })
-              }
             />
 
             <select
@@ -481,29 +618,16 @@ export default function SoporteDashboardPage() {
 
             <input
               style={stylesPage.input}
-              placeholder="Correo asignado: cliente01@jonasstream.xyz"
+              placeholder="Correo asignado: netflix001@jonasstream.xyz"
               value={form.correo_asignado}
-              onChange={(e) =>
-                setForm({ ...form, correo_asignado: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, correo_asignado: e.target.value })}
             />
 
             <input
               style={stylesPage.input}
-              type="date"
-              value={form.fecha_inicio}
-              onChange={(e) =>
-                setForm({ ...form, fecha_inicio: e.target.value })
-              }
-            />
-
-            <input
-              style={stylesPage.input}
-              type="date"
-              value={form.fecha_vencimiento}
-              onChange={(e) =>
-                setForm({ ...form, fecha_vencimiento: e.target.value })
-              }
+              placeholder="PIN de acceso"
+              value={form.pin_acceso}
+              onChange={(e) => setForm({ ...form, pin_acceso: e.target.value })}
             />
 
             <select
@@ -512,7 +636,7 @@ export default function SoporteDashboardPage() {
               onChange={(e) =>
                 setForm({
                   ...form,
-                  estado: e.target.value as SoporteCliente["estado"],
+                  estado: e.target.value as EstadoCuenta,
                 })
               }
             >
@@ -524,15 +648,41 @@ export default function SoporteDashboardPage() {
 
             <input
               style={stylesPage.input}
+              type="date"
+              value={form.fecha_vencimiento}
+              onChange={(e) => setForm({ ...form, fecha_vencimiento: e.target.value })}
+            />
+
+            <input
+              style={stylesPage.input}
+              placeholder="WhatsApp del cliente, opcional"
+              value={form.celular}
+              onChange={(e) => setForm({ ...form, celular: e.target.value })}
+            />
+
+            <input
+              style={stylesPage.input}
+              placeholder="Correo personal del cliente, opcional"
+              value={form.correo_cliente}
+              onChange={(e) => setForm({ ...form, correo_cliente: e.target.value })}
+            />
+
+            <input
+              style={stylesPage.input}
+              type="date"
+              value={form.fecha_inicio}
+              onChange={(e) => setForm({ ...form, fecha_inicio: e.target.value })}
+            />
+
+            <input
+              style={stylesPage.input}
               placeholder="Telegram Chat ID, opcional"
               value={form.telegram_chat_id}
-              onChange={(e) =>
-                setForm({ ...form, telegram_chat_id: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value })}
             />
 
             <textarea
-              style={{ ...stylesPage.input, minHeight: "92px", gridColumn: "1 / -1" }}
+              style={{ ...stylesPage.input, minHeight: "90px", gridColumn: "1 / -1" }}
               placeholder="Notas internas"
               value={form.notas}
               onChange={(e) => setForm({ ...form, notas: e.target.value })}
@@ -543,8 +693,16 @@ export default function SoporteDashboardPage() {
                 {guardando
                   ? "Guardando..."
                   : editandoId
-                  ? "Actualizar cliente"
-                  : "Registrar cliente"}
+                  ? "Actualizar correo"
+                  : "Registrar correo"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, pin_acceso: generarPin() })}
+                style={stylesPage.buttonSecondary}
+              >
+                Generar PIN
               </button>
 
               {editandoId && (
@@ -559,18 +717,23 @@ export default function SoporteDashboardPage() {
         <section style={stylesPage.panel}>
           <div style={stylesPage.panelHeader}>
             <div>
-              <p style={stylesPage.kicker}>CLIENTES REGISTRADOS</p>
-              <h2 style={{ margin: "10px 0" }}>Lista de clientes</h2>
+              <p style={stylesPage.kicker}>CORREOS REGISTRADOS</p>
+              <h2 style={{ margin: "10px 0" }}>Lista de accesos</h2>
               <p style={stylesPage.muted}>
-                Filtra por nombre, correo, plataforma o estado.
+                Desde aquí cambias el PIN, activas o suspendes el acceso público
+                y revisas los mensajes recibidos.
               </p>
             </div>
+
+            <button type="button" onClick={cargarDatos} style={stylesPage.buttonSecondary}>
+              Actualizar
+            </button>
           </div>
 
           <div style={stylesPage.filters}>
             <input
               style={stylesPage.input}
-              placeholder="Buscar cliente, correo o plataforma..."
+              placeholder="Buscar por correo, plataforma, PIN, cliente o estado..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
             />
@@ -588,50 +751,61 @@ export default function SoporteDashboardPage() {
             </select>
           </div>
 
-          {cargandoClientes ? (
-            <p style={stylesPage.muted}>Cargando clientes...</p>
-          ) : clientesFiltrados.length === 0 ? (
-            <p style={stylesPage.muted}>No hay clientes registrados.</p>
+          {cargandoCuentas ? (
+            <p style={stylesPage.muted}>Cargando correos...</p>
+          ) : cuentasFiltradas.length === 0 ? (
+            <p style={stylesPage.muted}>No hay correos registrados.</p>
           ) : (
             <div style={stylesPage.tableWrap}>
               <table style={stylesPage.table}>
                 <thead>
                   <tr>
-                    <th style={stylesPage.th}>Cliente</th>
+                    <th style={stylesPage.th}>Correo</th>
                     <th style={stylesPage.th}>Plataforma</th>
-                    <th style={stylesPage.th}>Correo asignado</th>
+                    <th style={stylesPage.th}>PIN</th>
                     <th style={stylesPage.th}>Vence</th>
                     <th style={stylesPage.th}>Estado</th>
+                    <th style={stylesPage.th}>Mensajes</th>
                     <th style={stylesPage.th}>Acciones</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {clientesFiltrados.map((cliente) => {
-                    const dias = diasRestantes(cliente.fecha_vencimiento)
+                  {cuentasFiltradas.map((cuenta) => {
+                    const dias = diasRestantes(cuenta.fecha_vencimiento)
+                    const resumenCorreo = resumenMensajes.get(
+                      cuenta.correo_asignado.toLowerCase()
+                    )
 
                     return (
-                      <tr key={cliente.id}>
+                      <tr key={cuenta.id}>
                         <td style={stylesPage.td}>
-                          <strong>{cliente.nombre}</strong>
+                          <strong>{cuenta.correo_asignado}</strong>
                           <span style={stylesPage.smallText}>
-                            {cliente.celular || "Sin celular"}
+                            {cuenta.nombre || "Sin etiqueta"}
                           </span>
+                          {cuenta.celular && (
+                            <span style={stylesPage.smallText}>WhatsApp: {cuenta.celular}</span>
+                          )}
                         </td>
 
-                        <td style={stylesPage.td}>{cliente.plataforma}</td>
-
                         <td style={stylesPage.td}>
-                          <strong>{cliente.correo_asignado}</strong>
-                          {cliente.correo_cliente && (
+                          <strong>{cuenta.plataforma}</strong>
+                          {cuenta.correo_cliente && (
                             <span style={stylesPage.smallText}>
-                              Cliente: {cliente.correo_cliente}
+                              Cliente: {cuenta.correo_cliente}
                             </span>
                           )}
                         </td>
 
                         <td style={stylesPage.td}>
-                          <strong>{cliente.fecha_vencimiento}</strong>
+                          <strong style={stylesPage.pinText}>
+                            {cuenta.pin_acceso || "SIN PIN"}
+                          </strong>
+                        </td>
+
+                        <td style={stylesPage.td}>
+                          <strong>{cuenta.fecha_vencimiento}</strong>
                           <span style={stylesPage.smallText}>
                             {dias < 0
                               ? `Vencido hace ${Math.abs(dias)} día(s)`
@@ -640,46 +814,92 @@ export default function SoporteDashboardPage() {
                         </td>
 
                         <td style={stylesPage.td}>
-                          <EstadoBadge estado={cliente.estado} dias={dias} />
+                          <EstadoBadge estado={cuenta.estado} dias={dias} />
+                        </td>
+
+                        <td style={stylesPage.td}>
+                          <strong>{resumenCorreo?.total || 0}</strong>
+                          <span style={stylesPage.smallText}>
+                            {resumenCorreo?.ultimoAsunto || "Sin mensajes recientes"}
+                          </span>
+                          {resumenCorreo?.ultimaFecha && (
+                            <span style={stylesPage.smallText}>
+                              {new Date(resumenCorreo.ultimaFecha).toLocaleString("es-PE")}
+                            </span>
+                          )}
                         </td>
 
                         <td style={stylesPage.td}>
                           <div style={stylesPage.actions}>
                             <button
                               type="button"
-                              onClick={() => renovarCliente(cliente)}
+                              onClick={() => copiarAcceso(cuenta)}
                               style={stylesPage.buttonMini}
                             >
-                              Renovar +30
+                              Copiar acceso
                             </button>
 
                             <button
                               type="button"
-                              onClick={() => editarCliente(cliente)}
+                              onClick={() => editarPinRapido(cuenta)}
+                              style={stylesPage.buttonMiniGhost}
+                            >
+                              Editar PIN
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => generarNuevoPin(cuenta)}
+                              style={stylesPage.buttonMiniGhost}
+                            >
+                              Nuevo PIN
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => abrirMensajes(cuenta)}
+                              style={stylesPage.buttonMiniGhost}
+                            >
+                              Ver mensajes
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => renovarCuenta(cuenta)}
+                              style={stylesPage.buttonMiniGhost}
+                            >
+                              +30 días
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => editarCuenta(cuenta)}
                               style={stylesPage.buttonMiniGhost}
                             >
                               Editar
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => cambiarEstado(cliente, "suspendido")}
-                              style={stylesPage.buttonMiniGhost}
-                            >
-                              Suspender
-                            </button>
+                            {cuenta.estado === "activo" ? (
+                              <button
+                                type="button"
+                                onClick={() => cambiarEstado(cuenta, "suspendido")}
+                                style={stylesPage.buttonWarning}
+                              >
+                                Suspender
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => cambiarEstado(cuenta, "activo")}
+                                style={stylesPage.buttonMiniGhost}
+                              >
+                                Activar
+                              </button>
+                            )}
 
                             <button
                               type="button"
-                              onClick={() => cambiarEstado(cliente, "activo")}
-                              style={stylesPage.buttonMiniGhost}
-                            >
-                              Activar
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => eliminarCliente(cliente)}
+                              onClick={() => eliminarCuenta(cuenta)}
                               style={stylesPage.buttonDanger}
                             >
                               Eliminar
@@ -708,13 +928,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
   )
 }
 
-function EstadoBadge({
-  estado,
-  dias,
-}: {
-  estado: SoporteCliente["estado"]
-  dias: number
-}) {
+function EstadoBadge({ estado, dias }: { estado: EstadoCuenta; dias: number }) {
   const vencidoPorFecha = dias < 0
 
   const color =
@@ -744,7 +958,7 @@ function EstadoBadge({
   )
 }
 
-const stylesPage: Record<string, React.CSSProperties> = {
+const stylesPage: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
     background:
@@ -772,7 +986,7 @@ const stylesPage: Record<string, React.CSSProperties> = {
     textAlign: "center",
   },
   container: {
-    maxWidth: "1280px",
+    maxWidth: "1380px",
     margin: "0 auto",
   },
   header: {
@@ -796,7 +1010,7 @@ const stylesPage: Record<string, React.CSSProperties> = {
   },
   description: {
     color: "#9BC8CB",
-    maxWidth: "680px",
+    maxWidth: "760px",
     lineHeight: 1.7,
     margin: 0,
   },
@@ -928,7 +1142,7 @@ const stylesPage: Record<string, React.CSSProperties> = {
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: "1000px",
+    minWidth: "1180px",
   },
   th: {
     color: "#01E7EF",
@@ -944,10 +1158,16 @@ const stylesPage: Record<string, React.CSSProperties> = {
     color: "#ECFFFF",
     verticalAlign: "top",
   },
+  pinText: {
+    color: "#00FBFF",
+    letterSpacing: "0.12em",
+    fontSize: "16px",
+  },
   actions: {
     display: "flex",
     gap: "8px",
     flexWrap: "wrap",
+    maxWidth: "360px",
   },
   buttonMini: {
     border: "none",
@@ -963,6 +1183,16 @@ const stylesPage: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(1, 231, 239, 0.25)",
     background: "rgba(1, 231, 239, 0.08)",
     color: "#01E7EF",
+    borderRadius: "999px",
+    padding: "8px 11px",
+    fontSize: "12px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  buttonWarning: {
+    border: "1px solid rgba(255, 204, 102, 0.45)",
+    background: "rgba(255, 204, 102, 0.14)",
+    color: "#ffcc66",
     borderRadius: "999px",
     padding: "8px 11px",
     fontSize: "12px",
