@@ -13,6 +13,14 @@ type PayloadMensaje = {
   fecha_mensaje?: string | null
 }
 
+type ClienteSoporte = {
+  id: string
+  nombre: string | null
+  plataforma: string | null
+  correo_asignado: string | null
+  estado: string | null
+}
+
 function limpiarTextoSeguro(valor: unknown, maxLength = 10000) {
   if (valor === null || valor === undefined) return null
 
@@ -29,17 +37,13 @@ function limpiarTextoSeguro(valor: unknown, maxLength = 10000) {
 }
 
 function normalizarCorreo(valor: unknown) {
-  const correo = limpiarTextoSeguro(valor, 320)?.toLowerCase() || ""
-
-  return correo
+  return limpiarTextoSeguro(valor, 320)?.toLowerCase() || ""
 }
 
 function normalizarFecha(valor: unknown) {
   const texto = limpiarTextoSeguro(valor, 120)
 
-  if (!texto) {
-    return new Date().toISOString()
-  }
+  if (!texto) return new Date().toISOString()
 
   const fecha = new Date(texto)
 
@@ -61,8 +65,268 @@ function detectarPlataforma(correoDestino: string, texto: string) {
   if (base.includes("spotify")) return "Spotify"
   if (base.includes("max") || base.includes("hbo")) return "Max"
   if (base.includes("vix")) return "Vix"
+  if (base.includes("chatgpt") || base.includes("openai")) return "ChatGPT"
+  if (base.includes("apple")) return "Apple TV"
+  if (base.includes("paramount")) return "Paramount+"
+  if (base.includes("canva")) return "Canva"
 
   return null
+}
+
+function extraerCodigo(texto: string) {
+  const base = texto || ""
+
+  const patronesDirectos = [
+    /c[oó]digo detectado:\s*(\d[\d\s-]{2,14}\d)/iu,
+    /c[oó]digo.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
+    /ingresa.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
+    /verification code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
+    /security code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
+  ]
+
+  for (const patron of patronesDirectos) {
+    const match = base.match(patron)
+
+    if (match?.[1]) {
+      const codigo = match[1].replace(/\D/g, "")
+
+      if (codigo.length >= 4 && codigo.length <= 8) {
+        return codigo
+      }
+    }
+  }
+
+  const tieneContextoCodigo =
+    /c[oó]digo|code|verificaci[oó]n|verification|inicio de sesi[oó]n|login|acceso/i.test(
+      base
+    )
+
+  if (!tieneContextoCodigo) return null
+
+  const matchLibre = base.match(/\b(\d(?:[\s-]?\d){3,7})\b/u)
+
+  if (matchLibre?.[1]) {
+    const codigo = matchLibre[1].replace(/\D/g, "")
+
+    if (codigo.length >= 4 && codigo.length <= 8) {
+      return codigo
+    }
+  }
+
+  return null
+}
+
+function extraerLinks(texto: string) {
+  const links = new Set<string>()
+  const regex = /https?:\/\/[^\s<>"'\]\)]+/gi
+  const matches = texto.match(regex) || []
+
+  for (const match of matches) {
+    const url = match.replace(/[)\].,;]+$/g, "").trim()
+
+    if (url && url.startsWith("http")) {
+      links.add(url)
+    }
+
+    if (links.size >= 8) break
+  }
+
+  return Array.from(links)
+}
+
+function filtrarLinksImportantes(links: string[]) {
+  if (!links.length) return []
+
+  const basura = [
+    "privacy",
+    "privacidad",
+    "terms",
+    "terminos",
+    "términos",
+    "help",
+    "ayuda",
+    "unsubscribe",
+    "notification",
+    "notificaciones",
+    "contactus",
+    "centro",
+  ]
+
+  const utiles = links.filter((link) => {
+    const lower = link.toLowerCase()
+    return !basura.some((palabra) => lower.includes(palabra))
+  })
+
+  return (utiles.length ? utiles : links).slice(0, 3)
+}
+
+function detectarTipoMensaje(asunto: string, cuerpo: string, codigo: string | null, links: string[]) {
+  const base = `${asunto}\n${cuerpo}`.toLowerCase()
+
+  if (codigo) return "codigo"
+
+  if (
+    /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password/.test(
+      base
+    )
+  ) {
+    return "password"
+  }
+
+  if (
+    links.length > 0 &&
+    /crear cuenta|crea tu cuenta|activar|activación|activate|verify|verificar|confirmar|registro|sign up|signup|enlace|link/.test(
+      base
+    )
+  ) {
+    return "enlace"
+  }
+
+  if (
+    /dispositivo|device|seguridad|security|accedid|nuevo inicio|new sign|login alert|actividad inusual|suspicious/.test(
+      base
+    )
+  ) {
+    return "seguridad"
+  }
+
+  if (links.length > 0) return "enlace"
+
+  return "normal"
+}
+
+function crearResumen(cuerpo: string, maxLength = 450) {
+  const limpio = cuerpo
+    .replace(/https?:\/\/[^\s<>"'\]\)]+/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim()
+
+  if (!limpio) return "Sin resumen disponible."
+
+  return limpio.slice(0, maxLength)
+}
+
+function formatearFechaPeru(fechaIso: string) {
+  try {
+    return new Intl.DateTimeFormat("es-PE", {
+      dateStyle: "short",
+      timeStyle: "short",
+      timeZone: "America/Lima",
+    }).format(new Date(fechaIso))
+  } catch {
+    return fechaIso
+  }
+}
+
+function construirAlertaTelegram(params: {
+  correoDestino: string
+  plataforma: string | null
+  remitente: string | null
+  asunto: string
+  cuerpoTexto: string
+  fechaMensaje: string
+  cliente: ClienteSoporte | null
+}) {
+  const {
+    correoDestino,
+    plataforma,
+    remitente,
+    asunto,
+    cuerpoTexto,
+    fechaMensaje,
+    cliente,
+  } = params
+
+  const codigo = extraerCodigo(`${asunto}\n${cuerpoTexto}`)
+  const links = filtrarLinksImportantes(extraerLinks(cuerpoTexto))
+  const tipo = detectarTipoMensaje(asunto, cuerpoTexto, codigo, links)
+
+  const plataformaTexto = plataforma || cliente?.plataforma || "No detectada"
+  const clienteTexto = cliente?.nombre || "Sin cliente asignado"
+  const panelUrl = `https://jonasstream.xyz/soporte-panel/mensajes?correo=${encodeURIComponent(
+    correoDestino
+  )}`
+
+  let titulo = "📩 Nuevo mensaje recibido"
+
+  if (tipo === "codigo") titulo = "🔐 Código recibido"
+  if (tipo === "password") titulo = "🔑 Enlace de contraseña recibido"
+  if (tipo === "enlace") titulo = "🔗 Enlace recibido"
+  if (tipo === "seguridad") titulo = "⚠️ Aviso de seguridad"
+
+  const partes: string[] = [
+    titulo,
+    "",
+    `Plataforma: ${plataformaTexto}`,
+    `Correo: ${correoDestino}`,
+    `Cliente: ${clienteTexto}`,
+    `Asunto: ${asunto}`,
+    remitente ? `Remitente: ${remitente}` : "",
+    `Fecha: ${formatearFechaPeru(fechaMensaje)}`,
+  ].filter(Boolean)
+
+  if (tipo === "codigo" && codigo) {
+    partes.push("", `Código: ${codigo}`)
+  }
+
+  if ((tipo === "password" || tipo === "enlace") && links.length > 0) {
+    partes.push("", "Enlace principal:")
+    partes.push(links[0])
+
+    if (links.length > 1) {
+      partes.push("", "Otros enlaces detectados:")
+      links.slice(1).forEach((link, index) => {
+        partes.push(`${index + 2}. ${link}`)
+      })
+    }
+  }
+
+  if (tipo === "seguridad") {
+    partes.push("", "Resumen:")
+    partes.push(crearResumen(cuerpoTexto, 500))
+  }
+
+  if (tipo === "normal") {
+    partes.push("", "Resumen:")
+    partes.push(crearResumen(cuerpoTexto, 350))
+  }
+
+  partes.push("", "Ver en panel:")
+  partes.push(panelUrl)
+
+  return partes.join("\n").slice(0, 3900)
+}
+
+async function enviarTelegram(texto: string) {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_CHAT_ID
+
+  if (!token || !chatId) {
+    console.warn("Telegram no configurado: falta TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID")
+    return
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: texto,
+        disable_web_page_preview: true,
+      }),
+    })
+
+    if (!response.ok) {
+      const detalle = await response.text()
+      console.error("Telegram respondió error:", response.status, detalle)
+    }
+  } catch (error) {
+    console.error("Error enviando Telegram:", error)
+  }
 }
 
 export async function POST(request: Request) {
@@ -197,11 +461,24 @@ export async function POST(request: Request) {
       )
     }
 
+    const alertaTelegram = construirAlertaTelegram({
+      correoDestino,
+      plataforma: plataformaFinal,
+      remitente,
+      asunto,
+      cuerpoTexto,
+      fechaMensaje,
+      cliente: cliente as ClienteSoporte | null,
+    })
+
+    await enviarTelegram(alertaTelegram)
+
     return NextResponse.json({
       ok: true,
       mensaje: "Mensaje guardado correctamente",
       data: mensajeInsertado,
       cliente_encontrado: Boolean(cliente),
+      telegram: "procesado",
     })
   } catch (error) {
     console.error("Error general en recibir-mensaje:", error)
@@ -220,7 +497,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-fix-2026-06-06-v2",
-    mensaje: "API de soporte activa. Usa POST para registrar mensajes.",
+    version: "recibir-mensaje-telegram-2026-06-06-v1",
+    mensaje: "API de soporte activa con alertas Telegram.",
   })
 }
