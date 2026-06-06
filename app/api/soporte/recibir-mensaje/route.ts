@@ -171,6 +171,11 @@ function escapeHtml(valor: string | null | undefined) {
     .replace(/'/g, "&#039;")
 }
 
+function esMaxOHbo(plataforma: string | null) {
+  const p = (plataforma || "").toLowerCase()
+  return p.includes("max") || p.includes("hbo")
+}
+
 function detectarTipoMensaje(
   asunto: string,
   cuerpo: string,
@@ -225,7 +230,6 @@ function seleccionarEnlacePrincipal(params: {
   const plataformaLower = (plataforma || "").toLowerCase()
   const base = `${asunto} ${cuerpo}`.toLowerCase()
 
-  // Netflix: prioriza enlaces reales de activación/verificación.
   if (plataformaLower.includes("netflix")) {
     return (
       links.find((link) =>
@@ -234,20 +238,10 @@ function seleccionarEnlacePrincipal(params: {
     )
   }
 
-  // Max / HBO: en tus pruebas el segundo enlace es el cambio de contraseña real.
-  if (
-    tipo === "password" &&
-    (plataformaLower.includes("max") || plataformaLower.includes("hbo"))
-  ) {
-    return links[1] || links[0]
-  }
-
-  // Vix: normalmente el primer enlace es el botón principal.
   if (plataformaLower.includes("vix")) {
     return links[0]
   }
 
-  // Para contraseña, prioriza enlaces con palabras de recuperación.
   if (tipo === "password") {
     return (
       links.find((link) =>
@@ -256,7 +250,6 @@ function seleccionarEnlacePrincipal(params: {
     )
   }
 
-  // Para activar, confirmar, registrar o verificar.
   if (tipo === "enlace") {
     return (
       links.find((link) =>
@@ -272,6 +265,26 @@ function seleccionarEnlacePrincipal(params: {
   }
 
   return links[0]
+}
+
+function seleccionarEnlacesTelegram(params: {
+  links: string[]
+  tipo: string
+  plataforma: string | null
+  asunto: string
+  cuerpo: string
+}) {
+  const { links, tipo, plataforma } = params
+
+  if (!links.length) return []
+
+  if (tipo === "password" && esMaxOHbo(plataforma)) {
+    return links.slice(0, 3)
+  }
+
+  const principal = seleccionarEnlacePrincipal(params)
+
+  return principal ? [principal] : []
 }
 
 function etiquetaEnlace(tipo: string) {
@@ -334,7 +347,7 @@ function construirAlertaTelegram(params: {
     correoDestino
   )}`
 
-  const enlacePrincipal = seleccionarEnlacePrincipal({
+  const enlacesTelegram = seleccionarEnlacesTelegram({
     links,
     tipo,
     plataforma: plataformaTexto,
@@ -365,13 +378,23 @@ function construirAlertaTelegram(params: {
     partes.push(`<b>Código:</b> <code>${escapeHtml(codigo)}</code>`)
   }
 
-  if ((tipo === "password" || tipo === "enlace") && enlacePrincipal) {
+  if ((tipo === "password" || tipo === "enlace") && enlacesTelegram.length > 0) {
     partes.push("")
-    partes.push(
-      `<b>Acción:</b> <a href="${escapeHtml(enlacePrincipal)}">${escapeHtml(
-        etiquetaEnlace(tipo)
-      )}</a>`
-    )
+
+    if (tipo === "password" && esMaxOHbo(plataformaTexto) && enlacesTelegram.length > 1) {
+      partes.push("<b>Acciones Max/HBO:</b>")
+      enlacesTelegram.forEach((link, index) => {
+        partes.push(
+          `<a href="${escapeHtml(link)}">Opción ${index + 1}</a>`
+        )
+      })
+    } else {
+      partes.push(
+        `<b>Acción:</b> <a href="${escapeHtml(enlacesTelegram[0])}">${escapeHtml(
+          etiquetaEnlace(tipo)
+        )}</a>`
+      )
+    }
   }
 
   if (tipo === "seguridad") {
@@ -592,7 +615,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-links-limpios-2026-06-06-v2",
-    mensaje: "API de soporte activa con alertas Telegram y enlaces limpios.",
+    version: "recibir-mensaje-telegram-max-opciones-2026-06-06-v3",
+    mensaje: "API de soporte activa con alertas Telegram, enlaces limpios y opciones Max/HBO.",
   })
 }
