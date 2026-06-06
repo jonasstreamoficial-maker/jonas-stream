@@ -10,6 +10,7 @@ export default function SoportePanelPage() {
 
   const [correo, setCorreo] = useState("")
   const [password, setPassword] = useState("")
+  const [mostrarPassword, setMostrarPassword] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [mensaje, setMensaje] = useState("")
 
@@ -17,7 +18,10 @@ export default function SoportePanelPage() {
     e.preventDefault()
     setMensaje("")
 
-    if (!correo.trim() || !password.trim()) {
+    const correoLimpio = correo.trim().toLowerCase()
+    const passwordLimpio = password.trim()
+
+    if (!correoLimpio || !passwordLimpio) {
       setMensaje("Completa usuario y contraseña.")
       return
     }
@@ -25,8 +29,8 @@ export default function SoportePanelPage() {
     setCargando(true)
 
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: correo.trim(),
-      password: password.trim(),
+      email: correoLimpio,
+      password: passwordLimpio,
     })
 
     if (error || !data.user) {
@@ -41,12 +45,13 @@ export default function SoportePanelPage() {
       .eq("id", data.user.id)
       .single()
 
-    if (
-      errorUsuario ||
-      !usuario ||
-      usuario.rol !== "admin" ||
-      (usuario.estado !== "aprobado" && usuario.estado !== "activo")
-    ) {
+    const autorizado =
+      !errorUsuario &&
+      usuario &&
+      usuario.rol === "admin" &&
+      (usuario.estado === "aprobado" || usuario.estado === "activo")
+
+    if (!autorizado) {
       await supabase.auth.signOut()
       setMensaje("No tienes permiso para ingresar al soporte panel.")
       setCargando(false)
@@ -75,27 +80,58 @@ export default function SoportePanelPage() {
           </h1>
 
           <p className={styles.description}>
-            Administra clientes, correos asignados, mensajes recibidos,
-            renovaciones, vencimientos y alertas privadas conectadas a Telegram.
+            Controla correos asignados, PIN de acceso, mensajes recibidos,
+            reenviadores y consultas de códigos desde una sola plataforma.
           </p>
 
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
-              <p>Clientes activos</p>
-              <h3>128</h3>
-              <span>Gestión mensual</span>
+              <p>Consulta pública</p>
+              <h3>/codigos</h3>
+              <span>Acceso por correo + PIN</span>
             </div>
 
             <div className={styles.statCard}>
-              <p>Correos asignados</p>
-              <h3>246</h3>
-              <span>Por plataforma</span>
+              <p>Buzón central</p>
+              <h3>Activo</h3>
+              <span>Recepción automática</span>
             </div>
 
             <div className={styles.statCard}>
-              <p>Mensajes recibidos</p>
-              <h3>1,842</h3>
-              <span>Historial seguro</span>
+              <p>Panel privado</p>
+              <h3>Admin</h3>
+              <span>Correos, PIN y mensajes</span>
+            </div>
+          </div>
+
+          <div className={styles.quickPreview}>
+            <div className={styles.previewHeader}>
+              <span></span>
+              Flujo del sistema
+            </div>
+
+            <div className={styles.previewItem}>
+              <div>
+                <p>Cliente solicita código</p>
+                <small>El correo llega al buzón central</small>
+              </div>
+              <span className={styles.active}>Recibido</span>
+            </div>
+
+            <div className={styles.previewItem}>
+              <div>
+                <p>El panel procesa el mensaje</p>
+                <small>Se muestra en dashboard y bandeja</small>
+              </div>
+              <span className={styles.paused}>Panel</span>
+            </div>
+
+            <div className={styles.previewItem}>
+              <div>
+                <p>Cliente consulta en /codigos</p>
+                <small>Solo ve mensajes de su correo asignado</small>
+              </div>
+              <span className={styles.active}>Seguro</span>
             </div>
           </div>
         </div>
@@ -107,7 +143,7 @@ export default function SoportePanelPage() {
 
               <div>
                 <h2>Acceso administrativo</h2>
-                <p>Panel privado de soporte y gestión.</p>
+                <p>Ingresa con una cuenta autorizada para gestionar soporte.</p>
               </div>
             </div>
 
@@ -120,18 +156,48 @@ export default function SoportePanelPage() {
                   autoComplete="username"
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
+                  disabled={cargando}
                 />
               </label>
 
               <label>
                 Contraseña
-                <input
-                  type="password"
-                  placeholder="••••••••••••"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div
+                  style={{
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <input
+                    type={mostrarPassword ? "text" : "password"}
+                    placeholder="••••••••••••"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={cargando}
+                    style={{ paddingRight: "92px" }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setMostrarPassword((actual) => !actual)}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      border: "1px solid rgba(1, 231, 239, 0.24)",
+                      background: "rgba(1, 231, 239, 0.08)",
+                      color: "#01E7EF",
+                      borderRadius: "11px",
+                      padding: "8px 10px",
+                      fontSize: "11px",
+                      fontWeight: 900,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {mostrarPassword ? "Ocultar" : "Ver"}
+                  </button>
+                </div>
               </label>
 
               {mensaje && (
@@ -156,39 +222,27 @@ export default function SoportePanelPage() {
             </form>
 
             <div className={styles.securityNotice}>
-              <strong>Seguridad activa:</strong> solo administradores autorizados
-              podrán ingresar al soporte panel.
+              <strong>Seguridad activa:</strong> solo administradores aprobados
+              pueden entrar al panel interno.
             </div>
 
-            <div className={styles.quickPreview}>
-              <div className={styles.previewHeader}>
-                <span></span>
-                Vista rápida del sistema
-              </div>
-
-              <div className={styles.previewItem}>
-                <div>
-                  <p>Cris</p>
-                  <small>Netflix · cris01@jonasstream.xyz</small>
-                </div>
-                <span className={styles.active}>Activo</span>
-              </div>
-
-              <div className={styles.previewItem}>
-                <div>
-                  <p>Luis</p>
-                  <small>Disney · luis02@jonasstream.xyz</small>
-                </div>
-                <span className={styles.expired}>Vencido</span>
-              </div>
-
-              <div className={styles.previewItem}>
-                <div>
-                  <p>María</p>
-                  <small>Prime Video · maria03@jonasstream.xyz</small>
-                </div>
-                <span className={styles.paused}>Suspendido</span>
-              </div>
+            <div style={{ display: "grid", gap: "10px", marginTop: "16px" }}>
+              <button
+                type="button"
+                onClick={() => router.push("/codigos")}
+                style={{
+                  width: "100%",
+                  border: "1px solid rgba(1, 231, 239, 0.25)",
+                  background: "rgba(1, 231, 239, 0.08)",
+                  color: "#01E7EF",
+                  borderRadius: "14px",
+                  padding: "12px",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                Abrir página pública de códigos
+              </button>
             </div>
           </div>
         </div>
