@@ -1,13 +1,15 @@
 .page {
   min-height: 100vh;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background:
-    radial-gradient(circle at 12% 12%, rgba(1, 231, 239, 0.2), transparent 32%),
-    radial-gradient(circle at 88% 82%, rgba(0, 251, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 12% 12%, rgba(1, 231, 239, 0.20), transparent 32%),
+    radial-gradient(circle at 88% 82%, rgba(0, 251, 255, 0.15), transparent 34%),
     linear-gradient(135deg, #000000 0%, #031316 48%, #071b1e 100%);
   color: #ecffff;
   padding: 34px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 }
 
 .gridBackground {
@@ -21,28 +23,30 @@
   pointer-events: none;
 }
 
-.glowOne {
+.glowOne,
+.glowTwo {
   position: fixed;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glowOne {
   top: -150px;
   left: -150px;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
+  width: 440px;
+  height: 440px;
   background: rgba(1, 231, 239, 0.14);
-  filter: blur(40px);
-  pointer-events: none;
+  filter: blur(48px);
 }
 
 .glowTwo {
-  position: fixed;
-  right: -180px;
-  bottom: -180px;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
+  right: -190px;
+  bottom: -190px;
+  width: 540px;
+  height: 540px;
   background: rgba(0, 251, 255, 0.12);
-  filter: blur(50px);
-  pointer-events: none;
+  filter: blur(58px);
 }
 
 .wrapper {
@@ -53,7 +57,7 @@
   min-height: calc(100vh - 68px);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: minmax(0, 1.05fr) minmax(380px, 0.95fr);
   gap: 38px;
   align-items: center;
 }
@@ -68,23 +72,26 @@
   gap: 10px;
   padding: 10px 16px;
   margin-bottom: 30px;
-  border: 1px solid rgba(1, 231, 239, 0.18);
+  border: 1px solid rgba(1, 231, 239, 0.20);
   border-radius: 999px;
   background: rgba(1, 231, 239, 0.08);
   color: #01e7ef;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 950;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   box-shadow: 0 0 25px rgba(1, 231, 239, 0.18);
+  backdrop-filter: blur(16px);
 }
 
-.badge span {
+.badge span,
+.previewHeader span {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   background: #00fbff;
   box-shadow: 0 0 18px #00fbff;
+  flex-shrink: 0;
 }
 
 .leftSection h1 {
@@ -105,7 +112,7 @@
 
 .description {
   max-width: 620px;
-  margin-top: 30px;
+  margin: 30px 0 0;
   color: #9bc8cb;
   font-size: 16px;
   line-height: 1.8;
@@ -114,7 +121,7 @@
 .statsGrid {
   margin-top: 36px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -123,7 +130,7 @@
   border: 1px solid rgba(1, 231, 239, 0.18);
   border-radius: 24px;
   background:
-    linear-gradient(145deg, rgba(3, 19, 22, 0.86), rgba(7, 27, 30, 0.72)),
+    linear-gradient(145deg, rgba(3, 19, 22, 0.88), rgba(7, 27, 30, 0.72)),
     rgba(3, 19, 22, 0.78);
   box-shadow: 0 0 25px rgba(1, 231, 239, 0.18);
   backdrop-filter: blur(16px);
@@ -153,21 +160,22 @@
 .rightSection {
   display: flex;
   justify-content: center;
+  width: 100%;
 }
 
 .loginCard {
   position: relative;
   width: 100%;
-  max-width: 480px;
+  max-width: 500px;
   padding: 34px;
   overflow: hidden;
-  border: 1px solid rgba(1, 231, 239, 0.18);
+  border: 1px solid rgba(1, 231, 239, 0.20);
   border-radius: 34px;
   background:
-    linear-gradient(145deg, rgba(3, 19, 22, 0.94), rgba(7, 27, 30, 0.78)),
+    linear-gradient(145deg, rgba(3, 19, 22, 0.95), rgba(7, 27, 30, 0.80)),
     rgba(3, 19, 22, 0.78);
   box-shadow:
-    0 0 40px rgba(0, 251, 255, 0.22),
+    0 0 42px rgba(0, 251, 255, 0.22),
     inset 0 0 60px rgba(1, 231, 239, 0.04);
   backdrop-filter: blur(22px);
 }
@@ -193,9 +201,15 @@
   pointer-events: none;
 }
 
-.cardHeader {
+.cardHeader,
+.form,
+.securityNotice,
+.quickPreview {
   position: relative;
   z-index: 2;
+}
+
+.cardHeader {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -209,9 +223,9 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #01e7ef, #018b90);
+  background: linear-gradient(135deg, #01e7ef, #00fbff 62%, #018b90);
   color: #000000;
-  font-weight: 950;
+  font-weight: 1000;
   font-size: 25px;
   box-shadow: 0 0 34px rgba(0, 251, 255, 0.36);
 }
@@ -227,11 +241,10 @@
   margin: 0;
   color: #9bc8cb;
   font-size: 13px;
+  line-height: 1.5;
 }
 
 .form {
-  position: relative;
-  z-index: 2;
   display: grid;
   gap: 18px;
 }
@@ -241,51 +254,61 @@
   gap: 8px;
   color: #9bc8cb;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .form input {
   width: 100%;
-  border: 1px solid rgba(1, 231, 239, 0.18);
+  border: 1px solid rgba(1, 231, 239, 0.20);
   outline: none;
   border-radius: 16px;
   padding: 15px 16px;
   background: rgba(0, 0, 0, 0.38);
   color: #ecffff;
   font-size: 15px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
 }
 
 .form input:focus {
   border-color: #01e7ef;
-  box-shadow: 0 0 0 4px rgba(1, 231, 239, 0.12);
+  box-shadow:
+    0 0 0 4px rgba(1, 231, 239, 0.12),
+    0 0 24px rgba(1, 231, 239, 0.10);
 }
 
 .form input::placeholder {
   color: rgba(155, 200, 203, 0.58);
 }
 
-.form button {
+.form button,
+.primaryButton {
   margin-top: 6px;
   border: none;
   border-radius: 16px;
   padding: 15px 18px;
-  background: linear-gradient(135deg, #01e7ef, #00fbff);
+  background: linear-gradient(135deg, #01e7ef, #00fbff 62%, #9bffff);
   color: #000000;
-  font-weight: 950;
+  font-weight: 1000;
   font-size: 15px;
   cursor: pointer;
   box-shadow: 0 0 34px rgba(0, 251, 255, 0.28);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
-.form button:hover {
+.form button:hover,
+.primaryButton:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 44px rgba(0, 251, 255, 0.42);
 }
 
+.form button:disabled,
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
+
 .securityNotice {
-  position: relative;
-  z-index: 2;
   margin-top: 24px;
   padding: 15px;
   border-radius: 18px;
@@ -301,8 +324,6 @@
 }
 
 .quickPreview {
-  position: relative;
-  z-index: 2;
   margin-top: 22px;
   padding: 16px;
   border-radius: 22px;
@@ -320,33 +341,26 @@
   font-weight: 900;
 }
 
-.previewHeader span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #00fbff;
-  box-shadow: 0 0 14px #00fbff;
-}
-
 .previewItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding: 13px 0;
-  border-top: 1px solid rgba(1, 231, 239, 0.1);
+  border-top: 1px solid rgba(1, 231, 239, 0.10);
 }
 
 .previewItem p {
   margin: 0 0 4px;
   color: #ecffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .previewItem small {
   color: #9bc8cb;
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .active,
@@ -357,6 +371,7 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .active {
@@ -377,14 +392,76 @@
   border: 1px solid rgba(1, 231, 239, 0.22);
 }
 
-@media (max-width: 980px) {
-  .page {
-    padding: 22px;
-  }
+/* Clases adicionales compatibles con el page.tsx mejorado */
+.quickActions {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
 
+.secondaryButton,
+.publicButton {
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  border-radius: 15px;
+  padding: 13px 14px;
+  background: rgba(1, 231, 239, 0.08);
+  color: #01e7ef;
+  font-weight: 900;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.secondaryButton:hover,
+.publicButton:hover {
+  transform: translateY(-1px);
+  background: rgba(1, 231, 239, 0.13);
+  box-shadow: 0 0 22px rgba(1, 231, 239, 0.15);
+}
+
+.passwordRow {
+  position: relative;
+  display: grid;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  background: rgba(1, 231, 239, 0.08);
+  color: #01e7ef;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.passwordRow input {
+  padding-right: 82px;
+}
+
+.errorBox {
+  border: 1px solid rgba(255, 67, 67, 0.38);
+  background: rgba(255, 67, 67, 0.13);
+  color: #ecffff;
+  border-radius: 15px;
+  padding: 13px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1080px) {
   .wrapper {
     grid-template-columns: 1fr;
     gap: 28px;
+    align-items: start;
   }
 
   .leftSection {
@@ -397,32 +474,115 @@
     margin-right: auto;
   }
 
-  .statsGrid {
-    grid-template-columns: 1fr;
-  }
-
   .rightSection {
     justify-content: center;
   }
 }
 
-@media (max-width: 540px) {
+@media (max-width: 760px) {
   .page {
+    padding: 18px;
+  }
+
+  .wrapper {
+    min-height: auto;
+  }
+
+  .leftSection h1 {
+    font-size: clamp(48px, 16vw, 72px);
+    letter-spacing: -2px;
+    line-height: 0.92;
+  }
+
+  .badge {
+    margin-bottom: 22px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  .description {
+    margin-top: 22px;
+    font-size: 14px;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+    margin-top: 24px;
+  }
+
+  .statCard {
     padding: 16px;
+    border-radius: 20px;
+  }
+
+  .statCard h3 {
+    font-size: 28px;
   }
 
   .loginCard {
+    max-width: none;
     padding: 24px;
     border-radius: 28px;
+  }
+
+  .loginCard::after {
+    border-radius: 27px;
   }
 
   .cardHeader {
     align-items: flex-start;
     flex-direction: column;
+    gap: 14px;
+    margin-bottom: 24px;
   }
 
-  .leftSection h1 {
-    font-size: 54px;
-    letter-spacing: -2px;
+  .logoBox {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    font-size: 22px;
+  }
+
+  .cardHeader h2 {
+    font-size: 23px;
+  }
+
+  .quickActions {
+    grid-template-columns: 1fr;
+  }
+
+  .quickPreview {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .page {
+    padding: 14px;
+  }
+
+  .leftSection {
+    padding: 4px;
+  }
+
+  .badge {
+    padding: 9px 12px;
+  }
+
+  .loginCard {
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  .form input,
+  .form button,
+  .primaryButton,
+  .secondaryButton,
+  .publicButton {
+    border-radius: 14px;
+  }
+
+  .securityNotice {
+    margin-top: 18px;
   }
 }
