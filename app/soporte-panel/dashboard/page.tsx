@@ -157,6 +157,23 @@ export default function SoporteDashboardPage() {
   const [correosMasivos, setCorreosMasivos] = useState("")
   const [importandoMasivo, setImportandoMasivo] = useState(false)
   const [resultadoMasivo, setResultadoMasivo] = useState("")
+  const [anchoPantalla, setAnchoPantalla] = useState(1200)
+
+  useEffect(() => {
+    const actualizarAncho = () => {
+      setAnchoPantalla(window.innerWidth)
+    }
+
+    actualizarAncho()
+    window.addEventListener("resize", actualizarAncho)
+
+    return () => {
+      window.removeEventListener("resize", actualizarAncho)
+    }
+  }, [])
+
+  const esMovil = anchoPantalla < 760
+  const esTablet = anchoPantalla >= 760 && anchoPantalla < 1120
 
   useEffect(() => {
     const validarAcceso = async () => {
@@ -769,38 +786,54 @@ Tu entretenimiento, sin complicaciones.`
   }
 
   return (
-    <main style={stylesPage.page}>
+    <main style={{ ...stylesPage.page, ...(esMovil ? stylesPage.pageMobile : {}) }}>
       <section style={stylesPage.container}>
-        <header style={stylesPage.header}>
+        <header style={{ ...stylesPage.header, ...(esMovil ? stylesPage.headerMobile : {}) }}>
           <div>
             <p style={stylesPage.kicker}>JONAS STREAM · SOPORTE PANEL</p>
-            <h1 style={stylesPage.title}>Control de correos y PIN</h1>
+            <h1 style={{ ...stylesPage.title, ...(esMovil ? stylesPage.titleMobile : {}) }}>Control de correos y PIN</h1>
             <p style={stylesPage.description}>
               Administra correos asignados, PIN de acceso y estado de consulta para
               que tus clientes revisen sus códigos desde /codigos.
             </p>
           </div>
 
-          <div style={stylesPage.adminCard}>
+          <div style={{ ...stylesPage.adminCard, ...(esMovil ? stylesPage.adminCardMobile : {}) }}>
             <p style={stylesPage.mutedSmall}>Administrador</p>
             <strong>{usuario?.nombre || "Admin"}</strong>
             <span style={stylesPage.smallText}>{usuario?.correo}</span>
 
-            <button type="button" onClick={cerrarSesion} style={stylesPage.buttonGhost}>
+            <button
+              type="button"
+              onClick={() => window.open(ENLACE_CODIGOS, "_blank", "noopener,noreferrer")}
+              style={stylesPage.buttonGhost}
+            >
+              Abrir página de códigos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/soporte-panel/mensajes")}
+              style={stylesPage.buttonGhost}
+            >
+              Ver bandeja de mensajes
+            </button>
+
+            <button type="button" onClick={cerrarSesion} style={stylesPage.buttonDangerFull}>
               Cerrar sesión
             </button>
           </div>
         </header>
 
-        <div style={stylesPage.statsGrid}>
+        <div style={{ ...stylesPage.statsGrid, ...(esMovil ? stylesPage.statsGridMobile : esTablet ? stylesPage.statsGridTablet : {}) }}>
           <StatCard label="Correos activos" value={resumen.activos} />
           <StatCard label="Correos vencidos" value={resumen.vencidos} />
           <StatCard label="Suspendidos" value={resumen.suspendidos} />
           <StatCard label="Sin PIN" value={resumen.sinPin} />
         </div>
 
-        <section style={stylesPage.panel}>
-          <div style={stylesPage.panelHeader}>
+        <section style={{ ...stylesPage.panel, ...(esMovil ? stylesPage.panelMobile : {}) }}>
+          <div style={{ ...stylesPage.panelHeader, ...(esMovil ? stylesPage.panelHeaderMobile : {}) }}>
             <div>
               <p style={stylesPage.kicker}>GESTIÓN DE ACCESOS</p>
               <h2 style={{ margin: "10px 0" }}>
@@ -819,7 +852,7 @@ Tu entretenimiento, sin complicaciones.`
 
           {mensaje && <div style={stylesPage.notice}>{mensaje}</div>}
 
-          <form onSubmit={guardarCuenta} style={stylesPage.formGrid}>
+          <form onSubmit={guardarCuenta} style={{ ...stylesPage.formGrid, ...(esMovil ? stylesPage.formGridMobile : esTablet ? stylesPage.formGridTablet : {}) }}>
             <input
               style={stylesPage.input}
               placeholder="Etiqueta o cliente, opcional"
@@ -943,8 +976,8 @@ Tu entretenimiento, sin complicaciones.`
           </form>
         </section>
 
-        <section style={stylesPage.panel}>
-          <div style={stylesPage.panelHeader}>
+        <section style={{ ...stylesPage.panel, ...(esMovil ? stylesPage.panelMobile : {}) }}>
+          <div style={{ ...stylesPage.panelHeader, ...(esMovil ? stylesPage.panelHeaderMobile : {}) }}>
             <div>
               <p style={stylesPage.kicker}>IMPORTADOR MASIVO</p>
               <h2 style={{ margin: "10px 0" }}>Registrar correos desde cPanel</h2>
@@ -956,7 +989,7 @@ Tu entretenimiento, sin complicaciones.`
           </div>
 
           <textarea
-            style={stylesPage.textareaImport}
+            style={{ ...stylesPage.textareaImport, ...(esMovil ? stylesPage.textareaImportMobile : {}) }}
             placeholder={`Pega tus correos aquí, uno por línea:
 
 netflix001@jonasstream.xyz
@@ -968,7 +1001,7 @@ crunchy001@jonasstream.xyz`}
             onChange={(e) => setCorreosMasivos(e.target.value)}
           />
 
-          <div style={stylesPage.importSummary}>
+          <div style={{ ...stylesPage.importSummary, ...(esMovil ? stylesPage.importSummaryMobile : {}) }}>
             <div>
               <span style={stylesPage.smallText}>Detectados</span>
               <strong>{previsualizacionImportacion.detectados}</strong>
@@ -1010,8 +1043,8 @@ crunchy001@jonasstream.xyz`}
           </div>
         </section>
 
-        <section style={stylesPage.panel}>
-          <div style={stylesPage.panelHeader}>
+        <section style={{ ...stylesPage.panel, ...(esMovil ? stylesPage.panelMobile : {}) }}>
+          <div style={{ ...stylesPage.panelHeader, ...(esMovil ? stylesPage.panelHeaderMobile : {}) }}>
             <div>
               <p style={stylesPage.kicker}>CORREOS REGISTRADOS</p>
               <h2 style={{ margin: "10px 0" }}>Lista de accesos</h2>
@@ -1021,7 +1054,7 @@ crunchy001@jonasstream.xyz`}
               </p>
             </div>
 
-            <div style={stylesPage.headerActions}>
+            <div style={{ ...stylesPage.headerActions, ...(esMovil ? stylesPage.headerActionsMobile : {}) }}>
               <button
                 type="button"
                 onClick={() => exportarCorreosCSV(true)}
@@ -1044,7 +1077,7 @@ crunchy001@jonasstream.xyz`}
             </div>
           </div>
 
-          <div style={stylesPage.filters}>
+          <div style={{ ...stylesPage.filters, ...(esMovil ? stylesPage.filtersMobile : {}) }}>
             <input
               style={stylesPage.input}
               placeholder="Buscar por correo, plataforma, PIN, cliente o estado..."
@@ -1065,13 +1098,19 @@ crunchy001@jonasstream.xyz`}
             </select>
           </div>
 
+          {esMovil && (
+            <p style={{ ...stylesPage.muted, marginBottom: "12px" }}>
+              En celular, desliza la tabla hacia los lados para ver todas las columnas.
+            </p>
+          )}
+
           {cargandoCuentas ? (
             <p style={stylesPage.muted}>Cargando correos...</p>
           ) : cuentasFiltradas.length === 0 ? (
             <p style={stylesPage.muted}>No hay correos registrados.</p>
           ) : (
-            <div style={stylesPage.tableWrap}>
-              <table style={stylesPage.table}>
+            <div style={{ ...stylesPage.tableWrap, ...(esMovil ? stylesPage.tableWrapMobile : {}) }}>
+              <table style={{ ...stylesPage.table, ...(esMovil ? stylesPage.tableMobile : {}) }}>
                 <thead>
                   <tr>
                     <th style={stylesPage.th}>Correo</th>
@@ -1281,6 +1320,71 @@ const stylesPage: Record<string, CSSProperties> = {
     padding: "40px",
     fontFamily: "Arial, sans-serif",
   },
+
+  pageMobile: {
+    padding: "16px",
+  },
+  headerMobile: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    alignItems: "stretch",
+    gap: "18px",
+    marginBottom: "22px",
+  },
+  titleMobile: {
+    fontSize: "34px",
+    lineHeight: 1.06,
+  },
+  adminCardMobile: {
+    width: "100%",
+    minWidth: "0",
+  },
+  statsGridTablet: {
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  },
+  statsGridMobile: {
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "12px",
+    marginTop: "22px",
+  },
+  panelMobile: {
+    padding: "18px",
+    borderRadius: "22px",
+    marginTop: "20px",
+  },
+  panelHeaderMobile: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    alignItems: "stretch",
+    gap: "14px",
+  },
+  formGridTablet: {
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  },
+  formGridMobile: {
+    gridTemplateColumns: "1fr",
+  },
+  filtersMobile: {
+    gridTemplateColumns: "1fr",
+  },
+  importSummaryMobile: {
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: "10px",
+  },
+  textareaImportMobile: {
+    minHeight: "150px",
+    fontSize: "13px",
+  },
+  headerActionsMobile: {
+    justifyContent: "stretch",
+  },
+  tableWrapMobile: {
+    border: "1px solid rgba(1, 231, 239, 0.12)",
+    borderRadius: "18px",
+  },
+  tableMobile: {
+    minWidth: "1060px",
+  },
   centerPage: {
     minHeight: "100vh",
     background:
@@ -1467,10 +1571,21 @@ const stylesPage: Record<string, CSSProperties> = {
   },
   buttonGhost: {
     width: "100%",
-    marginTop: "14px",
+    marginTop: "12px",
     border: "1px solid rgba(1, 231, 239, 0.18)",
     background: "rgba(1, 231, 239, 0.08)",
     color: "#01E7EF",
+    borderRadius: "14px",
+    padding: "12px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  buttonDangerFull: {
+    width: "100%",
+    marginTop: "12px",
+    border: "1px solid rgba(255, 67, 67, 0.45)",
+    background: "rgba(255, 67, 67, 0.15)",
+    color: "#ff8a8a",
     borderRadius: "14px",
     padding: "12px",
     fontWeight: 900,
