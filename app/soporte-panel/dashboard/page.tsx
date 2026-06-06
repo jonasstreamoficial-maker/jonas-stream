@@ -104,6 +104,32 @@ const extraerCorreosJonas = (texto: string) => {
   )
 }
 
+
+const limpiarCampoCSV = (valor: string | number | null | undefined) => {
+  const texto = String(valor ?? "").replace(/\r?\n|\r/g, " ").trim()
+  return `"${texto.replace(/"/g, '""')}"`
+}
+
+const descargarArchivoCSV = (nombreArchivo: string, contenido: string) => {
+  const blob = new Blob(["\ufeff" + contenido], {
+    type: "text/csv;charset=utf-8;",
+  })
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = nombreArchivo
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const nombreArchivoCSV = () => {
+  const fecha = new Date().toISOString().slice(0, 10)
+  return `jonas-stream-correos-pin-${fecha}.csv`
+}
+
 const partirEnBloques = <T,>(array: T[], size: number) => {
   const bloques: T[][] = []
 
@@ -666,6 +692,70 @@ Tu entretenimiento, sin complicaciones.`
     }
   }, [correosMasivos, cuentas])
 
+
+  const exportarCorreosCSV = (soloFiltrados: boolean) => {
+    const base = soloFiltrados ? cuentasFiltradas : cuentas
+
+    if (base.length === 0) {
+      setMensaje("No hay correos para exportar.")
+      return
+    }
+
+    const cabeceras = [
+      "correo_asignado",
+      "pin_acceso",
+      "plataforma",
+      "estado",
+      "fecha_inicio",
+      "fecha_vencimiento",
+      "dias_restantes",
+      "cliente_etiqueta",
+      "whatsapp",
+      "correo_cliente",
+      "mensajes",
+      "ultimo_asunto",
+      "ultima_fecha",
+      "enlace_codigos",
+    ]
+
+    const filas = base.map((cuenta) => {
+      const resumenCorreo = resumenMensajes.get(
+        cuenta.correo_asignado.toLowerCase()
+      )
+      const dias = diasRestantes(cuenta.fecha_vencimiento)
+
+      return [
+        cuenta.correo_asignado,
+        cuenta.pin_acceso || "",
+        cuenta.plataforma,
+        cuenta.estado,
+        cuenta.fecha_inicio,
+        cuenta.fecha_vencimiento,
+        dias,
+        cuenta.nombre || "",
+        cuenta.celular || "",
+        cuenta.correo_cliente || "",
+        resumenCorreo?.total || 0,
+        resumenCorreo?.ultimoAsunto || "",
+        resumenCorreo?.ultimaFecha
+          ? new Date(resumenCorreo.ultimaFecha).toLocaleString("es-PE")
+          : "",
+        ENLACE_CODIGOS,
+      ]
+        .map(limpiarCampoCSV)
+        .join(",")
+    })
+
+    const csv = [cabeceras.join(","), ...filas].join("\n")
+
+    descargarArchivoCSV(nombreArchivoCSV(), csv)
+    setMensaje(
+      soloFiltrados
+        ? `CSV descargado con ${base.length} correo(s) visibles.`
+        : `CSV descargado con ${base.length} correo(s) registrados.`
+    )
+  }
+
   if (verificando) {
     return (
       <main style={stylesPage.centerPage}>
@@ -931,9 +1021,27 @@ crunchy001@jonasstream.xyz`}
               </p>
             </div>
 
-            <button type="button" onClick={cargarDatos} style={stylesPage.buttonSecondary}>
-              Actualizar
-            </button>
+            <div style={stylesPage.headerActions}>
+              <button
+                type="button"
+                onClick={() => exportarCorreosCSV(true)}
+                style={stylesPage.buttonSecondary}
+              >
+                Exportar visibles
+              </button>
+
+              <button
+                type="button"
+                onClick={() => exportarCorreosCSV(false)}
+                style={stylesPage.buttonSecondary}
+              >
+                Exportar todo CSV
+              </button>
+
+              <button type="button" onClick={cargarDatos} style={stylesPage.buttonSecondary}>
+                Actualizar
+              </button>
+            </div>
           </div>
 
           <div style={stylesPage.filters}>
@@ -1243,6 +1351,12 @@ const stylesPage: Record<string, CSSProperties> = {
     padding: "16px",
     minWidth: "260px",
     boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+  },
+  headerActions: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
   },
   statsGrid: {
     display: "grid",
