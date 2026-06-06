@@ -189,6 +189,39 @@ function limpiarCuerpoParaVista(texto: string) {
     .trim()
 }
 
+function extraerCodigo(texto: string, asunto?: string | null) {
+  const base = `${asunto || ""}\n${texto || ""}`.replace(/\s+/g, " ").trim()
+
+  const patrones = [
+    /c[oó]digo.{0,100}?(\d[\d\s-]{2,12}\d)/i,
+    /ingresa.{0,100}?(\d[\d\s-]{2,12}\d)/i,
+    /\b(\d(?:[\s-]?\d){3,7})\b/,
+  ]
+
+  for (const patron of patrones) {
+    const match = base.match(patron)
+
+    if (match?.[1]) {
+      const codigo = match[1].replace(/\D/g, "")
+
+      if (codigo.length >= 4 && codigo.length <= 8) {
+        return codigo
+      }
+    }
+  }
+
+  return null
+}
+
+function formatearFecha(fecha?: string | null) {
+  if (!fecha) return "Fecha no disponible"
+
+  return new Date(fecha).toLocaleString("es-PE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+}
+
 export default function SoporteMensajesPage() {
   const router = useRouter()
 
@@ -342,6 +375,15 @@ export default function SoporteMensajesPage() {
     }
   }
 
+  const copiarTexto = async (texto: string, mensajeOk: string) => {
+    try {
+      await navigator.clipboard.writeText(texto)
+      setAviso(mensajeOk)
+    } catch {
+      setAviso("No se pudo copiar automáticamente.")
+    }
+  }
+
   const limpiarFiltroCorreo = () => {
     setBusqueda("")
     setFiltroCorreoUrl("")
@@ -406,6 +448,7 @@ export default function SoporteMensajesPage() {
     return (
       <main style={styles.centerPage}>
         <div style={styles.loadingBox}>
+          <div style={styles.logoMarkSmall}>JS</div>
           <p style={styles.kicker}>JONAS STREAM</p>
           <h2 style={{ margin: "14px 0 8px" }}>Verificando acceso...</h2>
           <p style={styles.muted}>Validando sesión administrativa.</p>
@@ -416,14 +459,23 @@ export default function SoporteMensajesPage() {
 
   return (
     <main style={styles.page}>
+      <div style={styles.backgroundGlowOne} />
+      <div style={styles.backgroundGlowTwo} />
+
       <section style={styles.container}>
         <header style={styles.header}>
-          <div>
-            <p style={styles.kicker}>JONAS STREAM · SOPORTE PANEL</p>
-            <h1 style={styles.title}>Mensajes recibidos</h1>
+          <div style={styles.headerText}>
+            <div style={styles.brandLine}>
+              <div style={styles.logoMark}>JS</div>
+              <div>
+                <p style={styles.kicker}>JONAS STREAM · SOPORTE PANEL</p>
+                <h1 style={styles.title}>Mensajes recibidos</h1>
+              </div>
+            </div>
+
             <p style={styles.description}>
-              Bandeja interna para revisar correos recibidos por cuentas
-              asignadas.
+              Bandeja interna para revisar correos, códigos y enlaces recibidos
+              por las cuentas asignadas.
             </p>
           </div>
 
@@ -432,13 +484,23 @@ export default function SoporteMensajesPage() {
             <strong>{usuario?.nombre || "Admin"}</strong>
             <span style={styles.smallText}>{usuario?.correo}</span>
 
-            <button
-              type="button"
-              onClick={() => router.push("/soporte-panel/dashboard")}
-              style={styles.buttonGhost}
-            >
-              Volver al dashboard
-            </button>
+            <div style={styles.adminButtons}>
+              <button
+                type="button"
+                onClick={() => router.push("/soporte-panel/dashboard")}
+                style={styles.buttonGhost}
+              >
+                Dashboard
+              </button>
+
+              <button
+                type="button"
+                onClick={() => window.open("/codigos", "_blank")}
+                style={styles.buttonGhost}
+              >
+                /codigos
+              </button>
+            </div>
 
             <button
               type="button"
@@ -462,7 +524,7 @@ export default function SoporteMensajesPage() {
               onClick={limpiarFiltroCorreo}
               style={styles.buttonSecondary}
             >
-              Ver todos los mensajes
+              Ver todos
             </button>
           </div>
         )}
@@ -478,7 +540,7 @@ export default function SoporteMensajesPage() {
           <div style={styles.panelHeader}>
             <div>
               <p style={styles.kicker}>BANDEJA DE SOPORTE</p>
-              <h2 style={{ margin: "10px 0" }}>Lista de mensajes</h2>
+              <h2 style={styles.sectionTitle}>Lista de mensajes</h2>
               <p style={styles.muted}>
                 Busca por cliente, correo, remitente, plataforma o asunto.
               </p>
@@ -487,9 +549,9 @@ export default function SoporteMensajesPage() {
             <button
               type="button"
               onClick={cargarDatos}
-              style={styles.buttonSecondary}
+              style={styles.buttonPrimary}
             >
-              {cargando ? "Actualizando..." : "Actualizar"}
+              {cargando ? "Actualizando..." : "Actualizar bandeja"}
             </button>
           </div>
 
@@ -519,16 +581,20 @@ export default function SoporteMensajesPage() {
           </div>
 
           {mensajesFiltrados.length === 0 ? (
-            <p style={styles.muted}>
-              No hay mensajes para este filtro. Verifica que el correo tenga
-              mensajes recibidos.
-            </p>
+            <div style={styles.emptyState}>
+              <strong>No hay mensajes para este filtro.</strong>
+              <p>Verifica que el correo tenga mensajes recibidos.</p>
+            </div>
           ) : (
             <div style={styles.layout}>
               <div style={styles.list}>
                 {mensajesFiltrados.map((mensaje) => {
                   const cliente = obtenerCliente(mensaje)
                   const activo = mensajeSeleccionado?.id === mensaje.id
+                  const codigo = extraerCodigo(
+                    mensaje.cuerpo_texto || "",
+                    mensaje.asunto
+                  )
 
                   return (
                     <button
@@ -542,7 +608,7 @@ export default function SoporteMensajesPage() {
                           : "rgba(1, 231, 239, 0.16)",
                         background: activo
                           ? "rgba(1, 231, 239, 0.12)"
-                          : "rgba(0,0,0,0.22)",
+                          : "rgba(0,0,0,0.24)",
                       }}
                     >
                       <div style={styles.messageTop}>
@@ -566,8 +632,10 @@ export default function SoporteMensajesPage() {
 
                       <span style={styles.smallText}>
                         {mensaje.remitente || "Remitente no disponible"} ·{" "}
-                        {new Date(mensaje.fecha_mensaje).toLocaleString("es-PE")}
+                        {formatearFecha(mensaje.fecha_mensaje)}
                       </span>
+
+                      {codigo && <span style={styles.codePreview}>Código: {codigo}</span>}
                     </button>
                   )
                 })}
@@ -575,12 +643,12 @@ export default function SoporteMensajesPage() {
 
               <div style={styles.preview}>
                 {!mensajeSeleccionado ? (
-                  <div>
+                  <div style={styles.previewEmpty}>
                     <p style={styles.kicker}>VISTA DEL MENSAJE</p>
                     <h2>Selecciona un mensaje</h2>
                     <p style={styles.muted}>
-                      Aquí verás el asunto, remitente, correo destino y contenido
-                      del mensaje.
+                      Aquí verás el asunto, remitente, correo destino, códigos
+                      detectados y contenido del correo.
                     </p>
                   </div>
                 ) : (
@@ -589,6 +657,7 @@ export default function SoporteMensajesPage() {
                     cliente={obtenerCliente(mensajeSeleccionado)}
                     onMarcarLeido={marcarLeido}
                     onEliminar={eliminarMensaje}
+                    onCopiar={copiarTexto}
                   />
                 )}
               </div>
@@ -605,11 +674,13 @@ function MensajePreview({
   cliente,
   onMarcarLeido,
   onEliminar,
+  onCopiar,
 }: {
   mensaje: SoporteMensaje
   cliente?: SoporteCliente
   onMarcarLeido: (mensaje: SoporteMensaje, leido: boolean) => void
   onEliminar: (mensaje: SoporteMensaje) => void
+  onCopiar: (texto: string, mensajeOk: string) => void
 }) {
   const cuerpo =
     mensaje.cuerpo_texto ||
@@ -621,48 +692,51 @@ function MensajePreview({
     mensaje.plataforma || cliente?.plataforma
   )
 
+  const codigo = extraerCodigo(cuerpo, mensaje.asunto)
   const cuerpoLimpio = limpiarCuerpoParaVista(cuerpo)
 
   return (
     <div>
-      <p style={styles.kicker}>DETALLE DEL MENSAJE</p>
+      <div style={styles.previewHeader}>
+        <div>
+          <p style={styles.kicker}>DETALLE DEL MENSAJE</p>
+          <h2 style={styles.previewTitle}>{mensaje.asunto || "Sin asunto"}</h2>
+        </div>
 
-      <h2 style={{ margin: "10px 0" }}>{mensaje.asunto || "Sin asunto"}</h2>
+        <span
+          style={{
+            ...styles.badgeLarge,
+            borderColor: mensaje.leido ? "#9BC8CB" : "#00FBFF",
+            color: mensaje.leido ? "#9BC8CB" : "#00FBFF",
+          }}
+        >
+          {mensaje.leido ? "Leído" : "Nuevo"}
+        </span>
+      </div>
+
+      {codigo && (
+        <div style={styles.codeBox}>
+          <span>Código detectado</span>
+          <button
+            type="button"
+            onClick={() => onCopiar(codigo, "Código copiado correctamente.")}
+            style={styles.codeButton}
+          >
+            {codigo}
+          </button>
+        </div>
+      )}
 
       <div style={styles.infoGrid}>
-        <div>
-          <span style={styles.label}>Cliente</span>
-          <strong>{cliente?.nombre || "No vinculado"}</strong>
-        </div>
-
-        <div>
-          <span style={styles.label}>Plataforma</span>
-          <strong>
-            {mensaje.plataforma || cliente?.plataforma || "No definida"}
-          </strong>
-        </div>
-
-        <div>
-          <span style={styles.label}>Correo destino</span>
-          <strong>{mensaje.correo_destino}</strong>
-        </div>
-
-        <div>
-          <span style={styles.label}>Remitente</span>
-          <strong>{mensaje.remitente || "No disponible"}</strong>
-        </div>
-
-        <div>
-          <span style={styles.label}>Fecha</span>
-          <strong>
-            {new Date(mensaje.fecha_mensaje).toLocaleString("es-PE")}
-          </strong>
-        </div>
-
-        <div>
-          <span style={styles.label}>Estado</span>
-          <strong>{mensaje.leido ? "Leído" : "No leído"}</strong>
-        </div>
+        <InfoItem label="Cliente" value={cliente?.nombre || "No vinculado"} />
+        <InfoItem
+          label="Plataforma"
+          value={mensaje.plataforma || cliente?.plataforma || "No definida"}
+        />
+        <InfoItem label="Correo destino" value={mensaje.correo_destino} />
+        <InfoItem label="Remitente" value={mensaje.remitente || "No disponible"} />
+        <InfoItem label="Fecha" value={formatearFecha(mensaje.fecha_mensaje)} />
+        <InfoItem label="Estado" value={mensaje.leido ? "Leído" : "No leído"} />
       </div>
 
       {linkPrincipal && (
@@ -678,6 +752,16 @@ function MensajePreview({
             >
               {linkPrincipal.texto}
             </a>
+
+            <button
+              type="button"
+              onClick={() =>
+                onCopiar(linkPrincipal.url, "Enlace copiado correctamente.")
+              }
+              style={styles.secondaryButton}
+            >
+              Copiar enlace
+            </button>
           </div>
         </div>
       )}
@@ -705,6 +789,15 @@ function MensajePreview({
   )
 }
 
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={styles.infoItem}>
+      <span style={styles.label}>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
+}
+
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div style={styles.statCard}>
@@ -717,56 +810,123 @@ function StatCard({ label, value }: { label: string; value: number }) {
 const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
+    position: "relative",
+    overflowX: "hidden",
     background:
-      "radial-gradient(circle at top left, rgba(1, 231, 239, 0.18), transparent 35%), radial-gradient(circle at bottom right, rgba(0, 251, 255, 0.14), transparent 35%), linear-gradient(135deg, #000000, #031316, #071B1E)",
+      "linear-gradient(135deg, #000000 0%, #031316 48%, #071B1E 100%)",
     color: "#ECFFFF",
-    padding: "40px",
-    fontFamily: "Arial, sans-serif",
+    padding: "clamp(14px, 3vw, 40px)",
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
+  },
+  backgroundGlowOne: {
+    position: "fixed",
+    width: "540px",
+    height: "540px",
+    borderRadius: "999px",
+    background: "rgba(1, 231, 239, 0.13)",
+    filter: "blur(100px)",
+    top: "-180px",
+    left: "-150px",
+    pointerEvents: "none",
+  },
+  backgroundGlowTwo: {
+    position: "fixed",
+    width: "640px",
+    height: "640px",
+    borderRadius: "999px",
+    background: "rgba(0, 251, 255, 0.10)",
+    filter: "blur(120px)",
+    right: "-220px",
+    bottom: "-220px",
+    pointerEvents: "none",
   },
   centerPage: {
     minHeight: "100vh",
     background:
-      "radial-gradient(circle at top left, rgba(1, 231, 239, 0.18), transparent 35%), linear-gradient(135deg, #000000, #031316, #071B1E)",
+      "linear-gradient(135deg, #000000 0%, #031316 48%, #071B1E 100%)",
     color: "#ECFFFF",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontFamily: "Arial, sans-serif",
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
+    padding: "20px",
   },
   loadingBox: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "22px",
+    background: "rgba(3, 19, 22, 0.82)",
+    borderRadius: "24px",
     padding: "28px",
     boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)",
     textAlign: "center",
+    width: "min(100%, 420px)",
+  },
+  logoMark: {
+    width: "54px",
+    height: "54px",
+    borderRadius: "18px",
+    display: "grid",
+    placeItems: "center",
+    background:
+      "linear-gradient(135deg, rgba(1, 231, 239, 1), rgba(0, 251, 255, 0.48))",
+    color: "#000000",
+    fontWeight: 1000,
+    boxShadow: "0 0 30px rgba(0, 251, 255, 0.22)",
+    flex: "0 0 auto",
+  },
+  logoMarkSmall: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "19px",
+    display: "grid",
+    placeItems: "center",
+    background:
+      "linear-gradient(135deg, rgba(1, 231, 239, 1), rgba(0, 251, 255, 0.48))",
+    color: "#000000",
+    fontWeight: 1000,
+    margin: "0 auto 18px",
   },
   container: {
-    maxWidth: "1280px",
+    position: "relative",
+    zIndex: 1,
+    maxWidth: "1320px",
     margin: "0 auto",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     gap: "20px",
+    alignItems: "stretch",
+    flexWrap: "wrap",
+    marginBottom: "28px",
+  },
+  headerText: {
+    flex: "1 1 560px",
+  },
+  brandLine: {
+    display: "flex",
+    gap: "16px",
     alignItems: "center",
-    marginBottom: "34px",
+    marginBottom: "14px",
   },
   kicker: {
     color: "#01E7EF",
     letterSpacing: "0.16em",
-    fontWeight: 900,
-    fontSize: "13px",
+    fontWeight: 950,
+    fontSize: "12px",
     margin: 0,
+    textTransform: "uppercase",
   },
   title: {
-    fontSize: "52px",
-    margin: "12px 0",
-    lineHeight: 1,
+    fontSize: "clamp(34px, 5vw, 56px)",
+    margin: "8px 0 0",
+    lineHeight: 0.98,
+    letterSpacing: "-0.045em",
   },
   description: {
     color: "#9BC8CB",
-    maxWidth: "680px",
+    maxWidth: "760px",
     lineHeight: 1.7,
     margin: 0,
   },
@@ -784,15 +944,23 @@ const styles: Record<string, CSSProperties> = {
     display: "block",
     color: "#9BC8CB",
     fontSize: "12px",
-    marginTop: "4px",
+    marginTop: "6px",
+    overflowWrap: "anywhere",
   },
   adminCard: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "20px",
+    background: "rgba(3, 19, 22, 0.82)",
+    borderRadius: "22px",
     padding: "16px",
-    minWidth: "260px",
+    minWidth: "min(100%, 280px)",
     boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+    flex: "0 1 320px",
+  },
+  adminButtons: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "10px",
+    marginTop: "14px",
   },
   filterAlert: {
     border: "1px solid rgba(1, 231, 239, 0.25)",
@@ -803,41 +971,48 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: "space-between",
     gap: "16px",
     alignItems: "center",
+    flexWrap: "wrap",
     marginBottom: "20px",
   },
   statsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: "18px",
-    marginTop: "36px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+    gap: "14px",
+    marginTop: "22px",
   },
   statCard: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
+    background: "rgba(3, 19, 22, 0.82)",
     borderRadius: "22px",
-    padding: "24px",
-    boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+    padding: "20px",
+    boxShadow: "0 0 25px rgba(1, 231, 239, 0.14)",
   },
   statValue: {
     display: "block",
     color: "#01E7EF",
-    fontSize: "38px",
-    marginTop: "12px",
+    fontSize: "clamp(30px, 4vw, 42px)",
+    marginTop: "10px",
   },
   panel: {
-    marginTop: "30px",
+    marginTop: "24px",
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "24px",
-    padding: "24px",
-    boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+    background: "rgba(3, 19, 22, 0.82)",
+    borderRadius: "26px",
+    padding: "clamp(16px, 3vw, 24px)",
+    boxShadow: "0 0 30px rgba(1, 231, 239, 0.16)",
   },
   panelHeader: {
     display: "flex",
     justifyContent: "space-between",
-    gap: "20px",
+    gap: "16px",
     alignItems: "center",
+    flexWrap: "wrap",
     marginBottom: "22px",
+  },
+  sectionTitle: {
+    margin: "8px 0",
+    fontSize: "clamp(22px, 3vw, 30px)",
+    letterSpacing: "-0.03em",
   },
   notice: {
     border: "1px solid rgba(1, 231, 239, 0.25)",
@@ -849,56 +1024,99 @@ const styles: Record<string, CSSProperties> = {
   },
   filters: {
     display: "grid",
-    gridTemplateColumns: "1fr 240px",
+    gridTemplateColumns: "minmax(0, 1fr) minmax(160px, 240px)",
     gap: "14px",
     marginBottom: "20px",
   },
   input: {
     width: "100%",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
+    border: "1px solid rgba(1, 231, 239, 0.20)",
     outline: "none",
-    borderRadius: "15px",
+    borderRadius: "16px",
     padding: "14px 15px",
-    background: "rgba(0, 0, 0, 0.34)",
+    background: "rgba(0, 0, 0, 0.36)",
     color: "#ECFFFF",
     fontSize: "14px",
+    minWidth: 0,
+  },
+  emptyState: {
+    border: "1px dashed rgba(1, 231, 239, 0.22)",
+    background: "rgba(0, 0, 0, 0.20)",
+    borderRadius: "20px",
+    padding: "22px",
+    color: "#9BC8CB",
   },
   layout: {
     display: "grid",
-    gridTemplateColumns: "0.9fr 1.1fr",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 370px), 1fr))",
     gap: "18px",
     alignItems: "start",
   },
   list: {
     display: "grid",
     gap: "12px",
+    maxHeight: "72vh",
+    overflowY: "auto",
+    paddingRight: "4px",
   },
   messageItem: {
     width: "100%",
     textAlign: "left",
     border: "1px solid rgba(1, 231, 239, 0.16)",
-    borderRadius: "18px",
+    borderRadius: "20px",
     padding: "16px",
     color: "#ECFFFF",
     cursor: "pointer",
+    transition: "0.2s ease",
   },
   messageTop: {
     display: "flex",
     justifyContent: "space-between",
     gap: "12px",
-    alignItems: "center",
+    alignItems: "start",
   },
   messageText: {
     color: "#9BC8CB",
     margin: "8px 0 0",
     fontSize: "13px",
+    overflowWrap: "anywhere",
+  },
+  codePreview: {
+    display: "inline-flex",
+    marginTop: "10px",
+    border: "1px solid rgba(0, 251, 255, 0.28)",
+    background: "rgba(0, 251, 255, 0.08)",
+    color: "#00FBFF",
+    borderRadius: "999px",
+    padding: "7px 10px",
+    fontSize: "12px",
+    fontWeight: 950,
+    letterSpacing: "0.08em",
   },
   preview: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(0, 0, 0, 0.24)",
-    borderRadius: "22px",
-    padding: "22px",
+    background: "rgba(0, 0, 0, 0.26)",
+    borderRadius: "24px",
+    padding: "clamp(16px, 3vw, 22px)",
     minHeight: "420px",
+    overflowWrap: "anywhere",
+  },
+  previewEmpty: {
+    minHeight: "340px",
+    display: "grid",
+    alignContent: "center",
+  },
+  previewHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "16px",
+    alignItems: "start",
+    flexWrap: "wrap",
+  },
+  previewTitle: {
+    margin: "8px 0 0",
+    fontSize: "clamp(22px, 3vw, 30px)",
+    letterSpacing: "-0.03em",
   },
   badge: {
     display: "inline-flex",
@@ -907,14 +1125,57 @@ const styles: Record<string, CSSProperties> = {
     border: "1px solid #00FBFF",
     color: "#00FBFF",
     fontSize: "11px",
-    fontWeight: 900,
+    fontWeight: 950,
     textTransform: "uppercase",
+    whiteSpace: "nowrap",
+  },
+  badgeLarge: {
+    display: "inline-flex",
+    padding: "8px 12px",
+    borderRadius: "999px",
+    border: "1px solid #00FBFF",
+    color: "#00FBFF",
+    fontSize: "12px",
+    fontWeight: 950,
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+  },
+  codeBox: {
+    marginTop: "18px",
+    border: "1px solid rgba(0, 251, 255, 0.26)",
+    background: "rgba(0, 251, 255, 0.08)",
+    borderRadius: "20px",
+    padding: "16px",
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "14px",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  codeButton: {
+    border: "1px solid rgba(1, 231, 239, 0.45)",
+    background: "rgba(1, 231, 239, 0.13)",
+    color: "#00FBFF",
+    borderRadius: "16px",
+    padding: "12px 16px",
+    fontSize: "clamp(22px, 4vw, 32px)",
+    fontWeight: 1000,
+    letterSpacing: "0.18em",
+    cursor: "pointer",
+    boxShadow: "0 0 26px rgba(0, 251, 255, 0.12)",
   },
   infoGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: "14px",
-    marginTop: "20px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))",
+    gap: "12px",
+    marginTop: "18px",
+  },
+  infoItem: {
+    border: "1px solid rgba(1, 231, 239, 0.12)",
+    background: "rgba(0, 0, 0, 0.24)",
+    borderRadius: "16px",
+    padding: "14px",
+    overflowWrap: "anywhere",
   },
   label: {
     display: "block",
@@ -923,7 +1184,7 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: "5px",
   },
   linksBox: {
-    marginTop: "22px",
+    marginTop: "18px",
     border: "1px solid rgba(1, 231, 239, 0.18)",
     background: "rgba(1, 231, 239, 0.06)",
     borderRadius: "18px",
@@ -950,15 +1211,17 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 0 25px rgba(1, 231, 239, 0.16)",
   },
   bodyBox: {
-    marginTop: "22px",
+    marginTop: "18px",
     border: "1px solid rgba(1, 231, 239, 0.14)",
     background: "rgba(0, 0, 0, 0.28)",
     borderRadius: "18px",
-    padding: "18px",
+    padding: "16px",
     color: "#ECFFFF",
     lineHeight: 1.7,
     whiteSpace: "pre-wrap",
     overflowWrap: "anywhere",
+    maxHeight: "420px",
+    overflowY: "auto",
   },
   actions: {
     display: "flex",
@@ -984,9 +1247,17 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     cursor: "pointer",
   },
+  secondaryButton: {
+    border: "1px solid rgba(155, 200, 203, 0.22)",
+    background: "rgba(155, 200, 203, 0.08)",
+    color: "#ECFFFF",
+    borderRadius: "14px",
+    padding: "11px 14px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
   buttonGhost: {
     width: "100%",
-    marginTop: "14px",
     border: "1px solid rgba(1, 231, 239, 0.18)",
     background: "rgba(1, 231, 239, 0.08)",
     color: "#01E7EF",
