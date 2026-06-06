@@ -230,6 +230,7 @@ function seleccionarEnlacePrincipal(params: {
   const plataformaLower = (plataforma || "").toLowerCase()
   const base = `${asunto} ${cuerpo}`.toLowerCase()
 
+  // Netflix: prioriza enlaces reales de activación/verificación.
   if (plataformaLower.includes("netflix")) {
     return (
       links.find((link) =>
@@ -238,10 +239,17 @@ function seleccionarEnlacePrincipal(params: {
     )
   }
 
+  // Max / HBO: confirmado, el enlace correcto es el primero.
+  if (tipo === "password" && esMaxOHbo(plataforma)) {
+    return links[0]
+  }
+
+  // Vix: normalmente el primer enlace es el botón principal.
   if (plataformaLower.includes("vix")) {
     return links[0]
   }
 
+  // Para contraseña, prioriza enlaces con palabras de recuperación.
   if (tipo === "password") {
     return (
       links.find((link) =>
@@ -250,6 +258,7 @@ function seleccionarEnlacePrincipal(params: {
     )
   }
 
+  // Para activar, confirmar, registrar o verificar.
   if (tipo === "enlace") {
     return (
       links.find((link) =>
@@ -278,8 +287,9 @@ function seleccionarEnlacesTelegram(params: {
 
   if (!links.length) return []
 
+  // Max / HBO: confirmado, solo enviar el primer enlace.
   if (tipo === "password" && esMaxOHbo(plataforma)) {
-    return links.slice(0, 3)
+    return [links[0]]
   }
 
   const principal = seleccionarEnlacePrincipal(params)
@@ -380,21 +390,11 @@ function construirAlertaTelegram(params: {
 
   if ((tipo === "password" || tipo === "enlace") && enlacesTelegram.length > 0) {
     partes.push("")
-
-    if (tipo === "password" && esMaxOHbo(plataformaTexto) && enlacesTelegram.length > 1) {
-      partes.push("<b>Acciones Max/HBO:</b>")
-      enlacesTelegram.forEach((link, index) => {
-        partes.push(
-          `<a href="${escapeHtml(link)}">Opción ${index + 1}</a>`
-        )
-      })
-    } else {
-      partes.push(
-        `<b>Acción:</b> <a href="${escapeHtml(enlacesTelegram[0])}">${escapeHtml(
-          etiquetaEnlace(tipo)
-        )}</a>`
-      )
-    }
+    partes.push(
+      `<b>Acción:</b> <a href="${escapeHtml(enlacesTelegram[0])}">${escapeHtml(
+        etiquetaEnlace(tipo)
+      )}</a>`
+    )
   }
 
   if (tipo === "seguridad") {
@@ -615,7 +615,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-max-opciones-2026-06-06-v3",
-    mensaje: "API de soporte activa con alertas Telegram, enlaces limpios y opciones Max/HBO.",
+    version: "recibir-mensaje-telegram-max-primer-link-2026-06-06-v4",
+    mensaje: "API de soporte activa con alertas Telegram y primer enlace Max/HBO.",
   })
 }
