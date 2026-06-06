@@ -220,6 +220,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
+    version: "recibir-mensaje-fix-2026-06-06-v2",
     mensaje: "API de soporte activa. Usa POST para registrar mensajes.",
   })
 }
