@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { CSSProperties, FormEvent } from "react"
 
 type ClienteConsulta = {
@@ -23,6 +23,9 @@ type MensajeConsulta = {
   fecha_mensaje: string
   created_at: string
 }
+
+const WHATSAPP_SOPORTE = "51900557949"
+const AUTO_REFRESH_MS = 30000
 
 const BRAND = {
   cyan: "#01E7EF",
@@ -275,17 +278,35 @@ export default function CodigosPage() {
   const [aviso, setAviso] = useState("")
   const [cliente, setCliente] = useState<ClienteConsulta | null>(null)
   const [mensajes, setMensajes] = useState<MensajeConsulta[]>([])
+  const [actualizandoAuto, setActualizandoAuto] = useState(false)
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null)
 
   const ultimoMensaje = useMemo(() => mensajes[0] || null, [mensajes])
   const estado = cliente ? estadoVisual(cliente.estado) : null
   const diasRestantes = calcularDiasRestantes(cliente?.fecha_vencimiento)
 
-  const consultarCodigos = async (correoConsulta: string, pinConsulta: string) => {
-    setCargando(true)
-    setError("")
-    setAviso("")
-    setCliente(null)
-    setMensajes([])
+  const whatsappUrl = useMemo(() => {
+    const texto = cliente
+      ? `Hola JONAS STREAM, necesito ayuda con mi código.\n\nCorreo asignado: ${cliente.correo_asignado}\nPlataforma: ${cliente.plataforma || "No definida"}`
+      : "Hola JONAS STREAM, necesito ayuda con mi código."
+
+    return `https://wa.me/${WHATSAPP_SOPORTE}?text=${encodeURIComponent(texto)}`
+  }, [cliente])
+
+  const consultarCodigos = async (
+    correoConsulta: string,
+    pinConsulta: string,
+    silencioso = false
+  ) => {
+    if (silencioso) {
+      setActualizandoAuto(true)
+    } else {
+      setCargando(true)
+      setError("")
+      setAviso("")
+      setCliente(null)
+      setMensajes([])
+    }
 
     try {
       const res = await fetch("/api/codigos/consultar", {
@@ -308,14 +329,21 @@ export default function CodigosPage() {
 
       setCliente(data.cliente)
       setMensajes(data.mensajes || [])
+      setUltimaActualizacion(new Date())
 
-      if ((data.mensajes || []).length === 0) {
+      if (!silencioso && (data.mensajes || []).length === 0) {
         setAviso("Acceso validado. Aún no hay mensajes recientes para este correo.")
       }
     } catch {
-      setError("Error de conexión. Intenta nuevamente.")
+      if (!silencioso) {
+        setError("Error de conexión. Intenta nuevamente.")
+      }
     } finally {
-      setCargando(false)
+      if (silencioso) {
+        setActualizandoAuto(false)
+      } else {
+        setCargando(false)
+      }
     }
   }
 
@@ -341,8 +369,19 @@ export default function CodigosPage() {
 
   const actualizar = async () => {
     if (!correo.trim() || !pin.trim()) return
-    await consultarCodigos(correo.trim().toLowerCase(), pin.trim())
+    await consultarCodigos(correo.trim().toLowerCase(), pin.trim(), false)
   }
+
+  useEffect(() => {
+    if (!cliente || !correo.trim() || !pin.trim()) return
+
+    const intervalo = window.setInterval(() => {
+      consultarCodigos(correo.trim().toLowerCase(), pin.trim(), true)
+    }, AUTO_REFRESH_MS)
+
+    return () => window.clearInterval(intervalo)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cliente?.id, correo, pin])
 
   const copiarTexto = async (texto: string, mensajeOK: string) => {
     try {
@@ -482,6 +521,25 @@ export default function CodigosPage() {
             </button>
           </form>
 
+          <div style={styles.supportRow}>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.whatsappButton}
+            >
+              Contactar soporte por WhatsApp
+            </a>
+
+            {cliente && (
+              <span style={styles.autoStatus}>
+                {actualizandoAuto
+                  ? "Actualizando mensajes..."
+                  : `Autoactualización cada ${AUTO_REFRESH_MS / 1000} segundos`}
+              </span>
+            )}
+          </div>
+
           {error && <div style={styles.error}>{error}</div>}
           {aviso && <div style={styles.notice}>{aviso}</div>}
 
@@ -493,6 +551,15 @@ export default function CodigosPage() {
                 Cuando consultes, verás tu cuenta asignada, últimos mensajes,
                 códigos disponibles y enlaces principales.
               </p>
+
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.emptyWhatsappButton}
+              >
+                ¿Necesitas ayuda? Escribir a soporte
+              </a>
             </div>
           )}
 
@@ -546,9 +613,23 @@ export default function CodigosPage() {
               </div>
 
               <div style={styles.accountActions}>
-                <button type="button" onClick={actualizar} style={styles.refreshButton}>
-                  Actualizar mensajes
+                <button
+                  type="button"
+                  onClick={actualizar}
+                  style={styles.refreshButton}
+                  disabled={cargando || actualizandoAuto}
+                >
+                  {actualizandoAuto ? "Actualizando..." : "Actualizar mensajes"}
                 </button>
+
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.whatsappMiniButton}
+                >
+                  Soporte WhatsApp
+                </a>
 
                 <button
                   type="button"
@@ -562,6 +643,17 @@ export default function CodigosPage() {
                 >
                   Copiar correo
                 </button>
+
+                {ultimaActualizacion && (
+                  <span style={styles.lastUpdateText}>
+                    Última actualización:{" "}
+                    {ultimaActualizacion.toLocaleTimeString("es-PE", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
+                  </span>
+                )}
               </div>
             </section>
           )}
@@ -995,6 +1087,32 @@ const styles: Record<string, CSSProperties> = {
     color: BRAND.black,
     boxShadow: "0 0 30px rgba(0, 251, 255, 0.18)",
   },
+  supportRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginTop: "14px",
+  },
+  whatsappButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px solid rgba(37, 211, 102, 0.45)",
+    background: "rgba(37, 211, 102, 0.12)",
+    color: "#6DFF9F",
+    borderRadius: "14px",
+    padding: "11px 14px",
+    fontWeight: 950,
+    textDecoration: "none",
+    boxShadow: "0 0 22px rgba(37, 211, 102, 0.12)",
+  },
+  autoStatus: {
+    color: BRAND.muted,
+    fontSize: "12px",
+    fontWeight: 800,
+  },
   error: {
     marginTop: "16px",
     border: "1px solid rgba(255, 67, 67, 0.45)",
@@ -1211,6 +1329,36 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     cursor: "pointer",
   },
+  whatsappMiniButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px solid rgba(37, 211, 102, 0.42)",
+    background: "rgba(37, 211, 102, 0.11)",
+    color: "#6DFF9F",
+    borderRadius: "14px",
+    padding: "11px 14px",
+    fontWeight: 950,
+    textDecoration: "none",
+  },
+  emptyWhatsappButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: "14px",
+    border: "1px solid rgba(37, 211, 102, 0.42)",
+    background: "rgba(37, 211, 102, 0.11)",
+    color: "#6DFF9F",
+    borderRadius: "14px",
+    padding: "11px 14px",
+    fontWeight: 950,
+    textDecoration: "none",
+  },
+  lastUpdateText: {
+    color: BRAND.muted,
+    fontSize: "12px",
+    alignSelf: "center",
+  },
   refreshButton: {
     border: "1px solid rgba(1, 231, 239, 0.35)",
     background: "rgba(1, 231, 239, 0.11)",
@@ -1302,6 +1450,11 @@ if (typeof document !== "undefined") {
 
         a[style], button[style] {
           max-width: 100%;
+        }
+
+        a[href*="wa.me"] {
+          width: 100% !important;
+          text-align: center !important;
         }
       }
     `
