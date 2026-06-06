@@ -128,7 +128,7 @@ function extraerLinks(texto: string) {
       links.add(url)
     }
 
-    if (links.size >= 8) break
+    if (links.size >= 10) break
   }
 
   return Array.from(links)
@@ -157,10 +157,26 @@ function filtrarLinksImportantes(links: string[]) {
     return !basura.some((palabra) => lower.includes(palabra))
   })
 
-  return (utiles.length ? utiles : links).slice(0, 3)
+  return utiles.length ? utiles : links
 }
 
-function detectarTipoMensaje(asunto: string, cuerpo: string, codigo: string | null, links: string[]) {
+function escapeHtml(valor: string | null | undefined) {
+  if (!valor) return ""
+
+  return valor
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+}
+
+function detectarTipoMensaje(
+  asunto: string,
+  cuerpo: string,
+  codigo: string | null,
+  links: string[]
+) {
   const base = `${asunto}\n${cuerpo}`.toLowerCase()
 
   if (codigo) return "codigo"
@@ -193,6 +209,75 @@ function detectarTipoMensaje(asunto: string, cuerpo: string, codigo: string | nu
   if (links.length > 0) return "enlace"
 
   return "normal"
+}
+
+function seleccionarEnlacePrincipal(params: {
+  links: string[]
+  tipo: string
+  plataforma: string | null
+  asunto: string
+  cuerpo: string
+}) {
+  const { links, tipo, plataforma, asunto, cuerpo } = params
+
+  if (!links.length) return null
+
+  const plataformaLower = (plataforma || "").toLowerCase()
+  const base = `${asunto} ${cuerpo}`.toLowerCase()
+
+  // Netflix: prioriza enlaces reales de activación/verificación.
+  if (plataformaLower.includes("netflix")) {
+    return (
+      links.find((link) =>
+        /netflix\.com\/(val|epr)|nftoken|code=|token=/i.test(link)
+      ) || links[0]
+    )
+  }
+
+  // Max / HBO: en tus pruebas el segundo enlace es el cambio de contraseña real.
+  if (
+    tipo === "password" &&
+    (plataformaLower.includes("max") || plataformaLower.includes("hbo"))
+  ) {
+    return links[1] || links[0]
+  }
+
+  // Vix: normalmente el primer enlace es el botón principal.
+  if (plataformaLower.includes("vix")) {
+    return links[0]
+  }
+
+  // Para contraseña, prioriza enlaces con palabras de recuperación.
+  if (tipo === "password") {
+    return (
+      links.find((link) =>
+        /reset|password|recover|recovery|change|forgot|pass|pwd/i.test(link)
+      ) || links[0]
+    )
+  }
+
+  // Para activar, confirmar, registrar o verificar.
+  if (tipo === "enlace") {
+    return (
+      links.find((link) =>
+        /verify|verification|activate|activation|confirm|register|signup|sign-up|val|code|token/i.test(
+          link
+        )
+      ) || links[0]
+    )
+  }
+
+  if (/reset|password|contraseña|recuper|restablec/.test(base)) {
+    return links[0]
+  }
+
+  return links[0]
+}
+
+function etiquetaEnlace(tipo: string) {
+  if (tipo === "password") return "Abrir enlace de contraseña"
+  if (tipo === "enlace") return "Abrir enlace principal"
+  return "Abrir enlace"
 }
 
 function crearResumen(cuerpo: string, maxLength = 450) {
@@ -244,9 +329,18 @@ function construirAlertaTelegram(params: {
 
   const plataformaTexto = plataforma || cliente?.plataforma || "No detectada"
   const clienteTexto = cliente?.nombre || "Sin cliente asignado"
+
   const panelUrl = `https://jonasstream.xyz/soporte-panel/mensajes?correo=${encodeURIComponent(
     correoDestino
   )}`
+
+  const enlacePrincipal = seleccionarEnlacePrincipal({
+    links,
+    tipo,
+    plataforma: plataformaTexto,
+    asunto,
+    cuerpo: cuerpoTexto,
+  })
 
   let titulo = "📩 Nuevo mensaje recibido"
 
@@ -256,44 +350,44 @@ function construirAlertaTelegram(params: {
   if (tipo === "seguridad") titulo = "⚠️ Aviso de seguridad"
 
   const partes: string[] = [
-    titulo,
+    `<b>${escapeHtml(titulo)}</b>`,
     "",
-    `Plataforma: ${plataformaTexto}`,
-    `Correo: ${correoDestino}`,
-    `Cliente: ${clienteTexto}`,
-    `Asunto: ${asunto}`,
-    remitente ? `Remitente: ${remitente}` : "",
-    `Fecha: ${formatearFechaPeru(fechaMensaje)}`,
+    `<b>Plataforma:</b> ${escapeHtml(plataformaTexto)}`,
+    `<b>Correo:</b> ${escapeHtml(correoDestino)}`,
+    `<b>Cliente:</b> ${escapeHtml(clienteTexto)}`,
+    `<b>Asunto:</b> ${escapeHtml(asunto)}`,
+    remitente ? `<b>Remitente:</b> ${escapeHtml(remitente)}` : "",
+    `<b>Fecha:</b> ${escapeHtml(formatearFechaPeru(fechaMensaje))}`,
   ].filter(Boolean)
 
   if (tipo === "codigo" && codigo) {
-    partes.push("", `Código: ${codigo}`)
+    partes.push("")
+    partes.push(`<b>Código:</b> <code>${escapeHtml(codigo)}</code>`)
   }
 
-  if ((tipo === "password" || tipo === "enlace") && links.length > 0) {
-    partes.push("", "Enlace principal:")
-    partes.push(links[0])
-
-    if (links.length > 1) {
-      partes.push("", "Otros enlaces detectados:")
-      links.slice(1).forEach((link, index) => {
-        partes.push(`${index + 2}. ${link}`)
-      })
-    }
+  if ((tipo === "password" || tipo === "enlace") && enlacePrincipal) {
+    partes.push("")
+    partes.push(
+      `<b>Acción:</b> <a href="${escapeHtml(enlacePrincipal)}">${escapeHtml(
+        etiquetaEnlace(tipo)
+      )}</a>`
+    )
   }
 
   if (tipo === "seguridad") {
-    partes.push("", "Resumen:")
-    partes.push(crearResumen(cuerpoTexto, 500))
+    partes.push("")
+    partes.push("<b>Resumen:</b>")
+    partes.push(escapeHtml(crearResumen(cuerpoTexto, 500)))
   }
 
   if (tipo === "normal") {
-    partes.push("", "Resumen:")
-    partes.push(crearResumen(cuerpoTexto, 350))
+    partes.push("")
+    partes.push("<b>Resumen:</b>")
+    partes.push(escapeHtml(crearResumen(cuerpoTexto, 350)))
   }
 
-  partes.push("", "Ver en panel:")
-  partes.push(panelUrl)
+  partes.push("")
+  partes.push(`<b>Panel:</b> <a href="${escapeHtml(panelUrl)}">Ver mensaje en panel</a>`)
 
   return partes.join("\n").slice(0, 3900)
 }
@@ -316,6 +410,7 @@ async function enviarTelegram(texto: string) {
       body: JSON.stringify({
         chat_id: chatId,
         text: texto,
+        parse_mode: "HTML",
         disable_web_page_preview: true,
       }),
     })
@@ -497,7 +592,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-2026-06-06-v1",
-    mensaje: "API de soporte activa con alertas Telegram.",
+    version: "recibir-mensaje-telegram-links-limpios-2026-06-06-v2",
+    mensaje: "API de soporte activa con alertas Telegram y enlaces limpios.",
   })
 }
