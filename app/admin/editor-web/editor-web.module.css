@@ -2178,3 +2178,194 @@
     min-height: 36px !important;
   }
 }
+
+
+/* =====================================================
+   V8 - MÓVIL CORREGIDO: cabecera + pestañas fijas juntas
+   La cabecera y los botones de secciones quedan en un solo
+   bloque sticky, con separación real y sin montarse al formulario.
+   ===================================================== */
+
+.mobileGroupTabs {
+  display: none;
+}
+
+.desktopGroupTabs {
+  display: grid;
+}
+
+@media (max-width: 720px) {
+  .editorShell {
+    width: min(100% - 12px, 1500px) !important;
+    padding-top: 8px !important;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow: visible !important;
+  }
+
+  .mobileStickyHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 600 !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 12px !important;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.98) 0%, rgba(3, 19, 22, 0.98) 82%, rgba(3, 19, 22, 0) 100%) !important;
+  }
+
+  .mobileStickyHeader .editorTopbar {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border-radius: 18px !important;
+    padding: 10px 12px 12px !important;
+    margin-bottom: 12px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    box-shadow:
+      0 16px 32px rgba(0, 0, 0, 0.42),
+      0 0 22px rgba(0, 251, 255, 0.08) !important;
+  }
+
+  .mobileStickyHeader .editorTopbar h1 {
+    font-size: clamp(1.06rem, 6vw, 1.42rem) !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.6px !important;
+  }
+
+  .mobileStickyHeader .editorTopbar p:not(.kicker) {
+    display: none !important;
+  }
+
+  .mobileStickyHeader .kicker {
+    font-size: 0.54rem !important;
+    letter-spacing: 1.8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .mobileStickyHeader .topbarActions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .mobileStickyHeader .topbarActions > * {
+    width: 100% !important;
+    min-height: 38px !important;
+    border-radius: 14px !important;
+    padding: 8px 6px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .desktopGroupTabs {
+    display: none !important;
+  }
+
+  .mobileGroupTabs {
+    position: static !important;
+    top: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    border-radius: 18px !important;
+    border: 1px solid rgba(1, 231, 239, 0.2) !important;
+    background: rgba(3, 19, 22, 0.98) !important;
+    box-shadow:
+      0 12px 26px rgba(0, 0, 0, 0.34),
+      0 0 22px rgba(0, 251, 255, 0.08) !important;
+    backdrop-filter: blur(16px) !important;
+    transform: none !important;
+  }
+
+  .mobileGroupTabs::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .mobileGroupTabs button {
+    width: 100% !important;
+    min-height: 38px !important;
+    padding: 7px 5px !important;
+    border-radius: 12px !important;
+    font-size: 0.66rem !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0 !important;
+    white-space: normal !important;
+  }
+
+  .workspace {
+    display: block !important;
+    margin-top: 0 !important;
+    gap: 0 !important;
+    overflow: visible !important;
+  }
+
+  .editorPanel {
+    position: static !important;
+    z-index: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 10px !important;
+    border-radius: 20px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .formCard {
+    position: relative !important;
+    z-index: 1 !important;
+    margin-top: 0 !important;
+    padding: 14px !important;
+    border-radius: 20px !important;
+    overflow: visible !important;
+    max-height: none !important;
+    min-height: 0 !important;
+  }
+
+  .saveBar {
+    position: static !important;
+    bottom: auto !important;
+    z-index: auto !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-top: 16px !important;
+    padding: 12px 0 0 !important;
+    background: transparent !important;
+    border-top: 1px solid rgba(1, 231, 239, 0.1) !important;
+  }
+
+  .saveBar > * {
+    width: 100% !important;
+    min-height: 42px !important;
+    padding: 9px 8px !important;
+    border-radius: 14px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .saveBar > *:last-child {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileGroupTabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    padding: 9px !important;
+  }
+
+  .mobileGroupTabs button {
+    font-size: 0.6rem !important;
+    min-height: 36px !important;
+  }
+}

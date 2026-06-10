@@ -269,41 +269,52 @@ export default function PortadaEditorPage() {
     toast.error("Aún no está conectado a Supabase. Primero validamos diseño y preview.");
   };
 
+  const sectionTabs = (extraClassName = "") => (
+    <div
+      className={`${styles.groupTabs} ${extraClassName}`.trim()}
+      aria-label="Secciones editables"
+    >
+      {groups.map((group) => (
+        <button
+          key={group}
+          type="button"
+          className={activeGroup === group ? styles.activeTab : ""}
+          onClick={() => setActiveGroup(group)}
+        >
+          {group}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <main className={styles.editorShell}>
-      <section className={styles.editorTopbar}>
-        <div>
-          <p className={styles.kicker}>EDITOR WEB / PORTADA</p>
-          <h1>Editar portada</h1>
-          <p>
-            Cambia textos, colores, enlaces y redes a la izquierda. A la derecha verás la vista previa antes de guardar o publicar.
-          </p>
-        </div>
+      <div className={styles.mobileStickyHeader}>
+        <section className={styles.editorTopbar}>
+          <div>
+            <p className={styles.kicker}>EDITOR WEB / PORTADA</p>
+            <h1>Editar portada</h1>
+            <p>
+              Cambia textos, colores, enlaces y redes a la izquierda. A la derecha verás la vista previa antes de guardar o publicar.
+            </p>
+          </div>
 
-        <div className={styles.topbarActions}>
-          <Link href="/admin/editor-web" className={styles.secondaryButton}>
-            Volver
-          </Link>
-          <button type="button" className={styles.primaryButton} onClick={saveDraft}>
-            Guardar borrador
-          </button>
-        </div>
-      </section>
+          <div className={styles.topbarActions}>
+            <Link href="/admin/editor-web" className={styles.secondaryButton}>
+              Volver
+            </Link>
+            <button type="button" className={styles.primaryButton} onClick={saveDraft}>
+              Guardar borrador
+            </button>
+          </div>
+        </section>
+
+        {sectionTabs(styles.mobileGroupTabs)}
+      </div>
 
       <section className={styles.workspace}>
         <aside className={styles.editorPanel}>
-          <div className={styles.groupTabs} aria-label="Secciones editables">
-            {groups.map((group) => (
-              <button
-                key={group}
-                type="button"
-                className={activeGroup === group ? styles.activeTab : ""}
-                onClick={() => setActiveGroup(group)}
-              >
-                {group}
-              </button>
-            ))}
-          </div>
+          {sectionTabs(styles.desktopGroupTabs)}
 
           <div className={styles.formCard}>
             {activeGroup === "Marca" && (
