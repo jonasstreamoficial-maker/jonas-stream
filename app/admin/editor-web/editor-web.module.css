@@ -1083,3 +1083,222 @@
     transform: none;
   }
 }
+
+/* ===============================
+   CORRECCIONES V3 - MOBILE + SCROLL + PREVIEW
+   =============================== */
+
+.helpBox,
+.field small,
+.field input,
+.field textarea,
+.field select {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.helpBox strong {
+  color: var(--primary-strong);
+}
+
+.formCard,
+.previewFrameOuter,
+.editorTopbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) rgba(3, 19, 22, 0.9);
+}
+
+.formCard::-webkit-scrollbar,
+.previewFrameOuter::-webkit-scrollbar,
+.editorTopbar::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.formCard::-webkit-scrollbar-track,
+.previewFrameOuter::-webkit-scrollbar-track,
+.editorTopbar::-webkit-scrollbar-track {
+  background: rgba(3, 19, 22, 0.96);
+  border-radius: 999px;
+}
+
+.formCard::-webkit-scrollbar-thumb,
+.previewFrameOuter::-webkit-scrollbar-thumb,
+.editorTopbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--primary), var(--secondary));
+  border-radius: 999px;
+  border: 2px solid rgba(3, 19, 22, 0.96);
+}
+
+.formCard::-webkit-scrollbar-corner,
+.previewFrameOuter::-webkit-scrollbar-corner,
+.editorTopbar::-webkit-scrollbar-corner {
+  background: rgba(3, 19, 22, 0.96);
+}
+
+.previewFrameOuter {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.previewSite:not(.previewMobile) {
+  padding-left: 44px;
+  padding-right: 44px;
+}
+
+.previewSite:not(.previewMobile) .previewSideBrand {
+  left: -8px;
+  color: color-mix(in srgb, var(--preview-primary) 18%, transparent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--preview-glow) 14%, transparent);
+}
+
+.previewSite:not(.previewMobile) .previewSideBrandRight {
+  left: auto;
+  right: -8px;
+}
+
+.previewMobile {
+  overflow-x: hidden;
+}
+
+@media (max-width: 720px) {
+  .editorShell {
+    width: min(100% - 14px, 1500px);
+    padding-top: 8px;
+  }
+
+  .editorTopbar {
+    position: sticky !important;
+    top: 0;
+    z-index: 120;
+    max-height: 46vh;
+    overflow-y: auto;
+    border-radius: 20px;
+    padding: 14px 12px;
+    gap: 12px;
+  }
+
+  .editorTopbar h1 {
+    font-size: clamp(1.35rem, 8vw, 1.85rem);
+    line-height: 1.08;
+  }
+
+  .editorTopbar p:not(.kicker) {
+    font-size: 0.84rem;
+    line-height: 1.45;
+    margin-top: 6px;
+  }
+
+  .kicker {
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .topbarActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+
+  .topbarActions > * {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 8px;
+    font-size: 0.86rem;
+  }
+
+  .workspace {
+    gap: 14px;
+  }
+
+  .editorPanel {
+    position: static;
+    padding: 12px;
+  }
+
+  .groupTabs {
+    position: sticky;
+    top: calc(46vh + 8px);
+    z-index: 90;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: -4px -4px 12px;
+    padding: 8px;
+    border-radius: 18px;
+    border: 1px solid rgba(1, 231, 239, 0.12);
+    background: rgba(3, 19, 22, 0.94);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(14px);
+  }
+
+  .groupTabs button {
+    min-height: 38px;
+    padding: 8px 7px;
+    border-radius: 12px;
+    font-size: 0.74rem;
+    line-height: 1.15;
+  }
+
+  .formCard {
+    padding: 14px;
+    border-radius: 20px;
+    overflow-x: hidden;
+  }
+
+  .saveBar {
+    position: sticky;
+    bottom: 0;
+    z-index: 85;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 12px 0 0;
+  }
+
+  .saveBar > * {
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.82rem;
+    padding: 10px 8px;
+  }
+
+  .saveBar > *:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .previewPanel {
+    padding: 12px;
+  }
+
+  .previewFrameOuter {
+    max-height: 72vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .previewSite {
+    width: 100%;
+    max-width: 390px;
+  }
+}
+
+@media (max-width: 390px) {
+  .groupTabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .groupTabs button {
+    font-size: 0.68rem;
+    min-height: 36px;
+    padding: 7px 5px;
+  }
+
+  .topbarActions {
+    grid-template-columns: 1fr;
+  }
+}

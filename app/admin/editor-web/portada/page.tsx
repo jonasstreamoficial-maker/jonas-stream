@@ -195,6 +195,11 @@ export default function PortadaEditorPage() {
     [draft.whatsappNumber, draft.whatsappMessage]
   );
 
+  const cleanWhatsappNumber = useMemo(
+    () => draft.whatsappNumber.replace(/\D/g, ""),
+    [draft.whatsappNumber]
+  );
+
   const previewTheme = useMemo(
     () =>
       ({
@@ -309,7 +314,11 @@ export default function PortadaEditorPage() {
                 <Field label="Texto botón contacto" value={draft.navContactText} onChange={(value) => updateDraft("navContactText", value)} />
                 <Field label="Número WhatsApp" value={draft.whatsappNumber} onChange={(value) => updateDraft("whatsappNumber", value)} helper="Coloca solo números. Ejemplo Perú: 51900557949." />
                 <TextArea label="Mensaje automático WhatsApp" value={draft.whatsappMessage} onChange={(value) => updateDraft("whatsappMessage", value)} />
-                <div className={styles.helpBox}>URL generada: {whatsappUrl}</div>
+                <div className={styles.helpBox} title={whatsappUrl}>
+                  <strong>WhatsApp generado:</strong> {cleanWhatsappNumber || "agrega un número"}
+                  <br />
+                  <span>El enlace completo se arma automáticamente con el mensaje escrito arriba.</span>
+                </div>
                 <Field label="Ruta o URL del logo principal" value={draft.logoImage} onChange={(value) => updateDraft("logoImage", value)} helper="Por ahora usa /perfil-web.jpg. Luego subiremos imágenes a Supabase Storage." />
                 <Field label="Texto lateral" value={draft.sideBrandText} onChange={(value) => updateDraft("sideBrandText", value)} helper="Este texto aparece en los laterales de la portada en PC." />
                 <Toggle label="Mostrar texto lateral" checked={draft.showSideBrand} onChange={(value) => updateDraft("showSideBrand", value)} />
