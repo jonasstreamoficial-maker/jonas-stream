@@ -1,10 +1,251 @@
-import Link from "next/link";
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const whatsappUrl =
   "https://wa.me/51900557949?text=Hola%20Jonas%20Stream%2C%20quiero%20informaci%C3%B3n%20sobre%20sus%20servicios.";
 
+type LegalModal = "terms" | "privacy" | null;
+
+function LegalDialog({
+  activeModal,
+  onClose,
+}: {
+  activeModal: LegalModal;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!activeModal) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeModal, onClose]);
+
+  if (!activeModal) return null;
+
+  const isTerms = activeModal === "terms";
+  const title = isTerms ? "TÉRMINOS Y CONDICIONES" : "POLÍTICA DE PRIVACIDAD";
+
+  return (
+    <div
+      className="legal-modal-overlay"
+      role="presentation"
+      onMouseDown={onClose}
+    >
+      <section
+        className="legal-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="legal-modal-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="legal-modal-top">
+          <div>
+            <p className="legal-modal-kicker">JONAS STREAM</p>
+            <h2 id="legal-modal-title">{title}</h2>
+          </div>
+
+          <button
+            type="button"
+            className="legal-modal-close"
+            onClick={onClose}
+            aria-label="Cerrar ventana legal"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="legal-modal-body">
+          <div className="legal-modal-meta">
+            <span>Última actualización: 2026</span>
+          </div>
+
+          {isTerms ? <TermsContent /> : <PrivacyContent />}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TermsContent() {
+  return (
+    <div className="legal-copy">
+      <p className="legal-lead">
+        Bienvenido a Jonas Stream. Al adquirir, contratar o utilizar nuestros
+        servicios, usted acepta los presentes Términos y Condiciones. Si no está
+        de acuerdo, no debe utilizar nuestros servicios.
+      </p>
+
+      <hr />
+
+      <h3>1. Naturaleza del servicio</h3>
+      <p>
+        Jonas Stream ofrece servicios de gestión, activación y soporte de
+        accesos a plataformas digitales de entretenimiento. No representamos
+        oficialmente a las marcas de streaming mencionadas ni tenemos relación
+        directa con ellas.
+      </p>
+
+      <h3>2. Condiciones de uso</h3>
+      <p>El cliente acepta:</p>
+      <ul>
+        <li>Usar los accesos únicamente para uso personal</li>
+        <li>No compartir cuentas con terceros no autorizados</li>
+        <li>No modificar correos, contraseñas o perfiles entregados</li>
+        <li>No alterar configuraciones de seguridad</li>
+        <li>No realizar usos abusivos del servicio</li>
+      </ul>
+
+      <div className="legal-note">
+        El incumplimiento puede generar suspensión inmediata sin reembolso.
+      </div>
+
+      <h3>3. Entrega del servicio</h3>
+      <p>
+        Las activaciones se realizan dentro del horario de atención informado por
+        nuestros canales oficiales. Los tiempos pueden variar según demanda y
+        verificación de pago.
+      </p>
+
+      <h3>4. Pagos</h3>
+      <p>
+        Todos los servicios son de pago anticipado. La activación se realiza
+        únicamente después de la confirmación del pago.
+      </p>
+
+      <h3>5. Garantía y soporte</h3>
+      <p>
+        Se brinda soporte técnico durante el período contratado. La garantía
+        cubre fallas de acceso no causadas por mal uso del cliente.
+      </p>
+      <p>
+        <b>No cubre:</b>
+      </p>
+      <ul>
+        <li>Bloqueos por uso indebido</li>
+        <li>Cambios realizados por el usuario</li>
+        <li>Incumplimiento de instrucciones</li>
+        <li>Compartir accesos</li>
+      </ul>
+
+      <h3>6. Reembolsos</h3>
+      <p>
+        No se realizan reembolsos una vez entregado el acceso, salvo que exista
+        imposibilidad técnica definitiva de cumplir el servicio.
+      </p>
+
+      <h3>7. Suspensión del servicio</h3>
+      <p>Podemos suspender el servicio si detectamos:</p>
+      <ul>
+        <li>Uso indebido</li>
+        <li>Compartición no autorizada</li>
+        <li>Manipulación de credenciales</li>
+        <li>Incumplimiento de reglas</li>
+      </ul>
+
+      <h3>8. No afiliación</h3>
+      <p>
+        Jonas Stream no está afiliado oficialmente a las plataformas de streaming
+        mencionadas. Las marcas pertenecen a sus respectivos propietarios.
+      </p>
+
+      <h3>9. Modificaciones</h3>
+      <p>
+        Nos reservamos el derecho de modificar estos términos en cualquier
+        momento. Los cambios entran en vigencia al ser publicados.
+      </p>
+
+      <div className="legal-copy-footer">
+        Para consultas o soporte, comunícate por nuestros canales oficiales.
+      </div>
+    </div>
+  );
+}
+
+function PrivacyContent() {
+  return (
+    <div className="legal-copy">
+      <p className="legal-lead">
+        En Jonas Stream respetamos la privacidad de nuestros clientes y
+        protegemos sus datos personales.
+      </p>
+
+      <hr />
+
+      <h3>1. Información que recopilamos</h3>
+      <p>Podemos recopilar:</p>
+      <ul>
+        <li>Nombre</li>
+        <li>Número de WhatsApp</li>
+        <li>Usuario de redes sociales</li>
+        <li>Datos necesarios para activar servicios</li>
+        <li>Información de contacto</li>
+      </ul>
+
+      <h3>2. Uso de la información</h3>
+      <p>Usamos la información únicamente para:</p>
+      <ul>
+        <li>Activación de servicios</li>
+        <li>Soporte técnico</li>
+        <li>Comunicación con el cliente</li>
+        <li>Validación de pagos</li>
+        <li>Atención de consultas</li>
+      </ul>
+
+      <h3>3. Protección de datos</h3>
+      <p>
+        Aplicamos medidas razonables de seguridad para proteger la información
+        del cliente y evitar accesos no autorizados.
+      </p>
+
+      <h3>4. No venta de datos</h3>
+      <p>No vendemos, alquilamos ni compartimos datos personales con terceros.</p>
+
+      <h3>5. Comunicaciones</h3>
+      <p>Podemos contactar al cliente para:</p>
+      <ul>
+        <li>Entrega de accesos</li>
+        <li>Soporte</li>
+        <li>Avisos de servicio</li>
+        <li>Renovaciones</li>
+      </ul>
+      <p>No enviamos publicidad masiva no solicitada.</p>
+
+      <h3>6. Solicitud de eliminación</h3>
+      <p>
+        El cliente puede solicitar la eliminación de sus datos contactándonos por
+        los canales oficiales.
+      </p>
+
+      <h3>7. Cambios en la política</h3>
+      <p>
+        Podemos actualizar esta Política de Privacidad cuando sea necesario. Los
+        cambios entran en vigencia al publicarse.
+      </p>
+
+      <div className="legal-copy-footer">
+        Para consultas sobre privacidad, contáctanos por nuestros canales
+        oficiales.
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
+  const [activeModal, setActiveModal] = useState<LegalModal>(null);
+
   return (
     <>
       <div className="side-brand" aria-hidden="true">
@@ -235,23 +476,38 @@ export default function HomePage() {
                 </a>
               </div>
             </section>
+
+            <section className="panel footer-panel" aria-label="Pie de página">
+              <div className="footer-content">
+                <p>© 2026 Jonas Stream. Todos los derechos reservados.</p>
+
+                <div className="footer-links">
+                  <button
+                    type="button"
+                    className="footer-link-button"
+                    onClick={() => setActiveModal("terms")}
+                  >
+                    Términos y Condiciones
+                  </button>
+                  <span className="footer-separator">•</span>
+                  <button
+                    type="button"
+                    className="footer-link-button"
+                    onClick={() => setActiveModal("privacy")}
+                  >
+                    Política de Privacidad
+                  </button>
+                </div>
+              </div>
+            </section>
           </div>
         </section>
       </main>
 
-      <footer>
-        <div className="container">
-          <div className="footer">
-            © 2026 Jonas Stream. Todos los derechos reservados.
-
-            <div className="footer-links">
-              <Link href="/terminos">Términos y Condiciones</Link>
-              <span className="footer-separator">•</span>
-              <Link href="/privacidad">Política de Privacidad</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <LegalDialog
+        activeModal={activeModal}
+        onClose={() => setActiveModal(null)}
+      />
     </>
   );
 }
