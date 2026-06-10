@@ -1542,3 +1542,276 @@
     padding-bottom: calc(108px + env(safe-area-inset-bottom)) !important;
   }
 }
+
+/* ===============================
+   CORRECCIONES V5 - MOBILE TABS ARRIBA + LATERALES OPACOS
+   =============================== */
+
+/* En la vista previa PC, los textos laterales quedan como marca de agua suave */
+.previewSite:not(.previewMobile) {
+  padding-left: 48px !important;
+  padding-right: 48px !important;
+}
+
+.previewSite:not(.previewMobile) .previewSideBrand {
+  left: -34px !important;
+  z-index: 0 !important;
+  opacity: 0.22 !important;
+  color: rgba(1, 231, 239, 0.16) !important;
+  text-shadow: none !important;
+  filter: none !important;
+  pointer-events: none !important;
+}
+
+.previewSite:not(.previewMobile) .previewSideBrandRight {
+  left: auto !important;
+  right: -34px !important;
+}
+
+.previewTopbar,
+.previewHero,
+.previewBenefits,
+.previewStats,
+.previewSocial,
+.previewFooter {
+  position: relative;
+  z-index: 2;
+}
+
+/* El preview nunca debe mostrar scroll blanco */
+.previewFrameOuter,
+.previewFrameOuter *,
+.formCard,
+.formCard * {
+  scrollbar-color: var(--primary) rgba(3, 19, 22, 0.96) !important;
+}
+
+.previewFrameOuter::-webkit-scrollbar,
+.formCard::-webkit-scrollbar {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.previewFrameOuter::-webkit-scrollbar-track,
+.formCard::-webkit-scrollbar-track,
+.previewFrameOuter::-webkit-scrollbar-track-piece,
+.formCard::-webkit-scrollbar-track-piece {
+  background: rgba(3, 19, 22, 0.98) !important;
+  border-radius: 999px !important;
+}
+
+.previewFrameOuter::-webkit-scrollbar-thumb,
+.formCard::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--primary), var(--secondary)) !important;
+  border-radius: 999px !important;
+  border: 2px solid rgba(3, 19, 22, 0.98) !important;
+}
+
+.previewFrameOuter::-webkit-scrollbar-corner,
+.formCard::-webkit-scrollbar-corner {
+  background: rgba(3, 19, 22, 0.98) !important;
+}
+
+@media (max-width: 720px) {
+  .editorShell {
+    width: min(100% - 12px, 1500px) !important;
+    padding-top: 8px !important;
+    padding-bottom: 28px !important;
+  }
+
+  /* Cabecera fija, pero más pequeña para que no tape el editor */
+  .editorTopbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 180 !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border-radius: 18px !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    margin-bottom: 12px !important;
+  }
+
+  .editorTopbar h1 {
+    font-size: clamp(1.05rem, 6vw, 1.38rem) !important;
+    line-height: 1.04 !important;
+    letter-spacing: 0.8px !important;
+  }
+
+  .editorTopbar p:not(.kicker) {
+    display: none !important;
+  }
+
+  .kicker {
+    font-size: 0.54rem !important;
+    letter-spacing: 1.8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .topbarActions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .topbarActions > * {
+    width: 100% !important;
+    min-height: 38px !important;
+    padding: 8px 7px !important;
+    border-radius: 13px !important;
+    font-size: 0.76rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .workspace {
+    display: block !important;
+    margin-top: 0 !important;
+  }
+
+  .editorPanel {
+    position: static !important;
+    max-height: none !important;
+    padding: 10px !important;
+    border-radius: 20px !important;
+    overflow: visible !important;
+    margin-bottom: 14px !important;
+  }
+
+  /* Los botones de secciones ya NO van abajo. Quedan arriba y ordenados. */
+  .groupTabs {
+    position: sticky !important;
+    top: 96px !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    z-index: 170 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    margin: 0 0 10px !important;
+    padding: 8px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(1, 231, 239, 0.18) !important;
+    background: rgba(3, 19, 22, 0.96) !important;
+    box-shadow:
+      0 14px 32px rgba(0, 0, 0, 0.38),
+      0 0 24px rgba(0, 251, 255, 0.08) !important;
+    backdrop-filter: blur(16px) !important;
+  }
+
+  .groupTabs button {
+    width: 100% !important;
+    min-height: 36px !important;
+    padding: 7px 5px !important;
+    border-radius: 11px !important;
+    font-size: 0.64rem !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0 !important;
+    white-space: normal !important;
+  }
+
+  .formCard {
+    padding: 14px !important;
+    border-radius: 18px !important;
+    overflow: visible !important;
+    max-height: none !important;
+    min-height: 0 !important;
+  }
+
+  .field {
+    margin-bottom: 12px !important;
+  }
+
+  .field span,
+  .toggleField span {
+    font-size: 0.78rem !important;
+  }
+
+  .field input,
+  .field textarea,
+  .field select {
+    min-height: 44px !important;
+    padding: 10px 12px !important;
+    font-size: 0.92rem !important;
+    border-radius: 13px !important;
+  }
+
+  .helpBox {
+    font-size: 0.74rem !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .saveBar {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 150 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+    padding: 10px 0 0 !important;
+    background: linear-gradient(180deg, rgba(3, 19, 22, 0), rgba(3, 19, 22, 0.96) 24%) !important;
+  }
+
+  .saveBar > * {
+    width: 100% !important;
+    min-height: 42px !important;
+    font-size: 0.76rem !important;
+    padding: 9px 8px !important;
+    border-radius: 14px !important;
+  }
+
+  .saveBar > *:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  .previewPanel {
+    position: static !important;
+    padding: 10px !important;
+    max-height: none !important;
+    border-radius: 20px !important;
+  }
+
+  .previewToolbar {
+    gap: 10px !important;
+  }
+
+  .previewFrameOuter {
+    max-height: 76vh !important;
+    min-height: 520px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 10px !important;
+  }
+
+  .previewSite {
+    width: 100% !important;
+    max-width: 390px !important;
+    padding: 10px !important;
+    overflow-x: hidden !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .groupTabs {
+    top: 92px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    padding: 7px !important;
+  }
+
+  .groupTabs button {
+    font-size: 0.58rem !important;
+    min-height: 34px !important;
+    padding: 6px 4px !important;
+  }
+
+  .topbarActions > * {
+    min-height: 36px !important;
+    font-size: 0.72rem !important;
+  }
+}
