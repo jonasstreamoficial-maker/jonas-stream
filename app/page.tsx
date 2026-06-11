@@ -675,7 +675,7 @@ export default function HomePage() {
                 {enabledSocials.map((social) => (
                   <a
                     key={social.id}
-                    className={`social-link ${social.icon}`}
+                    className="social-link"
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
