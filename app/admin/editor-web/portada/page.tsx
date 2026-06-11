@@ -21,6 +21,7 @@ type SocialLink = {
   url: string;
   icon: SocialIcon;
   color: string;
+  autoColor: boolean;
   enabled: boolean;
 };
 
@@ -117,6 +118,7 @@ const initialDraft: HomeDraft = {
       url: "https://www.facebook.com/jonasstream.oficiall",
       icon: "facebook",
       color: "#1877F2",
+      autoColor: true,
       enabled: true,
     },
     {
@@ -124,7 +126,8 @@ const initialDraft: HomeDraft = {
       name: "Instagram",
       url: "https://www.instagram.com/jonasstream.oficiall/",
       icon: "instagram",
-      color: "#E4405F",
+      color: "#E1306C",
+      autoColor: true,
       enabled: true,
     },
     {
@@ -132,7 +135,8 @@ const initialDraft: HomeDraft = {
       name: "TikTok",
       url: "https://www.tiktok.com/@jonasstream.oficiall",
       icon: "tiktok",
-      color: "#25F4EE",
+      color: "#00F2EA",
+      autoColor: true,
       enabled: true,
     },
     {
@@ -141,6 +145,7 @@ const initialDraft: HomeDraft = {
       url: "https://t.me/jonasstream_oficiall",
       icon: "telegram",
       color: "#229ED9",
+      autoColor: true,
       enabled: true,
     },
     {
@@ -149,6 +154,7 @@ const initialDraft: HomeDraft = {
       url: "https://www.youtube.com/@jonasstream.oficiall",
       icon: "youtube",
       color: "#FF0000",
+      autoColor: true,
       enabled: true,
     },
   ],
@@ -179,6 +185,36 @@ const iconOptions: { value: SocialIcon; label: string }[] = [
   { value: "whatsapp", label: "WhatsApp" },
   { value: "web", label: "Web" },
 ];
+
+const socialIconDefaults: Record<SocialIcon, { label: string; color: string }> = {
+  facebook: { label: "Facebook", color: "#1877F2" },
+  instagram: { label: "Instagram", color: "#E1306C" },
+  tiktok: { label: "TikTok", color: "#00F2EA" },
+  telegram: { label: "Telegram", color: "#229ED9" },
+  youtube: { label: "YouTube", color: "#FF0000" },
+  whatsapp: { label: "WhatsApp", color: "#25D366" },
+  web: { label: "Web", color: "#01E7EF" },
+};
+
+function getSocialDefaultColor(icon: SocialIcon) {
+  return socialIconDefaults[icon]?.color || "#01E7EF";
+}
+
+function getSocialDefaultLabel(icon: SocialIcon) {
+  return socialIconDefaults[icon]?.label || "Red social";
+}
+
+function isDefaultSocialName(name: string) {
+  const cleanName = name.trim().toLowerCase();
+
+  if (!cleanName || cleanName === "nueva red" || cleanName === "red social") {
+    return true;
+  }
+
+  return Object.values(socialIconDefaults).some(
+    (item) => item.label.toLowerCase() === cleanName
+  );
+}
 
 export default function PortadaEditorPage() {
   const [draft, setDraft] = useState<HomeDraft>(initialDraft);
@@ -273,6 +309,40 @@ export default function PortadaEditorPage() {
     }));
   };
 
+  const updateSocialIcon = (id: string, icon: SocialIcon) => {
+    setDraft((current) => ({
+      ...current,
+      socials: current.socials.map((social) => {
+        if (social.id !== id) return social;
+
+        const shouldUseAutoColor = social.autoColor !== false;
+        const shouldUseAutoName = !social.name.trim() || isDefaultSocialName(social.name);
+
+        return {
+          ...social,
+          icon,
+          name: shouldUseAutoName ? getSocialDefaultLabel(icon) : social.name,
+          color: shouldUseAutoColor ? getSocialDefaultColor(icon) : social.color,
+        };
+      }),
+    }));
+  };
+
+  const updateSocialAutoColor = (id: string, autoColor: boolean) => {
+    setDraft((current) => ({
+      ...current,
+      socials: current.socials.map((social) =>
+        social.id === id
+          ? {
+              ...social,
+              autoColor,
+              color: autoColor ? getSocialDefaultColor(social.icon) : social.color,
+            }
+          : social
+      ),
+    }));
+  };
+
   const addSocial = () => {
     const id = `red-${Date.now()}`;
 
@@ -285,7 +355,8 @@ export default function PortadaEditorPage() {
           name: "Nueva red",
           url: "https://",
           icon: "web",
-          color: "#01E7EF",
+          color: getSocialDefaultColor("web"),
+          autoColor: true,
           enabled: true,
         },
       ],
@@ -532,8 +603,21 @@ export default function PortadaEditorPage() {
                       <Toggle label="Mostrar" checked={social.enabled} onChange={(value) => updateSocial(social.id, "enabled", value)} />
                       <Field label="Nombre" value={social.name} onChange={(value) => updateSocial(social.id, "name", value)} />
                       <Field label="URL" value={social.url} onChange={(value) => updateSocial(social.id, "url", value)} />
-                      <SelectField label="Logo / icono" value={social.icon} options={iconOptions} onChange={(value) => updateSocial(social.id, "icon", value as SocialIcon)} />
-                      <ColorField label="Color del logo" value={social.color} onChange={(value) => updateSocial(social.id, "color", value)} />
+                      <SelectField label="Logo / icono" value={social.icon} options={iconOptions} onChange={(value) => updateSocialIcon(social.id, value as SocialIcon)} />
+                      <Toggle
+                        label="Color automático según logo"
+                        checked={social.autoColor}
+                        onChange={(value) => updateSocialAutoColor(social.id, value)}
+                      />
+                      {social.autoColor ? (
+                        <div className={styles.helpBox}>
+                          <strong>Color automático:</strong> {social.color}
+                          <br />
+                          <span>El color cambia solo cuando eliges Facebook, Instagram, TikTok, Telegram, YouTube, WhatsApp o Web.</span>
+                        </div>
+                      ) : (
+                        <ColorField label="Color personalizado" value={social.color} onChange={(value) => updateSocial(social.id, "color", value)} />
+                      )}
                     </article>
                   ))}
                 </div>
@@ -718,17 +802,30 @@ function mergeHomeDraft(value: unknown): HomeDraft {
     ...initialDraft,
     ...incoming,
     socials: Array.isArray(incoming.socials)
-      ? incoming.socials.map((social, index) => ({
-          id: typeof social?.id === "string" ? social.id : `red-${index}`,
-          name: typeof social?.name === "string" ? social.name : "Red social",
-          url: typeof social?.url === "string" ? social.url : "https://",
-          icon: iconOptions.some((option) => option.value === social?.icon)
-            ? (social.icon as SocialIcon)
-            : "web",
-          color: typeof social?.color === "string" ? social.color : "#01E7EF",
-          enabled: typeof social?.enabled === "boolean" ? social.enabled : true,
-        }))
+      ? incoming.socials.map((social, index) => normalizeSocialLink(social, index))
       : initialDraft.socials,
+  };
+}
+
+function normalizeSocialLink(social: Partial<SocialLink> | undefined, index: number): SocialLink {
+  const icon = iconOptions.some((option) => option.value === social?.icon)
+    ? (social?.icon as SocialIcon)
+    : "web";
+  const autoColor = typeof social?.autoColor === "boolean" ? social.autoColor : true;
+  const color = autoColor
+    ? getSocialDefaultColor(icon)
+    : typeof social?.color === "string"
+      ? social.color
+      : getSocialDefaultColor(icon);
+
+  return {
+    id: typeof social?.id === "string" ? social.id : `red-${index}`,
+    name: typeof social?.name === "string" ? social.name : getSocialDefaultLabel(icon),
+    url: typeof social?.url === "string" ? social.url : "https://",
+    icon,
+    color,
+    autoColor,
+    enabled: typeof social?.enabled === "boolean" ? social.enabled : true,
   };
 }
 
