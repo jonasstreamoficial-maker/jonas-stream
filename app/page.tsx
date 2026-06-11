@@ -675,12 +675,16 @@ export default function HomePage() {
                 {enabledSocials.map((social) => (
                   <a
                     key={social.id}
-                    className="social-link"
+                    className="social-link dynamic-social-link"
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`${social.name} de ${draft.brandName}`}
-                    style={{ color: social.color, borderColor: `${social.color}66` }}
+                    style={
+                      {
+                        "--social-color": social.color,
+                      } as CSSProperties & Record<"--social-color", string>
+                    }
                   >
                     <SocialIconSvg icon={social.icon} />
                   </a>
@@ -719,6 +723,57 @@ export default function HomePage() {
         activeModal={activeModal}
         onClose={() => setActiveModal(null)}
       />
+
+      <style jsx global>{`
+        .social-link.dynamic-social-link {
+          color: var(--social-color) !important;
+          border-color: color-mix(in srgb, var(--social-color) 44%, transparent) !important;
+          background:
+            radial-gradient(circle at center, color-mix(in srgb, var(--social-color) 10%, transparent), transparent 64%),
+            linear-gradient(180deg, rgba(236, 255, 255, 0.06), rgba(236, 255, 255, 0.025)) !important;
+          box-shadow:
+            inset 0 0 0 1px rgba(236, 255, 255, 0.035),
+            0 10px 22px rgba(0, 0, 0, 0.18),
+            0 0 18px color-mix(in srgb, var(--social-color) 18%, transparent) !important;
+          isolation: isolate;
+        }
+
+        .social-link.dynamic-social-link::before {
+          background:
+            radial-gradient(circle at center, color-mix(in srgb, var(--social-color) 42%, transparent), transparent 68%) !important;
+          opacity: 0;
+        }
+
+        .social-link.dynamic-social-link svg {
+          filter: drop-shadow(0 0 8px color-mix(in srgb, var(--social-color) 48%, transparent));
+          transition: transform 0.35s ease, filter 0.35s ease, color 0.35s ease;
+        }
+
+        .social-link.dynamic-social-link:hover {
+          color: #ecffff !important;
+          border-color: var(--social-color) !important;
+          background:
+            radial-gradient(circle at center, color-mix(in srgb, var(--social-color) 62%, transparent), rgba(3, 19, 22, 0.88) 70%),
+            linear-gradient(180deg, color-mix(in srgb, var(--social-color) 28%, rgba(3, 19, 22, 0.9)), rgba(3, 19, 22, 0.92)) !important;
+          box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--social-color) 45%, transparent),
+            0 0 18px color-mix(in srgb, var(--social-color) 85%, transparent),
+            0 0 42px color-mix(in srgb, var(--social-color) 48%, transparent),
+            0 0 78px color-mix(in srgb, var(--social-color) 24%, transparent),
+            inset 0 0 24px color-mix(in srgb, var(--social-color) 22%, transparent) !important;
+        }
+
+        .social-link.dynamic-social-link:hover::before {
+          opacity: 1;
+        }
+
+        .social-link.dynamic-social-link:hover svg {
+          transform: scale(1.08);
+          filter:
+            drop-shadow(0 0 8px rgba(236, 255, 255, 0.65))
+            drop-shadow(0 0 16px var(--social-color));
+        }
+      `}</style>
     </div>
   );
 }
