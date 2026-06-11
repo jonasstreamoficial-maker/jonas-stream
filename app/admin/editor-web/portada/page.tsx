@@ -228,6 +228,7 @@ export default function PortadaEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -390,15 +391,14 @@ export default function PortadaEditorPage() {
   };
 
   const resetFactoryDraft = () => {
-    const confirmed = window.confirm(
-      "¿Restablecer la portada al estado de fábrica? Esto solo carga los datos originales en el editor. Para aplicarlo en la web, después debes presionar Publicar."
-    );
+    setIsFactoryModalOpen(true);
+  };
 
-    if (!confirmed) return;
-
+  const confirmFactoryReset = () => {
     setDraft(getFactoryDraft());
     setActiveGroup("Marca");
     setPreviewMode("desktop");
+    setIsFactoryModalOpen(false);
     toast.success("Estado de fábrica cargado. Revisa y presiona Publicar para aplicarlo.");
   };
 
@@ -504,7 +504,8 @@ export default function PortadaEditorPage() {
   );
 
   return (
-    <main className={styles.editorShell}>
+    <>
+      <main className={styles.editorShell}>
       <div className={styles.mobileStickyHeader}>
         <section className={styles.editorTopbar}>
           <div>
@@ -795,7 +796,48 @@ export default function PortadaEditorPage() {
           </div>
         </section>
       </section>
-    </main>
+      </main>
+
+      {isFactoryModalOpen ? (
+        <div className={styles.factoryModalOverlay} role="presentation">
+          <section
+            className={styles.factoryModalCard}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="factory-modal-title"
+          >
+            <div className={styles.factoryModalIcon}>↺</div>
+            <p className={styles.kicker}>SEGURIDAD / PORTADA</p>
+            <h2 id="factory-modal-title">Restablecer estado de fábrica</h2>
+            <p>
+              Esto cargará los datos originales de Jonas Stream en el editor. No cambiará la web pública hasta que presiones Publicar.
+            </p>
+
+            <div className={styles.factoryModalPreview}>
+              <span>JONAS STREAM</span>
+              <small>PLATAFORMA OFICIAL · Colores y redes originales</small>
+            </div>
+
+            <div className={styles.factoryModalActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setIsFactoryModalOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={`${styles.primaryButton} ${styles.factoryConfirmButton}`}
+                onClick={confirmFactoryReset}
+              >
+                Sí, restablecer
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </>
   );
 }
 
