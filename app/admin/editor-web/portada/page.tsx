@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import styles from "../editor-web.module.css";
 
@@ -184,6 +184,54 @@ export default function PortadaEditorPage() {
   const [draft, setDraft] = useState<HomeDraft>(initialDraft);
   const [activeGroup, setActiveGroup] = useState<EditorGroup>("Marca");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("desktop");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDraftFromSupabase() {
+      try {
+        const response = await fetch("/api/editor-web/portada", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("No se pudo cargar la portada desde Supabase.");
+        }
+
+        const data = (await response.json()) as {
+          draftContent?: unknown;
+          publishedContent?: unknown;
+        };
+
+        const content = isEmptyObject(data.draftContent)
+          ? data.publishedContent
+          : data.draftContent;
+
+        if (!cancelled) {
+          setDraft(mergeHomeDraft(content));
+        }
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) {
+          toast.error("No se pudo cargar el borrador. Se usaron valores iniciales.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadDraftFromSupabase();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const previewClass = useMemo(
     () => `${styles.previewSite} ${previewMode === "mobile" ? styles.previewMobile : ""}`,
@@ -253,20 +301,100 @@ export default function PortadaEditorPage() {
     }));
   };
 
-  const saveDraft = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("jonas_home_draft_preview", JSON.stringify(draft));
+  const saveDraft = async () => {
+    try {
+      setIsSaving(true);
+      await savePortadaContent("save-draft", draft);
+      toast.success("Borrador guardado en Supabase.");
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo guardar el borrador.");
+    } finally {
+      setIsSaving(false);
     }
-    toast.success("Borrador guardado localmente. Luego lo conectaremos con Supabase.");
   };
 
-  const resetDraft = () => {
-    setDraft(initialDraft);
-    toast.success("Valores iniciales restaurados.");
+  const resetDraft = async () => {
+    try {
+      setIsSaving(true);
+
+      const response = await fetch("/api/editor-web/portada", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "restore" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("No se pudo restaurar la versión publicada.");
+      }
+
+      const data = (await response.json()) as { content?: unknown };
+      setDraft(mergeHomeDraft(data.content));
+      toast.success("Borrador restaurado desde la versión publicada.");
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo restaurar. Revisa la conexión con Supabase.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const publishDraft = () => {
-    toast.error("Aún no está conectado a Supabase. Primero validamos diseño y preview.");
+  const publishDraft = async () => {
+    const validationError = validateDraftBeforePublish(draft);
+
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    try {
+      setIsPublishing(true);
+      await savePortadaContent("publish", draft);
+      toast.success("Portada publicada correctamente.");
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo publicar la portada.");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const uploadLogoImage = async (file: File | null) => {
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+
+      if (!file.type.startsWith("image/")) {
+        throw new Error("El archivo debe ser una imagen.");
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("La imagen no debe pesar más de 5 MB.");
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/editor-web/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorData?.error || "No se pudo subir la imagen.");
+      }
+
+      const data = (await response.json()) as { url: string };
+      updateDraft("logoImage", data.url);
+      toast.success("Imagen subida. Recuerda guardar borrador o publicar.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "No se pudo subir la imagen.");
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const sectionTabs = (extraClassName = "") => (
@@ -303,8 +431,8 @@ export default function PortadaEditorPage() {
             <Link href="/admin/editor-web" className={styles.secondaryButton}>
               Volver
             </Link>
-            <button type="button" className={styles.primaryButton} onClick={saveDraft}>
-              Guardar borrador
+            <button type="button" className={styles.primaryButton} onClick={saveDraft} disabled={isSaving || isLoading}>
+              {isSaving ? "Guardando..." : "Guardar borrador"}
             </button>
           </div>
         </section>
@@ -330,7 +458,14 @@ export default function PortadaEditorPage() {
                   <br />
                   <span>El enlace completo se arma automáticamente con el mensaje escrito arriba.</span>
                 </div>
-                <Field label="Ruta o URL del logo principal" value={draft.logoImage} onChange={(value) => updateDraft("logoImage", value)} helper="Por ahora usa /perfil-web.jpg. Luego subiremos imágenes a Supabase Storage." />
+                <Field label="Ruta o URL del logo principal" value={draft.logoImage} onChange={(value) => updateDraft("logoImage", value)} helper="Puedes pegar una URL o subir una imagen con el botón inferior." />
+                <ImageUploadField
+                  label="Subir imagen principal"
+                  value={draft.logoImage}
+                  uploading={isUploadingImage}
+                  onUpload={uploadLogoImage}
+                  onClear={() => updateDraft("logoImage", "/perfil-web.jpg")}
+                />
                 <Field label="Texto lateral" value={draft.sideBrandText} onChange={(value) => updateDraft("sideBrandText", value)} helper="Este texto aparece en los laterales de la portada en PC." />
                 <Toggle label="Mostrar texto lateral" checked={draft.showSideBrand} onChange={(value) => updateDraft("showSideBrand", value)} />
               </>
@@ -428,14 +563,14 @@ export default function PortadaEditorPage() {
           </div>
 
           <div className={styles.saveBar}>
-            <button type="button" className={styles.secondaryButton} onClick={resetDraft}>
+            <button type="button" className={styles.secondaryButton} onClick={resetDraft} disabled={isSaving || isLoading}>
               Restaurar
             </button>
-            <button type="button" className={styles.secondaryButton} onClick={saveDraft}>
-              Guardar borrador
+            <button type="button" className={styles.secondaryButton} onClick={saveDraft} disabled={isSaving || isLoading}>
+              {isSaving ? "Guardando..." : "Guardar borrador"}
             </button>
-            <button type="button" className={styles.primaryButton} onClick={publishDraft}>
-              Publicar
+            <button type="button" className={styles.primaryButton} onClick={publishDraft} disabled={isPublishing || isLoading}>
+              {isPublishing ? "Publicando..." : "Publicar"}
             </button>
           </div>
         </aside>
@@ -552,6 +687,100 @@ export default function PortadaEditorPage() {
         </section>
       </section>
     </main>
+  );
+}
+
+async function savePortadaContent(action: "save-draft" | "publish", content: HomeDraft) {
+  const response = await fetch("/api/editor-web/portada", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, content }),
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(data?.error || "No se pudo guardar en Supabase.");
+  }
+}
+
+function isEmptyObject(value: unknown) {
+  return !value || (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0);
+}
+
+function mergeHomeDraft(value: unknown): HomeDraft {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return initialDraft;
+  }
+
+  const incoming = value as Partial<HomeDraft>;
+
+  return {
+    ...initialDraft,
+    ...incoming,
+    socials: Array.isArray(incoming.socials)
+      ? incoming.socials.map((social, index) => ({
+          id: typeof social?.id === "string" ? social.id : `red-${index}`,
+          name: typeof social?.name === "string" ? social.name : "Red social",
+          url: typeof social?.url === "string" ? social.url : "https://",
+          icon: iconOptions.some((option) => option.value === social?.icon)
+            ? (social.icon as SocialIcon)
+            : "web",
+          color: typeof social?.color === "string" ? social.color : "#01E7EF",
+          enabled: typeof social?.enabled === "boolean" ? social.enabled : true,
+        }))
+      : initialDraft.socials,
+  };
+}
+
+function validateDraftBeforePublish(draft: HomeDraft) {
+  if (!draft.brandName.trim()) return "El nombre de marca no puede estar vacío.";
+  if (!draft.heroTitle.trim()) return "El título principal no puede estar vacío.";
+  if (!draft.whatsappNumber.replace(/\D/g, "")) return "Agrega un número de WhatsApp válido.";
+  if (!draft.logoImage.trim()) return "Agrega una imagen principal o conserva /perfil-web.jpg.";
+  return null;
+}
+
+function ImageUploadField({
+  label,
+  value,
+  uploading,
+  onUpload,
+  onClear,
+}: {
+  label: string;
+  value: string;
+  uploading: boolean;
+  onUpload: (file: File | null) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className={styles.imageUploadField}>
+      <span>{label}</span>
+
+      <div className={styles.imageUploadPreview}>
+        <img src={value || "/perfil-web.jpg"} alt="Imagen principal actual" />
+      </div>
+
+      <label className={styles.uploadButton}>
+        {uploading ? "Subiendo imagen..." : "Seleccionar imagen"}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/svg+xml"
+          disabled={uploading}
+          onChange={(event) => {
+            const file = event.target.files?.[0] || null;
+            onUpload(file);
+            event.currentTarget.value = "";
+          }}
+        />
+      </label>
+
+      <button type="button" className={styles.secondaryButton} onClick={onClear} disabled={uploading}>
+        Usar imagen inicial
+      </button>
+
+      <small>Formatos permitidos: JPG, PNG, WEBP o SVG. Peso máximo: 5 MB.</small>
+    </div>
   );
 }
 

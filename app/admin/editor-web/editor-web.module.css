@@ -2410,3 +2410,64 @@
     padding-top: 0 !important;
   }
 }
+
+.imageUploadField {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 18px;
+  background: rgba(3, 19, 22, 0.62);
+}
+
+.imageUploadField > span {
+  color: var(--text-primary, #ecffff);
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.imageUploadField small {
+  color: var(--text-secondary, #9bc8cb);
+  line-height: 1.5;
+}
+
+.imageUploadPreview {
+  width: 100%;
+  min-height: 160px;
+  border-radius: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  background: rgba(0, 0, 0, 0.26);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.imageUploadPreview img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  display: block;
+}
+
+.uploadButton {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 251, 255, 0.42);
+  background: rgba(1, 231, 239, 0.14);
+  color: #ecffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-weight: 900;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.uploadButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 251, 255, 0.8);
+  background: rgba(1, 231, 239, 0.22);
+}
+
+.uploadButton input {
+  display: none;
+}
