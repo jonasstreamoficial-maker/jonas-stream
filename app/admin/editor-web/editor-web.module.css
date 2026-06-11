@@ -2850,3 +2850,53 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* =====================================================
+   V15 - Cabecera fija real en PC + modal centrado móvil
+   ===================================================== */
+
+@media (min-width: 721px) {
+  .mobileStickyHeader {
+    position: sticky !important;
+    top: 14px !important;
+    z-index: 700 !important;
+    margin-bottom: 18px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.98) 0%, rgba(3, 19, 22, 0.92) 78%, rgba(3, 19, 22, 0) 100%) !important;
+  }
+
+  .mobileStickyHeader .editorTopbar {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+    margin-bottom: 0 !important;
+    width: 100% !important;
+  }
+
+  .editorPanel,
+  .previewPanel {
+    top: 176px !important;
+    max-height: calc(100vh - 200px) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .factoryModalOverlay {
+    display: grid !important;
+    place-items: center !important;
+    align-items: center !important;
+    justify-items: center !important;
+    padding: 16px !important;
+    overflow-y: auto !important;
+  }
+
+  .factoryModalCard {
+    width: min(100%, 520px) !important;
+    max-height: calc(100dvh - 32px) !important;
+    overflow-y: auto !important;
+    border-radius: 24px !important;
+    padding: 22px 18px !important;
+  }
+}
