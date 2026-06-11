@@ -161,7 +161,11 @@ const initialDraft: HomeDraft = {
   footerText: "© 2026 Jonas Stream. Todos los derechos reservados.",
 };
 
-const groups = [
+function getFactoryDraft(): HomeDraft {
+  return JSON.parse(JSON.stringify(initialDraft)) as HomeDraft;
+}
+
+const groups = 
   "Marca",
   "Hero principal",
   "Botones",
@@ -217,7 +221,7 @@ function isDefaultSocialName(name: string) {
 }
 
 export default function PortadaEditorPage() {
-  const [draft, setDraft] = useState<HomeDraft>(initialDraft);
+  const [draft, setDraft] = useState<HomeDraft>(getFactoryDraft);
   const [activeGroup, setActiveGroup] = useState<EditorGroup>("Marca");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("desktop");
   const [isLoading, setIsLoading] = useState(true);
@@ -383,6 +387,19 @@ export default function PortadaEditorPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const resetFactoryDraft = () => {
+    const confirmed = window.confirm(
+      "¿Restablecer la portada al estado de fábrica? Esto solo carga los datos originales en el editor. Para aplicarlo en la web, después debes presionar Publicar."
+    );
+
+    if (!confirmed) return;
+
+    setDraft(getFactoryDraft());
+    setActiveGroup("Marca");
+    setPreviewMode("desktop");
+    toast.success("Estado de fábrica cargado. Revisa y presiona Publicar para aplicarlo.");
   };
 
   const resetDraft = async () => {
@@ -646,9 +663,17 @@ export default function PortadaEditorPage() {
             )}
           </div>
 
-          <div className={styles.saveBar}>
+          <div className={`${styles.saveBar} ${styles.saveBarWithFactory}`}>
+            <button
+              type="button"
+              className={`${styles.secondaryButton} ${styles.factoryButton}`}
+              onClick={resetFactoryDraft}
+              disabled={isSaving || isPublishing || isLoading}
+            >
+              Restablecer fábrica
+            </button>
             <button type="button" className={styles.secondaryButton} onClick={resetDraft} disabled={isSaving || isLoading}>
-              Restaurar
+              Restaurar publicado
             </button>
             <button type="button" className={styles.secondaryButton} onClick={saveDraft} disabled={isSaving || isLoading}>
               {isSaving ? "Guardando..." : "Guardar borrador"}

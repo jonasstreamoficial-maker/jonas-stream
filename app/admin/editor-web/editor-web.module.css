@@ -2591,3 +2591,35 @@
     transform: none !important;
   }
 }
+
+
+/* =====================================================
+   V12 - Botón de seguridad: Restablecer fábrica
+   ===================================================== */
+
+.factoryButton {
+  border-color: rgba(255, 190, 80, 0.28) !important;
+  background: rgba(255, 190, 80, 0.06) !important;
+  color: #fff4d8 !important;
+}
+
+.factoryButton:hover {
+  border-color: rgba(255, 190, 80, 0.55) !important;
+  background: rgba(255, 190, 80, 0.12) !important;
+  box-shadow: 0 0 24px rgba(255, 190, 80, 0.12) !important;
+}
+
+.saveBarWithFactory {
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .saveBarWithFactory {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .saveBarWithFactory > *:nth-child(3),
+  .saveBarWithFactory > *:nth-child(4) {
+    grid-column: 1 / -1 !important;
+  }
+}
