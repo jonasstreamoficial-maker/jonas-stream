@@ -1,11 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-const whatsappUrl =
-  "https://wa.me/51900557949?text=Hola%20Jonas%20Stream%2C%20quiero%20informaci%C3%B3n%20sobre%20sus%20servicios.";
+import type { CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type LegalModal = "terms" | "privacy" | null;
 
@@ -243,28 +240,308 @@ function PrivacyContent() {
   );
 }
 
-export default function HomePage() {
-  const [activeModal, setActiveModal] = useState<LegalModal>(null);
+
+type SocialIcon =
+  | "facebook"
+  | "instagram"
+  | "tiktok"
+  | "telegram"
+  | "youtube"
+  | "whatsapp"
+  | "web";
+
+type SocialLink = {
+  id: string;
+  name: string;
+  url: string;
+  icon: SocialIcon;
+  color: string;
+  enabled: boolean;
+};
+
+type HomeDraft = {
+  brandName: string;
+  brandSubtitle: string;
+  navLoginText: string;
+  navContactText: string;
+  whatsappNumber: string;
+  whatsappMessage: string;
+  heroBadge: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
+  primaryButtonText: string;
+  primaryButtonHref: string;
+  secondaryButtonText: string;
+  secondaryButtonHref: string;
+  logoImage: string;
+  sideBrandText: string;
+  showSideBrand: boolean;
+  primaryColor: string;
+  glowColor: string;
+  panelColor: string;
+  benefit1Icon: string;
+  benefit1Text: string;
+  benefit2Icon: string;
+  benefit2Text: string;
+  benefit3Icon: string;
+  benefit3Text: string;
+  stat1Kicker: string;
+  stat1Title: string;
+  stat1Text: string;
+  stat2Kicker: string;
+  stat2Title: string;
+  stat2Text: string;
+  stat3Kicker: string;
+  stat3Title: string;
+  stat3Text: string;
+  socialTitle: string;
+  socialText: string;
+  socials: SocialLink[];
+  footerText: string;
+};
+
+const defaultHomeDraft: HomeDraft = {
+  brandName: "JONAS STREAM",
+  brandSubtitle: "PLATAFORMA OFICIAL",
+  navLoginText: "INICIAR SESIÓN",
+  navContactText: "CONTÁCTANOS",
+  whatsappNumber: "51900557949",
+  whatsappMessage: "Hola Jonas Stream, quiero información sobre sus servicios.",
+  heroBadge: "BIENVENID@S",
+  heroTitle: "JONAS STREAM",
+  heroSubtitle: "PLATAFORMA OFICIAL",
+  heroDescription:
+    "Tu proveedor de confianza en plataformas de streaming, música y accesos digitales premium. Disfruta una experiencia moderna, rápida y segura, diseñada para clientes y revendedores que buscan calidad, soporte y confianza.",
+  primaryButtonText: "QUIERO SER SOCIO",
+  primaryButtonHref: "/quiero-ser-socio",
+  secondaryButtonText: "VER PRECIOS",
+  secondaryButtonHref: "/ver-precios",
+  logoImage: "/perfil-web.jpg",
+  sideBrandText: "JONAS STREAM",
+  showSideBrand: true,
+  primaryColor: "#01E7EF",
+  glowColor: "#00FBFF",
+  panelColor: "rgba(3, 19, 22, 0.78)",
+  benefit1Icon: "⚡",
+  benefit1Text: "Velocidad",
+  benefit2Icon: "🛡️",
+  benefit2Text: "Garantía",
+  benefit3Icon: "💸",
+  benefit3Text: "Ahorro",
+  stat1Kicker: "Confianza",
+  stat1Title: "+2K CLIENTES",
+  stat1Text:
+    "Más de dos mil usuarios ya confiaron en Jonas Stream para obtener accesos digitales premium con atención seria y servicio seguro.",
+  stat2Kicker: "Atención",
+  stat2Title: "SOPORTE 24/7",
+  stat2Text:
+    "Respuesta rápida para ventas, activaciones, consultas y soporte técnico, con acompañamiento cuando más lo necesites.",
+  stat3Kicker: "Automatización",
+  stat3Title: "BOT TELEGRAM",
+  stat3Text:
+    "Sistema automatizado para respuestas inmediatas y una experiencia mucho más profesional, ordenada y eficiente.",
+  socialTitle: "Síguenos en Nuestras Redes Sociales",
+  socialText:
+    "Conéctate con Jonas Stream en Facebook, Instagram, TikTok, Telegram y YouTube.",
+  socials: [
+    {
+      id: "facebook",
+      name: "Facebook",
+      url: "https://www.facebook.com/jonasstream.oficiall",
+      icon: "facebook",
+      color: "#1877F2",
+      enabled: true,
+    },
+    {
+      id: "instagram",
+      name: "Instagram",
+      url: "https://www.instagram.com/jonasstream.oficiall/",
+      icon: "instagram",
+      color: "#E4405F",
+      enabled: true,
+    },
+    {
+      id: "tiktok",
+      name: "TikTok",
+      url: "https://www.tiktok.com/@jonasstream.oficiall",
+      icon: "tiktok",
+      color: "#25F4EE",
+      enabled: true,
+    },
+    {
+      id: "telegram",
+      name: "Telegram",
+      url: "https://t.me/jonasstream_oficiall",
+      icon: "telegram",
+      color: "#229ED9",
+      enabled: true,
+    },
+    {
+      id: "youtube",
+      name: "YouTube",
+      url: "https://www.youtube.com/@jonasstream.oficiall",
+      icon: "youtube",
+      color: "#FF0000",
+      enabled: true,
+    },
+  ],
+  footerText: "© 2026 Jonas Stream. Todos los derechos reservados.",
+};
+
+function mergeHomeDraft(content: unknown): HomeDraft {
+  if (!content || typeof content !== "object" || Array.isArray(content)) {
+    return defaultHomeDraft;
+  }
+
+  const value = content as Partial<HomeDraft>;
+
+  return {
+    ...defaultHomeDraft,
+    ...value,
+    socials: Array.isArray(value.socials) ? value.socials : defaultHomeDraft.socials,
+  };
+}
+
+function buildWhatsappUrl(number: string, message: string) {
+  const cleanNumber = number.replace(/\D/g, "");
+  const encodedMessage = encodeURIComponent(message || "Hola Jonas Stream, quiero información.");
+  return `https://wa.me/${cleanNumber || "51900557949"}?text=${encodedMessage}`;
+}
+
+function normalizeHref(value: string) {
+  if (!value) return "/";
+  return value.startsWith("/") || value.startsWith("http") ? value : `/${value}`;
+}
+
+function SocialIconSvg({ icon }: { icon: SocialIcon }) {
+  if (icon === "facebook") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.2-1.6 1.6-1.6H16.7V4.3c-.3 0-1.3-.1-2.4-.1-2.4 0-4.1 1.5-4.1 4.2v2.4H7.5V14h2.7v8h3.3z" />
+      </svg>
+    );
+  }
+
+  if (icon === "instagram") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2zm0 1.8A3.95 3.95 0 0 0 3.8 7.75v8.5a3.95 3.95 0 0 0 3.95 3.95h8.5a3.95 3.95 0 0 0 3.95-3.95v-8.5a3.95 3.95 0 0 0-3.95-3.95h-8.5zm8.95 1.35a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 1.8A3.2 3.2 0 1 0 12 15.2 3.2 3.2 0 0 0 12 8.8z" />
+      </svg>
+    );
+  }
+
+  if (icon === "tiktok") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14.5 3c.5 2.1 1.8 3.6 3.9 4V9c-1.4 0-2.7-.4-3.9-1.2v6.5a4.8 4.8 0 1 1-4.8-4.8c.3 0 .5 0 .8.1v2.4a2.7 2.7 0 1 0 1.9 2.6V3h2.1z" />
+      </svg>
+    );
+  }
+
+  if (icon === "telegram") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21.4 4.6 18.3 19c-.2 1-.8 1.2-1.6.8l-4.4-3.2-2.1 2c-.2.2-.4.4-.8.4l.3-4.5 8.3-7.5c.4-.3-.1-.5-.5-.2L7.3 13 2.9 11.6c-1-.3-1-.9.2-1.3L20.3 3.7c.8-.3 1.4.2 1.1.9z" />
+      </svg>
+    );
+  }
+
+  if (icon === "youtube") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21.8 8.6c-.2-1.3-1.2-2.3-2.5-2.5C17.4 5.8 12 5.8 12 5.8s-5.4 0-7.3.3C3.4 6.3 2.4 7.3 2.2 8.6 2 10.4 2 12 2 12s0 1.6.2 3.4c.2 1.3 1.2 2.3 2.5 2.5 1.9.3 7.3.3 7.3.3s5.4 0 7.3-.3c1.3-.2 2.3-1.2 2.5-2.5.2-1.8.2-3.4.2-3.4s0-1.6-.2-3.4zM10 15.5v-7l6 3.5-6 3.5z" />
+      </svg>
+    );
+  }
+
+  if (icon === "whatsapp") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20.5 3.5A11.8 11.8 0 0 0 1.8 17.7L0 24l6.5-1.7A11.8 11.8 0 0 0 20.5 3.5Zm-8.7 17.8a9.5 9.5 0 0 1-4.8-1.3l-.3-.2-3.8 1 1-3.7-.2-.4a9.5 9.5 0 1 1 8.1 4.6Zm5.3-7.1c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.2-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.8-.7-1.4-1.7-1.5-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.7-1.7-.9-2.3-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.3 5.2 4.6.7.3 1.3.5 1.8.6.8.2 1.4.2 2 0 .6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4Z" />
+      </svg>
+    );
+  }
 
   return (
-    <>
-      <div className="side-brand" aria-hidden="true">
-        JONAS STREAM
-      </div>
-      <div className="side-brand right" aria-hidden="true">
-        JONAS STREAM
-      </div>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 9h-3.1a15 15 0 0 0-1.1-5 8.04 8.04 0 0 1 4.2 5ZM12 4.1c.7 1 1.4 3 1.7 6.9h-3.4c.3-3.9 1-5.9 1.7-6.9ZM4.3 13h3.9c.1 1.8.4 3.5.9 5A8.02 8.02 0 0 1 4.3 13Zm3.9-2H4.3A8.02 8.02 0 0 1 9.1 6c-.5 1.5-.8 3.2-.9 5Zm3.8 8.9c-.7-1-1.4-3-1.7-6.9h3.4c-.3 3.9-1 5.9-1.7 6.9Zm2.9-1.9c.5-1.5.8-3.2.9-5h3.9a8.02 8.02 0 0 1-4.8 5Z" />
+    </svg>
+  );
+}
+
+export default function HomePage() {
+  const [activeModal, setActiveModal] = useState<LegalModal>(null);
+  const [draft, setDraft] = useState<HomeDraft>(defaultHomeDraft);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPublishedContent() {
+      try {
+        const response = await fetch("/api/editor-web/public-portada", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { content?: unknown };
+
+        if (!cancelled) {
+          setDraft(mergeHomeDraft(data.content));
+        }
+      } catch (error) {
+        console.error("No se pudo cargar la portada publicada", error);
+      }
+    }
+
+    loadPublishedContent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const whatsappUrl = useMemo(
+    () => buildWhatsappUrl(draft.whatsappNumber, draft.whatsappMessage),
+    [draft.whatsappNumber, draft.whatsappMessage]
+  );
+
+  const themeStyle = useMemo(
+    () =>
+      ({
+        "--primary": draft.primaryColor,
+        "--primary-strong": draft.glowColor,
+        "--panel": draft.panelColor,
+      }) as CSSProperties & Record<string, string>,
+    [draft.primaryColor, draft.glowColor, draft.panelColor]
+  );
+
+  const enabledSocials = draft.socials.filter((social) => social.enabled && social.url);
+
+  return (
+    <div style={themeStyle}>
+      {draft.showSideBrand && (
+        <>
+          <div className="side-brand" aria-hidden="true">
+            {draft.sideBrandText}
+          </div>
+          <div className="side-brand right" aria-hidden="true">
+            {draft.sideBrandText}
+          </div>
+        </>
+      )}
 
       <header className="container topbar-wrap">
         <div className="topbar">
           <Link href="/" className="brand-logo" aria-label="Ir al inicio">
-            <strong>JONAS STREAM</strong>
-            <span>PLATAFORMA OFICIAL</span>
+            <strong>{draft.brandName}</strong>
+            <span>{draft.brandSubtitle}</span>
           </Link>
 
           <nav className="topbar-right" aria-label="Accesos principales">
             <Link href="/login" className="top-link primary">
-              INICIAR SESIÓN
+              {draft.navLoginText}
             </Link>
 
             <a
@@ -273,7 +550,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="top-link"
             >
-              CONTÁCTANOS
+              {draft.navContactText}
             </a>
           </nav>
         </div>
@@ -285,30 +562,25 @@ export default function HomePage() {
             <div className="panel hero-main">
               <div className="hero-content">
                 <div className="hero-left">
-                  <p className="mini">BIENVENID@S</p>
+                  <p className="mini">{draft.heroBadge}</p>
 
                   <h1 className="title" id="hero-title">
-                    JONAS STREAM
+                    {draft.heroTitle}
                   </h1>
 
-                  <p className="sub">PLATAFORMA OFICIAL</p>
+                  <p className="sub">{draft.heroSubtitle}</p>
 
                   <div className="shine" aria-hidden="true" />
 
-                  <p className="text">
-                    Tu proveedor de confianza en plataformas de streaming,
-                    música y accesos digitales premium. Disfruta una experiencia
-                    moderna, rápida y segura, diseñada para clientes y
-                    revendedores que buscan calidad, soporte y confianza.
-                  </p>
+                  <p className="text">{draft.heroDescription}</p>
 
                   <div className="buttons" aria-label="Acciones principales">
-                    <Link href="/quiero-ser-socio" className="btn btn1">
-                      QUIERO SER SOCIO
+                    <Link href={normalizeHref(draft.primaryButtonHref)} className="btn btn1">
+                      {draft.primaryButtonText}
                     </Link>
 
-                    <Link href="/ver-precios" className="btn btn2">
-                      VER PRECIOS
+                    <Link href={normalizeHref(draft.secondaryButtonHref)} className="btn btn2">
+                      {draft.secondaryButtonText}
                     </Link>
                   </div>
                 </div>
@@ -316,12 +588,10 @@ export default function HomePage() {
                 <div className="hero-right">
                   <div className="logo-box">
                     <div className="logo-frame">
-                      <Image
-                        src="/perfil-web.jpg"
-                        alt="Logo oficial de Jonas Stream"
-                        width={430}
-                        height={430}
-                        priority
+                      <img
+                        src={draft.logoImage || "/perfil-web.jpg"}
+                        alt={`Logo oficial de ${draft.brandName}`}
+                        loading="eager"
                       />
                     </div>
                   </div>
@@ -338,27 +608,27 @@ export default function HomePage() {
                   <div className="benefit velocidad">
                     <div className="benefit-inner">
                       <span className="benefit-emoji" aria-hidden="true">
-                        ⚡
+                        {draft.benefit1Icon}
                       </span>
-                      <span className="benefit-label">Velocidad</span>
+                      <span className="benefit-label">{draft.benefit1Text}</span>
                     </div>
                   </div>
 
                   <div className="benefit garantia">
                     <div className="benefit-inner">
                       <span className="benefit-emoji" aria-hidden="true">
-                        🛡️
+                        {draft.benefit2Icon}
                       </span>
-                      <span className="benefit-label">Garantía</span>
+                      <span className="benefit-label">{draft.benefit2Text}</span>
                     </div>
                   </div>
 
                   <div className="benefit ahorro">
                     <div className="benefit-inner">
                       <span className="benefit-emoji" aria-hidden="true">
-                        💸
+                        {draft.benefit3Icon}
                       </span>
-                      <span className="benefit-label">Ahorro</span>
+                      <span className="benefit-label">{draft.benefit3Text}</span>
                     </div>
                   </div>
                 </div>
@@ -371,31 +641,21 @@ export default function HomePage() {
             >
               <div className="stats">
                 <article className="card">
-                  <span className="card-kicker">Confianza</span>
-                  <h2>+2K CLIENTES</h2>
-                  <p>
-                    Más de dos mil usuarios ya confiaron en Jonas Stream para
-                    obtener accesos digitales premium con atención seria y
-                    servicio seguro.
-                  </p>
+                  <span className="card-kicker">{draft.stat1Kicker}</span>
+                  <h2>{draft.stat1Title}</h2>
+                  <p>{draft.stat1Text}</p>
                 </article>
 
                 <article className="card">
-                  <span className="card-kicker">Atención</span>
-                  <h2>SOPORTE 24/7</h2>
-                  <p>
-                    Respuesta rápida para ventas, activaciones, consultas y
-                    soporte técnico, con acompañamiento cuando más lo necesites.
-                  </p>
+                  <span className="card-kicker">{draft.stat2Kicker}</span>
+                  <h2>{draft.stat2Title}</h2>
+                  <p>{draft.stat2Text}</p>
                 </article>
 
                 <article className="card">
-                  <span className="card-kicker">Automatización</span>
-                  <h2>BOT TELEGRAM</h2>
-                  <p>
-                    Sistema automatizado para respuestas inmediatas y una
-                    experiencia mucho más profesional, ordenada y eficiente.
-                  </p>
+                  <span className="card-kicker">{draft.stat3Kicker}</span>
+                  <h2>{draft.stat3Title}</h2>
+                  <p>{draft.stat3Text}</p>
                 </article>
               </div>
             </section>
@@ -406,80 +666,31 @@ export default function HomePage() {
             >
               <div className="social-head">
                 <h2 className="social-title" id="social-title">
-                  Síguenos en Nuestras Redes Sociales
+                  {draft.socialTitle}
                 </h2>
-                <p className="social-text">
-                  Conéctate con Jonas Stream en Facebook, Instagram, TikTok,
-                  Telegram y YouTube.
-                </p>
+                <p className="social-text">{draft.socialText}</p>
               </div>
 
               <div className="social-icons">
-                <a
-                  className="social-link facebook"
-                  href="https://www.facebook.com/jonasstream.oficiall"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Facebook de Jonas Stream"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.2-1.6 1.6-1.6H16.7V4.3c-.3 0-1.3-.1-2.4-.1-2.4 0-4.1 1.5-4.1 4.2v2.4H7.5V14h2.7v8h3.3z" />
-                  </svg>
-                </a>
-
-                <a
-                  className="social-link instagram"
-                  href="https://www.instagram.com/jonasstream.oficiall/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram de Jonas Stream"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2zm0 1.8A3.95 3.95 0 0 0 3.8 7.75v8.5a3.95 3.95 0 0 0 3.95 3.95h8.5a3.95 3.95 0 0 0 3.95-3.95v-8.5a3.95 3.95 0 0 0-3.95-3.95h-8.5zm8.95 1.35a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 1.8A3.2 3.2 0 1 0 12 15.2 3.2 3.2 0 0 0 12 8.8z" />
-                  </svg>
-                </a>
-
-                <a
-                  className="social-link tiktok"
-                  href="https://www.tiktok.com/@jonasstream.oficiall"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="TikTok de Jonas Stream"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M14.5 3c.5 2.1 1.8 3.6 3.9 4V9c-1.4 0-2.7-.4-3.9-1.2v6.5a4.8 4.8 0 1 1-4.8-4.8c.3 0 .5 0 .8.1v2.4a2.7 2.7 0 1 0 1.9 2.6V3h2.1z" />
-                  </svg>
-                </a>
-
-                <a
-                  className="social-link telegram"
-                  href="https://t.me/jonasstream_oficiall"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Telegram de Jonas Stream"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M21.4 4.6 18.3 19c-.2 1-.8 1.2-1.6.8l-4.4-3.2-2.1 2c-.2.2-.4.4-.8.4l.3-4.5 8.3-7.5c.4-.3-.1-.5-.5-.2L7.3 13 2.9 11.6c-1-.3-1-.9.2-1.3L20.3 3.7c.8-.3 1.4.2 1.1.9z" />
-                  </svg>
-                </a>
-
-                <a
-                  className="social-link youtube"
-                  href="https://www.youtube.com/@jonasstream.oficiall"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="YouTube de Jonas Stream"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M21.8 8.6c-.2-1.3-1.2-2.3-2.5-2.5C17.4 5.8 12 5.8 12 5.8s-5.4 0-7.3.3C3.4 6.3 2.4 7.3 2.2 8.6 2 10.4 2 12 2 12s0 1.6.2 3.4c.2 1.3 1.2 2.3 2.5 2.5 1.9.3 7.3.3 7.3.3s5.4 0 7.3-.3c1.3-.2 2.3-1.2 2.5-2.5.2-1.8.2-3.4.2-3.4s0-1.6-.2-3.4zM10 15.5v-7l6 3.5-6 3.5z" />
-                  </svg>
-                </a>
+                {enabledSocials.map((social) => (
+                  <a
+                    key={social.id}
+                    className={`social-link ${social.icon}`}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${social.name} de ${draft.brandName}`}
+                    style={{ color: social.color, borderColor: `${social.color}66` }}
+                  >
+                    <SocialIconSvg icon={social.icon} />
+                  </a>
+                ))}
               </div>
             </section>
 
             <section className="panel footer-panel" aria-label="Pie de página">
               <div className="footer-content">
-                <p>© 2026 Jonas Stream. Todos los derechos reservados.</p>
+                <p>{draft.footerText}</p>
 
                 <div className="footer-links">
                   <button
@@ -508,6 +719,6 @@ export default function HomePage() {
         activeModal={activeModal}
         onClose={() => setActiveModal(null)}
       />
-    </>
+    </div>
   );
 }
