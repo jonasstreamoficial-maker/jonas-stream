@@ -165,7 +165,7 @@ function getFactoryDraft(): HomeDraft {
   return JSON.parse(JSON.stringify(initialDraft)) as HomeDraft;
 }
 
-const groups = 
+const groups = [
   "Marca",
   "Hero principal",
   "Botones",
