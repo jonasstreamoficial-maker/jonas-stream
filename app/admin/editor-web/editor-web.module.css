@@ -2369,3 +2369,44 @@
     min-height: 36px !important;
   }
 }
+
+/* =====================================================
+   V9 - Ajuste fino móvil: reducir separación bajo pestañas
+   Mantiene fijo el bloque superior y el menú de secciones,
+   pero quita el hueco grande antes del formulario.
+   ===================================================== */
+
+@media (max-width: 720px) {
+  .mobileStickyHeader {
+    margin-bottom: 8px !important;
+    padding-bottom: 3px !important;
+  }
+
+  .mobileGroupTabs {
+    margin-bottom: 0 !important;
+  }
+
+  .workspace {
+    margin-top: 0 !important;
+  }
+
+  .editorPanel {
+    padding: 0 10px 10px !important;
+    margin-top: 0 !important;
+  }
+
+  .formCard {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileStickyHeader {
+    margin-bottom: 7px !important;
+    padding-bottom: 2px !important;
+  }
+
+  .editorPanel {
+    padding-top: 0 !important;
+  }
+}
