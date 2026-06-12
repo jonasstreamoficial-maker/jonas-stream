@@ -1318,6 +1318,21 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+          {usuario?.rol === "admin" && (
+            <div className={styles.navGroup}>
+              <p className={styles.navGroupTitle}>Web</p>
+              <div className={styles.navGroupItems}>
+                <button
+                  type="button"
+                  onClick={() => router.push("/admin/editor-web")}
+                  className={`${styles.navButton} ${styles.editorWebNavButton}`}
+                >
+                  <span className={styles.navIcon}>✎</span>
+                  <strong>Editor Web</strong>
+                </button>
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -1375,6 +1390,15 @@ export default function AdminPage() {
               )}
             </div>
 
+            {usuario?.rol === "admin" && (
+              <button
+                type="button"
+                onClick={() => router.push("/admin/editor-web")}
+                className={styles.editorWebQuickButton}
+              >
+                Editor Web
+              </button>
+            )}
             <button type="button" onClick={() => cargarDatos()} className={styles.refreshButton}>Actualizar</button>
             {ultimaActualizacion && <div className={styles.topbarPill}>Sync {ultimaActualizacion}</div>}
             <div className={styles.topbarPill}>
@@ -2911,6 +2935,21 @@ function AdminSkeleton() {
               </div>
             </div>
           ))}
+          {usuario?.rol === "admin" && (
+            <div className={styles.navGroup}>
+              <p className={styles.navGroupTitle}>Web</p>
+              <div className={styles.navGroupItems}>
+                <button
+                  type="button"
+                  onClick={() => router.push("/admin/editor-web")}
+                  className={`${styles.navButton} ${styles.editorWebNavButton}`}
+                >
+                  <span className={styles.navIcon}>✎</span>
+                  <strong>Editor Web</strong>
+                </button>
+              </div>
+            </div>
+          )}
         </nav>
         <div className={styles.sidebarFooter}>
           <div className={styles.skeletonTitle}></div>
