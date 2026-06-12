@@ -55,19 +55,35 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/cliente") ||
     pathname.startsWith("/proveedor");
 
+  const rutaCompraPrivada =
+    pathname.startsWith("/tienda") ||
+    pathname.startsWith("/carrito") ||
+    pathname.startsWith("/favoritos") ||
+    pathname.startsWith("/codigos");
+
   const rutaApiEditorPrivada =
     pathname.startsWith("/api/editor-web/portada") ||
     pathname.startsWith("/api/editor-web/upload");
 
-  const rutaPrivada = rutaPanel || rutaApiEditorPrivada;
+  const rutaApiUsuarioPrivada =
+    pathname.startsWith("/api/codigos");
+
+  const rutaApiPrivada = rutaApiEditorPrivada || rutaApiUsuarioPrivada;
+
+  const rutaPrivada =
+    rutaPanel ||
+    rutaCompraPrivada ||
+    rutaApiEditorPrivada ||
+    rutaApiUsuarioPrivada;
 
   if (rutaPrivada && !user) {
-    if (rutaApiEditorPrivada) {
+    if (rutaApiPrivada) {
       return respuestaApiNoAutorizada("No autorizado", 401);
     }
 
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 
@@ -80,10 +96,17 @@ export async function updateSession(request: NextRequest) {
     .maybeSingle();
 
   const aprobado = perfil?.estado === "aprobado" || perfil?.estado === "activo";
+  const rolPermitido =
+    perfil?.rol === "admin" ||
+    perfil?.rol === "proveedor" ||
+    perfil?.rol === "cliente";
 
-  if (rutaPrivada && (!perfil || !aprobado)) {
-    if (rutaApiEditorPrivada) {
-      return respuestaApiNoAutorizada("Usuario no autorizado o pendiente de aprobación", 403);
+  if (rutaPrivada && (!perfil || !aprobado || !rolPermitido)) {
+    if (rutaApiPrivada) {
+      return respuestaApiNoAutorizada(
+        "Usuario no autorizado o pendiente de aprobación",
+        403
+      );
     }
 
     const url = request.nextUrl.clone();
