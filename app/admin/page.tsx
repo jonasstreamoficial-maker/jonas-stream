@@ -2935,21 +2935,6 @@ function AdminSkeleton() {
               </div>
             </div>
           ))}
-          {usuario?.rol === "admin" && (
-            <div className={styles.navGroup}>
-              <p className={styles.navGroupTitle}>Web</p>
-              <div className={styles.navGroupItems}>
-                <button
-                  type="button"
-                  onClick={() => router.push("/admin/editor-web")}
-                  className={`${styles.navButton} ${styles.editorWebNavButton}`}
-                >
-                  <span className={styles.navIcon}>✎</span>
-                  <strong>Editor Web</strong>
-                </button>
-              </div>
-            </div>
-          )}
         </nav>
         <div className={styles.sidebarFooter}>
           <div className={styles.skeletonTitle}></div>
