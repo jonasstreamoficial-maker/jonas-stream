@@ -1780,6 +1780,18 @@ export default function AdminPage() {
   const pedidosVisiblesIds = pedidosVisibles.map((pedido) => pedido.id)
   const pedidosSeleccionadosVisibles = pedidosVisiblesIds.filter((id) => pedidosSeleccionados.includes(id)).length
   const totalSeleccionado = pedidos.filter((pedido) => pedidosSeleccionados.includes(pedido.id)).reduce((acc, pedido) => acc + Number(pedido.total || 0), 0)
+  const cuentasPorPedido = useMemo(() => {
+    const mapa = new Map<string, CuentaInventario[]>()
+
+    cuentas.forEach((cuenta) => {
+      if (!cuenta.pedido_id) return
+      const actuales = mapa.get(cuenta.pedido_id) || []
+      actuales.push(cuenta)
+      mapa.set(cuenta.pedido_id, actuales)
+    })
+
+    return mapa
+  }, [cuentas])
   const comprobantesVisibles = comprobantesFiltrados.slice(0, limiteComprobantes)
   const logsVisibles = logsFiltrados.slice(0, limiteLogs)
 
@@ -2550,6 +2562,7 @@ export default function AdminPage() {
                           <th>Total</th>
                           <th>Pago</th>
                           <th>Estado</th>
+                          <th>Entrega</th>
                           <th>Prioridad</th>
                           <th>Comprobante</th>
                           <th>Acciones</th>
@@ -2559,7 +2572,14 @@ export default function AdminPage() {
                         {pedidosVisibles.map((pedido) => {
                           const comprobanteUrl = obtenerComprobanteUrl(pedido)
                           const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
-                          const esUrgente = pedido.estado === "pendiente" && horasDesdeCreacion >= 24
+                          const estadoPedidoNormalizado = normalizarTexto(pedido.estado)
+                          const esPendiente = estadoPedidoNormalizado === "pendiente"
+                          const esCompletado = estadoPedidoNormalizado === "completado"
+                          const esCancelado = estadoPedidoNormalizado === "cancelado"
+                          const cuentasDelPedido = cuentasPorPedido.get(pedido.id) || []
+                          const cuentaPrincipal = cuentasDelPedido[0]
+                          const entregaLista = esCompletado || cuentasDelPedido.length > 0
+                          const esUrgente = esPendiente && horasDesdeCreacion >= 24
                           const sinComprobante = !comprobanteUrl
                           const altoValor = Number(pedido.total || 0) >= 100
                           return (
@@ -2571,6 +2591,27 @@ export default function AdminPage() {
                               <td>{pedido.metodo_pago || "No definido"}</td>
                               <td><StatusBadge estado={pedido.estado} /></td>
                               <td>
+                                <div className={styles.deliveryCell}>
+                                  {entregaLista ? (
+                                    <>
+                                      <span className={styles.deliveryPillSuccess}>Entregado</span>
+                                      <small>{cuentasDelPedido.length > 0 ? `${cuentasDelPedido.length} cuenta(s) asignada(s)` : "Pedido completado"}</small>
+                                      {cuentaPrincipal?.correo && <strong>{cuentaPrincipal.correo}</strong>}
+                                    </>
+                                  ) : esCancelado ? (
+                                    <>
+                                      <span className={styles.deliveryPillDanger}>Cancelado</span>
+                                      <small>No se asignará cuenta</small>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className={styles.deliveryPillWarning}>Pendiente</span>
+                                      <small>Verificar pago y entregar</small>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
                                 <div className={styles.tablePriorityStack}>
                                   {esUrgente && <span className={styles.badgeDanger}>Urgente</span>}
                                   {sinComprobante && <span className={styles.badgeWarning}>Sin pago</span>}
@@ -2581,9 +2622,34 @@ export default function AdminPage() {
                               <td>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.mutedText}>Sin voucher</span>}</td>
                               <td>
                                 <div className={styles.tableActions}>
-                                  <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>OK</button>
-                                  <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelar</button>
-                                  <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar</button>
+                                  {esCompletado ? (
+                                    <>
+                                      <button type="button" disabled className={styles.disabledActionButton}>Entregado</button>
+                                      {cuentasDelPedido.length > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setTabActiva("cuentas")
+                                            setBusquedaCuenta(pedido.id.slice(0, 8))
+                                          }}
+                                          className={styles.secondaryButton}
+                                        >
+                                          Ver cuenta
+                                        </button>
+                                      )}
+                                    </>
+                                  ) : esCancelado ? (
+                                    <>
+                                      <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>Reabrir</button>
+                                      <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar</button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>Aprobar y entregar</button>
+                                      <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>Cancelar</button>
+                                      <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar</button>
+                                    </>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -2597,7 +2663,13 @@ export default function AdminPage() {
                     {pedidosVisibles.map((pedido) => {
                       const comprobanteUrl = obtenerComprobanteUrl(pedido)
                       const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
-                      const esPendiente = pedido.estado === "pendiente"
+                      const estadoPedidoNormalizado = normalizarTexto(pedido.estado)
+                      const esPendiente = estadoPedidoNormalizado === "pendiente"
+                      const esCompletado = estadoPedidoNormalizado === "completado"
+                      const esCancelado = estadoPedidoNormalizado === "cancelado"
+                      const cuentasDelPedido = cuentasPorPedido.get(pedido.id) || []
+                      const cuentaPrincipal = cuentasDelPedido[0]
+                      const entregaLista = esCompletado || cuentasDelPedido.length > 0
                       const esUrgente = esPendiente && horasDesdeCreacion >= 24
                       const sinComprobante = !comprobanteUrl
                       const altoValor = Number(pedido.total || 0) >= 100
@@ -2635,6 +2707,26 @@ export default function AdminPage() {
                             <span>Tiempo</span><strong>{horasDesdeCreacion < 1 ? "Hace menos de 1h" : `Hace ${Math.floor(horasDesdeCreacion)}h`}</strong>
                           </div>
 
+                          <div className={`${styles.orderDeliveryBox} ${entregaLista ? styles.orderDeliverySuccess : esCancelado ? styles.orderDeliveryDanger : styles.orderDeliveryPending}`}>
+                            <span>Entrega</span>
+                            {entregaLista ? (
+                              <div>
+                                <strong>Cuenta entregada</strong>
+                                <small>{cuentaPrincipal?.correo || `${cuentasDelPedido.length} cuenta(s) asignada(s)`}</small>
+                              </div>
+                            ) : esCancelado ? (
+                              <div>
+                                <strong>Pedido cancelado</strong>
+                                <small>No se asignará una cuenta.</small>
+                              </div>
+                            ) : (
+                              <div>
+                                <strong>Pendiente de verificación</strong>
+                                <small>Aprueba el pago para asignar una cuenta disponible.</small>
+                              </div>
+                            )}
+                          </div>
+
                           <div className={styles.orderVoucherBox}>
                             <span>Comprobante</span>
                             {comprobanteUrl ? (
@@ -2645,10 +2737,34 @@ export default function AdminPage() {
                           </div>
 
                           <div className={styles.cardActions}>
-                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>⏳ Pendiente</button>
-                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>✔ Completar</button>
-                            <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>✖ Cancelar</button>
-                            <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar pedido</button>
+                            {esCompletado ? (
+                              <>
+                                <button type="button" disabled className={styles.disabledActionButton}>✔ Entregado</button>
+                                {cuentasDelPedido.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTabActiva("cuentas")
+                                      setBusquedaCuenta(pedido.id.slice(0, 8))
+                                    }}
+                                    className={styles.secondaryButton}
+                                  >
+                                    Ver cuenta asignada
+                                  </button>
+                                )}
+                              </>
+                            ) : esCancelado ? (
+                              <>
+                                <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "pendiente")} className={styles.secondaryButton}>Reabrir pedido</button>
+                                <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar pedido</button>
+                              </>
+                            ) : (
+                              <>
+                                <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "completado")} className={styles.successButton}>✔ Aprobar y entregar</button>
+                                <button type="button" onClick={() => actualizarEstadoPedido(pedido.id, "cancelado")} className={styles.dangerButton}>✖ Cancelar</button>
+                                <button type="button" onClick={() => eliminarPedido(pedido.id)} className={styles.dangerGhostButton}>Eliminar pedido</button>
+                              </>
+                            )}
                           </div>
                         </article>
                       )

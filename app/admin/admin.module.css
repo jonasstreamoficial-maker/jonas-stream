@@ -4906,3 +4906,128 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ADMIN PEDIDOS - entrega visual y acciones limpias */
+.deliveryCell {
+  display: grid;
+  gap: 5px;
+  min-width: 170px;
+}
+
+.deliveryCell small,
+.orderDeliveryBox small {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.deliveryCell strong {
+  color: #ECFFFF;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.deliveryPillSuccess,
+.deliveryPillWarning,
+.deliveryPillDanger {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.deliveryPillSuccess {
+  color: #7cffb2;
+  background: rgba(124, 255, 178, 0.1);
+  border: 1px solid rgba(124, 255, 178, 0.28);
+}
+
+.deliveryPillWarning {
+  color: #ffe082;
+  background: rgba(255, 224, 130, 0.1);
+  border: 1px solid rgba(255, 224, 130, 0.3);
+}
+
+.deliveryPillDanger {
+  color: #ff8fa3;
+  background: rgba(255, 143, 163, 0.1);
+  border: 1px solid rgba(255, 143, 163, 0.3);
+}
+
+.disabledActionButton {
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 255, 178, 0.24);
+  background: rgba(124, 255, 178, 0.08);
+  color: #7cffb2;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: not-allowed;
+  opacity: 0.9;
+}
+
+.orderDeliveryBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 14px 0;
+  padding: 14px 15px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.orderDeliveryBox > span {
+  color: rgba(155, 200, 203, 0.82);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.orderDeliveryBox strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #ECFFFF;
+}
+
+.orderDeliverySuccess {
+  border: 1px solid rgba(124, 255, 178, 0.28);
+  box-shadow: inset 0 0 22px rgba(124, 255, 178, 0.035);
+}
+
+.orderDeliveryPending {
+  border: 1px solid rgba(255, 224, 130, 0.28);
+  box-shadow: inset 0 0 22px rgba(255, 224, 130, 0.035);
+}
+
+.orderDeliveryDanger {
+  border: 1px solid rgba(255, 143, 163, 0.3);
+  box-shadow: inset 0 0 22px rgba(255, 143, 163, 0.035);
+}
+
+.tableActions {
+  min-width: 190px;
+}
+
+.tableActions .successButton {
+  white-space: nowrap;
+}
+
+.proTable {
+  min-width: 1080px;
+}
+
+@media (max-width: 720px) {
+  .orderDeliveryBox {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
