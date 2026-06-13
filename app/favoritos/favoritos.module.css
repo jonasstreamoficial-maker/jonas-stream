@@ -2050,3 +2050,276 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ==========================================================
+   FAVORITOS VISUAL FINAL - JONAS STREAM
+   Misma línea visual de tienda/ver-precios/carrito.
+   ========================================================== */
+
+.catalogPanel {
+  width: min(1320px, calc(100% - 28px)) !important;
+}
+
+.productCard {
+  --platform-color: #01e7ef;
+  border-color: var(--platform-color) !important;
+  background:
+    radial-gradient(circle at 50% -8%, color-mix(in srgb, var(--platform-color) 34%, transparent), transparent 46%),
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--platform-color) 14%, transparent), transparent 38%),
+    linear-gradient(180deg, color-mix(in srgb, var(--platform-color) 11%, rgba(3, 19, 22, 0.96)), rgba(0, 10, 12, 0.98)) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--platform-color) 44%, transparent),
+    0 24px 60px rgba(0, 0, 0, 0.36),
+    0 0 30px color-mix(in srgb, var(--platform-color) 20%, transparent),
+    inset 0 0 34px color-mix(in srgb, var(--platform-color) 8%, transparent) !important;
+}
+
+.productCard::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  width: 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(180deg, var(--platform-color), transparent) !important;
+  opacity: 0.95 !important;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--platform-color) 55%, transparent) !important;
+}
+
+.productCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--platform-color) 52%, transparent);
+  box-shadow:
+    inset 0 0 26px color-mix(in srgb, var(--platform-color) 8%, transparent),
+    0 0 18px color-mix(in srgb, var(--platform-color) 14%, transparent);
+  opacity: 0.86;
+  z-index: 1;
+}
+
+.productBadges,
+.productVisual,
+.productBody {
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+.productVisual {
+  border-color: color-mix(in srgb, var(--platform-color) 50%, transparent) !important;
+  background:
+    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--platform-color) 24%, transparent), transparent 55%),
+    #020a0c !important;
+  box-shadow:
+    inset 0 0 34px color-mix(in srgb, var(--platform-color) 12%, transparent),
+    0 0 24px color-mix(in srgb, var(--platform-color) 14%, transparent) !important;
+}
+
+.productTitle {
+  color: var(--platform-color) !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 1.35rem !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.03em !important;
+  text-transform: uppercase !important;
+  text-shadow:
+    0 0 12px color-mix(in srgb, var(--platform-color) 34%, transparent),
+    0 0 22px color-mix(in srgb, var(--platform-color) 16%, transparent) !important;
+}
+
+.categoryBadge,
+.typeBadge,
+.favoriteButton,
+.metaCard,
+.priceCard {
+  border-color: color-mix(in srgb, var(--platform-color) 42%, transparent) !important;
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--platform-color) 9%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--platform-color) 5%, transparent) !important;
+}
+
+.categoryBadge {
+  color: var(--platform-color) !important;
+  background: color-mix(in srgb, var(--platform-color) 11%, rgba(0, 0, 0, 0.46)) !important;
+}
+
+.typeBadge {
+  color: #ecffff !important;
+  background: rgba(124, 255, 178, 0.11) !important;
+}
+
+.stockAvailable {
+  border-color: rgba(124, 255, 178, 0.58) !important;
+  background: rgba(124, 255, 178, 0.105) !important;
+  box-shadow:
+    0 0 18px rgba(124, 255, 178, 0.16),
+    inset 0 0 18px rgba(124, 255, 178, 0.08) !important;
+}
+
+.stockAvailable span,
+.stockAvailable strong {
+  color: #7cffb2 !important;
+  text-shadow: 0 0 12px rgba(124, 255, 178, 0.24) !important;
+}
+
+.stockUnavailable {
+  border-color: rgba(255, 143, 163, 0.62) !important;
+  background: rgba(255, 143, 163, 0.105) !important;
+  box-shadow:
+    0 0 18px rgba(255, 143, 163, 0.16),
+    inset 0 0 18px rgba(255, 143, 163, 0.08) !important;
+}
+
+.stockUnavailable span,
+.stockUnavailable strong {
+  color: #ff8fa3 !important;
+  text-shadow: 0 0 12px rgba(255, 143, 163, 0.24) !important;
+}
+
+.statusAvailable {
+  color: #7cffb2 !important;
+  background: rgba(124, 255, 178, 0.115) !important;
+  border: 1px solid rgba(124, 255, 178, 0.42) !important;
+  box-shadow: 0 0 14px rgba(124, 255, 178, 0.14) !important;
+}
+
+.statusUnavailable {
+  color: #ff8fa3 !important;
+  background: rgba(255, 143, 163, 0.115) !important;
+  border: 1px solid rgba(255, 143, 163, 0.44) !important;
+  box-shadow: 0 0 14px rgba(255, 143, 163, 0.14) !important;
+}
+
+.priceCard small {
+  color: var(--platform-color) !important;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--platform-color) 26%, transparent) !important;
+}
+
+.priceCard strong {
+  color: #ecffff !important;
+  text-shadow:
+    0 0 10px rgba(236, 255, 255, 0.18),
+    0 0 18px color-mix(in srgb, var(--platform-color) 18%, transparent) !important;
+}
+
+.priceCard em {
+  color: rgba(236, 255, 255, 0.42) !important;
+}
+
+.buyButton {
+  color: #001014 !important;
+  background: linear-gradient(135deg, var(--platform-color), color-mix(in srgb, var(--platform-color) 78%, #ffffff 22%)) !important;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--platform-color) 30%, transparent) !important;
+}
+
+.buyButtonDisabled,
+.buyButtonDisabled:hover {
+  cursor: not-allowed !important;
+  color: rgba(236, 255, 255, 0.5) !important;
+  background: rgba(255, 143, 163, 0.12) !important;
+  border: 1px solid rgba(255, 143, 163, 0.32) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 235px !important;
+  }
+
+  .topActions {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .topActions a:nth-child(3),
+  .topActions a:nth-child(4) {
+    grid-column: auto !important;
+    width: 100% !important;
+    justify-self: stretch !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 14px) !important;
+    padding: 28px 14px !important;
+  }
+
+  .heroTitle {
+    font-size: 1.72rem !important;
+  }
+
+  .catalogPanel {
+    width: min(100% - 18px, 1320px) !important;
+    padding: 20px 14px !important;
+    border-radius: 24px !important;
+  }
+
+  .catalogGrid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .productCard {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 16px !important;
+  }
+
+  .productBadges {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .categoryBadge,
+  .typeBadge {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: normal !important;
+  }
+
+  .productVisual {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 16 / 10 !important;
+  }
+
+  .metaGrid,
+  .priceGrid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .statusRow {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+    text-align: center !important;
+  }
+
+  .statusBadge {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .stockText {
+    text-align: center !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .topLink,
+  .topLinkPrimary {
+    font-size: 0.68rem !important;
+    padding: 0 6px !important;
+  }
+
+  .productTitle {
+    font-size: 1.15rem !important;
+  }
+}
+

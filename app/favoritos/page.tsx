@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
 import { agregarAlCarrito, contarItemsCarrito } from "@/lib/carrito";
@@ -11,7 +11,60 @@ import styles from "./favoritos.module.css";
 const USD_RATE = 3.75;
 const WHATSAPP_NUMBER = "51900557949";
 
-type ProductStatus = "ACTIVO" | "LIMITADO" | "AGOTADO";
+const PLATFORM_COLORS: Record<string, string> = {
+  netflix: "#e50914",
+  "disney estandar": "#002062",
+  "disney estándar": "#002062",
+  "disney premium": "#00b2bb",
+  "prime video": "#007aff",
+  prime: "#007aff",
+  max: "#0027ef",
+  "paramount+": "#0068ff",
+  crunchyroll: "#ff5800",
+  "vix premium": "#ff5800",
+  vix: "#ff5800",
+  "rakuten viki": "#009dff",
+  "apple tv + mls": "#ff1f1f",
+  "apple tv": "#9ca3af",
+  plex: "#feb100",
+  universal: "#ffff00",
+  iptv: "#5440eb",
+  "flujo tv": "#ff6224",
+  dgo: "#00b0f2",
+  movistar: "#7ed957",
+  "l1 max": "#ff1f1f",
+  spotify: "#1db954",
+  tidal: "#9ca3af",
+  deezer: "#ff4fb8",
+  "apple music": "#fa57c1",
+  "youtube premium": "#ff0000",
+  youtube: "#ff0000",
+  canva: "#00c4cc",
+  surfshark: "#64f5d2",
+  "hola vpn": "#ff7a00",
+};
+
+function normalizePlatformName(value?: string | null) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function getPlatformColor(...values: Array<string | null | undefined>) {
+  const normalizedValues = values.map(normalizePlatformName).filter(Boolean);
+  const joined = normalizedValues.join(" ");
+
+  for (const key of Object.keys(PLATFORM_COLORS)) {
+    if (joined.includes(key)) return PLATFORM_COLORS[key];
+  }
+
+  return "#01E7EF";
+}
+
+
+type ProductStatus = "DISPONIBLE" | "AGOTADO";
 
 type Producto = {
   id: string;
@@ -56,28 +109,19 @@ function normalizeType(value?: string | null) {
 function normalizeStatus(producto: Producto): ProductStatus {
   const explicit = (producto.estado_catalogo || "").toUpperCase();
 
-  if (explicit === "ACTIVO" || explicit === "LIMITADO" || explicit === "AGOTADO") {
-    return explicit;
-  }
-
+  if (explicit === "AGOTADO") return "AGOTADO";
   if ((producto.estado || "").toLowerCase() === "inactivo") return "AGOTADO";
 
   const stock = Number(producto.stock || 0);
-  if (stock <= 0) return "AGOTADO";
-  if (stock <= 3) return "LIMITADO";
-  return "ACTIVO";
+  return stock > 0 ? "DISPONIBLE" : "AGOTADO";
 }
 
 function getStatusClass(status: ProductStatus) {
-  if (status === "ACTIVO") return styles.statusActive;
-  if (status === "LIMITADO") return styles.statusLimited;
-  return styles.statusSoldOut;
+  return status === "DISPONIBLE" ? styles.statusAvailable : styles.statusUnavailable;
 }
 
 function getStockClass(status: ProductStatus) {
-  if (status === "ACTIVO") return styles.stockActive;
-  if (status === "LIMITADO") return styles.stockLimited;
-  return styles.stockSoldOut;
+  return status === "DISPONIBLE" ? styles.stockAvailable : styles.stockUnavailable;
 }
 
 function getTypeClass(type: string) {
@@ -163,6 +207,11 @@ export default function FavoritosPage() {
   };
 
   const comprarProducto = (producto: Producto) => {
+    if (Number(producto.stock || 0) <= 0) {
+      toast.error("Producto agotado");
+      return;
+    }
+
     agregarAlCarrito({
       id: producto.id,
       nombre: producto.nombre || "Producto",
@@ -272,10 +321,22 @@ export default function FavoritosPage() {
             {productos.map((producto) => {
               const type = normalizeType(producto.tipo_venta);
               const status = normalizeStatus(producto);
+              const stockValue = Number(producto.stock || 0);
+              const isAvailable = stockValue > 0;
               const usd = Number(producto.precio || 0) / USD_RATE;
+              const accentColor = getPlatformColor(
+                producto.nombre,
+                producto.descripcion,
+                producto.categoria,
+                producto.proveedor
+              );
 
               return (
-                <article key={producto.id} className={styles.productCard}>
+                <article
+                  key={producto.id}
+                  className={styles.productCard}
+                  style={{ "--platform-color": accentColor } as CSSProperties}
+                >
                   <button
                     type="button"
                     aria-label="Quitar de favoritos"
@@ -320,7 +381,7 @@ export default function FavoritosPage() {
 
                     <div className={`${styles.stockBar} ${getStockClass(status)}`}>
                       <span>Stock</span>
-                      <strong>{Number(producto.stock || 0)}</strong>
+                      <strong>{stockValue}</strong>
                     </div>
 
                     <div className={styles.metaGrid}>
@@ -352,11 +413,7 @@ export default function FavoritosPage() {
 
                       <span className={styles.stockText}>
                         {producto.stock_texto ||
-                          (status === "LIMITADO"
-                            ? "Stock disponible"
-                            : status === "AGOTADO"
-                            ? "Consultar reposición"
-                            : "Stock disponible")}
+                          (status === "DISPONIBLE" ? `${stockValue} disponibles` : "Consultar reposición")}
                       </span>
                     </div>
 
@@ -377,9 +434,10 @@ export default function FavoritosPage() {
                       <button
                         type="button"
                         onClick={() => comprarProducto(producto)}
-                        className={styles.buyButton}
+                        disabled={!isAvailable}
+                        className={`${styles.buyButton} ${!isAvailable ? styles.buyButtonDisabled : ""}`}
                       >
-                        Comprar
+                        {isAvailable ? "Comprar" : "Agotado"}
                       </button>
                     </div>
                   </div>
