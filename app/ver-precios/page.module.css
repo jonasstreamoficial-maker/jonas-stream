@@ -1860,3 +1860,42 @@
     white-space: normal !important;
   }
 }
+
+
+/* ==========================================================
+   VER PRECIOS - FILTROS PC IGUAL QUE CELULAR
+   Tipo de acceso y Disponibilidad:
+   - "Todos" arriba ocupando toda la fila.
+   - Dos opciones abajo mitad/mitad.
+   ========================================================== */
+
+.filterGroup .filterButtons {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.filterGroup .filterButtons button:first-child {
+  grid-column: 1 / -1 !important;
+}
+
+.filterGroup .filterButtons button {
+  min-height: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  text-align: center !important;
+  white-space: normal !important;
+  line-height: 1.15 !important;
+}
+
+@media (min-width: 1101px) {
+  .filterPanel {
+    grid-template-columns: 1.1fr 0.95fr 0.95fr !important;
+    align-items: stretch !important;
+  }
+
+  .searchBox,
+  .filterGroup {
+    min-height: 146px !important;
+  }
+}
