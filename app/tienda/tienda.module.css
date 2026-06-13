@@ -1984,3 +1984,129 @@
   line-height: 1.45;
   font-weight: 750;
 }
+
+/* ==========================================================
+   NEÓN POR PLATAFORMA - TIENDA PRIVADA
+   Respeta la paleta Jonas Stream y aplica el color real de cada app
+   desde la variable CSS --platform-color enviada por page.tsx.
+   ========================================================== */
+
+.productCard {
+  --platform-color: #01e7ef;
+  border-color: var(--platform-color) !important;
+  background:
+    radial-gradient(circle at 50% -8%, color-mix(in srgb, var(--platform-color) 38%, transparent), transparent 45%),
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--platform-color) 18%, transparent), transparent 38%),
+    linear-gradient(180deg, color-mix(in srgb, var(--platform-color) 13%, rgba(3, 19, 22, 0.96)), rgba(0, 10, 12, 0.98)) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--platform-color) 46%, transparent),
+    0 24px 60px rgba(0, 0, 0, 0.36),
+    0 0 32px color-mix(in srgb, var(--platform-color) 24%, transparent),
+    inset 0 0 38px color-mix(in srgb, var(--platform-color) 10%, transparent) !important;
+}
+
+.productCard::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  width: 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(180deg, var(--platform-color), transparent) !important;
+  opacity: 0.95 !important;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--platform-color) 55%, transparent) !important;
+}
+
+.productCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--platform-color) 55%, transparent);
+  box-shadow:
+    inset 0 0 28px color-mix(in srgb, var(--platform-color) 9%, transparent),
+    0 0 18px color-mix(in srgb, var(--platform-color) 18%, transparent);
+  opacity: 0.88;
+  z-index: 1;
+}
+
+.productCard:hover {
+  border-color: var(--platform-color) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--platform-color) 72%, transparent),
+    0 30px 82px rgba(0, 0, 0, 0.42),
+    0 0 42px color-mix(in srgb, var(--platform-color) 35%, transparent),
+    inset 0 0 42px color-mix(in srgb, var(--platform-color) 13%, transparent) !important;
+}
+
+.productVisual {
+  border-color: color-mix(in srgb, var(--platform-color) 50%, transparent) !important;
+  background:
+    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--platform-color) 24%, transparent), transparent 55%),
+    #020a0c !important;
+  box-shadow:
+    inset 0 0 34px color-mix(in srgb, var(--platform-color) 12%, transparent),
+    0 0 24px color-mix(in srgb, var(--platform-color) 14%, transparent) !important;
+}
+
+.productTitle {
+  color: var(--platform-color) !important;
+  text-shadow:
+    0 0 12px color-mix(in srgb, var(--platform-color) 35%, transparent),
+    0 0 22px color-mix(in srgb, var(--platform-color) 18%, transparent) !important;
+}
+
+.categoryBadge,
+.typeBadge,
+.favoriteButton {
+  border-color: color-mix(in srgb, var(--platform-color) 52%, transparent) !important;
+  background: color-mix(in srgb, var(--platform-color) 11%, rgba(0, 0, 0, 0.48)) !important;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--platform-color) 16%, transparent) !important;
+}
+
+.categoryBadge {
+  color: var(--platform-color) !important;
+}
+
+.stockBar,
+.metaCard,
+.statusBadge,
+.priceCard {
+  border-color: color-mix(in srgb, var(--platform-color) 42%, transparent) !important;
+  background: color-mix(in srgb, var(--platform-color) 8%, rgba(0, 0, 0, 0.42)) !important;
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--platform-color) 10%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--platform-color) 6%, transparent) !important;
+}
+
+.priceCard small {
+  color: var(--platform-color) !important;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--platform-color) 28%, transparent) !important;
+}
+
+.priceCard strong {
+  color: #ecffff !important;
+  text-shadow:
+    0 0 10px rgba(236, 255, 255, 0.18),
+    0 0 18px color-mix(in srgb, var(--platform-color) 22%, transparent) !important;
+}
+
+.priceCard em {
+  color: rgba(236, 255, 255, 0.42) !important;
+}
+
+.buyButton {
+  color: #001014 !important;
+  background: linear-gradient(135deg, var(--platform-color), color-mix(in srgb, var(--platform-color) 78%, #ffffff 22%)) !important;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--platform-color) 32%, transparent) !important;
+}
+
+.buyButton:hover {
+  box-shadow: 0 0 34px color-mix(in srgb, var(--platform-color) 45%, transparent) !important;
+}
+
+.cartPrice,
+.cartSummary strong {
+  color: #ecffff !important;
+}
+

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
 import { agregarAlCarrito, contarItemsCarrito } from "@/lib/carrito";
@@ -116,6 +116,72 @@ function getCategoryClass(category: string) {
   if (key.includes("oficina")) return styles.categoryOffice;
   if (key.includes("tv")) return styles.categoryTv;
   return styles.categoryDefault;
+}
+
+
+type PlatformColorRule = {
+  keys: string[];
+  color: string;
+};
+
+const PLATFORM_COLOR_RULES: PlatformColorRule[] = [
+  { keys: ["netflix"], color: "#e50914" },
+  { keys: ["disney estandar", "disney standard"], color: "#002062" },
+  { keys: ["disney premium", "disney plus", "disney+", "disney"], color: "#00b2bb" },
+  { keys: ["prime video", "prime"], color: "#007aff" },
+  { keys: ["l1 max"], color: "#ff1f1f" },
+  { keys: ["hbo max", "hbomax", "max"], color: "#0027ef" },
+  { keys: ["paramount+", "paramount plus", "paramount"], color: "#0068ff" },
+  { keys: ["crunchyroll", "crunchy"], color: "#ff5800" },
+  { keys: ["vix premium", "vix"], color: "#ff5800" },
+  { keys: ["rakuten viki", "viki"], color: "#009dff" },
+  { keys: ["apple tv + mls", "apple tv mls", "mls"], color: "#ff1f1f" },
+  { keys: ["apple tv", "apple tv+"], color: "#9ca3af" },
+  { keys: ["plex"], color: "#feb100" },
+  { keys: ["universal"], color: "#ffff00" },
+  { keys: ["iptv"], color: "#5440eb" },
+  { keys: ["flujo tv", "flujo"], color: "#ff6224" },
+  { keys: ["dgo"], color: "#00b0f2" },
+  { keys: ["movistar"], color: "#7ed957" },
+  { keys: ["spotify"], color: "#1db954" },
+  { keys: ["tidal"], color: "#9ca3af" },
+  { keys: ["deezer"], color: "#ff4fb8" },
+  { keys: ["apple music"], color: "#fa57c1" },
+  { keys: ["youtube premium", "youtube"], color: "#ff0000" },
+  { keys: ["canva"], color: "#00c4cc" },
+  { keys: ["surfshark"], color: "#64f5d2" },
+  { keys: ["hola vpn", "hola"], color: "#ff7a00" },
+];
+
+function normalizePlatformText(value?: string | null) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[®™]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getPlatformColor(producto: Producto) {
+  const searchText = [
+    producto.nombre,
+    producto.descripcion,
+    producto.categoria,
+    producto.tipo_venta,
+    producto.proveedor,
+  ]
+    .map(normalizePlatformText)
+    .filter(Boolean)
+    .join(" ");
+
+  for (const rule of PLATFORM_COLOR_RULES) {
+    if (rule.keys.some((key) => searchText.includes(normalizePlatformText(key)))) {
+      return rule.color;
+    }
+  }
+
+  return "#01e7ef";
 }
 
 function leerCarritoLocal(): CartItem[] {
@@ -494,9 +560,17 @@ export default function TiendaPage() {
                 const type = normalizeType(producto.tipo_venta);
                 const status = normalizeStatus(producto);
                 const usd = Number(producto.precio || 0) / USD_RATE;
+                const platformColor = getPlatformColor(producto);
+                const platformStyle = {
+                  "--platform-color": platformColor,
+                } as CSSProperties;
 
                 return (
-                  <article key={producto.id} className={styles.productCard}>
+                  <article
+                    key={producto.id}
+                    className={styles.productCard}
+                    style={platformStyle}
+                  >
                     <button
                       type="button"
                       aria-label="Agregar a favoritos"
