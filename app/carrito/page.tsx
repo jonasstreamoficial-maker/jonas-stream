@@ -42,6 +42,19 @@ type PedidoCreado = {
   metodo_pago?: string | null;
 };
 
+type PedidoPendiente = {
+  id: string;
+  metodo_pago: string;
+  total: number;
+  comprobante_url?: string | null;
+  created_at: string;
+  productos: Array<{
+    nombre: string;
+    cantidad: number;
+    precio: number;
+  }>;
+};
+
 function buildWhatsAppLink(message: string) {
   return `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
 }
@@ -78,6 +91,32 @@ function leerUsuarioLocal(): UsuarioLocal | null {
   }
 }
 
+function formatearFechaEntrega(fecha?: string | null) {
+  if (!fecha) return "Sin fecha";
+
+  const date = new Date(fecha);
+  if (Number.isNaN(date.getTime())) return "Sin fecha";
+
+  return date.toLocaleString("es-PE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatearVigencia(inicio?: string | null, fin?: string | null) {
+  const inicioTexto = formatearFechaEntrega(inicio);
+  const finTexto = formatearFechaEntrega(fin);
+
+  if (inicioTexto === "Sin fecha" && finTexto === "Sin fecha") {
+    return "Vigencia pendiente de definir";
+  }
+
+  return `${inicioTexto} hasta ${finTexto}`;
+}
+
 export default function CarritoPage() {
   const [carrito, setCarrito] = useState<ProductoCarrito[]>([]);
   const [procesandoPedido, setProcesandoPedido] = useState(false);
@@ -99,6 +138,9 @@ export default function CarritoPage() {
   const [pedidoEntregadoId, setPedidoEntregadoId] = useState<string | null>(
     null,
   );
+  const [pedidoPendiente, setPedidoPendiente] = useState<PedidoPendiente | null>(
+    null,
+  );
 
   const cargarCarrito = () => {
     setCarrito(obtenerCarrito());
@@ -108,6 +150,7 @@ export default function CarritoPage() {
     cargarCarrito();
     cargarCreditoUsuario();
     cargarUltimaEntrega();
+    cargarUltimoPedidoPendiente();
 
     const handleFocus = () => {
       cargarCarrito();
@@ -156,12 +199,14 @@ export default function CarritoPage() {
   ) => {
     setPedidoEntregadoId(pedidoId);
     setCuentasEntregadas(cuentas);
+    setPedidoPendiente(null);
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem(
         "ultima_entrega_creditos",
         JSON.stringify({ pedido_id: pedidoId, cuentas }),
       );
+      window.localStorage.removeItem("ultimo_pedido_pendiente");
     }
   };
 
@@ -171,6 +216,41 @@ export default function CarritoPage() {
 
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("ultima_entrega_creditos");
+    }
+  };
+
+  const cargarUltimoPedidoPendiente = () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const data = window.localStorage.getItem("ultimo_pedido_pendiente");
+      if (!data) return;
+
+      const parsed = JSON.parse(data) as PedidoPendiente;
+      if (!parsed?.id) return;
+
+      setPedidoPendiente(parsed);
+    } catch {
+      setPedidoPendiente(null);
+    }
+  };
+
+  const guardarUltimoPedidoPendiente = (pedido: PedidoPendiente) => {
+    setPedidoPendiente(pedido);
+    setPedidoEntregadoId(null);
+    setCuentasEntregadas([]);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("ultimo_pedido_pendiente", JSON.stringify(pedido));
+      window.localStorage.removeItem("ultima_entrega_creditos");
+    }
+  };
+
+  const ocultarUltimoPedidoPendiente = () => {
+    setPedidoPendiente(null);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("ultimo_pedido_pendiente");
     }
   };
 
@@ -529,7 +609,20 @@ ${productosTexto}
 
 ✅ *Quedo atento a la confirmación de mi compra.*`;
 
-      toast.success("Pedido creado. Redirigiendo a WhatsApp...");
+      guardarUltimoPedidoPendiente({
+        id: pedido.id,
+        metodo_pago: metodoPago,
+        total: totalFinal,
+        comprobante_url: comprobanteUrl,
+        created_at: new Date().toISOString(),
+        productos: carrito.map((producto) => ({
+          nombre: producto.nombre,
+          cantidad: producto.cantidad,
+          precio: Number(producto.precio || 0),
+        })),
+      });
+
+      toast.success("Pedido registrado. Queda pendiente de verificación.");
 
       const whatsappUrl = buildWhatsAppLink(mensajeWhatsApp);
 
@@ -658,8 +751,7 @@ ${productosTexto}
                     <strong>{cuenta.clave}</strong>
                   </div>
                   <p>
-                    Vigencia: {cuenta.cliente_inicio || "Hoy"} hasta{" "}
-                    {cuenta.cliente_fin || "30 días"}
+                    Vigencia: {formatearVigencia(cuenta.cliente_inicio, cuenta.cliente_fin)}
                   </p>
                 </article>
               ))}
@@ -676,6 +768,86 @@ ${productosTexto}
                 className={styles.hideDeliveryButton}
               >
                 Ocultar entrega
+              </button>
+            </div>
+          </section>
+        ) : pedidoPendiente ? (
+          <section className={`${styles.deliverySection} ${styles.pendingSection}`}>
+            <div className={`${styles.deliveryIcon} ${styles.pendingIcon}`}>⏳</div>
+            <span className={styles.sectionKicker}>PEDIDO REGISTRADO</span>
+            <h2>Entrega pendiente de verificación</h2>
+            <p>
+              Tu pedido fue creado correctamente. Cuando el administrador valide tu pago,
+              se asignará una cuenta disponible y podrás verla en tu panel cliente o en /codigos.
+            </p>
+
+            <div className={styles.deliveryOrder}>
+              Pedido #{pedidoPendiente.id.slice(0, 8)}
+            </div>
+
+            <div className={styles.pendingGrid}>
+              <div className={styles.pendingInfoCard}>
+                <span>Método</span>
+                <strong>{pedidoPendiente.metodo_pago}</strong>
+              </div>
+
+              <div className={styles.pendingInfoCard}>
+                <span>Total</span>
+                <strong>S/ {Number(pedidoPendiente.total || 0).toFixed(2)}</strong>
+              </div>
+
+              <div className={styles.pendingInfoCard}>
+                <span>Estado</span>
+                <strong>Pendiente</strong>
+              </div>
+
+              <div className={styles.pendingInfoCard}>
+                <span>Fecha</span>
+                <strong>{formatearFechaEntrega(pedidoPendiente.created_at)}</strong>
+              </div>
+            </div>
+
+            {pedidoPendiente.productos.length > 0 && (
+              <div className={styles.pendingProducts}>
+                <span>Productos en revisión</span>
+                <div className={styles.pendingProductList}>
+                  {pedidoPendiente.productos.map((producto, index) => (
+                    <p key={`${producto.nombre}-${index}`}>
+                      <strong>{producto.nombre}</strong>
+                      <small>
+                        x{producto.cantidad} · S/{" "}
+                        {(Number(producto.precio || 0) * producto.cantidad).toFixed(2)}
+                      </small>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className={styles.deliveryActions}>
+              <Link href="/cliente" className={styles.emptyButton}>
+                Ver panel cliente
+              </Link>
+
+              <Link href="/codigos" className={styles.emptyButton}>
+                Ir a códigos
+              </Link>
+
+              <a
+                href={buildWhatsAppLink(`Hola Jonas Stream, quiero consultar el estado de mi pedido #${pedidoPendiente.id.slice(0, 8)}.`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.pendingWhatsappButton}
+              >
+                Soporte WhatsApp
+              </a>
+
+              <button
+                type="button"
+                onClick={ocultarUltimoPedidoPendiente}
+                className={styles.hideDeliveryButton}
+              >
+                Ocultar aviso
               </button>
             </div>
           </section>
