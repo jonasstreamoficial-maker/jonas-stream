@@ -119,6 +119,14 @@ type AsignarCuentasResponse = {
   }>
 }
 
+type SincronizarCuentasResponse = {
+  ok: boolean
+  productos_actualizados: number
+  total_disponibles: number
+  error?: string
+  detalle?: string
+}
+
 type AdminLog = {
   id: string
   accion: string
@@ -645,6 +653,43 @@ export default function AdminPage() {
     return true
   }
 
+  const sincronizarStockDesdeCuentas = async (mostrarToast = true) => {
+    setSincronizandoInventario(true)
+
+    try {
+      const response = await fetch("/api/inventario/sincronizar-cuentas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+
+      const resultado = (await response.json().catch(() => null)) as SincronizarCuentasResponse | null
+
+      if (!response.ok || !resultado?.ok) {
+        throw new Error(resultado?.error || "No se pudo sincronizar el stock desde cuentas")
+      }
+
+      if (mostrarToast) {
+        toast.success(`Stock sincronizado: ${resultado.total_disponibles} cuenta(s) disponible(s)`)
+      }
+
+      registrarEvento("Inventario sincronizado desde cuentas")
+      await registrarLog(
+        "sincronizar_cuentas",
+        "productos",
+        undefined,
+        `${resultado.productos_actualizados} producto(s) actualizados desde cuentas disponibles`
+      )
+
+      return resultado
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : "No se pudo sincronizar el stock"
+      if (mostrarToast) toast.error(mensaje)
+      throw error
+    } finally {
+      setSincronizandoInventario(false)
+    }
+  }
+
   const asignarCuentasPorPedido = async (pedidoIds: string[]) => {
     const idsValidos = pedidoIds.filter(Boolean)
 
@@ -815,57 +860,18 @@ export default function AdminPage() {
   }
 
   const sincronizarInventarioAutomatico = async () => {
-    if (productos.length === 0) {
-      toast.error("No hay productos para sincronizar")
-      return
-    }
+    const confirmar = confirm(
+      "Esto recalculará productos.stock usando las cuentas disponibles registradas en Admin → Cuentas. ¿Continuar?"
+    )
 
-    const agotados = productos.filter((p) => Number(p.stock) <= 0)
-    const bajos = productos.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 3)
-
-    if (agotados.length === 0 && bajos.length === 0) {
-      toast.success("Inventario estable: no hay ajustes automáticos")
-      return
-    }
-
-    const confirmar = confirm(`Inventario automático aplicará: ${agotados.length} agotado(s) y ${bajos.length} limitado(s). ¿Continuar?`)
     if (!confirmar) return
 
-    setSincronizandoInventario(true)
-
-    const operaciones = []
-    if (agotados.length > 0) {
-      operaciones.push(
-        supabase
-          .from("productos")
-          .update({ estado_catalogo: "AGOTADO", publicacion: false })
-          .in("id", agotados.map((p) => p.id))
-      )
+    try {
+      await sincronizarStockDesdeCuentas(true)
+      await cargarDatos()
+    } catch {
+      // El toast ya se muestra dentro de sincronizarStockDesdeCuentas.
     }
-
-    if (bajos.length > 0) {
-      operaciones.push(
-        supabase
-          .from("productos")
-          .update({ estado_catalogo: "LIMITADO" })
-          .in("id", bajos.map((p) => p.id))
-      )
-    }
-
-    const resultados = await Promise.all(operaciones)
-    const fallo = resultados.find((resultado) => resultado.error)
-
-    if (fallo?.error) {
-      toast.error("No se pudo sincronizar todo el inventario")
-      setSincronizandoInventario(false)
-      return
-    }
-
-    await registrarLog("sincronizar", "productos", undefined, `Inventario automático: ${agotados.length} agotados, ${bajos.length} limitados`)
-    registrarEvento("Inventario automático sincronizado")
-    toast.success("Inventario automático sincronizado")
-    setSincronizandoInventario(false)
-    await cargarDatos()
   }
 
   const reponerProductoRapido = async (producto: Producto, cantidad = 10) => {
@@ -1174,6 +1180,13 @@ export default function AdminPage() {
 
     await registrarLog(editandoCuentaId ? "actualizar" : "crear", "cuentas", editandoCuentaId || undefined, payload.producto_nombre || payload.correo)
     toast.success(editandoCuentaId ? "Cuenta actualizada" : "Cuenta registrada")
+
+    try {
+      await sincronizarStockDesdeCuentas(false)
+    } catch {
+      toast("Cuenta guardada, pero revisa la sincronización de stock")
+    }
+
     limpiarFormularioCuenta()
     setGuardandoCuenta(false)
     await cargarDatos()
@@ -1205,6 +1218,13 @@ export default function AdminPage() {
     }
 
     await registrarLog("actualizar_estado", "cuentas", cuenta.id, `Estado: ${estado}`)
+
+    try {
+      await sincronizarStockDesdeCuentas(false)
+    } catch {
+      toast("Estado actualizado, pero revisa la sincronización de stock")
+    }
+
     toast.success(`Cuenta marcada como ${estado}`)
     await cargarDatos()
   }
@@ -1221,6 +1241,13 @@ export default function AdminPage() {
     }
 
     await registrarLog("eliminar", "cuentas", cuenta.id, cuenta.correo)
+
+    try {
+      await sincronizarStockDesdeCuentas(false)
+    } catch {
+      toast("Cuenta eliminada, pero revisa la sincronización de stock")
+    }
+
     toast.success("Cuenta eliminada")
     await cargarDatos()
   }
