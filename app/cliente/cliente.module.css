@@ -1153,3 +1153,177 @@
     flex-direction: column;
   }
 }
+
+/* ==========================================================
+   PANEL CLIENTE V5 - COLORES POR PLATAFORMA + ACCESOS TIPO EXCEL
+   Usa --platform-color desde page.tsx para marcar cada fila.
+   ========================================================== */
+
+.compactRow {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--platform-color, #01e7ef) 46%, rgba(1, 231, 239, 0.14)) !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--platform-color, #01e7ef) 18%, transparent) 0%, rgba(0, 0, 0, 0.24) 22%),
+    rgba(0, 0, 0, 0.24) !important;
+}
+
+.compactRow::before,
+.accessRowCompact::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  border-radius: 999px;
+  background: var(--platform-color, #01e7ef);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--platform-color, #01e7ef) 55%, transparent);
+}
+
+.compactMain span {
+  color: color-mix(in srgb, var(--platform-color, #01e7ef) 74%, #ffffff) !important;
+  font-weight: 950;
+}
+
+.compactMain strong,
+.accessNameCell strong {
+  color: color-mix(in srgb, var(--platform-color, #01e7ef) 78%, #ffffff) !important;
+}
+
+.accessListCompact {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.accessTableHeader,
+.accessRowCompact {
+  min-width: 1120px;
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(220px, 1.15fr) minmax(140px, 0.65fr) minmax(160px, 0.78fr) minmax(230px, 1.15fr) minmax(160px, 0.65fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+.accessTableHeader {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  background: rgba(1, 231, 239, 0.09);
+  box-shadow: inset 0 0 20px rgba(0, 251, 255, 0.035);
+}
+
+.accessTableHeader span {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  color: var(--cyan-strong);
+  font-size: 0.72rem;
+  font-weight: 1000;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  border-right: 1px solid rgba(1, 231, 239, 0.11);
+}
+
+.accessTableHeader span:last-child {
+  border-right: 0;
+}
+
+.accessRowCompact {
+  position: relative;
+  overflow: hidden;
+  padding: 0 !important;
+  gap: 0 !important;
+  border-radius: 16px !important;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01e7ef) 40%, rgba(1, 231, 239, 0.13)) !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--platform-color, #01e7ef) 13%, transparent) 0%, rgba(0, 0, 0, 0.22) 18%),
+    rgba(0, 0, 0, 0.22) !important;
+  box-shadow:
+    inset 0 0 20px rgba(0, 251, 255, 0.02),
+    0 14px 34px rgba(0, 0, 0, 0.18) !important;
+}
+
+.accessNameCell,
+.accessDataCell,
+.accessRowActions {
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(236, 255, 255, 0.055) !important;
+  min-height: 64px;
+  padding: 11px 13px 11px 16px !important;
+}
+
+.accessNameCell {
+  padding-left: 20px !important;
+}
+
+.accessDataCell strong,
+.accessDataCell small,
+.accessNameCell span,
+.accessNameCell strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accessDataCell strong {
+  white-space: nowrap;
+}
+
+.accessDataCell small {
+  display: block;
+  white-space: nowrap;
+}
+
+.accessRowActions {
+  border-right: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px !important;
+  align-content: center !important;
+  padding: 10px !important;
+}
+
+.accessRowActions .primaryButton,
+.accessRowActions .secondaryButton {
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+}
+
+.accessRowActions .primaryButton {
+  background: linear-gradient(135deg, var(--platform-color, #01e7ef), var(--cyan-strong));
+  color: #001014;
+}
+
+@media (max-width: 1280px) {
+  .accessRowCompact,
+  .accessTableHeader {
+    min-width: 1080px;
+    grid-template-columns: minmax(160px, 0.9fr) minmax(210px, 1.05fr) minmax(135px, 0.62fr) minmax(150px, 0.72fr) minmax(220px, 1fr) minmax(150px, 0.62fr);
+  }
+
+  .accessRowActions {
+    grid-column: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .accessListCompact {
+    margin-left: -4px;
+    margin-right: -4px;
+  }
+
+  .accessTableHeader,
+  .accessRowCompact {
+    min-width: 980px;
+  }
+
+  .compactRow {
+    border-left: 4px solid var(--platform-color, #01e7ef) !important;
+  }
+}

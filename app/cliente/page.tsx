@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
@@ -134,6 +135,53 @@ function normalizarFiltro(value?: string | null) {
     .replace(/[̀-ͯ]/g, "")
     .trim()
     .toLowerCase();
+}
+
+
+const PLATFORM_COLORS = [
+  { key: "disney premium", color: "#00b2bb" },
+  { key: "disney estandar", color: "#002062" },
+  { key: "disney", color: "#002062" },
+  { key: "netflix", color: "#e50914" },
+  { key: "prime video", color: "#007aff" },
+  { key: "amazon prime", color: "#007aff" },
+  { key: "max", color: "#0027ef" },
+  { key: "paramount", color: "#0068ff" },
+  { key: "crunchyroll", color: "#ff5800" },
+  { key: "vix", color: "#ff5800" },
+  { key: "rakuten viki", color: "#009dff" },
+  { key: "viki", color: "#009dff" },
+  { key: "apple tv mls", color: "#ff1f1f" },
+  { key: "apple tv + mls", color: "#ff1f1f" },
+  { key: "apple tv", color: "#9ca3af" },
+  { key: "plex", color: "#feb100" },
+  { key: "universal", color: "#ffff00" },
+  { key: "iptv", color: "#5440eb" },
+  { key: "flujo tv", color: "#ff6224" },
+  { key: "dgo", color: "#00b0f2" },
+  { key: "movistar", color: "#7ed957" },
+  { key: "l1 max", color: "#ff1f1f" },
+  { key: "spotify", color: "#1db954" },
+  { key: "tidal", color: "#9ca3af" },
+  { key: "deezer", color: "#ff4fb8" },
+  { key: "apple music", color: "#fa57c1" },
+  { key: "youtube premium", color: "#ff0000" },
+  { key: "youtube", color: "#ff0000" },
+  { key: "canva", color: "#00c4cc" },
+  { key: "surfshark", color: "#64f5d2" },
+  { key: "hola vpn", color: "#ff7a00" },
+];
+
+type PlatformStyle = CSSProperties & { "--platform-color": string };
+
+function getPlatformColor(nombre?: string | null) {
+  const texto = normalizarFiltro(nombre);
+  const match = PLATFORM_COLORS.find((item) => texto.includes(item.key));
+  return match?.color || "#01e7ef";
+}
+
+function platformStyle(nombre?: string | null): PlatformStyle {
+  return { "--platform-color": getPlatformColor(nombre) } as PlatformStyle;
 }
 
 function tipoAccesoKey(cuenta?: CuentaProducto | null, producto?: Producto | null) {
@@ -516,11 +564,13 @@ export default function ClientePage() {
                       .map((item) => productoPorId.get(String(item.producto_id || ""))?.nombre || "Producto")
                       .join(", ");
 
+                    const plataformaPrincipal = nombres || "Pedido Jonas Stream";
+
                     return (
-                      <div key={pedido.id} className={styles.compactRow}>
+                      <div key={pedido.id} className={styles.compactRow} style={platformStyle(plataformaPrincipal)}>
                         <div className={styles.compactMain}>
                           <strong>#{pedido.id.slice(0, 8)}</strong>
-                          <span>{nombres || "Pedido Jonas Stream"}</span>
+                          <span>{plataformaPrincipal}</span>
                         </div>
                         <div className={styles.compactMeta}>
                           <span>{formatDate(pedido.created_at)}</span>
@@ -569,6 +619,15 @@ export default function ClientePage() {
                 <EmptyText text="No hay accesos que coincidan con el filtro." />
               ) : (
                 <div className={styles.accessListCompact}>
+                  <div className={styles.accessTableHeader}>
+                    <span>Producto</span>
+                    <span>Correo</span>
+                    <span>Clave</span>
+                    <span>Perfil / PIN</span>
+                    <span>Vigencia</span>
+                    <span>Acciones</span>
+                  </div>
+
                   {accesosFiltrados.map((cuenta) => {
                     const producto = productoPorId.get(String(cuenta.producto_id || ""));
                     const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
@@ -585,10 +644,12 @@ export default function ClientePage() {
                       `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
                     ].filter(Boolean).join("\n");
 
+                    const plataforma = producto?.nombre || cuenta.producto_nombre || "Producto";
+
                     return (
-                      <div key={cuenta.id} className={styles.accessRowCompact}>
+                      <div key={cuenta.id} className={styles.accessRowCompact} style={platformStyle(plataforma)}>
                         <div className={styles.accessNameCell}>
-                          <strong>{producto?.nombre || cuenta.producto_nombre || "Producto"}</strong>
+                          <strong>{plataforma}</strong>
                           <span>{tipo}</span>
                         </div>
 
