@@ -102,6 +102,15 @@ type CuentaInventario = {
   updated_at?: string | null
 }
 
+type Credito = {
+  id: string
+  usuario_id: string
+  saldo: number
+  estado: string
+  created_at?: string | null
+  updated_at?: string | null
+}
+
 type AsignarCuentasResponse = {
   ok: boolean
   pedidos_completados: number
@@ -188,6 +197,12 @@ const cuentaInicial = {
   observacion_admin: "",
 }
 
+const creditoInicial = {
+  usuario_id: "",
+  saldo: "",
+  estado: "activo",
+}
+
 const configuracionInicial = {
   nombre_tienda: "",
   slogan: "",
@@ -223,6 +238,7 @@ const navGroups: { title: string; items: TabId[] }[] = [
 const estadosPedido = ["todos", "pendiente", "completado", "cancelado"]
 const estadosUsuario = ["todos", "pendiente", "aprobado", "rechazado"]
 const rolesUsuario = ["todos", "cliente", "proveedor", "admin"]
+const estadosCredito = ["todos", "activo", "inactivo", "suspendido"]
 
 const normalizarTexto = (valor?: string | number | null) => String(valor ?? "").trim().toLowerCase()
 const formatearSoles = (valor: number) => `S/ ${Number(valor || 0).toFixed(2)}`
@@ -316,6 +332,14 @@ export default function AdminPage() {
   const [busquedaCuenta, setBusquedaCuenta] = useState("")
   const [filtroCuentaEstado, setFiltroCuentaEstado] = useState("todos")
 
+  const [creditos, setCreditos] = useState<Credito[]>([])
+  const [creditosDisponibles, setCreditosDisponibles] = useState(true)
+  const [formCredito, setFormCredito] = useState(creditoInicial)
+  const [editandoCreditoId, setEditandoCreditoId] = useState<string | null>(null)
+  const [guardandoCredito, setGuardandoCredito] = useState(false)
+  const [busquedaCredito, setBusquedaCredito] = useState("")
+  const [filtroCreditoEstado, setFiltroCreditoEstado] = useState("todos")
+
   const reproducirBeep = useCallback(() => {
     try {
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
@@ -370,7 +394,7 @@ export default function AdminPage() {
       productosQuery.eq("proveedor", adminActual.nombre)
     }
 
-    const [usuariosResult, productosResult, pedidosResult, logsResult, configResult, comprobantesResult, cuentasResult] = await Promise.all([
+    const [usuariosResult, productosResult, pedidosResult, logsResult, configResult, comprobantesResult, cuentasResult, creditosResult] = await Promise.all([
       esProveedorActual && adminActual?.id ? usuariosQuery.eq("id", adminActual.id) : usuariosQuery,
       productosQuery,
       pedidosQuery,
@@ -378,6 +402,7 @@ export default function AdminPage() {
       supabase.from("configuracion_tienda").select("*").order("created_at", { ascending: false }).limit(1),
       supabase.from("comprobantes").select("*").order("created_at", { ascending: false }).limit(80),
       supabase.from("cuentas").select("*").order("created_at", { ascending: false }).limit(300),
+      supabase.from("creditos").select("*").order("created_at", { ascending: false }).limit(300),
     ])
 
     if (usuariosResult.data) setUsuarios(usuariosResult.data as Usuario[])
@@ -399,6 +424,14 @@ export default function AdminPage() {
     } else {
       setCuentasDisponibles(true)
       setCuentas((cuentasResult.data || []) as CuentaInventario[])
+    }
+
+    if (creditosResult.error) {
+      setCreditosDisponibles(false)
+      setCreditos([])
+    } else {
+      setCreditosDisponibles(true)
+      setCreditos((creditosResult.data || []) as Credito[])
     }
 
     if (configResult.data && configResult.data.length > 0) {
@@ -1259,6 +1292,148 @@ export default function AdminPage() {
     await cargarDatos()
   }
 
+
+  const limpiarFormularioCredito = () => {
+    setFormCredito(creditoInicial)
+    setEditandoCreditoId(null)
+  }
+
+  const handleCreditoChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormCredito((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const guardarCredito = async (e: FormEvent) => {
+    e.preventDefault()
+
+    if (!formCredito.usuario_id) {
+      toast.error("Selecciona un usuario")
+      return
+    }
+
+    const saldo = Number(formCredito.saldo)
+
+    if (!Number.isFinite(saldo) || saldo < 0) {
+      toast.error("Ingresa un saldo válido")
+      return
+    }
+
+    setGuardandoCredito(true)
+
+    const usuarioSeleccionado = usuarios.find((item) => item.id === formCredito.usuario_id)
+    const payload = {
+      usuario_id: formCredito.usuario_id,
+      saldo,
+      estado: formCredito.estado || "activo",
+    }
+
+    if (editandoCreditoId) {
+      const { error } = await supabase.from("creditos").update(payload).eq("id", editandoCreditoId)
+
+      if (error) {
+        toast.error(error.message || "No se pudo actualizar el crédito")
+        setGuardandoCredito(false)
+        return
+      }
+
+      await registrarLog("actualizar", "creditos", editandoCreditoId, `${usuarioSeleccionado?.correo || "Usuario"} · saldo ${formatearSoles(saldo)}`)
+      toast.success("Crédito actualizado")
+    } else {
+      const creditoActivoExistente = creditos.find(
+        (credito) => credito.usuario_id === formCredito.usuario_id && normalizarTexto(credito.estado) === "activo"
+      )
+
+      if (creditoActivoExistente) {
+        const { error } = await supabase.from("creditos").update(payload).eq("id", creditoActivoExistente.id)
+
+        if (error) {
+          toast.error(error.message || "No se pudo actualizar el crédito existente")
+          setGuardandoCredito(false)
+          return
+        }
+
+        await registrarLog("actualizar_saldo", "creditos", creditoActivoExistente.id, `${usuarioSeleccionado?.correo || "Usuario"} · saldo ${formatearSoles(saldo)}`)
+        toast.success("Saldo actualizado para el usuario")
+      } else {
+        const { data, error } = await supabase.from("creditos").insert([payload]).select("id")
+
+        if (error) {
+          toast.error(error.message || "No se pudo crear el crédito")
+          setGuardandoCredito(false)
+          return
+        }
+
+        await registrarLog("crear", "creditos", data?.[0]?.id, `${usuarioSeleccionado?.correo || "Usuario"} · saldo ${formatearSoles(saldo)}`)
+        toast.success("Crédito asignado")
+      }
+    }
+
+    limpiarFormularioCredito()
+    setGuardandoCredito(false)
+    await cargarDatos()
+  }
+
+  const editarCredito = (credito: Credito) => {
+    setEditandoCreditoId(credito.id)
+    setFormCredito({
+      usuario_id: credito.usuario_id || "",
+      saldo: String(credito.saldo ?? ""),
+      estado: credito.estado || "activo",
+    })
+    setTabActiva("creditos")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const ajustarCredito = async (credito: Credito, monto: number) => {
+    const saldoActual = Number(credito.saldo || 0)
+    const nuevoSaldo = Math.max(0, saldoActual + monto)
+
+    const { error } = await supabase
+      .from("creditos")
+      .update({ saldo: nuevoSaldo, estado: "activo" })
+      .eq("id", credito.id)
+
+    if (error) {
+      toast.error(error.message || "No se pudo ajustar el saldo")
+      return
+    }
+
+    const usuarioCredito = usuarios.find((item) => item.id === credito.usuario_id)
+    await registrarLog("ajustar_saldo", "creditos", credito.id, `${usuarioCredito?.correo || "Usuario"}: ${monto > 0 ? "+" : ""}${formatearSoles(monto)} · saldo final ${formatearSoles(nuevoSaldo)}`)
+    toast.success(`Saldo actualizado: ${formatearSoles(nuevoSaldo)}`)
+    await cargarDatos()
+  }
+
+  const actualizarEstadoCredito = async (credito: Credito, estado: string) => {
+    const { error } = await supabase.from("creditos").update({ estado }).eq("id", credito.id)
+
+    if (error) {
+      toast.error(error.message || "No se pudo cambiar el estado del crédito")
+      return
+    }
+
+    await registrarLog("actualizar_estado", "creditos", credito.id, `Estado: ${estado}`)
+    toast.success(`Crédito marcado como ${estado}`)
+    await cargarDatos()
+  }
+
+  const eliminarCredito = async (credito: Credito) => {
+    const usuarioCredito = usuarios.find((item) => item.id === credito.usuario_id)
+    const confirmar = confirm(`¿Eliminar el crédito de ${usuarioCredito?.correo || "este usuario"}? Esta acción no se puede deshacer.`)
+    if (!confirmar) return
+
+    const { error } = await supabase.from("creditos").delete().eq("id", credito.id)
+
+    if (error) {
+      toast.error(error.message || "No se pudo eliminar el crédito")
+      return
+    }
+
+    await registrarLog("eliminar", "creditos", credito.id, usuarioCredito?.correo || credito.usuario_id)
+    toast.success("Crédito eliminado")
+    await cargarDatos()
+  }
+
   const handleConfigChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormConfig((prev) => ({ ...prev, [name]: value }))
@@ -1436,6 +1611,28 @@ export default function AdminPage() {
   const cuentasAsignadasTotal = cuentas.filter((cuenta) => cuenta.estado === "asignada").length
   const cuentasVencidasTotal = cuentas.filter((cuenta) => cuenta.estado === "vencida").length
   const cuentasBloqueadasTotal = cuentas.filter((cuenta) => cuenta.estado === "bloqueada" || cuenta.estado === "mantenimiento").length
+
+  const creditosFiltrados: Credito[] = useMemo(() => {
+    const query = normalizarTexto(busquedaCredito)
+
+    return creditos.filter((credito) => {
+      const usuarioCredito = usuarios.find((item) => item.id === credito.usuario_id)
+      const texto = normalizarTexto(`${usuarioCredito?.nombre} ${usuarioCredito?.correo} ${usuarioCredito?.rol} ${credito.estado} ${credito.saldo}`)
+      const coincideBusqueda = !query || texto.includes(query)
+      const coincideEstado = filtroCreditoEstado === "todos" || normalizarTexto(credito.estado) === filtroCreditoEstado
+
+      return coincideBusqueda && coincideEstado
+    })
+  }, [creditos, usuarios, busquedaCredito, filtroCreditoEstado])
+
+  const creditosActivosTotal = creditos.filter((credito) => normalizarTexto(credito.estado) === "activo").length
+  const totalSaldoCreditos = creditos
+    .filter((credito) => normalizarTexto(credito.estado) === "activo")
+    .reduce((acc, credito) => acc + Number(credito.saldo || 0), 0)
+  const creditosSinSaldoTotal = creditos.filter((credito) => Number(credito.saldo || 0) <= 0).length
+  const usuariosConCreditoIds = new Set(creditos.filter((credito) => normalizarTexto(credito.estado) === "activo").map((credito) => credito.usuario_id))
+  const usuariosClientesAprobados = usuarios.filter((item) => item.rol === "cliente" && (item.estado === "aprobado" || item.estado === "activo"))
+  const usuariosSinCreditoTotal = usuariosClientesAprobados.filter((item) => !usuariosConCreditoIds.has(item.id)).length
 
   const pedidosFiltrados: Pedido[] = useMemo(() => {
     return [...pedidos]
@@ -1619,6 +1816,8 @@ export default function AdminPage() {
                       ? cuentas.filter((cuenta) => cuenta.estado === "disponible").length
                       : tab.id === "inventario"
                       ? productosCriticos.length
+                      : tab.id === "creditos"
+                      ? creditos.filter((credito) => normalizarTexto(credito.estado) === "activo").length
                       : 0
 
                   return (
@@ -3186,11 +3385,175 @@ export default function AdminPage() {
         )}
 
         {tabActiva === "creditos" && (
-          <PlaceholderPanel
-            title="Créditos"
-            text="Zona preparada para saldos, créditos de proveedores, historial y control financiero. El diseño queda listo para conectar una tabla de créditos después."
-            buttonText="Preparado"
-          />
+          <div className={styles.sectionStack}>
+            <section className={styles.creditosHeroPro}>
+              <div className={styles.creditosHeroCopy}>
+                <span className={styles.proTag}>CRÉDITOS AUTOMÁTICOS</span>
+                <h3>Saldo de clientes y compras con créditos</h3>
+                <p>
+                  Asigna saldo a clientes, activa o suspende créditos y controla quién puede comprar
+                  automáticamente sin revisar comprobante. Al comprar con créditos, el sistema descuenta saldo,
+                  crea el pedido completado y entrega una cuenta disponible.
+                </p>
+                <div className={styles.dashboardHeroActions}>
+                  <button type="button" onClick={() => { setFiltroCreditoEstado("activo"); setBusquedaCredito("") }} className={styles.primaryButton}>Ver activos</button>
+                  <button type="button" onClick={() => { limpiarFormularioCredito(); window.scrollTo({ top: 0, behavior: "smooth" }) }} className={styles.secondaryButton}>Nuevo saldo</button>
+                  <button type="button" onClick={() => cargarDatos()} className={styles.secondaryButton}>Actualizar</button>
+                </div>
+              </div>
+
+              <aside className={styles.creditosHeroPanel}>
+                <p>Saldo activo</p>
+                <strong>{formatearSoles(totalSaldoCreditos)}</strong>
+                <span>{creditosActivosTotal} crédito(s) activo(s) · {usuariosSinCreditoTotal} cliente(s) sin saldo</span>
+                <div className={styles.moneySplitGrid}>
+                  <div>
+                    <small>Registros</small>
+                    <b>{creditos.length}</b>
+                  </div>
+                  <div>
+                    <small>Sin saldo</small>
+                    <b>{creditosSinSaldoTotal}</b>
+                  </div>
+                </div>
+              </aside>
+            </section>
+
+            {!creditosDisponibles && (
+              <div className={styles.noticeBox}>
+                No se pudo leer la tabla <strong>creditos</strong>. Revisa las políticas RLS o permisos de Supabase para que el admin pueda gestionar saldos.
+              </div>
+            )}
+
+            <div className={styles.metricsGridPro}>
+              <MetricCard title="Saldo activo" value={formatearSoles(totalSaldoCreditos)} detail="Disponible para compras" tone="success" />
+              <MetricCard title="Créditos activos" value={creditosActivosTotal} detail="Usuarios con saldo activo" tone="info" />
+              <MetricCard title="Clientes sin saldo" value={usuariosSinCreditoTotal} detail="Aprobados sin crédito" tone="warning" />
+              <MetricCard title="Sin saldo" value={creditosSinSaldoTotal} detail="Registros en cero" tone="danger" />
+            </div>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Asignación</p>
+                  <h3>{editandoCreditoId ? "Editar crédito" : "Asignar crédito"}</h3>
+                  <span className={styles.panelHint}>Selecciona un cliente y define el saldo que podrá usar para comprar con entrega automática.</span>
+                </div>
+                {editandoCreditoId && <span className={styles.editBadge}>Modo edición</span>}
+              </div>
+
+              <form onSubmit={guardarCredito} className={styles.formGrid}>
+                <select name="usuario_id" value={formCredito.usuario_id} onChange={handleCreditoChange} className={styles.input}>
+                  <option value="">Selecciona cliente</option>
+                  {usuarios
+                    .filter((item) => item.rol !== "admin" && (item.estado === "aprobado" || item.estado === "activo"))
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>{item.nombre} · {item.correo} · {item.rol}</option>
+                    ))}
+                </select>
+
+                <input
+                  name="saldo"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Saldo en soles"
+                  value={formCredito.saldo}
+                  onChange={handleCreditoChange}
+                  className={styles.input}
+                />
+
+                <select name="estado" value={formCredito.estado} onChange={handleCreditoChange} className={styles.input}>
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                  <option value="suspendido">Suspendido</option>
+                </select>
+
+                <div className={styles.formActions}>
+                  <button type="submit" disabled={guardandoCredito} className={styles.primaryButton}>
+                    {guardandoCredito ? "Guardando..." : editandoCreditoId ? "Actualizar crédito" : "Asignar crédito"}
+                  </button>
+                  {editandoCreditoId && (
+                    <button type="button" onClick={limpiarFormularioCredito} className={styles.secondaryButton}>Cancelar edición</button>
+                  )}
+                </div>
+              </form>
+            </article>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Control financiero</p>
+                  <h3>Créditos registrados</h3>
+                  <span className={styles.panelHint}>Busca por cliente, correo, rol, estado o saldo. Usa ajustes rápidos para sumar o reducir crédito.</span>
+                </div>
+                <span className={styles.countBadge}>{creditosFiltrados.length} crédito(s)</span>
+              </div>
+
+              <div className={styles.filtersGridCompact}>
+                <input
+                  type="text"
+                  placeholder="Buscar cliente, correo, rol o saldo..."
+                  value={busquedaCredito}
+                  onChange={(e) => setBusquedaCredito(e.target.value)}
+                  className={styles.input}
+                />
+                <select value={filtroCreditoEstado} onChange={(e) => setFiltroCreditoEstado(e.target.value)} className={styles.input}>
+                  {estadosCredito.map((estado) => (
+                    <option key={estado} value={estado}>{estado === "todos" ? "Todos los estados" : estado}</option>
+                  ))}
+                </select>
+              </div>
+
+              {creditosFiltrados.length === 0 ? (
+                <EmptyState title="Sin créditos" text="Aún no hay saldos registrados o no coinciden con los filtros." />
+              ) : (
+                <div className={styles.creditosGridPro}>
+                  {creditosFiltrados.map((credito) => {
+                    const usuarioCredito = usuarios.find((item) => item.id === credito.usuario_id)
+                    const saldo = Number(credito.saldo || 0)
+                    const estaActivo = normalizarTexto(credito.estado) === "activo"
+
+                    return (
+                      <article key={credito.id} className={`${styles.creditoCardPro} ${!estaActivo ? styles.creditoCardPaused : saldo <= 0 ? styles.creditoCardDanger : ""}`}>
+                        <div className={styles.creditoCardTop}>
+                          <div>
+                            <span className={styles.inventoryLabel}>{usuarioCredito?.rol || "usuario"}</span>
+                            <h4>{usuarioCredito?.nombre || "Usuario no encontrado"}</h4>
+                            <p>{usuarioCredito?.correo || credito.usuario_id}</p>
+                          </div>
+                          <StatusBadge estado={credito.estado || "activo"} />
+                        </div>
+
+                        <div className={styles.creditoAmountBox}>
+                          <span>Saldo disponible</span>
+                          <strong>{formatearSoles(saldo)}</strong>
+                          <small>{credito.created_at ? `Creado ${fechaLegible(credito.created_at)}` : "Sin fecha registrada"}</small>
+                        </div>
+
+                        <div className={styles.creditoQuickGrid}>
+                          <button type="button" onClick={() => ajustarCredito(credito, -10)} className={styles.dangerGhostButton}>-10</button>
+                          <button type="button" onClick={() => ajustarCredito(credito, 10)} className={styles.secondaryButton}>+10</button>
+                          <button type="button" onClick={() => ajustarCredito(credito, 50)} className={styles.secondaryButton}>+50</button>
+                          <button type="button" onClick={() => ajustarCredito(credito, 100)} className={styles.successButton}>+100</button>
+                        </div>
+
+                        <div className={styles.cardActions}>
+                          <button type="button" onClick={() => editarCredito(credito)} className={styles.primaryButton}>Editar</button>
+                          {estaActivo ? (
+                            <button type="button" onClick={() => actualizarEstadoCredito(credito, "suspendido")} className={styles.dangerButton}>Suspender</button>
+                          ) : (
+                            <button type="button" onClick={() => actualizarEstadoCredito(credito, "activo")} className={styles.successButton}>Activar</button>
+                          )}
+                          <button type="button" onClick={() => eliminarCredito(credito)} className={styles.dangerGhostButton}>Eliminar</button>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              )}
+            </article>
+          </div>
         )}
 
         {tabActiva === "historial" && (
