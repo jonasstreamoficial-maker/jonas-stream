@@ -74,17 +74,17 @@ function normalizeType(value?: string | null) {
 }
 
 function normalizeStatus(producto: Producto): ProductStatus {
-  const explicit = (producto.estado_catalogo || "").toUpperCase();
-
-  if (explicit === "ACTIVO" || explicit === "LIMITADO" || explicit === "AGOTADO") {
-    return explicit;
-  }
-
-  if ((producto.estado || "").toLowerCase() === "inactivo") return "AGOTADO";
-
   const stock = Number(producto.stock || 0);
 
   if (stock <= 0) return "AGOTADO";
+  if ((producto.estado || "").toLowerCase() === "inactivo") return "AGOTADO";
+
+  const explicit = (producto.estado_catalogo || "").toUpperCase();
+
+  if (explicit === "ACTIVO" || explicit === "LIMITADO") {
+    return explicit;
+  }
+
   if (stock <= 3) return "LIMITADO";
 
   return "ACTIVO";
@@ -100,6 +100,29 @@ function getStockClass(status: ProductStatus) {
   if (status === "ACTIVO") return styles.stockActive;
   if (status === "LIMITADO") return styles.stockLimited;
   return styles.stockSoldOut;
+}
+
+function stockDisponible(producto: Producto) {
+  return Number(producto.stock || 0) > 0;
+}
+
+function getStockAvailabilityClass(producto: Producto) {
+  return stockDisponible(producto) ? styles.stockAvailable : styles.stockUnavailable;
+}
+
+function getStatusAvailabilityClass(producto: Producto) {
+  return stockDisponible(producto) ? styles.statusAvailable : styles.statusUnavailable;
+}
+
+function getAvailabilityLabel(producto: Producto) {
+  return stockDisponible(producto) ? "DISPONIBLE" : "AGOTADO";
+}
+
+function getAvailabilityText(producto: Producto) {
+  const stock = Number(producto.stock || 0);
+  if (stock <= 0) return "0 disponibles";
+  if (stock === 1) return "1 disponible";
+  return `${stock} disponibles`;
 }
 
 function getTypeClass(type: string) {
@@ -615,7 +638,7 @@ export default function TiendaPage() {
                         {producto.descripcion || "Producto digital disponible"}
                       </p>
 
-                      <div className={`${styles.stockBar} ${getStockClass(status)}`}>
+                      <div className={`${styles.stockBar} ${getStockAvailabilityClass(producto)}`}>
                         <span>Stock</span>
                         <strong>{Number(producto.stock || 0)}</strong>
                       </div>
@@ -643,17 +666,12 @@ export default function TiendaPage() {
                       </div>
 
                       <div className={styles.statusRow}>
-                        <span className={`${styles.statusBadge} ${getStatusClass(status)}`}>
-                          {status}
+                        <span className={`${styles.statusBadge} ${getStatusAvailabilityClass(producto)}`}>
+                          {getAvailabilityLabel(producto)}
                         </span>
 
                         <span className={styles.stockText}>
-                          {producto.stock_texto ||
-                            (status === "LIMITADO"
-                              ? "Stock disponible"
-                              : status === "AGOTADO"
-                              ? "Consultar reposición"
-                              : "Stock disponible")}
+                          {producto.stock_texto || getAvailabilityText(producto)}
                         </span>
                       </div>
 
@@ -674,9 +692,10 @@ export default function TiendaPage() {
                         <button
                           type="button"
                           onClick={() => comprarProducto(producto)}
-                          className={styles.buyButton}
+                          className={`${styles.buyButton} ${status === "AGOTADO" ? styles.buyButtonDisabled : ""}`}
+                          disabled={status === "AGOTADO"}
                         >
-                          Comprar
+                          {status === "AGOTADO" ? "Agotado" : "Comprar"}
                         </button>
                       </div>
                     </div>
