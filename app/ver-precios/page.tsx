@@ -61,10 +61,8 @@ function normalizePlatformName(value?: string | null) {
     .trim();
 }
 
-function getPlatformColor(product: Product) {
-  const searchable = normalizePlatformName(
-    `${product.name} ${product.category} ${product.subtitle} ${product.provider} ${product.accent}`
-  );
+function findPlatformColorFromText(value?: string | null) {
+  const searchable = normalizePlatformName(value);
 
   for (const [platform, color] of Object.entries(PLATFORM_COLORS)) {
     if (searchable.includes(normalizePlatformName(platform))) {
@@ -72,7 +70,18 @@ function getPlatformColor(product: Product) {
     }
   }
 
-  return "#01E7EF";
+  return null;
+}
+
+function getPlatformColor(product: Product) {
+  return (
+    findPlatformColorFromText(product.name) ||
+    findPlatformColorFromText(product.subtitle) ||
+    findPlatformColorFromText(product.category) ||
+    findPlatformColorFromText(product.provider) ||
+    findPlatformColorFromText(product.accent) ||
+    "#01E7EF"
+  );
 }
 
 type ProductStatus = "ACTIVO" | "LIMITADO" | "AGOTADO";
@@ -224,7 +233,7 @@ function normalizeProduct(product: ProductoDB): Product {
     badge:
       product.badge ||
       (product.oferta ? "Oferta" : product.destacado ? "Destacado" : status === "LIMITADO" ? "Limitado" : "Disponible"),
-    accent: normalizeAccent(product.accent || product.nombre || product.categoria),
+    accent: normalizeAccent(product.nombre || product.descripcion || product.categoria || product.accent),
     image: product.imagen || null,
     featured: Boolean(product.destacado),
     offer: Boolean(product.oferta),
@@ -458,7 +467,7 @@ export default function VerPreciosPage() {
               return (
                 <article
                   key={product.id}
-                  className={`${styles.storePreviewCard} ${styles[`accent_${product.accent}`] || ""}`}
+                  className={styles.storePreviewCard}
                   style={{ "--platform-color": getPlatformColor(product) } as PlatformStyle}
                 >
                   <div className={styles.previewBadgeRow}>
