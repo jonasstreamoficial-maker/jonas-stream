@@ -79,6 +79,29 @@ type Comprobante = {
   created_at?: string | null
 }
 
+
+
+type CuentaInventario = {
+  id: string
+  producto_id?: string | null
+  producto_nombre?: string | null
+  correo: string
+  clave: string
+  perfil?: string | null
+  pin_perfil?: string | null
+  pin_acceso?: string | null
+  estado: string
+  cliente_id?: string | null
+  cliente_nombre?: string | null
+  cliente_correo?: string | null
+  pedido_id?: string | null
+  cliente_inicio?: string | null
+  cliente_fin?: string | null
+  observacion_admin?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
 type AdminLog = {
   id: string
   accion: string
@@ -127,6 +150,19 @@ const productoInicial = {
   accent: "prime",
 }
 
+
+const cuentaInicial = {
+  producto_id: "",
+  producto_nombre: "",
+  correo: "",
+  clave: "",
+  perfil: "",
+  pin_perfil: "",
+  pin_acceso: "",
+  estado: "disponible",
+  observacion_admin: "",
+}
+
 const configuracionInicial = {
   nombre_tienda: "",
   slogan: "",
@@ -142,6 +178,7 @@ const tabs = [
   { id: "pedidos", label: "Pedidos", icon: "◉" },
   { id: "usuarios", label: "Usuarios", icon: "◎" },
   { id: "comprobantes", label: "Comprobantes", icon: "▤" },
+  { id: "cuentas", label: "Cuentas", icon: "▧" },
   { id: "inventario", label: "Inventario", icon: "▦" },
   { id: "creditos", label: "Créditos", icon: "✦" },
   { id: "historial", label: "Historial", icon: "◷" },
@@ -153,7 +190,7 @@ type TabId = (typeof tabs)[number]["id"]
 
 const navGroups: { title: string; items: TabId[] }[] = [
   { title: "Inicio", items: ["dashboard"] },
-  { title: "Operación", items: ["pedidos", "comprobantes", "inventario"] },
+  { title: "Operación", items: ["pedidos", "comprobantes", "cuentas", "inventario"] },
   { title: "Gestión", items: ["productos", "usuarios", "creditos"] },
   { title: "Sistema", items: ["historial", "configuracion"] },
 ]
@@ -194,6 +231,7 @@ export default function AdminPage() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [comprobantes, setComprobantes] = useState<Comprobante[]>([])
+  const [cuentas, setCuentas] = useState<CuentaInventario[]>([])
   const [logs, setLogs] = useState<AdminLog[]>([])
   const [cargando, setCargando] = useState(true)
   const [tabActiva, setTabActiva] = useState<TabId>("dashboard")
@@ -242,9 +280,16 @@ export default function AdminPage() {
   const [subiendoImagen, setSubiendoImagen] = useState(false)
   const [guardandoProducto, setGuardandoProducto] = useState(false)
   const [comprobantesDisponibles, setComprobantesDisponibles] = useState(true)
+  const [cuentasDisponibles, setCuentasDisponibles] = useState(true)
   const [sincronizandoInventario, setSincronizandoInventario] = useState(false)
   const [busquedaInventario, setBusquedaInventario] = useState("")
   const [filtroInventario, setFiltroInventario] = useState<"todos" | "critico" | "agotado" | "bajo" | "estable">("critico")
+
+  const [formCuenta, setFormCuenta] = useState(cuentaInicial)
+  const [editandoCuentaId, setEditandoCuentaId] = useState<string | null>(null)
+  const [guardandoCuenta, setGuardandoCuenta] = useState(false)
+  const [busquedaCuenta, setBusquedaCuenta] = useState("")
+  const [filtroCuentaEstado, setFiltroCuentaEstado] = useState("todos")
 
   const reproducirBeep = useCallback(() => {
     try {
@@ -300,13 +345,14 @@ export default function AdminPage() {
       productosQuery.eq("proveedor", adminActual.nombre)
     }
 
-    const [usuariosResult, productosResult, pedidosResult, logsResult, configResult, comprobantesResult] = await Promise.all([
+    const [usuariosResult, productosResult, pedidosResult, logsResult, configResult, comprobantesResult, cuentasResult] = await Promise.all([
       esProveedorActual && adminActual?.id ? usuariosQuery.eq("id", adminActual.id) : usuariosQuery,
       productosQuery,
       pedidosQuery,
       supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(80),
       supabase.from("configuracion_tienda").select("*").order("created_at", { ascending: false }).limit(1),
       supabase.from("comprobantes").select("*").order("created_at", { ascending: false }).limit(80),
+      supabase.from("cuentas").select("*").order("created_at", { ascending: false }).limit(300),
     ])
 
     if (usuariosResult.data) setUsuarios(usuariosResult.data as Usuario[])
@@ -320,6 +366,14 @@ export default function AdminPage() {
     } else {
       setComprobantesDisponibles(true)
       setComprobantes((comprobantesResult.data || []) as Comprobante[])
+    }
+
+    if (cuentasResult.error) {
+      setCuentasDisponibles(false)
+      setCuentas([])
+    } else {
+      setCuentasDisponibles(true)
+      setCuentas((cuentasResult.data || []) as CuentaInventario[])
     }
 
     if (configResult.data && configResult.data.length > 0) {
@@ -445,6 +499,10 @@ export default function AdminPage() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, () => {
         registrarEvento("Cambio detectado en productos")
+        cargarDatos()
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "cuentas" }, () => {
+        registrarEvento("Cambio detectado en inventario de cuentas")
         cargarDatos()
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios" }, () => {
@@ -962,6 +1020,125 @@ export default function AdminPage() {
     }
   }
 
+
+
+  const limpiarFormularioCuenta = () => {
+    setFormCuenta(cuentaInicial)
+    setEditandoCuentaId(null)
+  }
+
+  const handleCuentaChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+
+    if (name === "producto_id") {
+      const producto = productos.find((item) => item.id === value)
+      setFormCuenta((prev) => ({
+        ...prev,
+        producto_id: value,
+        producto_nombre: producto?.nombre || "",
+      }))
+      return
+    }
+
+    setFormCuenta((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const guardarCuenta = async (e: FormEvent) => {
+    e.preventDefault()
+
+    if (!formCuenta.producto_id) {
+      toast.error("Selecciona un producto")
+      return
+    }
+
+    if (!formCuenta.correo.trim() || !formCuenta.clave.trim()) {
+      toast.error("Completa correo y clave")
+      return
+    }
+
+    if (!formCuenta.pin_acceso.trim()) {
+      toast.error("Crea un PIN de acceso para consulta pública")
+      return
+    }
+
+    setGuardandoCuenta(true)
+
+    const producto = productos.find((item) => item.id === formCuenta.producto_id)
+    const payload = {
+      producto_id: formCuenta.producto_id,
+      producto_nombre: producto?.nombre || formCuenta.producto_nombre || null,
+      correo: formCuenta.correo.trim(),
+      clave: formCuenta.clave.trim(),
+      perfil: formCuenta.perfil.trim() || null,
+      pin_perfil: formCuenta.pin_perfil.trim() || null,
+      pin_acceso: formCuenta.pin_acceso.trim(),
+      estado: formCuenta.estado,
+      observacion_admin: formCuenta.observacion_admin.trim() || null,
+    }
+
+    const result = editandoCuentaId
+      ? await supabase.from("cuentas").update(payload).eq("id", editandoCuentaId)
+      : await supabase.from("cuentas").insert([payload]).select("id")
+
+    if (result.error) {
+      toast.error(result.error.message || "No se pudo guardar la cuenta")
+      setGuardandoCuenta(false)
+      return
+    }
+
+    await registrarLog(editandoCuentaId ? "actualizar" : "crear", "cuentas", editandoCuentaId || undefined, payload.producto_nombre || payload.correo)
+    toast.success(editandoCuentaId ? "Cuenta actualizada" : "Cuenta registrada")
+    limpiarFormularioCuenta()
+    setGuardandoCuenta(false)
+    await cargarDatos()
+  }
+
+  const editarCuenta = (cuenta: CuentaInventario) => {
+    setEditandoCuentaId(cuenta.id)
+    setFormCuenta({
+      producto_id: cuenta.producto_id || "",
+      producto_nombre: cuenta.producto_nombre || "",
+      correo: cuenta.correo || "",
+      clave: cuenta.clave || "",
+      perfil: cuenta.perfil || "",
+      pin_perfil: cuenta.pin_perfil || "",
+      pin_acceso: cuenta.pin_acceso || "",
+      estado: cuenta.estado || "disponible",
+      observacion_admin: cuenta.observacion_admin || "",
+    })
+    setTabActiva("cuentas")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const actualizarEstadoCuenta = async (cuenta: CuentaInventario, estado: string) => {
+    const { error } = await supabase.from("cuentas").update({ estado }).eq("id", cuenta.id)
+
+    if (error) {
+      toast.error("No se pudo actualizar la cuenta")
+      return
+    }
+
+    await registrarLog("actualizar_estado", "cuentas", cuenta.id, `Estado: ${estado}`)
+    toast.success(`Cuenta marcada como ${estado}`)
+    await cargarDatos()
+  }
+
+  const eliminarCuenta = async (cuenta: CuentaInventario) => {
+    const confirmar = confirm(`¿Eliminar la cuenta ${cuenta.correo}? Esta acción no se puede deshacer.`)
+    if (!confirmar) return
+
+    const { error } = await supabase.from("cuentas").delete().eq("id", cuenta.id)
+
+    if (error) {
+      toast.error("No se pudo eliminar la cuenta")
+      return
+    }
+
+    await registrarLog("eliminar", "cuentas", cuenta.id, cuenta.correo)
+    toast.success("Cuenta eliminada")
+    await cargarDatos()
+  }
+
   const handleConfigChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormConfig((prev) => ({ ...prev, [name]: value }))
@@ -1119,6 +1296,26 @@ export default function AdminPage() {
       })
       .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0))
   }, [productosInventario, busquedaInventario, filtroInventario])
+
+
+
+  const cuentasFiltradas: CuentaInventario[] = useMemo(() => {
+    const query = normalizarTexto(busquedaCuenta)
+
+    return cuentas.filter((cuenta) => {
+      const producto = productos.find((item) => item.id === cuenta.producto_id)
+      const texto = normalizarTexto(`${cuenta.correo} ${cuenta.producto_nombre} ${producto?.nombre} ${cuenta.perfil} ${cuenta.pin_acceso} ${cuenta.cliente_correo} ${cuenta.estado}`)
+      const coincideBusqueda = !query || texto.includes(query)
+      const coincideEstado = filtroCuentaEstado === "todos" || cuenta.estado === filtroCuentaEstado
+
+      return coincideBusqueda && coincideEstado
+    })
+  }, [cuentas, productos, busquedaCuenta, filtroCuentaEstado])
+
+  const cuentasDisponiblesTotal = cuentas.filter((cuenta) => cuenta.estado === "disponible").length
+  const cuentasAsignadasTotal = cuentas.filter((cuenta) => cuenta.estado === "asignada").length
+  const cuentasVencidasTotal = cuentas.filter((cuenta) => cuenta.estado === "vencida").length
+  const cuentasBloqueadasTotal = cuentas.filter((cuenta) => cuenta.estado === "bloqueada" || cuenta.estado === "mantenimiento").length
 
   const pedidosFiltrados: Pedido[] = useMemo(() => {
     return [...pedidos]
@@ -1298,6 +1495,8 @@ export default function AdminPage() {
                       ? pedidosPendientes
                       : tab.id === "usuarios"
                       ? usuariosPendientes
+                      : tab.id === "cuentas"
+                      ? cuentas.filter((cuenta) => cuenta.estado === "disponible").length
                       : tab.id === "inventario"
                       ? productosCriticos.length
                       : 0
@@ -1318,21 +1517,6 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
-          {usuario?.rol === "admin" && (
-            <div className={styles.navGroup}>
-              <p className={styles.navGroupTitle}>Web</p>
-              <div className={styles.navGroupItems}>
-                <button
-                  type="button"
-                  onClick={() => router.push("/admin/editor-web")}
-                  className={`${styles.navButton} ${styles.editorWebNavButton}`}
-                >
-                  <span className={styles.navIcon}>✎</span>
-                  <strong>Editor Web</strong>
-                </button>
-              </div>
-            </div>
-          )}
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -1390,15 +1574,6 @@ export default function AdminPage() {
               )}
             </div>
 
-            {usuario?.rol === "admin" && (
-              <button
-                type="button"
-                onClick={() => router.push("/admin/editor-web")}
-                className={styles.editorWebQuickButton}
-              >
-                Editor Web
-              </button>
-            )}
             <button type="button" onClick={() => cargarDatos()} className={styles.refreshButton}>Actualizar</button>
             {ultimaActualizacion && <div className={styles.topbarPill}>Sync {ultimaActualizacion}</div>}
             <div className={styles.topbarPill}>
@@ -2581,6 +2756,188 @@ export default function AdminPage() {
                   )}
                 </>
               )}
+            </article>
+          </div>
+        )}
+
+
+        {tabActiva === "cuentas" && (
+          <div className={styles.sectionStack}>
+            <section className={styles.accountsHeroPro}>
+              <div>
+                <span className={styles.proTag}>Inventario de accesos</span>
+                <h3>Cuentas registradas</h3>
+                <p>
+                  Registra correos, claves, perfiles y PIN de consulta. Las fechas de inicio y vencimiento se llenarán después,
+                  cuando una cuenta sea asignada a un pedido aprobado o a una compra con créditos.
+                </p>
+              </div>
+
+              <div className={styles.accountsHeroStats}>
+                <button type="button" onClick={() => setFiltroCuentaEstado("disponible")}>
+                  <strong>{cuentasDisponiblesTotal}</strong>
+                  <span>Disponibles</span>
+                </button>
+                <button type="button" onClick={() => setFiltroCuentaEstado("asignada")}>
+                  <strong>{cuentasAsignadasTotal}</strong>
+                  <span>Asignadas</span>
+                </button>
+                <button type="button" onClick={() => setFiltroCuentaEstado("vencida")}>
+                  <strong>{cuentasVencidasTotal}</strong>
+                  <span>Vencidas</span>
+                </button>
+                <button type="button" onClick={() => setFiltroCuentaEstado("bloqueada")}>
+                  <strong>{cuentasBloqueadasTotal}</strong>
+                  <span>Bloqueadas</span>
+                </button>
+              </div>
+            </section>
+
+            {!cuentasDisponibles && (
+              <div className={styles.noticeBox}>
+                La tabla <strong>cuentas</strong> todavía no existe o no tiene permisos. Primero ejecuta el SQL incluido en este ZIP:
+                <strong> supabase/sql/crear-tabla-cuentas.sql</strong>.
+              </div>
+            )}
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Registro</p>
+                  <h3>{editandoCuentaId ? "Editar cuenta" : "Registrar cuenta"}</h3>
+                  <span className={styles.panelHint}>Aquí solo cargas la cuenta. La fecha se calculará cuando se entregue al cliente.</span>
+                </div>
+                {editandoCuentaId && <span className={styles.editBadge}>Modo edición</span>}
+              </div>
+
+              <form onSubmit={guardarCuenta} className={styles.accountsFormGrid}>
+                <select name="producto_id" value={formCuenta.producto_id} onChange={handleCuentaChange} className={styles.input}>
+                  <option value="">Selecciona producto</option>
+                  {productos.map((producto) => (
+                    <option key={producto.id} value={producto.id}>
+                      {producto.nombre} · {producto.tipo_venta || "Sin tipo"}
+                    </option>
+                  ))}
+                </select>
+
+                <select name="estado" value={formCuenta.estado} onChange={handleCuentaChange} className={styles.input}>
+                  <option value="disponible">Disponible</option>
+                  <option value="asignada">Asignada</option>
+                  <option value="mantenimiento">Mantenimiento</option>
+                  <option value="bloqueada">Bloqueada</option>
+                  <option value="vencida">Vencida</option>
+                </select>
+
+                <input name="correo" placeholder="Correo de la cuenta" value={formCuenta.correo} onChange={handleCuentaChange} className={styles.input} />
+                <input name="clave" placeholder="Clave de la cuenta" value={formCuenta.clave} onChange={handleCuentaChange} className={styles.input} />
+                <input name="perfil" placeholder="Perfil / usuario interno" value={formCuenta.perfil} onChange={handleCuentaChange} className={styles.input} />
+                <input name="pin_perfil" placeholder="PIN del perfil" value={formCuenta.pin_perfil} onChange={handleCuentaChange} className={styles.input} />
+                <input name="pin_acceso" placeholder="PIN de consulta pública" value={formCuenta.pin_acceso} onChange={handleCuentaChange} className={styles.input} />
+                <textarea name="observacion_admin" placeholder="Observación interna" value={formCuenta.observacion_admin} onChange={handleCuentaChange} className={`${styles.input} ${styles.textarea}`} />
+
+                <div className={styles.formActions}>
+                  <button type="submit" disabled={guardandoCuenta} className={styles.primaryButton}>
+                    {guardandoCuenta ? "Guardando..." : editandoCuentaId ? "Actualizar cuenta" : "Registrar cuenta"}
+                  </button>
+                  {editandoCuentaId && (
+                    <button type="button" onClick={limpiarFormularioCuenta} className={styles.secondaryButton}>
+                      Cancelar edición
+                    </button>
+                  )}
+                </div>
+              </form>
+            </article>
+
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.kicker}>Inventario</p>
+                  <h3>Lista de cuentas</h3>
+                  <span className={styles.panelHint}>Controla disponibles, asignadas, vencidas, bloqueadas y mantenimiento.</span>
+                </div>
+                <span className={styles.countBadge}>{cuentasFiltradas.length} cuentas</span>
+              </div>
+
+              <div className={styles.accountsToolbarPro}>
+                <input
+                  type="text"
+                  placeholder="Buscar por correo, producto, perfil, cliente o PIN..."
+                  value={busquedaCuenta}
+                  onChange={(e) => setBusquedaCuenta(e.target.value)}
+                  className={styles.input}
+                />
+                <div className={styles.toggleGroup}>
+                  <button type="button" onClick={() => setFiltroCuentaEstado("todos")} className={filtroCuentaEstado === "todos" ? styles.toggleActive : ""}>Todo</button>
+                  <button type="button" onClick={() => setFiltroCuentaEstado("disponible")} className={filtroCuentaEstado === "disponible" ? styles.toggleActive : ""}>Disponible</button>
+                  <button type="button" onClick={() => setFiltroCuentaEstado("asignada")} className={filtroCuentaEstado === "asignada" ? styles.toggleActive : ""}>Asignada</button>
+                  <button type="button" onClick={() => setFiltroCuentaEstado("vencida")} className={filtroCuentaEstado === "vencida" ? styles.toggleActive : ""}>Vencida</button>
+                </div>
+              </div>
+
+              <div className={styles.accountsGridPro}>
+                {cuentasFiltradas.length === 0 ? (
+                  <EmptyState title="Sin cuentas" text="Registra cuentas disponibles para que luego puedan asignarse a pedidos." />
+                ) : cuentasFiltradas.map((cuenta) => {
+                  const producto = productos.find((item) => item.id === cuenta.producto_id)
+                  const estado = normalizarTexto(cuenta.estado)
+                  const esDisponible = estado === "disponible"
+                  const esAsignada = estado === "asignada"
+                  const esProblema = estado === "bloqueada" || estado === "mantenimiento" || estado === "vencida"
+
+                  return (
+                    <article key={cuenta.id} className={`${styles.accountCardPro} ${esDisponible ? styles.accountCardAvailable : esAsignada ? styles.accountCardAssigned : esProblema ? styles.accountCardDanger : ""}`}>
+                      <div className={styles.accountCardTop}>
+                        <div>
+                          <span className={styles.inventoryLabel}>{producto?.nombre || cuenta.producto_nombre || "Producto sin vincular"}</span>
+                          <h4>{cuenta.correo}</h4>
+                          <p>{cuenta.perfil || "Sin perfil"} · PIN perfil: {cuenta.pin_perfil || "-"}</p>
+                        </div>
+                        <StatusBadge estado={cuenta.estado || "disponible"} />
+                      </div>
+
+                      <div className={styles.accountSecretGrid}>
+                        <div>
+                          <span>Clave</span>
+                          <strong>{cuenta.clave}</strong>
+                        </div>
+                        <div>
+                          <span>PIN consulta</span>
+                          <strong>{cuenta.pin_acceso || "-"}</strong>
+                        </div>
+                      </div>
+
+                      <div className={styles.accountMetaGrid}>
+                        <div>
+                          <span>Cliente</span>
+                          <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
+                        </div>
+                        <div>
+                          <span>Inicio</span>
+                          <strong>{fechaLegible(cuenta.cliente_inicio)}</strong>
+                        </div>
+                        <div>
+                          <span>Fin</span>
+                          <strong>{fechaLegible(cuenta.cliente_fin)}</strong>
+                        </div>
+                        <div>
+                          <span>Pedido</span>
+                          <strong>{cuenta.pedido_id ? `#${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</strong>
+                        </div>
+                      </div>
+
+                      {cuenta.observacion_admin && <p className={styles.accountNote}>{cuenta.observacion_admin}</p>}
+
+                      <div className={styles.inventoryQuickActions}>
+                        <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
+                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Disponible</button>
+                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mantenimiento</button>
+                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloquear</button>
+                        <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
             </article>
           </div>
         )}

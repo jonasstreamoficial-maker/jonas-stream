@@ -4446,46 +4446,253 @@
   }
 }
 
-/* Acceso directo al Editor Web */
-.editorWebNavButton {
-  border-color: rgba(0, 251, 255, 0.36) !important;
+
+/* ==========================================================
+   INVENTARIO DE CUENTAS - JONAS STREAM
+   Registro de accesos reales para entrega posterior.
+   ========================================================== */
+.accountsHeroPro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(460px, 0.9fr);
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  border-radius: 30px;
   background:
-    radial-gradient(circle at 0% 50%, rgba(0, 251, 255, 0.18), transparent 34%),
-    linear-gradient(135deg, rgba(1, 231, 239, 0.14), rgba(3, 19, 22, 0.68)) !important;
-  box-shadow: 0 0 25px rgba(1, 231, 239, 0.12), inset 0 0 24px rgba(0, 251, 255, 0.045);
+    radial-gradient(circle at 10% 15%, rgba(0, 251, 255, 0.16), transparent 30%),
+    radial-gradient(circle at 94% 14%, rgba(124, 255, 178, 0.11), transparent 28%),
+    linear-gradient(135deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.66));
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.14), inset 0 0 46px rgba(0, 251, 255, 0.045);
 }
 
-.editorWebNavButton:hover {
-  border-color: rgba(0, 251, 255, 0.62) !important;
-  background:
-    radial-gradient(circle at 0% 50%, rgba(0, 251, 255, 0.26), transparent 38%),
-    linear-gradient(135deg, rgba(1, 231, 239, 0.2), rgba(3, 19, 22, 0.72)) !important;
-  box-shadow: 0 0 30px rgba(1, 231, 239, 0.18), inset 0 0 28px rgba(0, 251, 255, 0.06);
+.accountsHeroPro h3 {
+  margin: 10px 0;
+  color: #ECFFFF;
+  font-size: clamp(34px, 4.2vw, 58px);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 40px rgba(0, 251, 255, 0.18);
 }
 
-.editorWebQuickButton {
-  border: 1px solid rgba(0, 251, 255, 0.34);
-  border-radius: 999px;
-  min-height: 42px;
-  padding: 12px 16px;
+.accountsHeroPro p {
+  max-width: 780px;
+  margin: 0;
+  color: #9BC8CB;
+  line-height: 1.65;
+}
+
+.accountsHeroStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.accountsHeroStats button {
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #9BC8CB;
+  text-align: left;
   cursor: pointer;
-  color: #001014;
-  background: linear-gradient(135deg, #01E7EF, #00FBFF 55%, #018B90);
-  font-weight: 950;
-  letter-spacing: 0.02em;
-  box-shadow: 0 0 24px rgba(0, 251, 255, 0.18);
   transition: 0.18s ease;
-  white-space: nowrap;
 }
 
-.editorWebQuickButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 0 30px rgba(0, 251, 255, 0.28);
+.accountsHeroStats button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 251, 255, 0.48);
+  box-shadow: 0 0 25px rgba(1, 231, 239, 0.13);
 }
 
-@media (max-width: 720px) {
-  .editorWebQuickButton {
-    width: 100%;
+.accountsHeroStats strong {
+  display: block;
+  color: #00FBFF;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1;
+  margin-bottom: 8px;
+  text-shadow: 0 0 25px rgba(0, 251, 255, 0.22);
+}
+
+.accountsHeroStats span {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.accountsFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.accountsFormGrid .textarea,
+.accountsFormGrid .formActions {
+  grid-column: 1 / -1;
+}
+
+.accountsToolbarPro {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.accountsGridPro {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.accountsGridPro .emptyState {
+  grid-column: 1 / -1;
+}
+
+.accountCardPro {
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 26px;
+  background: rgba(3, 19, 22, 0.78);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28), inset 0 0 34px rgba(0, 251, 255, 0.045);
+}
+
+.accountCardPro::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #01E7EF, transparent);
+  opacity: 0.82;
+}
+
+.accountCardAvailable {
+  border-color: rgba(124, 255, 178, 0.34);
+}
+
+.accountCardAvailable::before {
+  background: linear-gradient(180deg, #7cffb2, transparent);
+}
+
+.accountCardAssigned {
+  border-color: rgba(1, 231, 239, 0.38);
+}
+
+.accountCardDanger {
+  border-color: rgba(255, 143, 163, 0.42);
+}
+
+.accountCardDanger::before {
+  background: linear-gradient(180deg, #ff8fa3, transparent);
+}
+
+.accountCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.accountCardTop h4 {
+  margin: 0 0 6px;
+  color: #ECFFFF;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+
+.accountCardTop p {
+  margin: 0;
+  color: #9BC8CB;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.accountSecretGrid,
+.accountMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.accountSecretGrid div,
+.accountMetaGrid div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.accountSecretGrid span,
+.accountMetaGrid span {
+  display: block;
+  margin-bottom: 6px;
+  color: #9BC8CB;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.accountSecretGrid strong,
+.accountMetaGrid strong {
+  display: block;
+  color: #ECFFFF;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.accountSecretGrid strong {
+  color: #00FBFF;
+}
+
+.accountNote {
+  margin: 0 0 14px;
+  padding: 12px;
+  color: #9BC8CB;
+  line-height: 1.55;
+  border-radius: 18px;
+  border: 1px dashed rgba(1, 231, 239, 0.18);
+  background: rgba(1, 231, 239, 0.04);
+}
+
+@media (max-width: 1180px) {
+  .accountsHeroPro,
+  .accountsToolbarPro {
+    grid-template-columns: 1fr;
+  }
+
+  .accountsHeroStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
+@media (max-width: 720px) {
+  .accountsHeroPro {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .accountsHeroStats,
+  .accountsFormGrid,
+  .accountSecretGrid,
+  .accountMetaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .accountCardTop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .accountsToolbarPro .toggleGroup,
+  .accountsToolbarPro .toggleGroup button,
+  .accountCardPro .inventoryQuickActions button {
+    width: 100%;
+  }
+}
