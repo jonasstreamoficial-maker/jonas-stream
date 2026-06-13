@@ -383,41 +383,71 @@ export default function VerPreciosPage() {
         </aside>
       </section>
 
-      <section className={styles.panel} aria-label="Filtros de catálogo">
-        <div className={styles.panelHeader}>
-          <div>
-            <p className={styles.kicker}>Filtros</p>
-            <h2>Buscar producto</h2>
-            <span>Filtra por nombre, plataforma, proveedor, tipo o estado.</span>
+      <section className={`${styles.panel} ${styles.filtersPanel}`} aria-label="Filtros de catálogo">
+        <div className={styles.filterPanel}>
+          <div className={styles.searchBox}>
+            <span>Buscar productos</span>
+            <input
+              type="search"
+              placeholder="Ejemplo: Netflix, Canva, IPTV..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </div>
-          <span className={styles.countBadge}>{filteredProducts.length} producto(s)</span>
-        </div>
 
-        <div className={styles.filtersGrid}>
-          <input
-            type="search"
-            placeholder="Buscar Netflix, Canva, IPTV..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className={styles.input}
-          />
+          <div className={styles.filterGroup}>
+            <span>Tipo de acceso</span>
+            <div className={styles.filterButtons} role="group" aria-label="Filtrar por tipo de acceso">
+              <button
+                type="button"
+                onClick={() => setTypeFilter("TODOS")}
+                className={typeFilter === "TODOS" ? styles.filterActive : undefined}
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setTypeFilter("Perfil")}
+                className={typeFilter === "Perfil" ? styles.filterActive : undefined}
+              >
+                Perfiles
+              </button>
+              <button
+                type="button"
+                onClick={() => setTypeFilter("Cuenta completa")}
+                className={typeFilter === "Cuenta completa" ? styles.filterActive : undefined}
+              >
+                Cuentas completas
+              </button>
+            </div>
+          </div>
 
-          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as "TODOS" | ProductType)} className={styles.input}>
-            <option value="TODOS">Todos los tipos</option>
-            <option value="Perfil">Perfiles</option>
-            <option value="Cuenta completa">Cuentas completas</option>
-          </select>
-
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "TODOS" | ProductStatus)} className={styles.input}>
-            <option value="TODOS">Todos los estados</option>
-            <option value="ACTIVO">Activos</option>
-            <option value="LIMITADO">Limitados</option>
-            <option value="AGOTADO">Agotados</option>
-          </select>
-
-          <button type="button" onClick={() => { setSearch(""); setTypeFilter("TODOS"); setStatusFilter("TODOS"); }} className={styles.secondaryButton}>
-            Limpiar
-          </button>
+          <div className={styles.filterGroup}>
+            <span>Disponibilidad</span>
+            <div className={styles.filterButtons} role="group" aria-label="Filtrar por disponibilidad">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("TODOS")}
+                className={statusFilter === "TODOS" ? styles.filterActive : undefined}
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("ACTIVO")}
+                className={statusFilter === "ACTIVO" ? styles.filterActive : undefined}
+              >
+                Activos
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("LIMITADO")}
+                className={statusFilter === "LIMITADO" ? styles.filterActive : undefined}
+              >
+                Limitados
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
