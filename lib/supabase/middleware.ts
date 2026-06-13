@@ -58,23 +58,18 @@ export async function updateSession(request: NextRequest) {
   const rutaCompraPrivada =
     pathname.startsWith("/tienda") ||
     pathname.startsWith("/carrito") ||
-    pathname.startsWith("/favoritos") ||
-    pathname.startsWith("/codigos");
+    pathname.startsWith("/favoritos");
 
   const rutaApiEditorPrivada =
     pathname.startsWith("/api/editor-web/portada") ||
     pathname.startsWith("/api/editor-web/upload");
 
-  const rutaApiUsuarioPrivada =
-    pathname.startsWith("/api/codigos");
-
-  const rutaApiPrivada = rutaApiEditorPrivada || rutaApiUsuarioPrivada;
+  const rutaApiPrivada = rutaApiEditorPrivada;
 
   const rutaPrivada =
     rutaPanel ||
     rutaCompraPrivada ||
-    rutaApiEditorPrivada ||
-    rutaApiUsuarioPrivada;
+    rutaApiEditorPrivada;
 
   if (rutaPrivada && !user) {
     if (rutaApiPrivada) {
@@ -96,6 +91,7 @@ export async function updateSession(request: NextRequest) {
     .maybeSingle();
 
   const aprobado = perfil?.estado === "aprobado" || perfil?.estado === "activo";
+
   const rolPermitido =
     perfil?.rol === "admin" ||
     perfil?.rol === "proveedor" ||

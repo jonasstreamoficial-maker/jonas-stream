@@ -15,9 +15,7 @@ export const config = {
     "/tienda/:path*",
     "/carrito/:path*",
     "/favoritos/:path*",
-    "/codigos/:path*",
 
-    "/api/codigos/:path*",
     "/api/editor-web/portada/:path*",
     "/api/editor-web/upload/:path*",
   ],
