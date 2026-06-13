@@ -332,7 +332,9 @@ export default function TiendaPage() {
 
       const matchesSearch = textoBusqueda.length === 0 || texto.includes(textoBusqueda);
       const matchesType = typeFilter === "TODOS" || type === typeFilter;
-      const matchesStatus = statusFilter === "TODOS" || status === statusFilter;
+      const matchesStatus =
+        statusFilter === "TODOS" ||
+        (statusFilter === "ACTIVO" ? stockDisponible(producto) : status === statusFilter);
 
       return matchesSearch && matchesType && matchesStatus;
     });
@@ -546,15 +548,15 @@ export default function TiendaPage() {
                 className={statusFilter === "ACTIVO" ? styles.filterActive : ""}
                 onClick={() => setStatusFilter("ACTIVO")}
               >
-                Activos
+                Disponibles
               </button>
 
               <button
                 type="button"
-                className={statusFilter === "LIMITADO" ? styles.filterActive : ""}
-                onClick={() => setStatusFilter("LIMITADO")}
+                className={statusFilter === "AGOTADO" ? styles.filterActive : ""}
+                onClick={() => setStatusFilter("AGOTADO")}
               >
-                Limitados
+                Agotados
               </button>
             </div>
           </div>

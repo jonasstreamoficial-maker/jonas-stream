@@ -437,14 +437,14 @@ export default function VerPreciosPage() {
                 onClick={() => setStatusFilter("ACTIVO")}
                 className={statusFilter === "ACTIVO" ? styles.filterActive : undefined}
               >
-                Activos
+                Disponibles
               </button>
               <button
                 type="button"
-                onClick={() => setStatusFilter("LIMITADO")}
-                className={statusFilter === "LIMITADO" ? styles.filterActive : undefined}
+                onClick={() => setStatusFilter("AGOTADO")}
+                className={statusFilter === "AGOTADO" ? styles.filterActive : undefined}
               >
-                Limitados
+                Agotados
               </button>
             </div>
           </div>
