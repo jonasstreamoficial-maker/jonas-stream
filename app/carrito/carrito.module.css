@@ -1287,3 +1287,34 @@
     grid-column: 1 / -1 !important;
   }
 }
+
+/* ==========================================================
+   FIX MOBILE HEADER GAP - CARRITO
+   En celular mantiene el header fijo, pero deja separación real
+   entre CONTÁCTANOS y CHECKOUT JONAS STREAM.
+   ========================================================== */
+
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 280px !important;
+  }
+
+  .topbarWrap {
+    position: fixed !important;
+    z-index: 80 !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 28px) !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .page {
+    --topbar-height: 292px !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 26px) !important;
+  }
+}
