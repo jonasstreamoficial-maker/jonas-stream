@@ -11,42 +11,43 @@ const CONTACT_MESSAGE = "1️⃣ Quiero *Vender Plataformas de Streaming.*";
 
 
 const PLATFORM_COLORS: Record<string, string> = {
-  "netflix": "#e50914",
+  netflix: "#e50914",
   "disney estandar": "#002062",
+  "disney estándar": "#002062",
   "disney standard": "#002062",
   "disney premium": "#00b2bb",
-  "disney": "#00b2bb",
+  disney: "#00b2bb",
   "prime video": "#007aff",
   "amazon prime": "#007aff",
-  "prime": "#007aff",
-  "max": "#0027ef",
+  prime: "#007aff",
+  max: "#0027ef",
   "hbo max": "#0027ef",
   "paramount+": "#0068ff",
   "paramount plus": "#0068ff",
-  "paramount": "#0068ff",
-  "crunchyroll": "#ff5800",
+  paramount: "#0068ff",
+  crunchyroll: "#ff5800",
   "vix premium": "#ff5800",
-  "vix": "#ff5800",
+  vix: "#ff5800",
   "rakuten viki": "#009dff",
-  "viki": "#009dff",
+  viki: "#009dff",
   "apple tv + mls": "#ff1f1f",
   "apple tv mls": "#ff1f1f",
   "apple tv": "#9ca3af",
-  "plex": "#feb100",
-  "universal": "#ffff00",
-  "iptv": "#5440eb",
+  plex: "#feb100",
+  universal: "#ffff00",
+  iptv: "#5440eb",
   "flujo tv": "#ff6224",
-  "dgo": "#00b0f2",
-  "movistar": "#7ed957",
+  dgo: "#00b0f2",
+  movistar: "#7ed957",
   "l1 max": "#ff1f1f",
-  "spotify": "#1db954",
-  "tidal": "#9ca3af",
-  "deezer": "#ff4fb8",
+  spotify: "#1db954",
+  tidal: "#9ca3af",
+  deezer: "#ff4fb8",
   "apple music": "#fa57c1",
   "youtube premium": "#ff0000",
-  "youtube": "#ff0000",
-  "canva": "#00c4cc",
-  "surfshark": "#64f5d2",
+  youtube: "#ff0000",
+  canva: "#00c4cc",
+  surfshark: "#64f5d2",
   "hola vpn": "#ff7a00",
 };
 
@@ -128,6 +129,7 @@ function buildWhatsAppLink(message: string) {
 function normalizeText(value?: string | number | null) {
   return String(value ?? "").trim().toLowerCase();
 }
+
 
 function normalizePlatformText(value?: string | number | null) {
   return String(value ?? "")
@@ -225,7 +227,8 @@ function normalizeProduct(product: ProductoDB): Product {
       product.categoria,
       product.descripcion,
       product.accent,
-      product.tipo_venta
+      product.tipo_venta,
+      product.proveedor
     ),
     image: product.imagen || null,
     featured: Boolean(product.destacado),
@@ -358,10 +361,11 @@ export default function VerPreciosPage() {
       <div className={styles.mainContent}>
       <section className={styles.heroPanel}>
         <div>
-          <p className={styles.kicker}>Catálogo actualizado</p>
-          <h1>Catálogo oficial Jonas Stream</h1>
+          <p className={styles.kicker}>Vista sincronizada con admin</p>
+          <h1>Precios y productos Jonas Stream</h1>
           <p>
-            Consulta precios, stock, duración y tipo de cuenta antes de afiliarte. Para comprar, primero inicia sesión o solicita tu acceso.
+            Catálogo visual conectado a la tabla productos. Las imágenes, stock, tipo, duración,
+            proveedor, estado, oferta y publicación se muestran con el mismo estilo de la edición admin.
           </p>
           <div className={styles.heroActions}>
             <a href="#catalogo" className={styles.primaryButton}>Ver catálogo</a>
