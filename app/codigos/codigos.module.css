@@ -993,3 +993,73 @@
     font-size: 0.88rem !important;
   }
 }
+
+
+/* ==========================================================
+   CODIGOS - V4 LIMPIO: datos visibles + acciones en una fila
+   ========================================================== */
+.accountGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.accountActions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(1, 231, 239, 0.38) transparent;
+}
+
+.accountActions::-webkit-scrollbar {
+  height: 6px;
+}
+
+.accountActions::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(1, 231, 239, 0.38);
+}
+
+.accountActions .refreshButton,
+.accountActions .whatsappMiniButton,
+.accountActions .secondaryButton {
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 0 14px;
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.lastUpdateText {
+  position: relative;
+  z-index: 2;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1180px) {
+  .accountGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .accountGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .accountActions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    overflow-x: visible !important;
+  }
+
+  .accountActions .refreshButton,
+  .accountActions .whatsappMiniButton,
+  .accountActions .secondaryButton {
+    width: 100% !important;
+  }
+}

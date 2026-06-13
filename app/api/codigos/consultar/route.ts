@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     // Nuevo sistema: inventario de cuentas registrado desde Admin > Cuentas.
     const { data: cuenta, error: errorCuenta } = await supabase
       .from("cuentas")
-      .select("*")
+      .select("*, productos(tipo_venta, duracion, duracion_dias)")
       .ilike("correo", correo)
       .eq("pin_acceso", pin)
       .limit(1)
@@ -35,6 +35,10 @@ export async function POST(request: Request) {
     if (cuenta) {
       const estadoCuenta = String(cuenta.estado || "").toLowerCase()
       const correoCuenta = String(cuenta.correo || "").toLowerCase()
+      const productoRelacionado = Array.isArray(cuenta.productos)
+        ? cuenta.productos[0]
+        : cuenta.productos
+      const tipoVenta = productoRelacionado?.tipo_venta || null
 
       if (estadoCuenta === "bloqueada") {
         return NextResponse.json(
@@ -73,6 +77,7 @@ export async function POST(request: Request) {
           perfil: cuenta.perfil,
           pin_perfil: cuenta.pin_perfil,
           pin_acceso: cuenta.pin_acceso,
+          tipo_venta: tipoVenta,
           producto_nombre: cuenta.producto_nombre,
           cliente_nombre: cuenta.cliente_nombre,
           cliente_correo: cuenta.cliente_correo,
@@ -87,6 +92,7 @@ export async function POST(request: Request) {
           perfil: cuenta.perfil,
           pin_perfil: cuenta.pin_perfil,
           pin_acceso: cuenta.pin_acceso,
+          tipo_venta: tipoVenta,
           estado: cuenta.estado,
           cliente_id: cuenta.cliente_id,
           cliente_nombre: cuenta.cliente_nombre,

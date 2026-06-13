@@ -13,6 +13,7 @@ type ClienteConsulta = {
   clave: string | null
   perfil: string | null
   pin_perfil: string | null
+  tipo_venta?: string | null
   estado: string
   fecha_inicio: string | null
   fecha_vencimiento: string | null
@@ -224,6 +225,17 @@ function calcularDiasRestantes(fecha?: string | null) {
   return Math.ceil(
     (vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
   )
+}
+
+function normalizarTipoAcceso(tipoVenta?: string | null, perfil?: string | null) {
+  const tipo = String(tipoVenta || "").trim().toLowerCase()
+  const perfilTexto = String(perfil || "").trim()
+
+  if (tipo.includes("cuenta")) return "Cuenta completa"
+  if (tipo.includes("perfil")) return "Perfil"
+  if (perfilTexto) return "Perfil"
+
+  return "No definido"
 }
 
 function estadoVisual(estado: string) {
@@ -530,9 +542,7 @@ export default function CodigosPage() {
               <div className={styles.accountGrid}>
                 <InfoItem label="Cliente" value={cliente.nombre || "Cliente"} />
                 <InfoItem label="Correo" value={cliente.correo_asignado} />
-                <InfoItem label="Clave" value={cliente.clave || "No registrada"} />
-                <InfoItem label="Perfil" value={cliente.perfil || "No definido"} />
-                <InfoItem label="PIN perfil" value={cliente.pin_perfil || "No definido"} />
+                <InfoItem label="Tipo" value={normalizarTipoAcceso(cliente.tipo_venta, cliente.perfil)} />
                 <InfoItem
                   label="Inicio"
                   value={
@@ -585,17 +595,17 @@ export default function CodigosPage() {
                     Copiar PIN perfil
                   </button>
                 )}
-
-                {ultimaActualizacion && (
-                  <span className={styles.lastUpdateText}>
-                    Última actualización: {ultimaActualizacion.toLocaleTimeString("es-PE", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
-                  </span>
-                )}
               </div>
+
+              {ultimaActualizacion && (
+                <p className={styles.lastUpdateText}>
+                  Última actualización: {ultimaActualizacion.toLocaleTimeString("es-PE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })}
+                </p>
+              )}
             </section>
           )}
 
