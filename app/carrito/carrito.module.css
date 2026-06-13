@@ -1236,3 +1236,524 @@
     min-height: 58px;
   }
 }
+
+
+/* ==========================================================
+   CARRITO - AJUSTE VISUAL FINAL JONAS STREAM
+   Mantiene la lógica actual. Solo mejora tipografía, centrado,
+   paleta, responsive móvil y estilo de checkout.
+   ========================================================== */
+
+.page {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+.topbar,
+.hero,
+.productsPanel,
+.summaryPanel,
+.emptySection,
+.deliverySection {
+  border-color: rgba(1, 231, 239, 0.18) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(3, 19, 22, 0.9), rgba(7, 27, 30, 0.92)) !important;
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.34),
+    0 0 25px rgba(1, 231, 239, 0.12),
+    inset 0 0 38px rgba(0, 251, 255, 0.035) !important;
+}
+
+.hero {
+  text-align: center !important;
+  padding: 56px 30px 46px !important;
+}
+
+.heroBadge,
+.sectionKicker,
+.summaryHeader span,
+.couponBox > span,
+.paymentBox > span,
+.creditBox span {
+  color: #00fbff !important;
+  background: rgba(1, 231, 239, 0.1) !important;
+  border: 1px solid rgba(1, 231, 239, 0.18) !important;
+  border-radius: 999px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+}
+
+.heroTitle {
+  max-width: 980px !important;
+  margin: 0 auto 20px !important;
+  font-family: "Orbitron", Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: clamp(2.4rem, 5.6vw, 4.7rem) !important;
+  line-height: 0.98 !important;
+  letter-spacing: 0.02em !important;
+  text-align: center !important;
+  color: #ecffff !important;
+  text-shadow:
+    0 0 14px rgba(236, 255, 255, 0.08),
+    0 0 34px rgba(0, 251, 255, 0.14) !important;
+}
+
+.heroTitle span {
+  color: #00fbff !important;
+  text-shadow:
+    0 0 18px rgba(0, 251, 255, 0.22),
+    0 0 42px rgba(0, 251, 255, 0.12) !important;
+}
+
+.heroText {
+  max-width: 760px !important;
+  margin: 0 auto 26px !important;
+  color: #9bc8cb !important;
+  text-align: center !important;
+}
+
+.heroActions {
+  justify-content: center !important;
+}
+
+.heroBtnPrimary,
+.heroBtnDanger,
+.emptyButton,
+.hideDeliveryButton,
+.createOrderButton {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.heroBtnPrimary,
+.emptyButton,
+.createOrderButton {
+  color: #001014 !important;
+  background: linear-gradient(135deg, #01e7ef, #00fbff 45%, #018b90) !important;
+  border: 1px solid rgba(1, 231, 239, 0.32) !important;
+  box-shadow: 0 0 24px rgba(0, 251, 255, 0.22) !important;
+}
+
+.heroBtnDanger,
+.removeButton,
+.hideDeliveryButton {
+  color: #ff8fa3 !important;
+  background: rgba(255, 143, 163, 0.11) !important;
+  border: 1px solid rgba(255, 143, 163, 0.34) !important;
+  box-shadow: 0 0 18px rgba(255, 143, 163, 0.08) !important;
+}
+
+.checkoutGrid {
+  width: min(1320px, calc(100% - 28px)) !important;
+  grid-template-columns: minmax(0, 1fr) 380px !important;
+  gap: 18px !important;
+}
+
+.productsPanel,
+.summaryPanel {
+  border-radius: 30px !important;
+}
+
+.sectionHeader,
+.summaryHeader {
+  text-align: center !important;
+}
+
+.sectionTitle,
+.summaryHeader h2,
+.emptySection h2,
+.deliverySection h2 {
+  font-family: "Orbitron", Inter, ui-sans-serif, system-ui, sans-serif !important;
+  color: #ecffff !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  text-shadow: 0 0 18px rgba(0, 251, 255, 0.09) !important;
+}
+
+.cartCard {
+  position: relative !important;
+  overflow: hidden !important;
+  grid-template-columns: 130px minmax(0, 1fr) 150px !important;
+  border-radius: 26px !important;
+  border: 1px solid rgba(1, 231, 239, 0.22) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(1, 231, 239, 0.13), transparent 34%),
+    linear-gradient(180deg, rgba(3, 19, 22, 0.94), rgba(0, 10, 12, 0.98)) !important;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.34),
+    inset 0 0 34px rgba(0, 251, 255, 0.035) !important;
+}
+
+.cartCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #00fbff, transparent);
+  box-shadow: 0 0 22px rgba(0, 251, 255, 0.28);
+  opacity: 0.9;
+}
+
+.cartCard:hover {
+  border-color: rgba(0, 251, 255, 0.34) !important;
+  transform: translateY(-2px);
+  box-shadow:
+    0 30px 76px rgba(0, 0, 0, 0.38),
+    0 0 28px rgba(1, 231, 239, 0.1),
+    inset 0 0 34px rgba(0, 251, 255, 0.045) !important;
+}
+
+.imageWrap {
+  width: 130px !important;
+  height: 130px !important;
+  border-radius: 22px !important;
+  border: 1px solid rgba(1, 231, 239, 0.26) !important;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(0, 251, 255, 0.14), transparent 55%),
+    #020a0c !important;
+  box-shadow:
+    inset 0 0 32px rgba(0, 251, 255, 0.08),
+    0 0 20px rgba(0, 251, 255, 0.08) !important;
+}
+
+.productInfo {
+  text-align: center !important;
+}
+
+.category {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: fit-content !important;
+  margin: 0 auto 10px !important;
+  padding: 7px 11px !important;
+  border-radius: 999px !important;
+  color: #00fbff !important;
+  background: rgba(1, 231, 239, 0.1) !important;
+  border: 1px solid rgba(1, 231, 239, 0.3) !important;
+  box-shadow: 0 0 14px rgba(1, 231, 239, 0.08) !important;
+}
+
+.productInfo h3 {
+  margin: 0 auto 8px !important;
+  color: #ecffff !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 1.28rem !important;
+  line-height: 1.15 !important;
+  font-weight: 950 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+}
+
+.productInfo p {
+  margin: 0 auto 12px !important;
+  color: #9bc8cb !important;
+  text-align: center !important;
+}
+
+.unitPrice {
+  margin: 0 auto 12px !important;
+  text-align: center !important;
+  border-color: rgba(1, 231, 239, 0.18) !important;
+  background: rgba(0, 0, 0, 0.34) !important;
+  box-shadow: inset 0 0 18px rgba(0, 251, 255, 0.04) !important;
+}
+
+.unitPrice small,
+.productTotal span {
+  color: #9bc8cb !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.12em !important;
+}
+
+.unitPrice strong,
+.productTotal strong,
+.totalRow strong {
+  color: #ecffff !important;
+  text-shadow:
+    0 0 10px rgba(236, 255, 255, 0.18),
+    0 0 18px rgba(0, 251, 255, 0.16) !important;
+}
+
+.qtyControl {
+  justify-content: center !important;
+}
+
+.qtyControl button,
+.qtyControl span {
+  border-color: rgba(1, 231, 239, 0.22) !important;
+  background: rgba(1, 231, 239, 0.08) !important;
+}
+
+.qtyControl span {
+  color: #00fbff !important;
+  box-shadow: inset 0 0 14px rgba(0, 251, 255, 0.05) !important;
+}
+
+.productTotal {
+  justify-items: center !important;
+  text-align: center !important;
+}
+
+.summaryPanel {
+  border-color: rgba(1, 231, 239, 0.22) !important;
+}
+
+.summaryRows,
+.couponBox,
+.creditBox,
+.paymentBox {
+  text-align: center !important;
+}
+
+.summaryRow,
+.totalRow {
+  padding: 2px 0 !important;
+}
+
+.summaryRow span,
+.totalRow span {
+  color: #9bc8cb !important;
+  font-weight: 900 !important;
+}
+
+.summaryRow strong {
+  color: #ecffff !important;
+}
+
+.creditBox {
+  border-color: rgba(255, 224, 130, 0.28) !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 224, 130, 0.12), transparent 36%),
+    rgba(255, 255, 255, 0.025) !important;
+}
+
+.creditBoxActive {
+  border-color: rgba(124, 255, 178, 0.34) !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(124, 255, 178, 0.16), transparent 36%),
+    rgba(124, 255, 178, 0.055) !important;
+}
+
+.paymentGrid button,
+.couponGrid button,
+.couponGrid input,
+.uploadBox {
+  border-color: rgba(1, 231, 239, 0.18) !important;
+  border-radius: 15px !important;
+}
+
+.paymentGrid button {
+  min-height: 46px !important;
+  font-weight: 950 !important;
+}
+
+.paymentGrid button:hover,
+.paymentGrid .paymentActive {
+  color: #001014 !important;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, #01e7ef, #00fbff 45%, #018b90) !important;
+  box-shadow: 0 0 22px rgba(0, 251, 255, 0.18) !important;
+}
+
+.uploadBox {
+  background: rgba(1, 231, 239, 0.045) !important;
+}
+
+.emptySection,
+.deliverySection {
+  text-align: center !important;
+}
+
+.deliveryCard {
+  text-align: center !important;
+  border-color: rgba(1, 231, 239, 0.22) !important;
+  background: rgba(0, 0, 0, 0.34) !important;
+}
+
+.deliveryCard div {
+  text-align: center !important;
+}
+
+@media (max-width: 1100px) {
+  .checkoutGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .summaryPanel {
+    position: relative !important;
+    top: auto !important;
+    order: -1 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 190px !important;
+    padding: 10px 0 42px !important;
+    overflow-x: hidden !important;
+  }
+
+  .topbarWrap,
+  .hero,
+  .checkoutGrid,
+  .emptySection,
+  .deliverySection {
+    width: min(100% - 18px, 1320px) !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbar {
+    padding: 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .topActions {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .topActions a:nth-child(3),
+  .topActions a:nth-child(4) {
+    grid-column: auto !important;
+    width: 100% !important;
+    justify-self: stretch !important;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    width: 100% !important;
+    min-height: 50px !important;
+    padding: 0 8px !important;
+    font-size: 0.74rem !important;
+    text-align: center !important;
+    white-space: normal !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 14px) !important;
+    padding: 32px 14px 28px !important;
+    border-radius: 24px !important;
+  }
+
+  .heroTitle {
+    font-size: clamp(2rem, 11vw, 3.2rem) !important;
+    line-height: 1.02 !important;
+  }
+
+  .heroText {
+    font-size: 0.95rem !important;
+    line-height: 1.7 !important;
+  }
+
+  .heroActions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+
+  .heroBtnPrimary,
+  .heroBtnDanger,
+  .emptyButton,
+  .hideDeliveryButton {
+    width: 100% !important;
+    min-height: 58px !important;
+  }
+
+  .productsPanel,
+  .summaryPanel {
+    padding: 20px 14px !important;
+    border-radius: 24px !important;
+  }
+
+  .cartCard {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+    text-align: center !important;
+    padding: 16px !important;
+    gap: 14px !important;
+  }
+
+  .cartCard::before {
+    width: 100% !important;
+    height: 3px !important;
+    inset: 0 0 auto 0 !important;
+    background: linear-gradient(90deg, transparent, #00fbff, transparent) !important;
+  }
+
+  .imageWrap {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 10 !important;
+    max-width: 420px !important;
+  }
+
+  .productInfo,
+  .productTotal {
+    width: 100% !important;
+  }
+
+  .productTotal {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+    gap: 8px !important;
+  }
+
+  .removeButton {
+    width: 100% !important;
+    min-height: 48px !important;
+  }
+
+  .couponGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .paymentGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .paymentGrid button:nth-child(5) {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .page {
+    --topbar-height: 190px !important;
+  }
+
+  .brandBlock strong {
+    font-size: 1rem !important;
+  }
+
+  .brandBlock span {
+    font-size: 0.58rem !important;
+  }
+
+  .topLink,
+  .topLinkPrimary {
+    font-size: 0.68rem !important;
+  }
+
+  .heroTitle {
+    font-size: 1.72rem !important;
+  }
+
+  .sectionTitle,
+  .summaryHeader h2 {
+    font-size: 1.18rem !important;
+  }
+
+  .paymentGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
