@@ -367,20 +367,23 @@ export default function VerPreciosPage() {
       <div className={styles.mainContent}>
       <section className={styles.heroPanel}>
         <div>
-          <p className={styles.kicker}>Catálogo actualizado</p>
-          <h1>Catálogo oficial Jonas Stream</h1>
+          <p className={styles.kicker}>Catálogo público</p>
+          <h1>
+            CATÁLOGO OFICIAL
+            <span>JONAS STREAM</span>
+          </h1>
           <p>
-            Consulta precios, stock, duración y tipo de cuenta antes de afiliarte. Para comprar, primero inicia sesión o solicita tu acceso.
+            Consulta precios, stock y disponibilidad antes de afiliarte. Para comprar, inicia sesión o solicita tu acceso.
           </p>
           <div className={styles.heroActions}>
-            <a href="#catalogo" className={styles.primaryButton}>Ver catálogo</a>
+            <a href="#catalogo" className={styles.primaryButton}>VER CATÁLOGO</a>
             <button type="button" onClick={loadProducts} className={styles.secondaryButton}>
-              {loadingProducts ? "Actualizando..." : "Actualizar"}
+              {loadingProducts ? "ACTUALIZANDO..." : "ACTUALIZAR"}
             </button>
           </div>
         </div>
 
-        <aside className={styles.heroStatusCard}>
+        <aside className={styles.heroStatusCard} aria-label="Estado del catálogo">
           <span>Catálogo activo</span>
           <strong>{products.length}</strong>
           <p>{lastUpdate ? `Última sincronización ${lastUpdate}` : "Sincronizando con Supabase"}</p>
@@ -440,12 +443,12 @@ export default function VerPreciosPage() {
         </div>
       </section>
 
-      <section className={`${styles.panel} ${styles.catalogLikeTiendaPanel}`} id="catalogo">
-        <div className={`${styles.panelHeader} ${styles.catalogLikeTiendaHeader}`}>
+      <section className={styles.panel} id="catalogo">
+        <div className={styles.panelHeader}>
           <div>
             <p className={styles.kicker}>Catálogo visual</p>
-            <h2>Productos disponibles</h2>
-            <span>Catálogo público con color neón por plataforma, precio en PEN/USD y stock actualizado.</span>
+            <h2>Productos, precios y stock</h2>
+            <span>Tarjetas con color neón por plataforma, precio en PEN/USD y stock actualizado.</span>
           </div>
           <span className={styles.countBadge}>{loadingProducts ? "Cargando" : `${filteredProducts.length} visibles`}</span>
         </div>

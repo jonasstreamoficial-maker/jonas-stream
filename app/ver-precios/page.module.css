@@ -1485,313 +1485,199 @@
 
 
 /* ==========================================================
-   ALINEAR VER PRECIOS CON TIENDA
-   Mismo centrado, tipografía y estilo visual en catálogo.
-   Ver precios sigue siendo solo catálogo público, sin compra.
+   VER PRECIOS - HERO ESTILO TIENDA
+   Mantiene catálogo público, pero alinea portada, tipografía
+   y centrado con /tienda.
    ========================================================== */
 
-.catalogLikeTiendaPanel {
-  padding: 28px !important;
-  border-radius: 30px !important;
-  background: rgba(3, 19, 22, 0.78) !important;
-  border: 1px solid rgba(236, 255, 255, 0.06) !important;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32) !important;
+.heroPanel {
+  display: block !important;
+  position: relative !important;
+  width: min(1320px, calc(100% - 28px)) !important;
+  margin-top: 0 !important;
+  margin-bottom: 22px !important;
+  padding: 58px 30px 52px !important;
+  border-radius: 34px !important;
+  text-align: center !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.14), transparent 36%),
+    radial-gradient(circle at 18% 20%, rgba(1, 139, 144, 0.16), transparent 30%),
+    linear-gradient(180deg, rgba(3, 19, 22, 0.92), rgba(7, 27, 30, 0.9)) !important;
+  border: 1px solid rgba(1, 231, 239, 0.18) !important;
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.34),
+    0 0 25px rgba(1, 231, 239, 0.12),
+    inset 0 0 46px rgba(0, 251, 255, 0.045) !important;
   overflow: hidden !important;
 }
 
-.catalogLikeTiendaPanel::before {
+.heroPanel::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 84% 18%, rgba(0, 251, 255, 0.1), transparent 22%),
-    linear-gradient(135deg, rgba(1, 231, 239, 0.04), transparent 52%, rgba(1, 139, 144, 0.04));
+    radial-gradient(circle at 85% 18%, rgba(0, 251, 255, 0.1), transparent 24%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.04), transparent 54%, rgba(1, 139, 144, 0.04));
   pointer-events: none;
 }
 
-.catalogLikeTiendaHeader {
+.heroPanel > div {
   position: relative !important;
   z-index: 2 !important;
-  display: flex !important;
-  flex-direction: column !important;
+  max-width: 1120px !important;
+  margin: 0 auto !important;
+}
+
+.heroPanel .kicker,
+.panel[id="catalogo"] .kicker {
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  text-align: center !important;
-  max-width: 860px !important;
-  margin: 0 auto 26px !important;
-  gap: 10px !important;
-}
-
-.catalogLikeTiendaHeader > div {
-  display: grid !important;
-  justify-items: center !important;
-  text-align: center !important;
-}
-
-.catalogLikeTiendaHeader .kicker,
-.catalogLikeTiendaPanel .kicker {
-  display: inline-flex !important;
-  justify-content: center !important;
-  width: fit-content !important;
-  margin: 0 auto 12px !important;
-  padding: 8px 14px !important;
+  margin: 0 auto 18px !important;
+  padding: 8px 16px !important;
   border-radius: 999px !important;
+  color: #00fbff !important;
   background: rgba(1, 231, 239, 0.1) !important;
-  border: 1px solid rgba(1, 231, 239, 0.16) !important;
-  color: #01e7ef !important;
-  font-size: 0.72rem !important;
-  font-weight: 900 !important;
-  letter-spacing: 1.8px !important;
-  line-height: 1 !important;
+  border: 1px solid rgba(1, 231, 239, 0.18) !important;
+  font-size: 0.74rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.16em !important;
   text-transform: uppercase !important;
 }
 
-.catalogLikeTiendaHeader h2 {
-  margin: 0 !important;
-  color: #ecffff !important;
-  font-family: "Orbitron", sans-serif !important;
-  font-size: clamp(1.35rem, 3vw, 2.25rem) !important;
-  line-height: 1.08 !important;
-  letter-spacing: 1px !important;
+.heroPanel h1 {
+  max-width: 1120px !important;
+  margin: 0 auto 20px !important;
+  font-family: "Orbitron", Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: clamp(2.7rem, 6.8vw, 5.25rem) !important;
+  line-height: 0.96 !important;
+  letter-spacing: 0.02em !important;
+  text-align: center !important;
   text-transform: uppercase !important;
+  color: #ecffff !important;
+  text-shadow:
+    0 0 14px rgba(236, 255, 255, 0.08),
+    0 0 34px rgba(0, 251, 255, 0.14) !important;
+}
+
+.heroPanel h1 span {
+  display: block !important;
+  color: #00fbff !important;
+  text-shadow:
+    0 0 18px rgba(0, 251, 255, 0.22),
+    0 0 42px rgba(0, 251, 255, 0.12) !important;
+}
+
+.heroPanel p:not(.kicker) {
+  max-width: 820px !important;
+  margin: 0 auto 26px !important;
+  color: #9bc8cb !important;
+  font-size: 1.05rem !important;
+  line-height: 1.8 !important;
   text-align: center !important;
 }
 
-.catalogLikeTiendaHeader span:not(.countBadge) {
+.heroPanel .heroActions {
+  justify-content: center !important;
+  margin-top: 0 !important;
+}
+
+.heroPanel .primaryButton,
+.heroPanel .secondaryButton {
+  min-height: 60px !important;
+  padding: 0 26px !important;
+  border-radius: 18px !important;
+  text-transform: uppercase !important;
+  font-weight: 950 !important;
+}
+
+.heroStatusCard {
+  display: none !important;
+}
+
+/* Sección catálogo más parecida al encabezado de tienda */
+.panel[id="catalogo"] {
+  padding-top: 32px !important;
+}
+
+.panel[id="catalogo"] .panelHeader {
+  display: block !important;
+  max-width: 900px !important;
+  margin: 0 auto 24px !important;
+  text-align: center !important;
+}
+
+.panel[id="catalogo"] .panelHeader h2 {
+  margin: 0 0 10px !important;
+  font-family: "Orbitron", Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: clamp(1.75rem, 3.8vw, 3rem) !important;
+  line-height: 1.05 !important;
+  color: #ecffff !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+.panel[id="catalogo"] .panelHeader span:not(.countBadge) {
   display: block !important;
   max-width: 760px !important;
-  margin: 10px auto 0 !important;
+  margin: 0 auto !important;
   color: #9bc8cb !important;
-  line-height: 1.6 !important;
-  font-size: 0.98rem !important;
   text-align: center !important;
+  font-size: 1rem !important;
 }
 
-.catalogLikeTiendaHeader .countBadge {
-  margin-top: 2px !important;
+.panel[id="catalogo"] .countBadge {
+  position: absolute !important;
+  top: 24px !important;
+  right: 24px !important;
 }
 
-.catalogLikeTiendaPanel .catalogGrid {
-  position: relative !important;
-  z-index: 2 !important;
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(245px, 1fr)) !important;
-  gap: 18px !important;
-}
-
-.catalogLikeTiendaPanel .storePreviewCard {
-  max-width: 100% !important;
-  padding: 18px !important;
-  border-radius: 26px !important;
-}
-
-.catalogLikeTiendaPanel .previewBadgeRow {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  gap: 10px !important;
-  margin: 0 0 12px !important;
-}
-
-.catalogLikeTiendaPanel .adminCategoryBadge,
-.catalogLikeTiendaPanel .adminTypeBadge {
-  min-height: 30px !important;
-  padding: 7px 11px !important;
-  border-radius: 999px !important;
-  font-size: 0.72rem !important;
-  font-weight: 950 !important;
-  letter-spacing: 0.04em !important;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-}
-
-.catalogLikeTiendaPanel .previewImageBox {
-  height: 220px !important;
-  min-height: 220px !important;
-  border-radius: 22px !important;
-}
-
-.catalogLikeTiendaPanel .previewBody {
-  padding-top: 18px !important;
-}
-
-.catalogLikeTiendaPanel .previewBody h3 {
-  margin: 0 0 8px !important;
+/* Tarjetas catálogo: misma dirección visual de tienda */
+.previewBody h3 {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   font-size: 1.42rem !important;
   line-height: 1.12 !important;
   font-weight: 950 !important;
-  text-align: center !important;
   letter-spacing: -0.03em !important;
-  text-transform: uppercase !important;
 }
 
-.catalogLikeTiendaPanel .previewBody p {
-  min-height: 0 !important;
-  margin: 0 0 16px !important;
-  color: #9bc8cb !important;
+.previewBody p {
   font-size: 0.98rem !important;
   line-height: 1.45 !important;
-  text-align: center !important;
-}
-
-.catalogLikeTiendaPanel .stockBar {
-  min-height: 38px !important;
-  padding: 8px 12px !important;
-  margin: 0 0 16px !important;
-  border-radius: 999px !important;
-}
-
-.catalogLikeTiendaPanel .adminMetaGrid,
-.catalogLikeTiendaPanel .adminPriceGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-}
-
-.catalogLikeTiendaPanel .adminMetaCard {
-  min-height: 68px !important;
-  padding: 12px !important;
-  border-radius: 16px !important;
-}
-
-.catalogLikeTiendaPanel .adminMetaCard span {
-  font-size: 0.68rem !important;
-  letter-spacing: 0.11em !important;
-}
-
-.catalogLikeTiendaPanel .adminMetaCard strong {
-  font-size: 0.88rem !important;
-  line-height: 1.28 !important;
-  font-weight: 900 !important;
-}
-
-.catalogLikeTiendaPanel .adminStatusRow {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 10px !important;
-  margin-bottom: 14px !important;
-}
-
-.catalogLikeTiendaPanel .statusBadge {
-  min-height: 32px !important;
-  padding: 7px 10px !important;
-  border-radius: 999px !important;
-  font-size: 0.76rem !important;
-  font-weight: 950 !important;
-  letter-spacing: 0 !important;
-}
-
-.catalogLikeTiendaPanel .adminStatusRow > span:last-child {
-  color: #9bc8cb !important;
-  font-size: 0.82rem !important;
-  font-weight: 850 !important;
-  text-align: right !important;
-}
-
-.catalogLikeTiendaPanel .adminPriceCard {
-  min-height: 70px !important;
-  padding: 13px !important;
-  border-radius: 16px !important;
-}
-
-.catalogLikeTiendaPanel .adminPriceCard small {
-  display: block !important;
-  font-size: 0.68rem !important;
-  font-weight: 950 !important;
-  letter-spacing: 0.12em !important;
-  margin-bottom: 6px !important;
-}
-
-.catalogLikeTiendaPanel .adminPriceCard strong {
-  display: block !important;
-  color: #ecffff !important;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-  font-size: 1.22rem !important;
-  line-height: 1.1 !important;
-  font-weight: 950 !important;
-}
-
-.catalogLikeTiendaPanel .adminPriceCard em {
-  display: block !important;
-  margin-top: 5px !important;
-  color: rgba(236, 255, 255, 0.42) !important;
-  font-size: 0.75rem !important;
-  font-style: normal !important;
-  text-decoration: line-through !important;
-}
-
-@media (max-width: 1500px) {
-  .catalogLikeTiendaPanel .catalogGrid {
-    grid-template-columns: repeat(2, minmax(280px, 1fr)) !important;
-  }
 }
 
 @media (max-width: 760px) {
-  .catalogLikeTiendaPanel {
-    padding: 20px 14px !important;
+  .heroPanel {
+    padding: 34px 16px 30px !important;
     border-radius: 24px !important;
   }
 
-  .catalogLikeTiendaPanel .catalogGrid {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
+  .heroPanel h1 {
+    font-size: clamp(2rem, 12vw, 3.2rem) !important;
+    line-height: 1.02 !important;
   }
 
-  .catalogLikeTiendaPanel .storePreviewCard {
-    width: 100% !important;
-    box-sizing: border-box !important;
-    padding: 16px !important;
+  .heroPanel p:not(.kicker) {
+    font-size: 0.95rem !important;
+    line-height: 1.7 !important;
   }
 
-  .catalogLikeTiendaPanel .previewBadgeRow {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-  }
-
-  .catalogLikeTiendaPanel .adminCategoryBadge,
-  .catalogLikeTiendaPanel .adminTypeBadge {
-    width: 100% !important;
-    justify-content: center !important;
-    white-space: normal !important;
-    text-align: center !important;
-  }
-
-  .catalogLikeTiendaPanel .previewImageBox {
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    aspect-ratio: 16 / 10 !important;
-  }
-
-  .catalogLikeTiendaPanel .previewBody h3 {
-    font-size: 1.18rem !important;
-  }
-
-  .catalogLikeTiendaPanel .previewBody p {
-    font-size: 0.9rem !important;
-  }
-
-  .catalogLikeTiendaPanel .adminMetaGrid,
-  .catalogLikeTiendaPanel .adminPriceGrid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .catalogLikeTiendaPanel .adminStatusRow {
+  .heroPanel .heroActions {
     display: grid !important;
     grid-template-columns: 1fr !important;
-    align-items: stretch !important;
-    text-align: center !important;
-    gap: 8px !important;
-  }
-
-  .catalogLikeTiendaPanel .statusBadge {
     width: 100% !important;
-    justify-content: center !important;
+    gap: 12px !important;
   }
 
-  .catalogLikeTiendaPanel .adminStatusRow > span:last-child {
-    text-align: center !important;
+  .heroPanel .primaryButton,
+  .heroPanel .secondaryButton {
+    width: 100% !important;
+    min-height: 58px !important;
+  }
+
+  .panel[id="catalogo"] .countBadge {
+    position: static !important;
+    display: inline-flex !important;
+    margin-top: 14px !important;
   }
 }
