@@ -2267,3 +2267,65 @@
     max-height: 320px !important;
   }
 }
+
+
+/* ==========================================================
+   CARRITO FIJO EN PC - TIENDA
+   Mantiene visible Créditos / Carrito / Tu compra al hacer scroll.
+   En celular vuelve a posición normal para no tapar productos.
+   ========================================================== */
+
+@media (min-width: 1181px) {
+  .shopSection {
+    grid-template-columns: minmax(0, 1fr) 330px !important;
+    align-items: start !important;
+  }
+
+  .cartPanel {
+    position: fixed !important;
+    top: 110px !important;
+    right: max(14px, calc((100vw - 1320px) / 2 + 14px)) !important;
+    width: 330px !important;
+    height: calc(100vh - 130px) !important;
+    max-height: calc(100vh - 130px) !important;
+    z-index: 55 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .creditMiniPanel,
+  .cartHeader,
+  .cartSummary,
+  .cartActions,
+  .cartNote {
+    flex: 0 0 auto !important;
+  }
+
+  .cartItems {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    padding-right: 2px !important;
+    scrollbar-width: none !important;
+  }
+
+  .cartPanel::-webkit-scrollbar,
+  .cartItems::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .cartPanel {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    z-index: 2 !important;
+    overflow: visible !important;
+  }
+}
