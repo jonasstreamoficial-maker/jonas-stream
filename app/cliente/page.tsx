@@ -98,7 +98,7 @@ type SoporteTicket = {
   created_at?: string | null;
 };
 
-type SectionId = "dashboard" | "compras" | "accesos" | "vencimientos" | "creditos" | "soporte" | "telegram";
+type SectionId = "dashboard" | "compras" | "accesos" | "creditos" | "soporte" | "telegram";
 
 function formatMoney(value?: number | null) {
   return `S/ ${Number(value || 0).toFixed(2)}`;
@@ -128,6 +128,38 @@ function estadoPedidoClass(estado?: string | null) {
   return styles.statusWait;
 }
 
+function normalizarFiltro(value?: string | null) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function tipoAccesoKey(cuenta?: CuentaProducto | null, producto?: Producto | null) {
+  const texto = normalizarFiltro(
+    [producto?.tipo_venta, producto?.categoria, cuenta?.producto_nombre, cuenta?.perfil].filter(Boolean).join(" ")
+  );
+
+  if (texto.includes("perfil")) return "perfil";
+  if (texto.includes("completa") || texto.includes("cuenta completa") || texto.includes("premium")) return "cuenta_completa";
+  return "otros";
+}
+
+function tipoAccesoLabel(cuenta?: CuentaProducto | null, producto?: Producto | null) {
+  const tipo = tipoAccesoKey(cuenta, producto);
+  if (tipo === "perfil") return "Perfil";
+  if (tipo === "cuenta_completa") return "Cuenta completa";
+  return producto?.tipo_venta || producto?.categoria || "Acceso digital";
+}
+
+function pedidoEstadoLabel(estado?: string | null) {
+  const value = String(estado || "pendiente").toLowerCase();
+  if (value === "completado" || value === "entregado" || value === "pagado") return "Completado";
+  if (value === "cancelado" || value === "rechazado") return "Cancelado";
+  return "Pendiente";
+}
+
 function uniqueById<T extends { id: string }>(items: T[]) {
   return Array.from(new Map(items.map((item) => [item.id, item])).values());
 }
@@ -148,6 +180,12 @@ export default function ClientePage() {
   const [soporteMensaje, setSoporteMensaje] = useState("");
   const [enviandoSoporte, setEnviandoSoporte] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
+  const [busquedaCompras, setBusquedaCompras] = useState("");
+  const [estadoCompras, setEstadoCompras] = useState("todos");
+  const [metodoCompras, setMetodoCompras] = useState("todos");
+  const [busquedaAccesos, setBusquedaAccesos] = useState("");
+  const [tipoAccesos, setTipoAccesos] = useState("todos");
+  const [estadoAccesos, setEstadoAccesos] = useState("todos");
 
   useEffect(() => {
     cargarPanelCliente();
@@ -221,11 +259,70 @@ export default function ClientePage() {
 
   const soportesAbiertos = soportes.filter((item) => String(item.estado || "pendiente").toLowerCase() !== "entregado");
 
+  const pedidosFiltrados = useMemo(() => {
+    const texto = normalizarFiltro(busquedaCompras);
+
+    return pedidos.filter((pedido) => {
+      const items = itemsPorPedido.get(pedido.id) || [];
+      const productosPedido = items
+        .map((item) => productoPorId.get(String(item.producto_id || ""))?.nombre || "Producto")
+        .join(" ");
+      const estado = normalizarFiltro(pedido.estado || "pendiente");
+      const metodo = normalizarFiltro(pedido.metodo_pago || "sin metodo");
+      const base = normalizarFiltro([
+        pedido.id,
+        pedido.cliente_nombre,
+        pedido.cliente_correo,
+        pedido.metodo_pago,
+        pedido.estado,
+        productosPedido,
+        formatMoney(pedido.total),
+      ].filter(Boolean).join(" "));
+
+      const coincideTexto = !texto || base.includes(texto);
+      const coincideEstado = estadoCompras === "todos" || estado.includes(estadoCompras);
+      const coincideMetodo = metodoCompras === "todos" || metodo.includes(metodoCompras);
+
+      return coincideTexto && coincideEstado && coincideMetodo;
+    });
+  }, [pedidos, itemsPorPedido, productoPorId, busquedaCompras, estadoCompras, metodoCompras]);
+
+  const accesosFiltrados = useMemo(() => {
+    const texto = normalizarFiltro(busquedaAccesos);
+
+    return cuentasActivas.filter((cuenta) => {
+      const producto = productoPorId.get(String(cuenta.producto_id || ""));
+      const tipo = tipoAccesoKey(cuenta, producto);
+      const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+      const estado = normalizarFiltro(cuenta.estado);
+      const base = normalizarFiltro([
+        producto?.nombre,
+        cuenta.producto_nombre,
+        cuenta.correo,
+        cuenta.perfil,
+        cuenta.pin_perfil,
+        cuenta.pin_acceso,
+        tipoAccesoLabel(cuenta, producto),
+        cuenta.pedido_id,
+        estado,
+      ].filter(Boolean).join(" "));
+
+      const coincideTexto = !texto || base.includes(texto);
+      const coincideTipo = tipoAccesos === "todos" || tipo === tipoAccesos;
+      const coincideEstado =
+        estadoAccesos === "todos" ||
+        (estadoAccesos === "por_vencer" && dias !== null && dias <= 7) ||
+        (estadoAccesos === "vigentes" && (dias === null || dias >= 8)) ||
+        estado.includes(estadoAccesos);
+
+      return coincideTexto && coincideTipo && coincideEstado;
+    });
+  }, [cuentasActivas, productoPorId, busquedaAccesos, tipoAccesos, estadoAccesos]);
+
   const menu: { id: SectionId; label: string; icon: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: "⌂" },
     { id: "compras", label: "Mis compras", icon: "▣" },
     { id: "accesos", label: "Mis accesos", icon: "✦" },
-    { id: "vencimientos", label: "Vencimientos", icon: "◷" },
     { id: "creditos", label: "Créditos", icon: "◆" },
     { id: "soporte", label: "Soporte", icon: "⚠" },
     { id: "telegram", label: "Telegram", icon: "✈" },
@@ -365,7 +462,7 @@ export default function ClientePage() {
             <h1>
               Hola, <span>{nombre}</span>
             </h1>
-            <p>Gestiona tus compras, accesos entregados, vencimientos y créditos desde un solo lugar.</p>
+            <p>Gestiona tus compras, accesos entregados, fechas de vencimiento y créditos desde un solo lugar.</p>
             <div className={styles.heroActions}>
               <Link href="/tienda">Ir a tienda</Link>
               <Link href="/carrito">Ver carrito</Link>
@@ -397,27 +494,58 @@ export default function ClientePage() {
 
           {activeSection === "compras" && (
             <GlassCard title="Mis compras">
-              {pedidos.length === 0 ? (
-                <EmptyText text="Aún no tienes compras registradas." />
+              <div className={styles.listTools}>
+                <input
+                  value={busquedaCompras}
+                  onChange={(event) => setBusquedaCompras(event.target.value)}
+                  placeholder="Buscar pedido, producto, método o monto..."
+                  className={styles.searchInput}
+                />
+                <select value={estadoCompras} onChange={(event) => setEstadoCompras(event.target.value)} className={styles.filterSelect}>
+                  <option value="todos">Todos los estados</option>
+                  <option value="pendiente">Pendientes</option>
+                  <option value="completado">Completados</option>
+                  <option value="cancelado">Cancelados</option>
+                </select>
+                <select value={metodoCompras} onChange={(event) => setMetodoCompras(event.target.value)} className={styles.filterSelect}>
+                  <option value="todos">Todos los pagos</option>
+                  <option value="creditos">Créditos</option>
+                  <option value="yape">Yape</option>
+                  <option value="plin">Plin</option>
+                  <option value="bim">Bim</option>
+                  <option value="binance">Binance</option>
+                </select>
+              </div>
+
+              <div className={styles.listSummary}>
+                <span>{pedidosFiltrados.length} pedido(s)</span>
+                <small>Lista compacta para revisar muchas compras sin llenar la pantalla.</small>
+              </div>
+
+              {pedidosFiltrados.length === 0 ? (
+                <EmptyText text="No hay compras que coincidan con el filtro." />
               ) : (
-                <div className={styles.listStack}>
-                  {pedidos.map((pedido) => {
+                <div className={styles.compactTable}>
+                  {pedidosFiltrados.map((pedido) => {
                     const items = itemsPorPedido.get(pedido.id) || [];
                     const nombres = items
                       .map((item) => productoPorId.get(String(item.producto_id || ""))?.nombre || "Producto")
                       .join(", ");
 
                     return (
-                      <div key={pedido.id} className={styles.orderItem}>
-                        <div>
-                          <h3>Pedido #{pedido.id.slice(0, 8)}</h3>
-                          <p>{nombres || "Pedido Jonas Stream"}</p>
-                          <small>{formatDate(pedido.created_at)} · {pedido.metodo_pago || "Sin método"}</small>
+                      <div key={pedido.id} className={styles.compactRow}>
+                        <div className={styles.compactMain}>
+                          <strong>#{pedido.id.slice(0, 8)}</strong>
+                          <span>{nombres || "Pedido Jonas Stream"}</span>
                         </div>
-                        <div className={styles.orderRight}>
-                          <strong>{formatMoney(pedido.total)}</strong>
-                          <span className={`${styles.statusBadge} ${estadoPedidoClass(pedido.estado)}`}>{pedido.estado || "pendiente"}</span>
+                        <div className={styles.compactMeta}>
+                          <span>{formatDate(pedido.created_at)}</span>
+                          <span>{pedido.metodo_pago || "Sin método"}</span>
                         </div>
+                        <strong className={styles.compactAmount}>{formatMoney(pedido.total)}</strong>
+                        <span className={`${styles.statusBadge} ${estadoPedidoClass(pedido.estado)}`}>
+                          {pedidoEstadoLabel(pedido.estado)}
+                        </span>
                       </div>
                     );
                   })}
@@ -428,59 +556,86 @@ export default function ClientePage() {
 
           {activeSection === "accesos" && (
             <GlassCard title="Mis accesos">
-              {cuentasActivas.length === 0 ? (
-                <EmptyText text="Todavía no tienes accesos entregados. Compra con créditos o espera que el admin apruebe tu pedido normal." />
+              <div className={styles.listTools}>
+                <input
+                  value={busquedaAccesos}
+                  onChange={(event) => setBusquedaAccesos(event.target.value)}
+                  placeholder="Buscar correo, producto, perfil, pedido o PIN..."
+                  className={styles.searchInput}
+                />
+                <select value={tipoAccesos} onChange={(event) => setTipoAccesos(event.target.value)} className={styles.filterSelect}>
+                  <option value="todos">Todos los tipos</option>
+                  <option value="cuenta_completa">Cuenta completa</option>
+                  <option value="perfil">Perfil</option>
+                  <option value="otros">Otros</option>
+                </select>
+                <select value={estadoAccesos} onChange={(event) => setEstadoAccesos(event.target.value)} className={styles.filterSelect}>
+                  <option value="todos">Todos</option>
+                  <option value="vigentes">Vigentes</option>
+                  <option value="por_vencer">Por vencer</option>
+                </select>
+              </div>
+
+              <div className={styles.listSummary}>
+                <span>{accesosFiltrados.length} acceso(s)</span>
+                <small>El vencimiento ya está sincronizado con cada acceso asignado.</small>
+              </div>
+
+              {accesosFiltrados.length === 0 ? (
+                <EmptyText text="No hay accesos que coincidan con el filtro." />
               ) : (
-                <div className={styles.accessGrid}>
-                  {cuentasActivas.map((cuenta) => {
+                <div className={styles.accessListCompact}>
+                  {accesosFiltrados.map((cuenta) => {
                     const producto = productoPorId.get(String(cuenta.producto_id || ""));
+                    const dias = getDiasRestantes(cuenta.cliente_fin || cuenta.fecha_fin);
+                    const tipo = tipoAccesoLabel(cuenta, producto);
                     const textoCopiar = [
                       `Producto: ${producto?.nombre || cuenta.producto_nombre || "Producto"}`,
+                      `Tipo: ${tipo}`,
                       `Correo: ${cuenta.correo}`,
                       `Contraseña: ${cuenta.clave}`,
                       cuenta.perfil ? `Perfil: ${cuenta.perfil}` : null,
                       cuenta.pin_perfil ? `PIN perfil: ${cuenta.pin_perfil}` : null,
+                      cuenta.pin_acceso ? `PIN consulta: ${cuenta.pin_acceso}` : null,
+                      `Inicio: ${formatDate(cuenta.cliente_inicio)}`,
                       `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
                     ].filter(Boolean).join("\n");
 
                     return (
-                      <div key={cuenta.id} className={styles.accessCard}>
-                        <div className={styles.accessTop}>
-                          <div>
-                            <h3>{producto?.nombre || cuenta.producto_nombre || "Producto"}</h3>
-                            <p>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</p>
-                          </div>
-                          <span>Activo</span>
+                      <div key={cuenta.id} className={styles.accessRowCompact}>
+                        <div className={styles.accessNameCell}>
+                          <strong>{producto?.nombre || cuenta.producto_nombre || "Producto"}</strong>
+                          <span>{tipo}</span>
                         </div>
 
-                        <InfoRow label="Correo" value={cuenta.correo || "No disponible"} />
-                        <InfoRow label="Contraseña" value={cuenta.clave || "No disponible"} />
-                        {cuenta.perfil ? <InfoRow label="Perfil" value={cuenta.perfil} /> : null}
-                        {cuenta.pin_perfil ? <InfoRow label="PIN perfil" value={cuenta.pin_perfil} /> : null}
-                        <InfoRow label="Inicio" value={formatDate(cuenta.cliente_inicio)} />
-                        <InfoRow label="Vencimiento" value={formatDate(cuenta.cliente_fin || cuenta.fecha_fin)} />
+                        <div className={styles.accessDataCell}>
+                          <span>Correo</span>
+                          <strong>{cuenta.correo || "No disponible"}</strong>
+                        </div>
 
-                        <div className={styles.accessActions}>
-                          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>Copiar datos</button>
-                          <Link href="/codigos" className={styles.secondaryButton}>Ver en códigos</Link>
+                        <div className={styles.accessDataCell}>
+                          <span>Clave</span>
+                          <strong>{cuenta.clave || "No disponible"}</strong>
+                        </div>
+
+                        <div className={styles.accessDataCell}>
+                          <span>Perfil / PIN</span>
+                          <strong>{[cuenta.perfil, cuenta.pin_perfil].filter(Boolean).join(" · ") || "No aplica"}</strong>
+                        </div>
+
+                        <div className={styles.accessDataCell}>
+                          <span>Vigencia</span>
+                          <strong>{formatDate(cuenta.cliente_inicio)} → {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</strong>
+                          <small>{dias === null ? "Sin días definidos" : dias < 0 ? `Vencido hace ${Math.abs(dias)} día(s)` : `${dias} día(s) restantes`}</small>
+                        </div>
+
+                        <div className={styles.accessRowActions}>
+                          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>Copiar</button>
+                          <Link href="/codigos" className={styles.secondaryButton}>Códigos</Link>
                         </div>
                       </div>
                     );
                   })}
-                </div>
-              )}
-            </GlassCard>
-          )}
-
-          {activeSection === "vencimientos" && (
-            <GlassCard title="Vencimientos">
-              {cuentasActivas.length === 0 ? (
-                <EmptyText text="No tienes productos con vencimiento." />
-              ) : (
-                <div className={styles.listStack}>
-                  {cuentasActivas.map((cuenta) => (
-                    <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(String(cuenta.producto_id || ""))} showButton />
-                  ))}
                 </div>
               )}
             </GlassCard>
