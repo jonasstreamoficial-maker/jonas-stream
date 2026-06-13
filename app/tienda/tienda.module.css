@@ -2329,3 +2329,75 @@
     overflow: visible !important;
   }
 }
+
+
+/* ==========================================================
+   FIX CARRITO LATERAL V2 - STICKY SIN TAPAR HERO/FILTROS
+   El panel se mantiene visible dentro de la zona de tienda,
+   pero ya no se posiciona encima del hero ni de los filtros.
+   ========================================================== */
+
+@media (min-width: 1181px) {
+  .shopSection {
+    position: relative !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 330px !important;
+    align-items: start !important;
+    gap: 18px !important;
+  }
+
+  .cartPanel {
+    position: sticky !important;
+    top: calc(var(--topbar-height) + 14px) !important;
+    right: auto !important;
+    width: 330px !important;
+    height: calc(100vh - var(--topbar-height) - 34px) !important;
+    max-height: calc(100vh - var(--topbar-height) - 34px) !important;
+    z-index: 5 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    align-self: start !important;
+  }
+
+  .creditMiniPanel,
+  .cartHeader,
+  .cartSummary,
+  .cartActions,
+  .cartNote {
+    flex: 0 0 auto !important;
+  }
+
+  .cartItems {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    padding-right: 2px !important;
+    scrollbar-width: none !important;
+  }
+
+  .cartPanel::-webkit-scrollbar,
+  .cartItems::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .cartPanel {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    z-index: 2 !important;
+    overflow: visible !important;
+    order: -1 !important;
+  }
+
+  .cartItems {
+    max-height: 320px !important;
+    overflow-y: auto !important;
+  }
+}
