@@ -893,3 +893,68 @@
     transform: none;
   }
 }
+
+/* ==========================================================
+   CODIGOS - AJUSTE MOVIL NATURAL
+   Reduce el ancho visual de los bloques en celular y controla
+   el tamaño del hero para que no se vea exagerado.
+   ========================================================== */
+
+@media (max-width: 760px) {
+  .topbarWrap,
+  .hero,
+  .mainGrid {
+    width: min(100% - 44px, 1320px) !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 18px) !important;
+    padding: 28px 18px 30px !important;
+    border-radius: 24px !important;
+  }
+
+  .heroBadge {
+    padding: 7px 12px !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 1.5px !important;
+  }
+
+  .heroTitle {
+    max-width: 560px !important;
+    font-size: clamp(1.42rem, 6vw, 1.68rem) !important;
+    line-height: 1.12 !important;
+    letter-spacing: 1px !important;
+  }
+
+  .heroText {
+    max-width: 560px !important;
+    font-size: 0.92rem !important;
+    line-height: 1.72 !important;
+  }
+
+  .infoPanel,
+  .contentPanel,
+  .accountBox,
+  .highlightBox,
+  .messagesBox {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .topbarWrap,
+  .hero,
+  .mainGrid {
+    width: min(100% - 34px, 1320px) !important;
+  }
+
+  .heroTitle {
+    font-size: 1.36rem !important;
+    line-height: 1.14 !important;
+  }
+
+  .heroText {
+    font-size: 0.88rem !important;
+  }
+}
