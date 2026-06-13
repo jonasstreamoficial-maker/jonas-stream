@@ -2,25 +2,6 @@ import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export const dynamic = "force-dynamic"
-export const runtime = "nodejs"
-
-type CuentaRow = {
-  id: string
-  producto_id: string | null
-  producto_nombre: string | null
-  correo: string
-  clave: string
-  perfil: string | null
-  pin_perfil: string | null
-  pin_acceso: string
-  estado: string
-  cliente_id: string | null
-  cliente_nombre: string | null
-  cliente_correo: string | null
-  pedido_id: string | null
-  cliente_inicio: string | null
-  cliente_fin: string | null
-}
 
 export async function POST(request: Request) {
   try {
@@ -38,18 +19,99 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseAdmin()
 
+    // Nuevo sistema: inventario de cuentas registrado desde Admin > Cuentas.
     const { data: cuenta, error: errorCuenta } = await supabase
       .from("cuentas")
-      .select(
-        "id, producto_id, producto_nombre, correo, clave, perfil, pin_perfil, pin_acceso, estado, cliente_id, cliente_nombre, cliente_correo, pedido_id, cliente_inicio, cliente_fin"
-      )
+      .select("*")
       .ilike("correo", correo)
       .eq("pin_acceso", pin)
       .limit(1)
       .maybeSingle()
 
     if (errorCuenta) {
-      console.error("Error validando cuenta:", errorCuenta)
+      console.error("Error consultando tabla cuentas:", errorCuenta)
+    }
+
+    if (cuenta) {
+      const estadoCuenta = String(cuenta.estado || "").toLowerCase()
+      const correoCuenta = String(cuenta.correo || "").toLowerCase()
+
+      if (estadoCuenta === "bloqueada") {
+        return NextResponse.json(
+          { ok: false, error: "Esta cuenta está bloqueada. Contacta con soporte." },
+          { status: 403 }
+        )
+      }
+
+      const { data: mensajes, error: errorMensajes } = await supabase
+        .from("soporte_mensajes")
+        .select("*")
+        .ilike("correo_destino", correoCuenta)
+        .order("fecha_mensaje", { ascending: false })
+        .limit(15)
+
+      if (errorMensajes) {
+        console.error("Error cargando mensajes:", errorMensajes)
+
+        return NextResponse.json(
+          { ok: false, error: "No se pudieron cargar los mensajes." },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        ok: true,
+        cliente: {
+          id: cuenta.id,
+          nombre: cuenta.cliente_nombre || cuenta.producto_nombre || "Cliente",
+          plataforma: cuenta.producto_nombre || "Cuenta asignada",
+          correo_asignado: cuenta.correo,
+          estado: cuenta.estado,
+          fecha_inicio: cuenta.cliente_inicio || null,
+          fecha_vencimiento: cuenta.cliente_fin || null,
+          clave: cuenta.clave,
+          perfil: cuenta.perfil,
+          pin_perfil: cuenta.pin_perfil,
+          pin_acceso: cuenta.pin_acceso,
+          producto_nombre: cuenta.producto_nombre,
+          cliente_nombre: cuenta.cliente_nombre,
+          cliente_correo: cuenta.cliente_correo,
+          pedido_id: cuenta.pedido_id,
+        },
+        cuenta: {
+          id: cuenta.id,
+          producto_id: cuenta.producto_id,
+          producto_nombre: cuenta.producto_nombre,
+          correo: cuenta.correo,
+          clave: cuenta.clave,
+          perfil: cuenta.perfil,
+          pin_perfil: cuenta.pin_perfil,
+          pin_acceso: cuenta.pin_acceso,
+          estado: cuenta.estado,
+          cliente_id: cuenta.cliente_id,
+          cliente_nombre: cuenta.cliente_nombre,
+          cliente_correo: cuenta.cliente_correo,
+          pedido_id: cuenta.pedido_id,
+          cliente_inicio: cuenta.cliente_inicio,
+          cliente_fin: cuenta.cliente_fin,
+          observacion_admin: cuenta.observacion_admin,
+        },
+        mensajes: mensajes || [],
+        origen: "cuentas",
+      })
+    }
+
+    // Sistema anterior: conserva soporte_clientes + soporte_mensajes.
+    const { data: cliente, error: errorCliente } = await supabase
+      .from("soporte_clientes")
+      .select("*")
+      .ilike("correo_asignado", correo)
+      .eq("pin_acceso", pin)
+      .limit(1)
+      .maybeSingle()
+
+    if (errorCliente) {
+      console.error("Error validando cliente:", errorCliente)
 
       return NextResponse.json(
         { ok: false, error: "No se pudo validar el acceso." },
@@ -57,27 +119,28 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!cuenta) {
+    if (!cliente) {
       return NextResponse.json(
         { ok: false, error: "Correo o PIN incorrecto." },
         { status: 401 }
       )
     }
 
-    const cuentaData = cuenta as CuentaRow
-    const estadoCuenta = String(cuentaData.estado || "").toLowerCase()
+    const estado = String(cliente.estado || "").toLowerCase()
 
-    if (estadoCuenta === "bloqueada") {
+    if (estado !== "activo") {
       return NextResponse.json(
-        { ok: false, error: "Esta cuenta está bloqueada. Contacta con soporte." },
+        { ok: false, error: "Esta cuenta no está activa. Contacta con soporte." },
         { status: 403 }
       )
     }
 
+    const correoAsignado = String(cliente.correo_asignado || "").toLowerCase()
+
     const { data: mensajes, error: errorMensajes } = await supabase
       .from("soporte_mensajes")
       .select("*")
-      .ilike("correo_destino", cuentaData.correo.toLowerCase())
+      .ilike("correo_destino", correoAsignado)
       .order("fecha_mensaje", { ascending: false })
       .limit(15)
 
@@ -85,7 +148,7 @@ export async function POST(request: Request) {
       console.error("Error cargando mensajes:", errorMensajes)
 
       return NextResponse.json(
-        { ok: false, error: "La cuenta fue validada, pero no se pudieron cargar los mensajes." },
+        { ok: false, error: "No se pudieron cargar los mensajes." },
         { status: 500 }
       )
     }
@@ -93,18 +156,20 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       cliente: {
-        id: cuentaData.id,
-        nombre: cuentaData.cliente_nombre || cuentaData.producto_nombre || "Cliente JONAS STREAM",
-        plataforma: cuentaData.producto_nombre || "JONAS STREAM",
-        correo_asignado: cuentaData.correo,
-        clave: cuentaData.clave,
-        perfil: cuentaData.perfil,
-        pin_perfil: cuentaData.pin_perfil,
-        estado: cuentaData.estado,
-        fecha_inicio: cuentaData.cliente_inicio || null,
-        fecha_vencimiento: cuentaData.cliente_fin || null,
+        id: cliente.id,
+        nombre: cliente.nombre,
+        plataforma: cliente.plataforma,
+        correo_asignado: cliente.correo_asignado,
+        estado: cliente.estado,
+        fecha_inicio: cliente.fecha_inicio || null,
+        fecha_vencimiento:
+          cliente.fecha_vencimiento ||
+          cliente.vencimiento ||
+          cliente.fecha_fin ||
+          null,
       },
       mensajes: mensajes || [],
+      origen: "soporte_clientes",
     })
   } catch (error) {
     console.error("Error en consulta de códigos:", error)
