@@ -440,12 +440,12 @@ export default function VerPreciosPage() {
         </div>
       </section>
 
-      <section className={styles.panel} id="catalogo">
-        <div className={styles.panelHeader}>
+      <section className={`${styles.panel} ${styles.catalogLikeTiendaPanel}`} id="catalogo">
+        <div className={`${styles.panelHeader} ${styles.catalogLikeTiendaHeader}`}>
           <div>
             <p className={styles.kicker}>Catálogo visual</p>
-            <h2>Productos, precios y stock</h2>
-            <span>Tarjetas con color neón por plataforma, precio en PEN/USD y stock actualizado.</span>
+            <h2>Productos disponibles</h2>
+            <span>Catálogo público con color neón por plataforma, precio en PEN/USD y stock actualizado.</span>
           </div>
           <span className={styles.countBadge}>{loadingProducts ? "Cargando" : `${filteredProducts.length} visibles`}</span>
         </div>

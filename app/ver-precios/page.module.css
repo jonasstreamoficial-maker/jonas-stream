@@ -1482,3 +1482,316 @@
     text-align: right !important;
   }
 }
+
+
+/* ==========================================================
+   ALINEAR VER PRECIOS CON TIENDA
+   Mismo centrado, tipografía y estilo visual en catálogo.
+   Ver precios sigue siendo solo catálogo público, sin compra.
+   ========================================================== */
+
+.catalogLikeTiendaPanel {
+  padding: 28px !important;
+  border-radius: 30px !important;
+  background: rgba(3, 19, 22, 0.78) !important;
+  border: 1px solid rgba(236, 255, 255, 0.06) !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32) !important;
+  overflow: hidden !important;
+}
+
+.catalogLikeTiendaPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 84% 18%, rgba(0, 251, 255, 0.1), transparent 22%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.04), transparent 52%, rgba(1, 139, 144, 0.04));
+  pointer-events: none;
+}
+
+.catalogLikeTiendaHeader {
+  position: relative !important;
+  z-index: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  max-width: 860px !important;
+  margin: 0 auto 26px !important;
+  gap: 10px !important;
+}
+
+.catalogLikeTiendaHeader > div {
+  display: grid !important;
+  justify-items: center !important;
+  text-align: center !important;
+}
+
+.catalogLikeTiendaHeader .kicker,
+.catalogLikeTiendaPanel .kicker {
+  display: inline-flex !important;
+  justify-content: center !important;
+  width: fit-content !important;
+  margin: 0 auto 12px !important;
+  padding: 8px 14px !important;
+  border-radius: 999px !important;
+  background: rgba(1, 231, 239, 0.1) !important;
+  border: 1px solid rgba(1, 231, 239, 0.16) !important;
+  color: #01e7ef !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 1.8px !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+}
+
+.catalogLikeTiendaHeader h2 {
+  margin: 0 !important;
+  color: #ecffff !important;
+  font-family: "Orbitron", sans-serif !important;
+  font-size: clamp(1.35rem, 3vw, 2.25rem) !important;
+  line-height: 1.08 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+}
+
+.catalogLikeTiendaHeader span:not(.countBadge) {
+  display: block !important;
+  max-width: 760px !important;
+  margin: 10px auto 0 !important;
+  color: #9bc8cb !important;
+  line-height: 1.6 !important;
+  font-size: 0.98rem !important;
+  text-align: center !important;
+}
+
+.catalogLikeTiendaHeader .countBadge {
+  margin-top: 2px !important;
+}
+
+.catalogLikeTiendaPanel .catalogGrid {
+  position: relative !important;
+  z-index: 2 !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(245px, 1fr)) !important;
+  gap: 18px !important;
+}
+
+.catalogLikeTiendaPanel .storePreviewCard {
+  max-width: 100% !important;
+  padding: 18px !important;
+  border-radius: 26px !important;
+}
+
+.catalogLikeTiendaPanel .previewBadgeRow {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 0 0 12px !important;
+}
+
+.catalogLikeTiendaPanel .adminCategoryBadge,
+.catalogLikeTiendaPanel .adminTypeBadge {
+  min-height: 30px !important;
+  padding: 7px 11px !important;
+  border-radius: 999px !important;
+  font-size: 0.72rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.catalogLikeTiendaPanel .previewImageBox {
+  height: 220px !important;
+  min-height: 220px !important;
+  border-radius: 22px !important;
+}
+
+.catalogLikeTiendaPanel .previewBody {
+  padding-top: 18px !important;
+}
+
+.catalogLikeTiendaPanel .previewBody h3 {
+  margin: 0 0 8px !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 1.42rem !important;
+  line-height: 1.12 !important;
+  font-weight: 950 !important;
+  text-align: center !important;
+  letter-spacing: -0.03em !important;
+  text-transform: uppercase !important;
+}
+
+.catalogLikeTiendaPanel .previewBody p {
+  min-height: 0 !important;
+  margin: 0 0 16px !important;
+  color: #9bc8cb !important;
+  font-size: 0.98rem !important;
+  line-height: 1.45 !important;
+  text-align: center !important;
+}
+
+.catalogLikeTiendaPanel .stockBar {
+  min-height: 38px !important;
+  padding: 8px 12px !important;
+  margin: 0 0 16px !important;
+  border-radius: 999px !important;
+}
+
+.catalogLikeTiendaPanel .adminMetaGrid,
+.catalogLikeTiendaPanel .adminPriceGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.catalogLikeTiendaPanel .adminMetaCard {
+  min-height: 68px !important;
+  padding: 12px !important;
+  border-radius: 16px !important;
+}
+
+.catalogLikeTiendaPanel .adminMetaCard span {
+  font-size: 0.68rem !important;
+  letter-spacing: 0.11em !important;
+}
+
+.catalogLikeTiendaPanel .adminMetaCard strong {
+  font-size: 0.88rem !important;
+  line-height: 1.28 !important;
+  font-weight: 900 !important;
+}
+
+.catalogLikeTiendaPanel .adminStatusRow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+}
+
+.catalogLikeTiendaPanel .statusBadge {
+  min-height: 32px !important;
+  padding: 7px 10px !important;
+  border-radius: 999px !important;
+  font-size: 0.76rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0 !important;
+}
+
+.catalogLikeTiendaPanel .adminStatusRow > span:last-child {
+  color: #9bc8cb !important;
+  font-size: 0.82rem !important;
+  font-weight: 850 !important;
+  text-align: right !important;
+}
+
+.catalogLikeTiendaPanel .adminPriceCard {
+  min-height: 70px !important;
+  padding: 13px !important;
+  border-radius: 16px !important;
+}
+
+.catalogLikeTiendaPanel .adminPriceCard small {
+  display: block !important;
+  font-size: 0.68rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.12em !important;
+  margin-bottom: 6px !important;
+}
+
+.catalogLikeTiendaPanel .adminPriceCard strong {
+  display: block !important;
+  color: #ecffff !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 1.22rem !important;
+  line-height: 1.1 !important;
+  font-weight: 950 !important;
+}
+
+.catalogLikeTiendaPanel .adminPriceCard em {
+  display: block !important;
+  margin-top: 5px !important;
+  color: rgba(236, 255, 255, 0.42) !important;
+  font-size: 0.75rem !important;
+  font-style: normal !important;
+  text-decoration: line-through !important;
+}
+
+@media (max-width: 1500px) {
+  .catalogLikeTiendaPanel .catalogGrid {
+    grid-template-columns: repeat(2, minmax(280px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .catalogLikeTiendaPanel {
+    padding: 20px 14px !important;
+    border-radius: 24px !important;
+  }
+
+  .catalogLikeTiendaPanel .catalogGrid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .catalogLikeTiendaPanel .storePreviewCard {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 16px !important;
+  }
+
+  .catalogLikeTiendaPanel .previewBadgeRow {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .catalogLikeTiendaPanel .adminCategoryBadge,
+  .catalogLikeTiendaPanel .adminTypeBadge {
+    width: 100% !important;
+    justify-content: center !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  .catalogLikeTiendaPanel .previewImageBox {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 16 / 10 !important;
+  }
+
+  .catalogLikeTiendaPanel .previewBody h3 {
+    font-size: 1.18rem !important;
+  }
+
+  .catalogLikeTiendaPanel .previewBody p {
+    font-size: 0.9rem !important;
+  }
+
+  .catalogLikeTiendaPanel .adminMetaGrid,
+  .catalogLikeTiendaPanel .adminPriceGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .catalogLikeTiendaPanel .adminStatusRow {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+    text-align: center !important;
+    gap: 8px !important;
+  }
+
+  .catalogLikeTiendaPanel .statusBadge {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .catalogLikeTiendaPanel .adminStatusRow > span:last-child {
+    text-align: center !important;
+  }
+}
