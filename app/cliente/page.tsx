@@ -46,16 +46,23 @@ type PedidoItem = {
 
 type CuentaProducto = {
   id: string;
-  producto_id: string;
+  producto_id?: string | null;
+  producto_nombre?: string | null;
   correo: string;
   clave: string;
+  perfil?: string | null;
+  pin_perfil?: string | null;
+  pin_acceso?: string | null;
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
   cliente_inicio?: string | null;
   cliente_fin?: string | null;
   estado: string;
   pedido_id?: string | null;
-  usuario_id?: string | null;
+  cliente_id?: string | null;
+  cliente_nombre?: string | null;
+  cliente_correo?: string | null;
+  observacion_admin?: string | null;
   notas?: string | null;
   created_at?: string | null;
 };
@@ -101,7 +108,7 @@ function formatDate(value?: string | null) {
   if (!value) return "Sin fecha";
   const date = value.includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
-  return date.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return date.toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function getDiasRestantes(fecha?: string | null) {
@@ -150,103 +157,32 @@ export default function ClientePage() {
     try {
       setLoading(true);
 
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
+      const response = await fetch("/api/cliente/resumen", {
+        method: "GET",
+        cache: "no-store",
+      });
 
-      if (authError || !user) {
+      if (response.status === 401) {
         router.replace("/login");
         return;
       }
 
-      const { data: usuarioData } = await supabase
-        .from("usuarios")
-        .select("id,nombre,correo,rol,estado,celular,celular_completo")
-        .eq("id", user.id)
-        .maybeSingle();
+      const payload = await response.json().catch(() => null);
 
-      const usuarioFinal: Usuario =
-        usuarioData || {
-          id: user.id,
-          nombre: user.user_metadata?.name || user.email?.split("@")[0] || "Cliente",
-          correo: user.email || "",
-          rol: "cliente",
-          estado: "aprobado",
-        };
-
-      setUsuario(usuarioFinal);
-
-      const correoUsuario = usuarioFinal.correo || user.email || "";
-      const pedidosQuery = correoUsuario
-        ? `usuario_id.eq.${user.id},cliente_correo.eq.${correoUsuario}`
-        : `usuario_id.eq.${user.id}`;
-
-      const [pedidosResult, creditosResult, soportesResult] = await Promise.all([
-        supabase.from("pedidos").select("*").or(pedidosQuery).order("created_at", { ascending: false }),
-        supabase.from("creditos").select("*").eq("usuario_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("soporte_tickets").select("*").eq("usuario_id", user.id).order("created_at", { ascending: false }),
-      ]);
-
-      const pedidosData = (pedidosResult.data || []) as Pedido[];
-      const creditosData = (creditosResult.data || []) as Credito[];
-      const soportesData = (soportesResult.data || []) as SoporteTicket[];
-      setPedidos(pedidosData);
-      setCreditos(creditosData);
-      setSoportes(soportesData);
-
-      if (soportesResult.error) {
-        console.warn("Soporte no disponible todavía:", soportesResult.error.message);
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error || "No se pudo cargar el panel cliente");
       }
 
-      const pedidoIds = pedidosData.map((pedido) => pedido.id).filter(Boolean);
-
-      let cuentasPorUsuario: CuentaProducto[] = [];
-      const { data: cuentasUsuarioData } = await supabase
-        .from("cuentas_producto")
-        .select("*")
-        .eq("usuario_id", user.id)
-        .order("cliente_fin", { ascending: true });
-      cuentasPorUsuario = (cuentasUsuarioData || []) as CuentaProducto[];
-
-      let cuentasPorPedido: CuentaProducto[] = [];
-      if (pedidoIds.length > 0) {
-        const { data: cuentasPedidoData } = await supabase
-          .from("cuentas_producto")
-          .select("*")
-          .in("pedido_id", pedidoIds)
-          .order("cliente_fin", { ascending: true });
-        cuentasPorPedido = (cuentasPedidoData || []) as CuentaProducto[];
-      }
-
-      const cuentasData = uniqueById([...cuentasPorUsuario, ...cuentasPorPedido]);
-      setCuentas(cuentasData);
-
-      let itemsData: PedidoItem[] = [];
-      if (pedidoIds.length > 0) {
-        const { data } = await supabase.from("pedido_items").select("*").in("pedido_id", pedidoIds);
-        itemsData = (data || []) as PedidoItem[];
-      }
-      setPedidoItems(itemsData);
-
-      const productoIds = Array.from(
-        new Set([
-          ...cuentasData.map((cuenta) => cuenta.producto_id).filter(Boolean),
-          ...itemsData.map((item) => item.producto_id).filter(Boolean),
-        ] as string[]),
-      );
-
-      if (productoIds.length > 0) {
-        const { data } = await supabase
-          .from("productos")
-          .select("id,nombre,imagen,categoria,tipo_venta")
-          .in("id", productoIds);
-        setProductos((data || []) as Producto[]);
-      } else {
-        setProductos([]);
-      }
+      setUsuario(payload.usuario || null);
+      setPedidos((payload.pedidos || []) as Pedido[]);
+      setCreditos((payload.creditos || []) as Credito[]);
+      setSoportes((payload.soportes || []) as SoporteTicket[]);
+      setCuentas((payload.cuentas || []) as CuentaProducto[]);
+      setPedidoItems((payload.pedido_items || []) as PedidoItem[]);
+      setProductos((payload.productos || []) as Producto[]);
     } catch (error) {
       console.error("Error cargando panel cliente:", error);
+      toast.error("No se pudo cargar tu panel cliente");
     } finally {
       setLoading(false);
     }
@@ -269,7 +205,10 @@ export default function ClientePage() {
     return map;
   }, [pedidoItems]);
 
-  const cuentasActivas = cuentas.filter((cuenta) => String(cuenta.estado || "").toLowerCase() === "entregada");
+  const cuentasActivas = cuentas.filter((cuenta) => {
+    const estado = String(cuenta.estado || "").toLowerCase();
+    return estado === "asignada" || estado === "entregada" || estado === "activo";
+  });
 
   const proximosVencimientos = useMemo(() => {
     return cuentasActivas
@@ -321,7 +260,7 @@ export default function ClientePage() {
     }
 
     const cuenta = cuentasActivas.find((item) => item.id === soporteCuentaId);
-    const producto = cuenta ? productoPorId.get(cuenta.producto_id) : null;
+    const producto = cuenta ? productoPorId.get(String(cuenta.producto_id || "")) : null;
 
     if (!cuenta) {
       toast.error("No se encontró la cuenta seleccionada");
@@ -338,7 +277,7 @@ export default function ClientePage() {
         producto_id: cuenta.producto_id || null,
         cliente_nombre: usuario.nombre || "Cliente",
         cliente_correo: usuario.correo || "",
-        producto_nombre: producto?.nombre || "Producto",
+        producto_nombre: producto?.nombre || cuenta.producto_nombre || "Producto",
         cuenta_correo: cuenta.correo || "",
         problema: soporteProblema,
         mensaje: soporteMensaje.trim(),
@@ -448,7 +387,7 @@ export default function ClientePage() {
                 ) : (
                   <div className={styles.listStack}>
                     {proximosVencimientos.map((cuenta) => (
-                      <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} />
+                      <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(String(cuenta.producto_id || ""))} />
                     ))}
                   </div>
                 )}
@@ -494,19 +433,21 @@ export default function ClientePage() {
               ) : (
                 <div className={styles.accessGrid}>
                   {cuentasActivas.map((cuenta) => {
-                    const producto = productoPorId.get(cuenta.producto_id);
+                    const producto = productoPorId.get(String(cuenta.producto_id || ""));
                     const textoCopiar = [
-                      `Producto: ${producto?.nombre || "Producto"}`,
+                      `Producto: ${producto?.nombre || cuenta.producto_nombre || "Producto"}`,
                       `Correo: ${cuenta.correo}`,
                       `Contraseña: ${cuenta.clave}`,
+                      cuenta.perfil ? `Perfil: ${cuenta.perfil}` : null,
+                      cuenta.pin_perfil ? `PIN perfil: ${cuenta.pin_perfil}` : null,
                       `Vence: ${formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}`,
-                    ].join("\n");
+                    ].filter(Boolean).join("\n");
 
                     return (
                       <div key={cuenta.id} className={styles.accessCard}>
                         <div className={styles.accessTop}>
                           <div>
-                            <h3>{producto?.nombre || "Producto"}</h3>
+                            <h3>{producto?.nombre || cuenta.producto_nombre || "Producto"}</h3>
                             <p>{producto?.tipo_venta || producto?.categoria || "Acceso digital"}</p>
                           </div>
                           <span>Activo</span>
@@ -514,10 +455,15 @@ export default function ClientePage() {
 
                         <InfoRow label="Correo" value={cuenta.correo || "No disponible"} />
                         <InfoRow label="Contraseña" value={cuenta.clave || "No disponible"} />
+                        {cuenta.perfil ? <InfoRow label="Perfil" value={cuenta.perfil} /> : null}
+                        {cuenta.pin_perfil ? <InfoRow label="PIN perfil" value={cuenta.pin_perfil} /> : null}
                         <InfoRow label="Inicio" value={formatDate(cuenta.cliente_inicio)} />
                         <InfoRow label="Vencimiento" value={formatDate(cuenta.cliente_fin || cuenta.fecha_fin)} />
 
-                        <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>Copiar datos</button>
+                        <div className={styles.accessActions}>
+                          <button type="button" onClick={() => copiarTexto(textoCopiar)} className={styles.primaryButton}>Copiar datos</button>
+                          <Link href="/codigos" className={styles.secondaryButton}>Ver en códigos</Link>
+                        </div>
                       </div>
                     );
                   })}
@@ -533,7 +479,7 @@ export default function ClientePage() {
               ) : (
                 <div className={styles.listStack}>
                   {cuentasActivas.map((cuenta) => (
-                    <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(cuenta.producto_id)} showButton />
+                    <VencimientoItem key={cuenta.id} cuenta={cuenta} producto={productoPorId.get(String(cuenta.producto_id || ""))} showButton />
                   ))}
                 </div>
               )}
@@ -583,10 +529,10 @@ export default function ClientePage() {
                     <select value={soporteCuentaId} onChange={(event) => setSoporteCuentaId(event.target.value)}>
                       <option value="">Selecciona una cuenta</option>
                       {cuentasActivas.map((cuenta) => {
-                        const producto = productoPorId.get(cuenta.producto_id);
+                        const producto = productoPorId.get(String(cuenta.producto_id || ""));
                         return (
                           <option key={cuenta.id} value={cuenta.id}>
-                            {(producto?.nombre || "Producto") + " - " + cuenta.correo}
+                            {(producto?.nombre || cuenta.producto_nombre || "Producto") + " - " + cuenta.correo}
                           </option>
                         );
                       })}
@@ -756,7 +702,7 @@ function VencimientoItem({ cuenta, producto, showButton = false }: { cuenta: Cue
   return (
     <div className={`${styles.expireItem} ${danger ? styles.expireDanger : warning ? styles.expireWarning : ""}`}>
       <div>
-        <h3>{producto?.nombre || "Producto"}</h3>
+        <h3>{producto?.nombre || cuenta.producto_nombre || "Producto"}</h3>
         <p>{dias === null ? "Sin fecha de vencimiento" : dias < 0 ? `Venció hace ${Math.abs(dias)} día(s)` : `Vence en ${dias} día(s)`}</p>
         <small>Vencimiento: {formatDate(cuenta.cliente_fin || cuenta.fecha_fin)}</small>
       </div>

@@ -874,3 +874,43 @@
     text-align: left;
   }
 }
+
+/* ==========================================================
+   PANEL CLIENTE - ACCIONES Y AJUSTES JONAS STREAM
+   Mantiene el estilo del admin, pero adaptado al cliente.
+   ========================================================== */
+
+.accessActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.secondaryButton {
+  min-height: 46px;
+  border-radius: 15px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: 1px solid rgba(1, 231, 239, 0.28);
+  background: rgba(1, 231, 239, 0.07);
+  color: var(--cyan-strong);
+  font-weight: 950;
+  cursor: pointer;
+  transition: 0.22s ease;
+}
+
+.secondaryButton:hover,
+.primaryButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 251, 255, 0.48);
+  box-shadow: 0 0 24px rgba(1, 231, 239, 0.12);
+}
+
+@media (max-width: 760px) {
+  .accessActions {
+    grid-template-columns: 1fr;
+  }
+}
