@@ -163,17 +163,14 @@ function normalizeType(value?: string | null): ProductType {
 }
 
 function normalizeStatus(product: ProductoDB): ProductStatus {
-  const explicit = String(product.estado_catalogo || "").toUpperCase();
+  const stock = Number(product.stock || 0);
 
-  if (explicit === "ACTIVO" || explicit === "LIMITADO" || explicit === "AGOTADO") {
-    return explicit;
+  // En el catálogo público el color del stock se controla solo por cantidad:
+  // stock > 0 = verde / disponible, stock = 0 = rojo / agotado.
+  if (stock <= 0 || normalizeText(product.estado) === "inactivo") {
+    return "AGOTADO";
   }
 
-  if (normalizeText(product.estado) === "inactivo") return "AGOTADO";
-
-  const stock = Number(product.stock || 0);
-  if (stock <= 0) return "AGOTADO";
-  if (stock <= 3) return "LIMITADO";
   return "ACTIVO";
 }
 
@@ -245,6 +242,11 @@ function getStatusClass(status: ProductStatus) {
   if (status === "ACTIVO") return styles.statusActive;
   if (status === "LIMITADO") return styles.statusLimited;
   return styles.statusSoldOut;
+}
+
+function getStatusLabel(status: ProductStatus) {
+  if (status === "ACTIVO") return "DISPONIBLE";
+  return status;
 }
 
 function getTypeClass(type: ProductType) {
@@ -514,7 +516,7 @@ export default function VerPreciosPage() {
                     </div>
 
                     <div className={styles.adminStatusRow}>
-                      <span className={`${styles.statusBadge} ${getStatusClass(product.status)}`}>{product.status}</span>
+                      <span className={`${styles.statusBadge} ${getStatusClass(product.status)}`}>{getStatusLabel(product.status)}</span>
                       <span>{product.stockText}</span>
                     </div>
 

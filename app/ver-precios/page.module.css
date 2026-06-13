@@ -1397,3 +1397,88 @@
 .adminPriceCard em {
   color: rgba(236, 255, 255, 0.42) !important;
 }
+
+/* ==========================================================
+   AJUSTE STOCK VERDE/ROJO - VER PRECIOS
+   Igual que tienda: stock > 0 verde, stock = 0 rojo.
+   ========================================================== */
+
+.stock_activo,
+.stock_limitado {
+  border-color: rgba(124, 255, 178, 0.48) !important;
+  background:
+    linear-gradient(135deg, rgba(124, 255, 178, 0.13), rgba(3, 19, 22, 0.72)) !important;
+  box-shadow:
+    0 0 0 1px rgba(124, 255, 178, 0.12),
+    0 0 18px rgba(124, 255, 178, 0.12),
+    inset 0 0 18px rgba(124, 255, 178, 0.06) !important;
+}
+
+.stock_activo span,
+.stock_activo strong,
+.stock_limitado span,
+.stock_limitado strong {
+  color: #7cffb2 !important;
+  text-shadow: 0 0 12px rgba(124, 255, 178, 0.18) !important;
+}
+
+.stock_agotado {
+  border-color: rgba(255, 143, 163, 0.52) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 143, 163, 0.14), rgba(3, 19, 22, 0.72)) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 143, 163, 0.12),
+    0 0 18px rgba(255, 143, 163, 0.12),
+    inset 0 0 18px rgba(255, 143, 163, 0.06) !important;
+}
+
+.stock_agotado span,
+.stock_agotado strong {
+  color: #ff8fa3 !important;
+  text-shadow: 0 0 12px rgba(255, 143, 163, 0.2) !important;
+}
+
+.statusActive,
+.statusLimited {
+  color: #7cffb2 !important;
+  background: rgba(124, 255, 178, 0.11) !important;
+  border: 1px solid rgba(124, 255, 178, 0.32) !important;
+  box-shadow: 0 0 14px rgba(124, 255, 178, 0.08) !important;
+}
+
+.statusSoldOut {
+  color: #ff8fa3 !important;
+  background: rgba(255, 143, 163, 0.11) !important;
+  border: 1px solid rgba(255, 143, 163, 0.32) !important;
+  box-shadow: 0 0 14px rgba(255, 143, 163, 0.08) !important;
+}
+
+.adminStatusRow > span:last-child {
+  font-weight: 900 !important;
+}
+
+@media (max-width: 760px) {
+  .catalogGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .storePreviewCard {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .stockBar {
+    min-height: 42px !important;
+    padding: 9px 13px !important;
+  }
+
+  .adminStatusRow {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+  }
+
+  .adminStatusRow > span:last-child {
+    text-align: right !important;
+  }
+}
