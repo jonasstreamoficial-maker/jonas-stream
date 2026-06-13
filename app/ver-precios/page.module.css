@@ -1681,3 +1681,12 @@
     margin-top: 14px !important;
   }
 }
+
+
+/* ==========================================================
+   VER PRECIOS - SIN BLOQUE DE MÉTRICAS
+   Se elimina la fila Activos / Limitados / Cuentas / Ofertas.
+   ========================================================== */
+.metricsGrid {
+  display: none !important;
+}

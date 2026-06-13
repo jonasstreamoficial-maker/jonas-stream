@@ -303,14 +303,7 @@ export default function VerPreciosPage() {
     };
   }, []);
 
-  const metrics = useMemo(() => {
-    const active = products.filter((product) => product.status === "ACTIVO").length;
-    const limited = products.filter((product) => product.status === "LIMITADO").length;
-    const accounts = products.filter((product) => product.type === "Cuenta completa").length;
-    const offers = products.filter((product) => product.offer || product.featured).length;
 
-    return { active, limited, accounts, offers };
-  }, [products]);
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = normalizeText(search);
@@ -388,21 +381,6 @@ export default function VerPreciosPage() {
           <strong>{products.length}</strong>
           <p>{lastUpdate ? `Última sincronización ${lastUpdate}` : "Sincronizando con Supabase"}</p>
         </aside>
-      </section>
-
-      <section className={styles.metricsGrid} aria-label="Resumen del catálogo">
-        <button type="button" onClick={() => setStatusFilter("ACTIVO")} className={styles.metricCard}>
-          <span>Activos</span><strong>{metrics.active}</strong><small>Publicados</small>
-        </button>
-        <button type="button" onClick={() => setStatusFilter("LIMITADO")} className={`${styles.metricCard} ${styles.metricWarning}`}>
-          <span>Limitados</span><strong>{metrics.limited}</strong><small>Bajo stock</small>
-        </button>
-        <button type="button" onClick={() => setTypeFilter("Cuenta completa")} className={styles.metricCard}>
-          <span>Cuentas</span><strong>{metrics.accounts}</strong><small>Completas</small>
-        </button>
-        <button type="button" onClick={() => { setSearch(""); setTypeFilter("TODOS"); setStatusFilter("TODOS"); }} className={styles.metricCard}>
-          <span>Ofertas</span><strong>{metrics.offers}</strong><small>Destacados</small>
-        </button>
       </section>
 
       <section className={styles.panel} aria-label="Filtros de catálogo">
