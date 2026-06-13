@@ -1318,3 +1318,66 @@
     margin-top: calc(var(--topbar-height) + 26px) !important;
   }
 }
+
+/* ==========================================================
+   FIX MOBILE NATURAL - CARRITO
+   Corrige exceso de separación y ancho en celular.
+   Mantiene header fijo, pero con espacio más natural.
+   ========================================================== */
+
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 244px !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .topbarWrap,
+  .hero,
+  .checkoutGrid,
+  .emptySection,
+  .deliverySection {
+    width: min(100% - 28px, 1320px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbarWrap {
+    padding-top: 10px !important;
+  }
+
+  .topbar {
+    border-radius: 20px !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 14px) !important;
+    padding: 28px 16px !important;
+    border-radius: 26px !important;
+  }
+
+  .productsPanel,
+  .summaryPanel,
+  .emptySection {
+    border-radius: 26px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .page {
+    --topbar-height: 244px !important;
+  }
+
+  .topbarWrap,
+  .hero,
+  .checkoutGrid,
+  .emptySection,
+  .deliverySection {
+    width: min(100% - 26px, 1320px) !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 14px) !important;
+  }
+}
