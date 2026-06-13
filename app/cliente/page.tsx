@@ -167,7 +167,6 @@ function uniqueById<T extends { id: string }>(items: T[]) {
 export default function ClientePage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [pedidoItems, setPedidoItems] = useState<PedidoItem[]>([]);
@@ -193,8 +192,6 @@ export default function ClientePage() {
 
   const cargarPanelCliente = async () => {
     try {
-      setLoading(true);
-
       const response = await fetch("/api/cliente/resumen", {
         method: "GET",
         cache: "no-store",
@@ -221,8 +218,6 @@ export default function ClientePage() {
     } catch (error) {
       console.error("Error cargando panel cliente:", error);
       toast.error("No se pudo cargar tu panel cliente");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -410,17 +405,6 @@ export default function ClientePage() {
     }
   };
 
-
-  if (loading) {
-    return (
-      <main className={styles.loadingPage}>
-        <div className={styles.loadingCard}>
-          <div className={styles.loader} />
-          <p>Cargando tu panel...</p>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className={styles.page}>
