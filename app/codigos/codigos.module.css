@@ -1062,3 +1062,47 @@
     margin-top: calc(var(--topbar-height) + 42px) !important;
   }
 }
+
+/* ==========================================================
+   CODIGOS - FIX DEFINITIVO MOVIL ANCHO + SEPARACION
+   Reduce el ancho de los bloques en celular y mantiene una
+   separación normal debajo del menú fijo.
+   ========================================================== */
+
+@media (max-width: 760px) {
+  .topbarWrap,
+  .hero,
+  .mainGrid {
+    width: min(100% - 46px, 380px) !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 34px) !important;
+    padding: 24px 14px 26px !important;
+    border-radius: 24px !important;
+  }
+
+  .infoPanel,
+  .contentPanel,
+  .accountBox,
+  .highlightBox,
+  .messagesBox,
+  .emptyState {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .topbarWrap,
+  .hero,
+  .mainGrid {
+    width: min(100% - 42px, 360px) !important;
+  }
+
+  .hero {
+    margin-top: calc(var(--topbar-height) + 32px) !important;
+    padding: 22px 13px 24px !important;
+  }
+}
