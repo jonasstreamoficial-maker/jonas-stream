@@ -2,186 +2,278 @@ import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
+
+type PedidoItem = {
+  producto_id: string | null
+  cantidad: number | null
+  precio?: number | null
+}
+
+type Producto = {
+  id: string
+  nombre: string | null
+  duracion?: string | null
+  duracion_dias?: number | null
+  tipo_venta?: string | null
+}
+
+type Pedido = {
+  id: string
+  usuario_id?: string | null
+  cliente_nombre?: string | null
+  cliente_correo?: string | null
+  producto_nombre?: string | null
+  estado?: string | null
+}
+
+function normalizarTexto(valor?: string | null) {
+  return String(valor || "").trim().toLowerCase()
+}
+
+function calcularDuracionDias(producto?: Producto | null) {
+  const duracionDias = Number(producto?.duracion_dias || 0)
+  if (Number.isFinite(duracionDias) && duracionDias > 0) return duracionDias
+
+  const texto = normalizarTexto(producto?.duracion)
+  const numeroEncontrado = texto.match(/\d+/)
+  const numero = numeroEncontrado ? Number(numeroEncontrado[0]) : 0
+
+  if (!Number.isFinite(numero) || numero <= 0) return 30
+  if (texto.includes("año") || texto.includes("ano")) return numero * 365
+  if (texto.includes("mes")) return numero * 30
+  if (texto.includes("semana")) return numero * 7
+  if (texto.includes("día") || texto.includes("dia")) return numero
+
+  return numero
+}
+
+function sumarDias(fecha: Date, dias: number) {
+  const copia = new Date(fecha)
+  copia.setDate(copia.getDate() + dias)
+  return copia
+}
+
+async function buscarProductoPorNombre(supabase: ReturnType<typeof getSupabaseAdmin>, nombre?: string | null) {
+  const nombreLimpio = String(nombre || "").trim()
+  if (!nombreLimpio) return null
+
+  const { data } = await supabase
+    .from("productos")
+    .select("id,nombre,duracion,duracion_dias,tipo_venta")
+    .ilike("nombre", nombreLimpio)
+    .limit(1)
+    .maybeSingle()
+
+  if (data) return data as Producto
+
+  const { data: dataFlexible } = await supabase
+    .from("productos")
+    .select("id,nombre,duracion,duracion_dias,tipo_venta")
+    .ilike("nombre", `%${nombreLimpio}%`)
+    .limit(1)
+    .maybeSingle()
+
+  return (dataFlexible as Producto | null) || null
+}
+
+async function obtenerItemsDelPedido(supabase: ReturnType<typeof getSupabaseAdmin>, pedido: Pedido) {
+  const { data: items, error } = await supabase
+    .from("pedido_items")
+    .select("producto_id,cantidad,precio")
+    .eq("pedido_id", pedido.id)
+
+  if (!error && items && items.length > 0) {
+    return items as PedidoItem[]
+  }
+
+  const producto = await buscarProductoPorNombre(supabase, pedido.producto_nombre)
+  if (!producto?.id) return []
+
+  return [{ producto_id: producto.id, cantidad: 1 }]
+}
+
+async function obtenerProducto(supabase: ReturnType<typeof getSupabaseAdmin>, productoId: string) {
+  const { data, error } = await supabase
+    .from("productos")
+    .select("id,nombre,duracion,duracion_dias,tipo_venta")
+    .eq("id", productoId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data as Producto
+}
+
+async function asignarPedido(pedidoId: string) {
+  const supabase = getSupabaseAdmin()
+
+  const { data: pedidoData, error: pedidoError } = await supabase
+    .from("pedidos")
+    .select("id,usuario_id,cliente_nombre,cliente_correo,producto_nombre,estado")
+    .eq("id", pedidoId)
+    .maybeSingle()
+
+  if (pedidoError || !pedidoData) {
+    throw new Error("No se encontró el pedido")
+  }
+
+  const pedido = pedidoData as Pedido
+  const items = await obtenerItemsDelPedido(supabase, pedido)
+
+  if (items.length === 0) {
+    throw new Error("El pedido no tiene productos vinculados")
+  }
+
+  const cuentasAsignadas: Array<{
+    id: string
+    producto_id: string
+    producto_nombre: string | null
+    correo: string
+    cliente_inicio: string
+    cliente_fin: string
+  }> = []
+
+  const inicio = new Date()
+
+  for (const item of items) {
+    const productoId = item.producto_id
+    const cantidad = Math.max(1, Number(item.cantidad || 1))
+
+    if (!productoId) {
+      throw new Error("Uno de los productos del pedido no tiene producto_id")
+    }
+
+    const producto = await obtenerProducto(supabase, productoId)
+
+    if (!producto) {
+      throw new Error("No se encontró uno de los productos del pedido")
+    }
+
+    const { data: cuentasDisponibles, error: cuentasError } = await supabase
+      .from("cuentas")
+      .select("id,correo")
+      .eq("producto_id", productoId)
+      .eq("estado", "disponible")
+      .order("created_at", { ascending: true })
+      .limit(cantidad)
+
+    if (cuentasError) {
+      throw new Error("No se pudo revisar el inventario de cuentas")
+    }
+
+    if (!cuentasDisponibles || cuentasDisponibles.length < cantidad) {
+      throw new Error(`No hay cuentas disponibles suficientes para ${producto.nombre || "este producto"}`)
+    }
+
+    const duracion = calcularDuracionDias(producto)
+    const fin = sumarDias(inicio, duracion)
+
+    for (const cuenta of cuentasDisponibles) {
+      const payload = {
+        estado: "asignada",
+        cliente_id: pedido.usuario_id || null,
+        cliente_nombre: pedido.cliente_nombre || null,
+        cliente_correo: pedido.cliente_correo || null,
+        pedido_id: pedido.id,
+        cliente_inicio: inicio.toISOString(),
+        cliente_fin: fin.toISOString(),
+      }
+
+      const { data: cuentaActualizada, error: updateError } = await supabase
+        .from("cuentas")
+        .update(payload)
+        .eq("id", cuenta.id)
+        .eq("estado", "disponible")
+        .select("id,producto_id,producto_nombre,correo,cliente_inicio,cliente_fin")
+        .maybeSingle()
+
+      if (updateError || !cuentaActualizada) {
+        throw new Error("Una cuenta dejó de estar disponible durante la asignación")
+      }
+
+      cuentasAsignadas.push({
+        id: cuentaActualizada.id,
+        producto_id: cuentaActualizada.producto_id,
+        producto_nombre: cuentaActualizada.producto_nombre || producto.nombre,
+        correo: cuentaActualizada.correo,
+        cliente_inicio: cuentaActualizada.cliente_inicio,
+        cliente_fin: cuentaActualizada.cliente_fin,
+      })
+    }
+  }
+
+  const { error: pedidoUpdateError } = await supabase
+    .from("pedidos")
+    .update({ estado: "completado" })
+    .eq("id", pedido.id)
+
+  if (pedidoUpdateError) {
+    throw new Error("Las cuentas se asignaron, pero no se pudo completar el pedido")
+  }
+
+  return {
+    pedido_id: pedido.id,
+    ok: true,
+    cuentas_asignadas: cuentasAsignadas.length,
+    cuentas: cuentasAsignadas,
+  }
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null)
 
-    const correo = String(body?.correo || "").trim().toLowerCase()
-    const pin = String(body?.pin || "").trim()
+    const pedidoIds: string[] = Array.isArray(body?.pedido_ids)
+      ? body.pedido_ids.map((item: unknown) => String(item || "").trim()).filter(Boolean)
+      : [String(body?.pedido_id || "").trim()].filter(Boolean)
 
-    if (!correo || !pin) {
+    if (pedidoIds.length === 0) {
       return NextResponse.json(
-        { ok: false, error: "Ingresa el correo y el PIN." },
+        { ok: false, error: "Falta el pedido a completar." },
         { status: 400 }
       )
     }
 
-    const supabase = getSupabaseAdmin()
+    const resultados = []
+    const errores: string[] = []
 
-    // Nuevo sistema: inventario de cuentas registrado desde Admin > Cuentas.
-    const { data: cuenta, error: errorCuenta } = await supabase
-      .from("cuentas")
-      .select("*, productos(tipo_venta, duracion, duracion_dias)")
-      .ilike("correo", correo)
-      .eq("pin_acceso", pin)
-      .limit(1)
-      .maybeSingle()
-
-    if (errorCuenta) {
-      console.error("Error consultando tabla cuentas:", errorCuenta)
-    }
-
-    if (cuenta) {
-      const estadoCuenta = String(cuenta.estado || "").toLowerCase()
-      const correoCuenta = String(cuenta.correo || "").toLowerCase()
-      const productoRelacionado = Array.isArray(cuenta.productos)
-        ? cuenta.productos[0]
-        : cuenta.productos
-      const tipoVenta = productoRelacionado?.tipo_venta || null
-
-      if (estadoCuenta === "bloqueada") {
-        return NextResponse.json(
-          { ok: false, error: "Esta cuenta está bloqueada. Contacta con soporte." },
-          { status: 403 }
-        )
+    for (const pedidoId of pedidoIds) {
+      try {
+        const resultado = await asignarPedido(pedidoId)
+        resultados.push(resultado)
+      } catch (error) {
+        const mensaje = error instanceof Error ? error.message : "No se pudo asignar la cuenta"
+        resultados.push({ pedido_id: pedidoId, ok: false, cuentas_asignadas: 0, error: mensaje })
+        errores.push(`#${pedidoId.slice(0, 8)}: ${mensaje}`)
       }
+    }
 
-      const { data: mensajes, error: errorMensajes } = await supabase
-        .from("soporte_mensajes")
-        .select("*")
-        .ilike("correo_destino", correoCuenta)
-        .order("fecha_mensaje", { ascending: false })
-        .limit(15)
+    const pedidosCompletados = resultados.filter((item) => item.ok).length
+    const cuentasAsignadas = resultados.reduce((acc, item) => acc + Number(item.cuentas_asignadas || 0), 0)
 
-      if (errorMensajes) {
-        console.error("Error cargando mensajes:", errorMensajes)
-
-        return NextResponse.json(
-          { ok: false, error: "No se pudieron cargar los mensajes." },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({
-        ok: true,
-        cliente: {
-          id: cuenta.id,
-          nombre: cuenta.cliente_nombre || cuenta.producto_nombre || "Cliente",
-          plataforma: cuenta.producto_nombre || "Cuenta asignada",
-          correo_asignado: cuenta.correo,
-          estado: cuenta.estado,
-          fecha_inicio: cuenta.cliente_inicio || null,
-          fecha_vencimiento: cuenta.cliente_fin || null,
-          clave: cuenta.clave,
-          perfil: cuenta.perfil,
-          pin_perfil: cuenta.pin_perfil,
-          pin_acceso: cuenta.pin_acceso,
-          tipo_venta: tipoVenta,
-          producto_nombre: cuenta.producto_nombre,
-          cliente_nombre: cuenta.cliente_nombre,
-          cliente_correo: cuenta.cliente_correo,
-          pedido_id: cuenta.pedido_id,
+    if (pedidosCompletados === 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: errores[0] || "No se pudo completar ningún pedido.",
+          resultados,
         },
-        cuenta: {
-          id: cuenta.id,
-          producto_id: cuenta.producto_id,
-          producto_nombre: cuenta.producto_nombre,
-          correo: cuenta.correo,
-          clave: cuenta.clave,
-          perfil: cuenta.perfil,
-          pin_perfil: cuenta.pin_perfil,
-          pin_acceso: cuenta.pin_acceso,
-          tipo_venta: tipoVenta,
-          estado: cuenta.estado,
-          cliente_id: cuenta.cliente_id,
-          cliente_nombre: cuenta.cliente_nombre,
-          cliente_correo: cuenta.cliente_correo,
-          pedido_id: cuenta.pedido_id,
-          cliente_inicio: cuenta.cliente_inicio,
-          cliente_fin: cuenta.cliente_fin,
-          observacion_admin: cuenta.observacion_admin,
-        },
-        mensajes: mensajes || [],
-        origen: "cuentas",
-      })
-    }
-
-    // Sistema anterior: conserva soporte_clientes + soporte_mensajes.
-    const { data: cliente, error: errorCliente } = await supabase
-      .from("soporte_clientes")
-      .select("*")
-      .ilike("correo_asignado", correo)
-      .eq("pin_acceso", pin)
-      .limit(1)
-      .maybeSingle()
-
-    if (errorCliente) {
-      console.error("Error validando cliente:", errorCliente)
-
-      return NextResponse.json(
-        { ok: false, error: "No se pudo validar el acceso." },
-        { status: 500 }
-      )
-    }
-
-    if (!cliente) {
-      return NextResponse.json(
-        { ok: false, error: "Correo o PIN incorrecto." },
-        { status: 401 }
-      )
-    }
-
-    const estado = String(cliente.estado || "").toLowerCase()
-
-    if (estado !== "activo") {
-      return NextResponse.json(
-        { ok: false, error: "Esta cuenta no está activa. Contacta con soporte." },
-        { status: 403 }
-      )
-    }
-
-    const correoAsignado = String(cliente.correo_asignado || "").toLowerCase()
-
-    const { data: mensajes, error: errorMensajes } = await supabase
-      .from("soporte_mensajes")
-      .select("*")
-      .ilike("correo_destino", correoAsignado)
-      .order("fecha_mensaje", { ascending: false })
-      .limit(15)
-
-    if (errorMensajes) {
-      console.error("Error cargando mensajes:", errorMensajes)
-
-      return NextResponse.json(
-        { ok: false, error: "No se pudieron cargar los mensajes." },
-        { status: 500 }
+        { status: 409 }
       )
     }
 
     return NextResponse.json({
       ok: true,
-      cliente: {
-        id: cliente.id,
-        nombre: cliente.nombre,
-        plataforma: cliente.plataforma,
-        correo_asignado: cliente.correo_asignado,
-        estado: cliente.estado,
-        fecha_inicio: cliente.fecha_inicio || null,
-        fecha_vencimiento:
-          cliente.fecha_vencimiento ||
-          cliente.vencimiento ||
-          cliente.fecha_fin ||
-          null,
-      },
-      mensajes: mensajes || [],
-      origen: "soporte_clientes",
+      pedidos_completados: pedidosCompletados,
+      cuentas_asignadas: cuentasAsignadas,
+      resultados,
+      errores,
     })
   } catch (error) {
-    console.error("Error en consulta de códigos:", error)
+    console.error("Error asignando cuentas al pedido:", error)
 
     return NextResponse.json(
-      { ok: false, error: "Error interno del servidor." },
+      { ok: false, error: "Error interno al asignar cuentas." },
       { status: 500 }
     )
   }

@@ -102,6 +102,23 @@ type CuentaInventario = {
   updated_at?: string | null
 }
 
+type AsignarCuentasResponse = {
+  ok: boolean
+  pedidos_completados: number
+  cuentas_asignadas: number
+  errores?: string[]
+  error?: string
+  resultados: Array<{
+    pedido_id: string
+    ok: boolean
+    cuentas_asignadas?: number
+    cuenta_id?: string | null
+    producto_id?: string | null
+    producto_nombre?: string | null
+    error?: string | null
+  }>
+}
+
 type AdminLog = {
   id: string
   accion: string
@@ -628,18 +645,60 @@ export default function AdminPage() {
     return true
   }
 
+  const asignarCuentasPorPedido = async (pedidoIds: string[]) => {
+    const idsValidos = pedidoIds.filter(Boolean)
+
+    if (idsValidos.length === 0) {
+      throw new Error("No hay pedidos válidos para completar")
+    }
+
+    const response = await fetch("/api/pedidos/asignar-cuentas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pedido_ids: idsValidos }),
+    })
+
+    const resultado = (await response.json().catch(() => null)) as AsignarCuentasResponse | null
+
+    if (!response.ok || !resultado?.ok) {
+      const errores = resultado?.errores?.filter(Boolean).join(" · ")
+      throw new Error(errores || resultado?.error || "No se pudieron asignar las cuentas del pedido")
+    }
+
+    return {
+      ...resultado,
+      resultados: resultado.resultados || [],
+    }
+  }
+
   const actualizarEstadoPedido = async (id: string, nuevoEstado: string) => {
     const pedidoActual = pedidos.find((pedido) => pedido.id === id)
-    const debeDescontarStock = nuevoEstado === "completado" && pedidoActual?.estado !== "completado"
+    const debeAsignarCuenta = nuevoEstado === "completado" && pedidoActual?.estado !== "completado"
+
+    if (debeAsignarCuenta) {
+      try {
+        const resultado = await asignarCuentasPorPedido([id])
+
+        setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: "completado" } : p)))
+        registrarEvento("Pedido completado con cuenta asignada", true)
+        await registrarLog("completar_y_asignar", "pedidos", id, `${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+        toast.success(`Pedido completado y ${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+        await cargarDatos()
+      } catch (error) {
+        const mensaje = error instanceof Error ? error.message : "No se pudo completar el pedido"
+        toast.error(mensaje)
+      }
+
+      return
+    }
 
     const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).eq("id", id)
 
     if (!error) {
-      if (debeDescontarStock && pedidoActual) await descontarStockPorPedido(pedidoActual)
       setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: nuevoEstado } : p)))
       registrarEvento(`Pedido marcado como ${nuevoEstado}`, nuevoEstado === "completado")
       await registrarLog("actualizar_estado", "pedidos", id, `Estado: ${nuevoEstado}`)
-      toast.success(debeDescontarStock ? `Pedido completado y stock sincronizado` : `Pedido actualizado a ${nuevoEstado}`)
+      toast.success(`Pedido actualizado a ${nuevoEstado}`)
       await cargarDatos()
     } else {
       toast.error("No se pudo actualizar el pedido")
@@ -689,6 +748,27 @@ export default function AdminPage() {
 
     setProcesandoMasivo(true)
     const ids = [...pedidosSeleccionados]
+
+    if (nuevoEstado === "completado") {
+      try {
+        const resultado = await asignarCuentasPorPedido(ids)
+
+        setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: "completado" } : pedido))
+        setPedidosSeleccionados([])
+        registrarEvento(`${resultado.pedidos_completados} pedido(s) completados con cuentas asignadas`, true)
+        await registrarLog("completar_masivo_y_asignar", "pedidos", undefined, `${resultado.pedidos_completados} pedidos · ${resultado.cuentas_asignadas} cuentas`)
+        toast.success(`${resultado.pedidos_completados} pedido(s) completados y ${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+        setProcesandoMasivo(false)
+        await cargarDatos()
+      } catch (error) {
+        const mensaje = error instanceof Error ? error.message : "No se pudieron completar los pedidos"
+        toast.error(mensaje)
+        setProcesandoMasivo(false)
+      }
+
+      return
+    }
+
     const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).in("id", ids)
 
     if (error) {
@@ -697,18 +777,11 @@ export default function AdminPage() {
       return
     }
 
-    if (nuevoEstado === "completado") {
-      const pedidosParaDescontar = pedidos.filter((pedido) => ids.includes(pedido.id) && pedido.estado !== "completado")
-      for (const pedido of pedidosParaDescontar) {
-        await descontarStockPorPedido(pedido)
-      }
-    }
-
     setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: nuevoEstado } : pedido))
     setPedidosSeleccionados([])
     registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
     await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
-    toast.success(nuevoEstado === "completado" ? `${ids.length} pedido(s) completados y stock revisado` : `${ids.length} pedido(s) actualizados`)
+    toast.success(`${ids.length} pedido(s) actualizados`)
     setProcesandoMasivo(false)
     await cargarDatos()
   }
@@ -838,16 +911,29 @@ export default function AdminPage() {
     }
 
     if (comprobante.pedidoId) {
-      const { error: pedidoError } = await supabase.from("pedidos").update({ estado: estadoPedido }).eq("id", comprobante.pedidoId)
+      if (estadoPedido === "completado") {
+        try {
+          const resultado = await asignarCuentasPorPedido([comprobante.pedidoId])
+          setPedidos((prev) => prev.map((p) => (p.id === comprobante.pedidoId ? { ...p, estado: "completado" } : p)))
+          await registrarLog("aprobar_comprobante_y_asignar", "pedidos", comprobante.pedidoId, `${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+        } catch (error) {
+          const mensaje = error instanceof Error ? error.message : "Comprobante actualizado, pero no se pudo asignar la cuenta"
+          toast.error(mensaje)
+          await cargarDatos()
+          return
+        }
+      } else {
+        const { error: pedidoError } = await supabase.from("pedidos").update({ estado: estadoPedido }).eq("id", comprobante.pedidoId)
 
-      if (!pedidoError) {
-        setPedidos((prev) => prev.map((p) => (p.id === comprobante.pedidoId ? { ...p, estado: estadoPedido } : p)))
-        await registrarLog("actualizar_por_comprobante", "pedidos", comprobante.pedidoId, `Comprobante ${nuevoEstado}`)
+        if (!pedidoError) {
+          setPedidos((prev) => prev.map((p) => (p.id === comprobante.pedidoId ? { ...p, estado: estadoPedido } : p)))
+          await registrarLog("actualizar_por_comprobante", "pedidos", comprobante.pedidoId, `Comprobante ${nuevoEstado}`)
+        }
       }
     }
 
     registrarEvento(`Comprobante ${nuevoEstado}`, nuevoEstado === "aprobado" || nuevoEstado === "completado")
-    toast.success(`Comprobante ${nuevoEstado}`)
+    toast.success(estadoPedido === "completado" ? "Comprobante aprobado y cuenta asignada" : `Comprobante ${nuevoEstado}`)
     await cargarDatos()
   }
 
