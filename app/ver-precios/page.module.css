@@ -1376,3 +1376,24 @@
 .stock_activo {
   border-color: color-mix(in srgb, var(--platform-color) 58%, transparent) !important;
 }
+
+/* ==========================================================
+   AJUSTE FINAL: precios más legibles
+   Mantiene el neón de plataforma, pero el monto va en blanco.
+   ========================================================== */
+
+.adminPriceCard small {
+  color: var(--platform-color) !important;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--platform-color) 28%, transparent) !important;
+}
+
+.adminPriceCard strong {
+  color: #ecffff !important;
+  text-shadow:
+    0 0 10px rgba(236, 255, 255, 0.18),
+    0 0 18px color-mix(in srgb, var(--platform-color) 22%, transparent) !important;
+}
+
+.adminPriceCard em {
+  color: rgba(236, 255, 255, 0.42) !important;
+}
