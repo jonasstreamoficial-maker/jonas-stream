@@ -1044,3 +1044,21 @@
     font-size: 0.87rem !important;
   }
 }
+
+/* ==========================================================
+   FIX SEPARACION MOVIL CODIGOS
+   Mantiene el ancho compacto, pero deja aire entre el menu fijo
+   y el bloque de Codigos y Accesos.
+   ========================================================== */
+
+@media (max-width: 760px) {
+  .hero {
+    margin-top: calc(var(--topbar-height) + 46px) !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero {
+    margin-top: calc(var(--topbar-height) + 42px) !important;
+  }
+}
