@@ -10,6 +10,9 @@ type ClienteConsulta = {
   nombre: string
   plataforma: string | null
   correo_asignado: string
+  clave: string | null
+  perfil: string | null
+  pin_perfil: string | null
   estado: string
   fecha_inicio: string | null
   fecha_vencimiento: string | null
@@ -211,7 +214,9 @@ function calcularDiasRestantes(fecha?: string | null) {
   if (!fecha) return null
 
   const hoy = new Date()
-  const vencimiento = new Date(`${fecha}T00:00:00`)
+  const vencimiento = new Date(fecha)
+
+  if (Number.isNaN(vencimiento.getTime())) return null
 
   hoy.setHours(0, 0, 0, 0)
   vencimiento.setHours(0, 0, 0, 0)
@@ -224,23 +229,23 @@ function calcularDiasRestantes(fecha?: string | null) {
 function estadoVisual(estado: string) {
   const normalizado = estado.toLowerCase()
 
-  if (normalizado === "activo") {
+  if (normalizado === "activo" || normalizado === "asignada" || normalizado === "disponible") {
     return {
-      texto: "Activo",
+      texto: normalizado === "disponible" ? "Disponible" : "Activo",
       clase: styles.statusActive,
     }
   }
 
-  if (normalizado === "vencido") {
+  if (normalizado === "vencido" || normalizado === "vencida" || normalizado === "bloqueada") {
     return {
-      texto: "Vencido",
+      texto: normalizado === "bloqueada" ? "Bloqueada" : "Vencido",
       clase: styles.statusDanger,
     }
   }
 
-  if (normalizado === "suspendido") {
+  if (normalizado === "suspendido" || normalizado === "mantenimiento") {
     return {
-      texto: "Suspendido",
+      texto: normalizado === "mantenimiento" ? "Mantenimiento" : "Suspendido",
       clase: styles.statusWarning,
     }
   }
@@ -335,8 +340,8 @@ export default function CodigosPage() {
     const correoLimpio = correo.trim().toLowerCase()
     const pinLimpio = pin.trim()
 
-    if (!correoLimpio.includes("@jonasstream.xyz")) {
-      setError("Ingresa el correo asignado por JONAS STREAM.")
+    if (!correoLimpio.includes("@")) {
+      setError("Ingresa un correo válido.")
       return
     }
 
@@ -450,7 +455,7 @@ export default function CodigosPage() {
                 type="email"
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
-                placeholder="cliente@jonasstream.xyz"
+                placeholder="correo de la cuenta entregada"
                 autoComplete="email"
               />
             </label>
@@ -525,12 +530,23 @@ export default function CodigosPage() {
               <div className={styles.accountGrid}>
                 <InfoItem label="Cliente" value={cliente.nombre || "Cliente"} />
                 <InfoItem label="Correo" value={cliente.correo_asignado} />
+                <InfoItem label="Clave" value={cliente.clave || "No registrada"} />
+                <InfoItem label="Perfil" value={cliente.perfil || "No definido"} />
+                <InfoItem label="PIN perfil" value={cliente.pin_perfil || "No definido"} />
+                <InfoItem
+                  label="Inicio"
+                  value={
+                    cliente.fecha_inicio
+                      ? new Date(cliente.fecha_inicio).toLocaleDateString("es-PE")
+                      : "Sin fecha"
+                  }
+                />
                 <InfoItem
                   label="Vencimiento"
                   value={
                     cliente.fecha_vencimiento
                       ? new Date(cliente.fecha_vencimiento).toLocaleDateString("es-PE")
-                      : "No definido"
+                      : "Sin fecha"
                   }
                 />
                 <InfoItem
@@ -557,6 +573,18 @@ export default function CodigosPage() {
                 <button type="button" onClick={() => copiarTexto(cliente.correo_asignado, "Correo asignado copiado correctamente.")} className={styles.secondaryButton}>
                   Copiar correo
                 </button>
+
+                {cliente.clave && (
+                  <button type="button" onClick={() => copiarTexto(cliente.clave || "", "Clave copiada correctamente.")} className={styles.secondaryButton}>
+                    Copiar clave
+                  </button>
+                )}
+
+                {cliente.pin_perfil && (
+                  <button type="button" onClick={() => copiarTexto(cliente.pin_perfil || "", "PIN del perfil copiado correctamente.")} className={styles.secondaryButton}>
+                    Copiar PIN perfil
+                  </button>
+                )}
 
                 {ultimaActualizacion && (
                   <span className={styles.lastUpdateText}>
