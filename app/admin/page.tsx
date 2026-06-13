@@ -653,7 +653,7 @@ export default function AdminPage() {
     return true
   }
 
-  const sincronizarStockDesdeCuentas = async (mostrarToast = true) => {
+  const sincronizarStockDesdeCuentas = useCallback(async (mostrarToast = true) => {
     setSincronizandoInventario(true)
 
     try {
@@ -670,15 +670,14 @@ export default function AdminPage() {
 
       if (mostrarToast) {
         toast.success(`Stock sincronizado: ${resultado.total_disponibles} cuenta(s) disponible(s)`)
+        registrarEvento("Inventario sincronizado desde cuentas")
+        await registrarLog(
+          "sincronizar_cuentas",
+          "productos",
+          undefined,
+          `${resultado.productos_actualizados} producto(s) actualizados desde cuentas disponibles`
+        )
       }
-
-      registrarEvento("Inventario sincronizado desde cuentas")
-      await registrarLog(
-        "sincronizar_cuentas",
-        "productos",
-        undefined,
-        `${resultado.productos_actualizados} producto(s) actualizados desde cuentas disponibles`
-      )
 
       return resultado
     } catch (error) {
@@ -688,7 +687,21 @@ export default function AdminPage() {
     } finally {
       setSincronizandoInventario(false)
     }
-  }
+  }, [registrarEvento, registrarLog])
+
+  useEffect(() => {
+    if (!usuario || usuario.rol === "cliente") return
+
+    const timer = window.setInterval(() => {
+      sincronizarStockDesdeCuentas(false)
+        .then(() => cargarDatos())
+        .catch(() => {
+          // Sincronización silenciosa: si falla, no interrumpe el panel.
+        })
+    }, 30000)
+
+    return () => window.clearInterval(timer)
+  }, [usuario, sincronizarStockDesdeCuentas, cargarDatos])
 
   const asignarCuentasPorPedido = async (pedidoIds: string[]) => {
     const idsValidos = pedidoIds.filter(Boolean)
@@ -860,12 +873,6 @@ export default function AdminPage() {
   }
 
   const sincronizarInventarioAutomatico = async () => {
-    const confirmar = confirm(
-      "Esto recalculará productos.stock usando las cuentas disponibles registradas en Admin → Cuentas. ¿Continuar?"
-    )
-
-    if (!confirmar) return
-
     try {
       await sincronizarStockDesdeCuentas(true)
       await cargarDatos()
@@ -3094,13 +3101,13 @@ export default function AdminPage() {
                 <p className={styles.kicker}>Automatización</p>
                 <h3>Inventario automático</h3>
                 <p>
-                  Sincroniza estados visuales: stock 0 pasa a AGOTADO y se oculta; stock 1-3 pasa a LIMITADO;
-                  stock mayor a 3 queda ACTIVO. Al completar pedidos, el panel intenta descontar 1 unidad por coincidencia de nombre.
+                  Sincroniza estados visuales usando las cuentas disponibles registradas. El panel se actualiza en silencio cada 30 segundos
+                  y también puedes forzar la sincronización manual con el botón.
                 </p>
               </div>
               <div className={styles.autoInventoryActions}>
                 <button type="button" disabled={sincronizandoInventario} onClick={sincronizarInventarioAutomatico} className={styles.primaryButton}>
-                  {sincronizandoInventario ? "Sincronizando..." : "Sincronizar inventario"}
+                  {sincronizandoInventario ? "Sincronizando..." : "Sincronizar ahora"}
                 </button>
                 <button type="button" onClick={() => { setFiltroInventario("critico"); setBusquedaInventario("") }} className={styles.secondaryButton}>Ver críticos</button>
                 <button type="button" onClick={() => { setFiltroStockProducto("agotado"); setTabActiva("productos") }} className={styles.dangerButton}>Editar agotados</button>
