@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import styles from "./page.module.css";
@@ -8,6 +8,51 @@ import styles from "./page.module.css";
 const USD_RATE = 3.75;
 const WHATSAPP_NUMBER = "51900557949";
 const CONTACT_MESSAGE = "1️⃣ Quiero *Vender Plataformas de Streaming.*";
+
+
+const PLATFORM_COLORS: Record<string, string> = {
+  "netflix": "#e50914",
+  "disney estandar": "#002062",
+  "disney standard": "#002062",
+  "disney premium": "#00b2bb",
+  "disney": "#00b2bb",
+  "prime video": "#007aff",
+  "amazon prime": "#007aff",
+  "prime": "#007aff",
+  "max": "#0027ef",
+  "hbo max": "#0027ef",
+  "paramount+": "#0068ff",
+  "paramount plus": "#0068ff",
+  "paramount": "#0068ff",
+  "crunchyroll": "#ff5800",
+  "vix premium": "#ff5800",
+  "vix": "#ff5800",
+  "rakuten viki": "#009dff",
+  "viki": "#009dff",
+  "apple tv + mls": "#ff1f1f",
+  "apple tv mls": "#ff1f1f",
+  "apple tv": "#9ca3af",
+  "plex": "#feb100",
+  "universal": "#ffff00",
+  "iptv": "#5440eb",
+  "flujo tv": "#ff6224",
+  "dgo": "#00b0f2",
+  "movistar": "#7ed957",
+  "l1 max": "#ff1f1f",
+  "spotify": "#1db954",
+  "tidal": "#9ca3af",
+  "deezer": "#ff4fb8",
+  "apple music": "#fa57c1",
+  "youtube premium": "#ff0000",
+  "youtube": "#ff0000",
+  "canva": "#00c4cc",
+  "surfshark": "#64f5d2",
+  "hola vpn": "#ff7a00",
+};
+
+const PLATFORM_COLOR_ENTRIES = Object.entries(PLATFORM_COLORS).sort(
+  ([a], [b]) => b.length - a.length
+);
 
 type ProductStatus = "ACTIVO" | "LIMITADO" | "AGOTADO";
 type ProductType = "Perfil" | "Cuenta completa";
@@ -65,6 +110,7 @@ type Product = {
   beforePrice: number | null;
   badge: string;
   accent: ProductAccent;
+  platformColor: string;
   image?: string | null;
   featured: boolean;
   offer: boolean;
@@ -81,6 +127,21 @@ function buildWhatsAppLink(message: string) {
 
 function normalizeText(value?: string | number | null) {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function normalizePlatformText(value?: string | number | null) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getPlatformColor(...values: Array<string | number | null | undefined>) {
+  const searchable = normalizePlatformText(values.filter(Boolean).join(" "));
+  const match = PLATFORM_COLOR_ENTRIES.find(([key]) => searchable.includes(key));
+  return match?.[1] ?? "#01E7EF";
 }
 
 function normalizeType(value?: string | null): ProductType {
@@ -159,6 +220,13 @@ function normalizeProduct(product: ProductoDB): Product {
       product.badge ||
       (product.oferta ? "Oferta" : product.destacado ? "Destacado" : status === "LIMITADO" ? "Limitado" : "Disponible"),
     accent: normalizeAccent(product.accent || product.nombre || product.categoria),
+    platformColor: getPlatformColor(
+      product.nombre,
+      product.categoria,
+      product.descripcion,
+      product.accent,
+      product.tipo_venta
+    ),
     image: product.imagen || null,
     featured: Boolean(product.destacado),
     offer: Boolean(product.oferta),
@@ -290,11 +358,10 @@ export default function VerPreciosPage() {
       <div className={styles.mainContent}>
       <section className={styles.heroPanel}>
         <div>
-          <p className={styles.kicker}>Vista sincronizada con admin</p>
-          <h1>Precios y productos Jonas Stream</h1>
+          <p className={styles.kicker}>Catálogo actualizado</p>
+          <h1>Catálogo oficial Jonas Stream</h1>
           <p>
-            Catálogo visual conectado a la tabla productos. Las imágenes, stock, tipo, duración,
-            proveedor, estado, oferta y publicación se muestran con el mismo estilo de la edición admin.
+            Consulta precios, stock, duración y tipo de cuenta antes de afiliarte. Para comprar, primero inicia sesión o solicita tu acceso.
           </p>
           <div className={styles.heroActions}>
             <a href="#catalogo" className={styles.primaryButton}>Ver catálogo</a>
@@ -368,8 +435,8 @@ export default function VerPreciosPage() {
         <div className={styles.panelHeader}>
           <div>
             <p className={styles.kicker}>Catálogo visual</p>
-            <h2>Productos, precios y stock</h2>
-            <span>Tarjetas estilo admin con imagen completa y datos sincronizados.</span>
+            <h2>Productos, precios y disponibilidad</h2>
+            <span>Tarjetas con color neón por plataforma, precio en PEN/USD y stock actualizado.</span>
           </div>
           <span className={styles.countBadge}>{loadingProducts ? "Cargando" : `${filteredProducts.length} visibles`}</span>
         </div>
@@ -391,7 +458,11 @@ export default function VerPreciosPage() {
             {filteredProducts.map((product) => {
               const usd = product.pen / USD_RATE;
               return (
-                <article key={product.id} className={`${styles.storePreviewCard} ${styles[`accent_${product.accent}`] || ""}`}>
+                <article
+                  key={product.id}
+                  className={`${styles.storePreviewCard} ${styles[`accent_${product.accent}`] || ""}`}
+                  style={{ "--platform-color": product.platformColor } as CSSProperties}
+                >
                   <div className={styles.previewBadgeRow}>
                     <span className={styles.adminCategoryBadge}>{product.category}</span>
                     <span className={`${styles.adminTypeBadge} ${getTypeClass(product.type)}`}>
