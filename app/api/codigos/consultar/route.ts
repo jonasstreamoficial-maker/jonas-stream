@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-type Cuenta = {
+type CuentaRow = {
   id: string
   producto_id: string | null
   producto_nombre: string | null
@@ -22,41 +22,16 @@ type Cuenta = {
   cliente_fin: string | null
 }
 
-function normalizarCorreo(value: unknown) {
-  return String(value || "").trim().toLowerCase()
-}
-
-function normalizarPin(value: unknown) {
-  return String(value || "").trim()
-}
-
-function estadoCliente(estado: string) {
-  const normalizado = String(estado || "").trim().toLowerCase()
-
-  if (normalizado === "asignada") return "activo"
-  if (normalizado === "vencida") return "vencido"
-  if (normalizado === "bloqueada") return "bloqueada"
-  if (normalizado === "mantenimiento") return "mantenimiento"
-  return "disponible"
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null)
 
-    const correo = normalizarCorreo(body?.correo)
-    const pin = normalizarPin(body?.pin)
+    const correo = String(body?.correo || "").trim().toLowerCase()
+    const pin = String(body?.pin || "").trim()
 
     if (!correo || !pin) {
       return NextResponse.json(
-        { ok: false, error: "Ingresa el correo y el PIN de consulta." },
-        { status: 400 }
-      )
-    }
-
-    if (!correo.includes("@")) {
-      return NextResponse.json(
-        { ok: false, error: "Ingresa un correo válido." },
+        { ok: false, error: "Ingresa el correo y el PIN." },
         { status: 400 }
       )
     }
@@ -66,7 +41,7 @@ export async function POST(request: Request) {
     const { data: cuenta, error: errorCuenta } = await supabase
       .from("cuentas")
       .select(
-        "id,producto_id,producto_nombre,correo,clave,perfil,pin_perfil,pin_acceso,estado,cliente_id,cliente_nombre,cliente_correo,pedido_id,cliente_inicio,cliente_fin"
+        "id, producto_id, producto_nombre, correo, clave, perfil, pin_perfil, pin_acceso, estado, cliente_id, cliente_nombre, cliente_correo, pedido_id, cliente_inicio, cliente_fin"
       )
       .ilike("correo", correo)
       .eq("pin_acceso", pin)
@@ -89,47 +64,47 @@ export async function POST(request: Request) {
       )
     }
 
-    const cuentaData = cuenta as Cuenta
-    const estadoNormalizado = String(cuentaData.estado || "").trim().toLowerCase()
+    const cuentaData = cuenta as CuentaRow
+    const estadoCuenta = String(cuentaData.estado || "").toLowerCase()
 
-    if (estadoNormalizado === "bloqueada" || estadoNormalizado === "mantenimiento") {
+    if (estadoCuenta === "bloqueada") {
       return NextResponse.json(
-        {
-          ok: false,
-          error: "Esta cuenta no está disponible para consulta. Contacta con soporte.",
-        },
+        { ok: false, error: "Esta cuenta está bloqueada. Contacta con soporte." },
         { status: 403 }
       )
     }
 
-    const correoCuenta = normalizarCorreo(cuentaData.correo)
-
     const { data: mensajes, error: errorMensajes } = await supabase
       .from("soporte_mensajes")
       .select("*")
-      .ilike("correo_destino", correoCuenta)
+      .ilike("correo_destino", cuentaData.correo.toLowerCase())
       .order("fecha_mensaje", { ascending: false })
       .limit(15)
 
     if (errorMensajes) {
-      console.warn("No se pudieron cargar mensajes recientes:", errorMensajes.message)
+      console.error("Error cargando mensajes:", errorMensajes)
+
+      return NextResponse.json(
+        { ok: false, error: "La cuenta fue validada, pero no se pudieron cargar los mensajes." },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
       ok: true,
       cliente: {
         id: cuentaData.id,
-        nombre: cuentaData.cliente_nombre || cuentaData.cliente_correo || "Cliente Jonas Stream",
-        plataforma: cuentaData.producto_nombre || "Acceso digital",
+        nombre: cuentaData.cliente_nombre || cuentaData.producto_nombre || "Cliente JONAS STREAM",
+        plataforma: cuentaData.producto_nombre || "JONAS STREAM",
         correo_asignado: cuentaData.correo,
         clave: cuentaData.clave,
-        perfil: cuentaData.perfil || null,
-        pin_perfil: cuentaData.pin_perfil || null,
-        estado: estadoCliente(cuentaData.estado),
+        perfil: cuentaData.perfil,
+        pin_perfil: cuentaData.pin_perfil,
+        estado: cuentaData.estado,
         fecha_inicio: cuentaData.cliente_inicio || null,
         fecha_vencimiento: cuentaData.cliente_fin || null,
       },
-      mensajes: errorMensajes ? [] : mensajes || [],
+      mensajes: mensajes || [],
     })
   } catch (error) {
     console.error("Error en consulta de códigos:", error)
