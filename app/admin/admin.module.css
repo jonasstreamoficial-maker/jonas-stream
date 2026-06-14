@@ -6998,3 +6998,85 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================
+   CUENTAS PRO V10 - carga masiva inteligente y selección por grupo
+   ========================================================== */
+.fieldHelp {
+  display: block;
+  margin-top: 7px;
+  color: #ffe082;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.accountBulkToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0 12px;
+  padding: 10px;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.accountBulkToolbar span {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.accountsTablePro .checkColumn {
+  width: 42px;
+  text-align: center !important;
+}
+
+.accountsTablePro .checkColumn input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+
+.accountsTablePro tr {
+  border-left: 4px solid color-mix(in srgb, var(--platform-color, #01E7EF) 72%, transparent);
+}
+
+.groupPill {
+  display: inline-flex;
+  max-width: 210px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--platform-color, #01E7EF) 78%, #ECFFFF);
+  background: color-mix(in srgb, var(--platform-color, #01E7EF) 14%, rgba(0, 0, 0, 0.24));
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 34%, transparent);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.bulkAnalysisWarning {
+  border-color: rgba(255, 224, 130, 0.38) !important;
+  background: rgba(255, 224, 130, 0.07) !important;
+}
+
+.bulkAnalysisWarning strong {
+  color: #ffe082 !important;
+}
+
+.bulkDetailBox small {
+  display: block;
+  margin-top: 6px;
+}
+
+@media (max-width: 880px) {
+  .accountBulkToolbar,
+  .accountBulkToolbar button {
+    width: 100%;
+  }
+}

@@ -390,6 +390,7 @@ export default function AdminPage() {
   const [importandoCuentas, setImportandoCuentas] = useState(false)
   const [limitePerfilesCuenta, setLimitePerfilesCuenta] = useState("5")
   const [archivoCuentasNombre, setArchivoCuentasNombre] = useState("")
+  const [cuentasSeleccionadas, setCuentasSeleccionadas] = useState<string[]>([])
 
   const [creditos, setCreditos] = useState<Credito[]>([])
   const [creditosDisponibles, setCreditosDisponibles] = useState(true)
@@ -1342,6 +1343,30 @@ export default function AdminPage() {
     setTipoCuentaRegistro("cuenta")
   }
 
+  const cambiarTipoCuentaRegistro = (tipo: "cuenta" | "perfil") => {
+    setTipoCuentaRegistro(tipo)
+    setFormCuenta((prev) => ({
+      ...prev,
+      producto_id: "",
+      producto_nombre: "",
+      perfil: tipo === "cuenta" ? "" : prev.perfil,
+      pin_perfil: tipo === "cuenta" ? "" : prev.pin_perfil,
+    }))
+    setCuentasSeleccionadas([])
+  }
+
+  const esProductoPerfil = (producto?: Producto | null) => {
+    const tipo = normalizarTexto(producto?.tipo_venta)
+    const nombre = normalizarTexto(producto?.nombre)
+    return tipo.includes("perfil") || nombre.includes("perfil")
+  }
+
+  const esProductoCuentaCompleta = (producto?: Producto | null) => {
+    const tipo = normalizarTexto(producto?.tipo_venta)
+    const nombre = normalizarTexto(producto?.nombre)
+    return tipo.includes("cuenta") || tipo.includes("completa") || nombre.includes("cuenta completa")
+  }
+
   const handleCuentaChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
 
@@ -1485,6 +1510,61 @@ export default function AdminPage() {
     })
   }
 
+  const alternarCuentaSeleccionada = (id: string) => {
+    setCuentasSeleccionadas((prev) => prev.includes(id) ? prev.filter((cuentaId) => cuentaId !== id) : [...prev, id])
+  }
+
+  const seleccionarCuentasVisibles = (lista: CuentaInventario[]) => {
+    const ids = lista.map((cuenta) => cuenta.id)
+    setCuentasSeleccionadas((prev) => {
+      const todosSeleccionados = ids.length > 0 && ids.every((id) => prev.includes(id))
+      if (todosSeleccionados) return prev.filter((id) => !ids.includes(id))
+      return Array.from(new Set([...prev, ...ids]))
+    })
+  }
+
+  const eliminarCuentasSeleccionadas = () => {
+    if (cuentasSeleccionadas.length === 0) {
+      toast.error("Selecciona cuentas para eliminar")
+      return
+    }
+
+    pedirConfirmacion({
+      titulo: "Eliminar cuentas seleccionadas",
+      mensaje: `Eliminarás ${cuentasSeleccionadas.length} cuenta(s) del inventario.`,
+      detalle: "Úsalo para borrar un grupo completo de perfiles o cuentas completas.",
+      tono: "danger",
+      textoConfirmar: "Eliminar selección",
+      onConfirmar: async () => {
+        const ids = [...cuentasSeleccionadas]
+        const { error } = await supabase.from("cuentas").delete().in("id", ids)
+
+        if (error) {
+          toast.error("No se pudieron eliminar las cuentas seleccionadas")
+          return
+        }
+
+        setCuentasSeleccionadas([])
+        await registrarLog("eliminar_masivo", "cuentas", undefined, `${ids.length} cuenta(s) eliminada(s) desde selección`)
+
+        try {
+          await sincronizarStockDesdeCuentas(false)
+        } catch {
+          toast("Cuentas eliminadas, pero revisa la sincronización de stock")
+        }
+
+        toast.success(`${ids.length} cuenta(s) eliminada(s)`)
+        await cargarDatos()
+      },
+    })
+  }
+
+  const obtenerGrupoCuenta = (cuenta: CuentaInventario) => {
+    const texto = cuenta.observacion_admin || ""
+    const match = texto.match(/GRUPO:([^·]+)/i)
+    return match?.[1]?.trim() || "Sin grupo"
+  }
+
   const obtenerLimitePerfilesCuenta = () => {
     const numero = Number(limitePerfilesCuenta || 0)
     if (!Number.isFinite(numero) || numero <= 0) return 1
@@ -1523,11 +1603,25 @@ export default function AdminPage() {
       return mismoId || mismoNombre
     })
 
+    const existentesPorCorreo = new Map<string, number>()
+    existentesProducto
+      .filter((cuenta) => Boolean(cuenta.perfil))
+      .forEach((cuenta) => {
+        const key = normalizarTexto(cuenta.correo)
+        if (!key) return
+        existentesPorCorreo.set(key, (existentesPorCorreo.get(key) || 0) + 1)
+      })
+
+    const vistosArchivo = new Set<string>()
+    const aceptadosPorCorreo = new Map<string, number>()
+    const correosEnArchivo = new Map<string, number>()
+
     const registros = lineas.map((linea) => {
       const partes = linea.texto.split(",").map((parte) => parte.trim()).filter(Boolean)
       const base = partes[0] || ""
       const separadorBase = base.indexOf(":")
       const errores: string[] = []
+      const omitidoMotivos: string[] = []
 
       let correo = ""
       let clave = ""
@@ -1565,14 +1659,42 @@ export default function AdminPage() {
         pinPublico = partes[1] || generarPinPublico()
       }
 
-      const claveDuplicado = `${formCuenta.producto_id}|${normalizarTexto(correo)}|${tipoCuentaRegistro === "perfil" ? normalizarTexto(perfil) : "cuenta-completa"}`
+      const correoKey = normalizarTexto(correo)
+      if (correoKey) correosEnArchivo.set(correoKey, (correosEnArchivo.get(correoKey) || 0) + 1)
+
+      const claveDuplicado = `${formCuenta.producto_id}|${correoKey}|${tipoCuentaRegistro === "perfil" ? normalizarTexto(perfil) : "cuenta-completa"}`
       const existeEnSistema = existentesProducto.some((cuenta) => {
-        const mismoCorreo = normalizarTexto(cuenta.correo) === normalizarTexto(correo)
+        const mismoCorreo = normalizarTexto(cuenta.correo) === correoKey
         const mismoPerfil = tipoCuentaRegistro === "perfil"
           ? normalizarTexto(cuenta.perfil) === normalizarTexto(perfil)
           : !cuenta.perfil
         return mismoCorreo && mismoPerfil
       })
+
+      if (errores.length === 0) {
+        if (existeEnSistema) {
+          omitidoMotivos.push("ya existe en el sistema")
+        }
+
+        if (vistosArchivo.has(claveDuplicado)) {
+          omitidoMotivos.push("duplicado dentro del archivo")
+        }
+
+        if (tipoCuentaRegistro === "perfil" && correoKey) {
+          const yaCargados = existentesPorCorreo.get(correoKey) || 0
+          const yaAceptados = aceptadosPorCorreo.get(correoKey) || 0
+          if (yaCargados + yaAceptados >= limitePerfil) {
+            omitidoMotivos.push(`excede el límite de ${limitePerfil} perfil(es); no se cargará`)
+          }
+        }
+      }
+
+      const valido = errores.length === 0 && omitidoMotivos.length === 0
+
+      if (errores.length === 0) vistosArchivo.add(claveDuplicado)
+      if (valido && tipoCuentaRegistro === "perfil" && correoKey) {
+        aceptadosPorCorreo.set(correoKey, (aceptadosPorCorreo.get(correoKey) || 0) + 1)
+      }
 
       return {
         numero: linea.numero,
@@ -1585,6 +1707,9 @@ export default function AdminPage() {
         claveDuplicado,
         existeEnSistema,
         errores,
+        omitidoMotivos,
+        valido,
+        omitido: errores.length === 0 && omitidoMotivos.length > 0,
         payload: {
           producto_id: formCuenta.producto_id,
           producto_nombre: producto?.nombre || formCuenta.producto_nombre || null,
@@ -1599,76 +1724,26 @@ export default function AdminPage() {
       }
     })
 
-    const vistos = new Set<string>()
-    const duplicadosArchivo = new Set<string>()
-    registros.forEach((registro) => {
-      if (!registro.correo) return
-      if (vistos.has(registro.claveDuplicado)) duplicadosArchivo.add(registro.claveDuplicado)
-      vistos.add(registro.claveDuplicado)
-    })
-
-    const conteoCorreosArchivo = new Map<string, number>()
-    registros.forEach((registro) => {
-      const correoKey = normalizarTexto(registro.correo)
-      if (!correoKey) return
-      conteoCorreosArchivo.set(correoKey, (conteoCorreosArchivo.get(correoKey) || 0) + 1)
-    })
-
-    const correosRepetidosArchivo = Array.from(conteoCorreosArchivo.entries())
+    const correosRepetidosArchivo = Array.from(correosEnArchivo.entries())
       .filter(([, total]) => total > 1)
       .map(([correo]) => correo)
 
-    const correosExcedidos = new Set<string>()
-    if (tipoCuentaRegistro === "perfil") {
-      const existentesPorCorreo = new Map<string, number>()
-      existentesProducto
-        .filter((cuenta) => Boolean(cuenta.perfil))
-        .forEach((cuenta) => {
-          const key = normalizarTexto(cuenta.correo)
-          if (!key) return
-          existentesPorCorreo.set(key, (existentesPorCorreo.get(key) || 0) + 1)
-        })
-
-      correosRepetidosArchivo.forEach((correo) => {
-        const existentes = existentesPorCorreo.get(correo) || 0
-        const nuevos = conteoCorreosArchivo.get(correo) || 0
-        if (existentes + nuevos > limitePerfil) correosExcedidos.add(correo)
-      })
-
-      registros.forEach((registro) => {
-        const correoKey = normalizarTexto(registro.correo)
-        if (!correoKey) return
-        const existentes = existentesPorCorreo.get(correoKey) || 0
-        const nuevos = conteoCorreosArchivo.get(correoKey) || 0
-        if (existentes + nuevos > limitePerfil) correosExcedidos.add(correoKey)
-      })
-    }
-
-    const registrosConEstado = registros.map((registro) => {
-      const errores = [...registro.errores]
-      if (registro.existeEnSistema) errores.push("ya existe en el sistema")
-      if (duplicadosArchivo.has(registro.claveDuplicado)) errores.push("duplicado dentro del archivo")
-      if (tipoCuentaRegistro === "perfil" && correosExcedidos.has(normalizarTexto(registro.correo))) {
-        errores.push(`excede el límite de ${limitePerfil} perfil(es) por cuenta`)
-      }
-
-      return { ...registro, errores, valido: errores.length === 0 }
-    })
-
-    const faltanCorreo = registrosConEstado.filter((registro) => registro.errores.includes("falta correo")).length
-    const faltanClave = registrosConEstado.filter((registro) => registro.errores.includes("falta contraseña")).length
-    const faltanPerfil = registrosConEstado.filter((registro) => registro.errores.includes("falta nombre de perfil")).length
-    const faltanPinPerfil = registrosConEstado.filter((registro) => registro.errores.includes("falta PIN del perfil")).length
-    const repetidosSistema = registrosConEstado.filter((registro) => registro.errores.includes("ya existe en el sistema")).length
-    const repetidosArchivo = registrosConEstado.filter((registro) => registro.errores.includes("duplicado dentro del archivo")).length
-    const excedidos = registrosConEstado.filter((registro) => registro.errores.some((error) => error.includes("excede el límite"))).length
-    const validos = registrosConEstado.filter((registro) => registro.valido)
-    const invalidos = registrosConEstado.filter((registro) => !registro.valido)
+    const faltanCorreo = registros.filter((registro) => registro.errores.includes("falta correo")).length
+    const faltanClave = registros.filter((registro) => registro.errores.includes("falta contraseña")).length
+    const faltanPerfil = registros.filter((registro) => registro.errores.includes("falta nombre de perfil")).length
+    const faltanPinPerfil = registros.filter((registro) => registro.errores.includes("falta PIN del perfil")).length
+    const repetidosSistema = registros.filter((registro) => registro.omitidoMotivos.includes("ya existe en el sistema")).length
+    const repetidosArchivo = registros.filter((registro) => registro.omitidoMotivos.includes("duplicado dentro del archivo")).length
+    const excedidos = registros.filter((registro) => registro.omitidoMotivos.some((motivo) => motivo.includes("excede el límite"))).length
+    const validos = registros.filter((registro) => registro.valido)
+    const invalidos = registros.filter((registro) => registro.errores.length > 0)
+    const omitidos = registros.filter((registro) => registro.omitido)
 
     return {
       totalLineas: lineas.length,
       validos,
       invalidos,
+      omitidos,
       correosRepetidosArchivo,
       faltanCorreo,
       faltanClave,
@@ -1694,13 +1769,31 @@ export default function AdminPage() {
       return
     }
 
-    if (analisis.invalidos.length > 0) {
+    if (analisis.validos.length === 0) {
       const primerError = analisis.invalidos[0]
-      toast.error(`Corrige la línea ${primerError.numero}: ${primerError.errores.join(" · ")}`)
+      const primerOmitido = analisis.omitidos[0]
+      toast.error(primerError
+        ? `Corrige la línea ${primerError.numero}: ${primerError.errores.join(" · ")}`
+        : `No hay cuentas para importar. Línea ${primerOmitido?.numero || "-"}: ${primerOmitido?.omitidoMotivos.join(" · ") || "revisa la carga"}`)
       return
     }
 
-    const registros = analisis.validos.map((registro) => registro.payload)
+    const producto = productos.find((item) => item.id === formCuenta.producto_id)
+    const fechaLote = new Date()
+      .toLocaleString("es-PE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })
+      .replace(/[/:, ]+/g, "-")
+      .replace(/-$/g, "")
+    const grupoLote = tipoCuentaRegistro === "perfil"
+      ? `GRUPO:${producto?.nombre || formCuenta.producto_nombre || "Producto"}-${analisis.limitePerfil}P-${fechaLote}`
+      : `GRUPO:${producto?.nombre || formCuenta.producto_nombre || "Producto"}-COMPLETA-${fechaLote}`
+
+    const registros = analisis.validos.map((registro) => {
+      const observacionBase = String(registro.payload.observacion_admin || "").trim()
+      return {
+        ...registro.payload,
+        observacion_admin: observacionBase ? `${observacionBase} · ${grupoLote}` : grupoLote,
+      }
+    })
 
     setImportandoCuentas(true)
 
@@ -1712,8 +1805,7 @@ export default function AdminPage() {
       return
     }
 
-    const producto = productos.find((item) => item.id === formCuenta.producto_id)
-    await registrarLog("importar_masivo", "cuentas", undefined, `${registros.length} cuenta(s) importada(s) para ${producto?.nombre || "producto"} · ${tipoCuentaRegistro === "perfil" ? `límite ${analisis.limitePerfil} perfiles/cuenta` : "cuentas completas"}`)
+    await registrarLog("importar_masivo", "cuentas", undefined, `${registros.length} cuenta(s) importada(s) para ${producto?.nombre || "producto"} · ${tipoCuentaRegistro === "perfil" ? `límite ${analisis.limitePerfil} perfiles/cuenta` : "cuentas completas"} · ${analisis.omitidos.length} omitida(s) · ${analisis.invalidos.length} con error`)
 
     try {
       await sincronizarStockDesdeCuentas(false)
@@ -1724,7 +1816,7 @@ export default function AdminPage() {
     setCuentasMasivasTexto("")
     setArchivoCuentasNombre("")
     setImportandoCuentas(false)
-    toast.success(`${registros.length} cuenta(s) importada(s)`)
+    toast.success(`${registros.length} cuenta(s) importada(s) · ${analisis.omitidos.length} omitida(s) · ${analisis.invalidos.length} con error`)
     await cargarDatos()
   }
 
@@ -2049,12 +2141,19 @@ export default function AdminPage() {
     return [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre))
   }, [productos])
 
+  const productosParaRegistroCuenta = useMemo(() => {
+    return productosParaCuentas.filter((producto) => {
+      if (tipoCuentaRegistro === "perfil") return esProductoPerfil(producto)
+      return esProductoCuentaCompleta(producto) || !esProductoPerfil(producto)
+    })
+  }, [productosParaCuentas, tipoCuentaRegistro])
+
   const cuentasFiltradas: CuentaInventario[] = useMemo(() => {
     const query = normalizarTexto(busquedaCuenta)
 
     return cuentas.filter((cuenta) => {
       const producto = productos.find((item) => item.id === cuenta.producto_id)
-      const texto = normalizarTexto(`${cuenta.correo} ${cuenta.producto_nombre} ${producto?.nombre} ${cuenta.perfil} ${cuenta.pin_acceso} ${cuenta.cliente_correo} ${cuenta.estado}`)
+      const texto = normalizarTexto(`${cuenta.correo} ${cuenta.producto_nombre} ${producto?.nombre} ${cuenta.perfil} ${cuenta.pin_acceso} ${cuenta.cliente_correo} ${cuenta.estado} ${cuenta.observacion_admin}`)
       const coincideBusqueda = !query || texto.includes(query)
       const coincideEstado = filtroCuentaEstado === "todos" || cuenta.estado === filtroCuentaEstado
       const coincideProducto = filtroCuentaProducto === "todos" || cuenta.producto_id === filtroCuentaProducto || cuenta.producto_nombre === filtroCuentaProducto
@@ -2099,8 +2198,16 @@ export default function AdminPage() {
   const resumenCuentaSeleccionada = productoCuentaSeleccionado
     ? resumenCuentasPorProducto.find((item) => item.producto.id === productoCuentaSeleccionado.id)
     : null
-  const cuentasCompletasFiltradas = cuentasFiltradas.filter((cuenta) => !cuenta.perfil)
-  const perfilesFiltrados = cuentasFiltradas.filter((cuenta) => Boolean(cuenta.perfil))
+  const cuentasCompletasFiltradas = cuentasFiltradas
+    .filter((cuenta) => !cuenta.perfil)
+    .sort((a, b) => normalizarTexto(a.correo).localeCompare(normalizarTexto(b.correo)))
+  const perfilesFiltrados = cuentasFiltradas
+    .filter((cuenta) => Boolean(cuenta.perfil))
+    .sort((a, b) => {
+      const grupoA = `${normalizarTexto(obtenerGrupoCuenta(a))}|${normalizarTexto(a.correo)}|${normalizarTexto(a.perfil)}`
+      const grupoB = `${normalizarTexto(obtenerGrupoCuenta(b))}|${normalizarTexto(b.correo)}|${normalizarTexto(b.perfil)}`
+      return grupoA.localeCompare(grupoB)
+    })
 
   const cuentasDisponiblesTotal = cuentas.filter((cuenta) => cuenta.estado === "disponible").length
   const cuentasAsignadasTotal = cuentas.filter((cuenta) => cuenta.estado === "asignada").length
@@ -2351,80 +2458,122 @@ export default function AdminPage() {
   const comprobantesVisibles = comprobantesFiltrados.slice(0, limiteComprobantes)
   const logsVisibles = logsFiltrados.slice(0, limiteLogs)
 
-  const renderTablaCuentas = (titulo: string, descripcion: string, lista: CuentaInventario[]) => (
-    <div className={styles.accountTableSection}>
-      <div className={styles.accountSubtableTitle}>
-        <div>
-          <h4>{titulo}</h4>
-          <span>{descripcion}</span>
+  const renderTablaCuentas = (titulo: string, descripcion: string, lista: CuentaInventario[]) => {
+    const idsVisibles = lista.map((cuenta) => cuenta.id)
+    const seleccionadosVisibles = idsVisibles.filter((id) => cuentasSeleccionadas.includes(id)).length
+    const todosSeleccionados = idsVisibles.length > 0 && seleccionadosVisibles === idsVisibles.length
+
+    return (
+      <div className={styles.accountTableSection}>
+        <div className={styles.accountSubtableTitle}>
+          <div>
+            <h4>{titulo}</h4>
+            <span>{descripcion}</span>
+          </div>
+          <strong>{lista.length}</strong>
         </div>
-        <strong>{lista.length}</strong>
+
+        {lista.length > 0 && (
+          <div className={styles.accountBulkToolbar}>
+            <button type="button" onClick={() => seleccionarCuentasVisibles(lista)} className={styles.secondaryButton}>
+              {todosSeleccionados ? "Quitar visibles" : "Seleccionar visibles"}
+            </button>
+            <span>{seleccionadosVisibles} seleccionado(s) en esta lista</span>
+            {cuentasSeleccionadas.length > 0 && (
+              <button type="button" onClick={eliminarCuentasSeleccionadas} className={styles.dangerButton}>
+                Eliminar selección ({cuentasSeleccionadas.length})
+              </button>
+            )}
+          </div>
+        )}
+
+        {lista.length === 0 ? (
+          <EmptyState title="Sin registros" text="No hay cuentas en este grupo con los filtros actuales." />
+        ) : (
+          <div className={styles.tableWrap}>
+            <table className={`${styles.proTable} ${styles.accountsTablePro}`}>
+              <thead>
+                <tr>
+                  <th className={styles.checkColumn}>
+                    <input
+                      type="checkbox"
+                      checked={todosSeleccionados}
+                      onChange={() => seleccionarCuentasVisibles(lista)}
+                      aria-label={`Seleccionar ${titulo}`}
+                    />
+                  </th>
+                  <th>Correo</th>
+                  <th>Contraseña</th>
+                  <th>Perfil</th>
+                  <th>PIN</th>
+                  <th>Estado</th>
+                  <th>Cliente</th>
+                  <th>Grupo</th>
+                  <th>Fechas</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lista.map((cuenta) => {
+                  const producto = productos.find((item) => item.id === cuenta.producto_id)
+                  const nombreProducto = producto?.nombre || cuenta.producto_nombre || productoCuentaSeleccionado?.nombre || "Producto sin vincular"
+                  const grupo = obtenerGrupoCuenta(cuenta)
+                  const seleccionado = cuentasSeleccionadas.includes(cuenta.id)
+
+                  return (
+                    <tr key={cuenta.id} style={estiloPlataforma(nombreProducto)} className={seleccionado ? styles.rowSelected : ""}>
+                      <td className={styles.checkColumn}>
+                        <input
+                          type="checkbox"
+                          checked={seleccionado}
+                          onChange={() => alternarCuentaSeleccionada(cuenta.id)}
+                          aria-label={`Seleccionar ${cuenta.correo}`}
+                        />
+                      </td>
+                      <td>
+                        <strong>{cuenta.correo}</strong>
+                        <small>{nombreProducto}</small>
+                      </td>
+                      <td><strong>{cuenta.clave}</strong></td>
+                      <td>
+                        <strong>{cuenta.perfil || "Cuenta completa"}</strong>
+                        <small>{cuenta.perfil ? "Perfil de venta" : "Acceso completo"}</small>
+                      </td>
+                      <td>
+                        <strong>{cuenta.pin_acceso || "-"}</strong>
+                        <small>Perfil: {cuenta.pin_perfil || "-"}</small>
+                      </td>
+                      <td><StatusBadge estado={cuenta.estado || "disponible"} /></td>
+                      <td>
+                        <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
+                        <small>{cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</small>
+                      </td>
+                      <td>
+                        <span className={styles.groupPill}>{grupo}</span>
+                      </td>
+                      <td>
+                        <strong>{cuenta.cliente_inicio ? fechaLegible(cuenta.cliente_inicio) : "Sin iniciar"}</strong>
+                        <small>Fin: {cuenta.cliente_fin ? fechaLegible(cuenta.cliente_fin) : "Sin vencimiento"}</small>
+                      </td>
+                      <td>
+                        <div className={styles.tableActions}>
+                          <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
+                          <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Libre</button>
+                          <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mant.</button>
+                          <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloq.</button>
+                          <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-
-      {lista.length === 0 ? (
-        <EmptyState title="Sin registros" text="No hay cuentas en este grupo con los filtros actuales." />
-      ) : (
-        <div className={styles.tableWrap}>
-          <table className={`${styles.proTable} ${styles.accountsTablePro}`}>
-            <thead>
-              <tr>
-                <th>Correo</th>
-                <th>Contraseña</th>
-                <th>Perfil</th>
-                <th>PIN</th>
-                <th>Estado</th>
-                <th>Cliente</th>
-                <th>Fechas</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((cuenta) => {
-                const producto = productos.find((item) => item.id === cuenta.producto_id)
-                const nombreProducto = producto?.nombre || cuenta.producto_nombre || productoCuentaSeleccionado?.nombre || "Producto sin vincular"
-
-                return (
-                  <tr key={cuenta.id} style={estiloPlataforma(nombreProducto)}>
-                    <td>
-                      <strong>{cuenta.correo}</strong>
-                      <small>{nombreProducto}</small>
-                    </td>
-                    <td><strong>{cuenta.clave}</strong></td>
-                    <td>
-                      <strong>{cuenta.perfil || "Cuenta completa"}</strong>
-                      <small>{cuenta.perfil ? "Perfil de venta" : "Acceso completo"}</small>
-                    </td>
-                    <td>
-                      <strong>{cuenta.pin_acceso || "-"}</strong>
-                      <small>Perfil: {cuenta.pin_perfil || "-"}</small>
-                    </td>
-                    <td><StatusBadge estado={cuenta.estado || "disponible"} /></td>
-                    <td>
-                      <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
-                      <small>{cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</small>
-                    </td>
-                    <td>
-                      <strong>{cuenta.cliente_inicio ? fechaLegible(cuenta.cliente_inicio) : "Sin iniciar"}</strong>
-                      <small>Fin: {cuenta.cliente_fin ? fechaLegible(cuenta.cliente_fin) : "Sin vencimiento"}</small>
-                    </td>
-                    <td>
-                      <div className={styles.tableActions}>
-                        <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Libre</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mant.</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloq.</button>
-                        <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
+    )
+  }
 
   if (cargando) return <AdminSkeleton />
 
@@ -3671,7 +3820,7 @@ export default function AdminPage() {
               <div className={styles.accountTypeSwitch}>
                 <button
                   type="button"
-                  onClick={() => setTipoCuentaRegistro("cuenta")}
+                  onClick={() => cambiarTipoCuentaRegistro("cuenta")}
                   className={tipoCuentaRegistro === "cuenta" ? styles.accountTypeActive : ""}
                 >
                   <strong>Cuenta completa</strong>
@@ -3679,7 +3828,7 @@ export default function AdminPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTipoCuentaRegistro("perfil")}
+                  onClick={() => cambiarTipoCuentaRegistro("perfil")}
                   className={tipoCuentaRegistro === "perfil" ? styles.accountTypeActive : ""}
                 >
                   <strong>Perfil</strong>
@@ -3692,12 +3841,15 @@ export default function AdminPage() {
                   <label>Selecciona producto</label>
                   <select name="producto_id" value={formCuenta.producto_id} onChange={handleCuentaChange} className={styles.input}>
                     <option value="">Selecciona producto</option>
-                    {productosParaCuentas.map((producto) => (
+                    {productosParaRegistroCuenta.map((producto) => (
                       <option key={producto.id} value={producto.id}>
                         {producto.nombre} · {producto.tipo_venta || "Sin tipo"} · Stock {producto.stock ?? 0}
                       </option>
                     ))}
                   </select>
+                  {productosParaRegistroCuenta.length === 0 && (
+                    <small className={styles.fieldHelp}>No hay productos de este tipo. Créalo primero en Productos o cambia Cuenta completa / Perfil.</small>
+                  )}
                 </div>
 
                 <div className={styles.fieldGroup}>
@@ -3810,15 +3962,15 @@ export default function AdminPage() {
                     <strong>{analisisCuentasMasivas.validos.length}</strong>
                     <small>cuenta(s) válidas</small>
                   </div>
+                  <div className={`${styles.bulkAnalysisCard} ${analisisCuentasMasivas.omitidos.length > 0 ? styles.bulkAnalysisWarning : ""}`}>
+                    <span>No cargaré</span>
+                    <strong>{analisisCuentasMasivas.omitidos.length}</strong>
+                    <small>repetidas / excedidas</small>
+                  </div>
                   <div className={`${styles.bulkAnalysisCard} ${analisisCuentasMasivas.invalidos.length > 0 ? styles.bulkAnalysisDanger : ""}`}>
                     <span>Con error</span>
                     <strong>{analisisCuentasMasivas.invalidos.length}</strong>
-                    <small>línea(s) por corregir</small>
-                  </div>
-                  <div className={`${styles.bulkAnalysisCard} ${analisisCuentasMasivas.repetidosArchivo + analisisCuentasMasivas.repetidosSistema > 0 ? styles.bulkAnalysisWarning : ""}`}>
-                    <span>Repetidas</span>
-                    <strong>{analisisCuentasMasivas.repetidosArchivo + analisisCuentasMasivas.repetidosSistema}</strong>
-                    <small>archivo / sistema</small>
+                    <small>falta dato obligatorio</small>
                   </div>
                   <div className={`${styles.bulkAnalysisCard} ${analisisCuentasMasivas.faltanClave + analisisCuentasMasivas.faltanPerfil + analisisCuentasMasivas.faltanPinPerfil > 0 ? styles.bulkAnalysisDanger : ""}`}>
                     <span>Faltantes</span>
@@ -3831,13 +3983,16 @@ export default function AdminPage() {
                   <div className={styles.bulkDetailBox}>
                     <strong>Detalle de validación</strong>
                     <span>
-                      Líneas: {analisisCuentasMasivas.totalLineas} · Sin correo: {analisisCuentasMasivas.faltanCorreo} · Sin contraseña: {analisisCuentasMasivas.faltanClave} · Sin perfil: {analisisCuentasMasivas.faltanPerfil} · Sin PIN perfil: {analisisCuentasMasivas.faltanPinPerfil} · Exceden límite: {analisisCuentasMasivas.excedidos}
+                      Líneas: {analisisCuentasMasivas.totalLineas} · Importaré: {analisisCuentasMasivas.validos.length} · No cargaré: {analisisCuentasMasivas.omitidos.length} · Sin correo: {analisisCuentasMasivas.faltanCorreo} · Sin contraseña: {analisisCuentasMasivas.faltanClave} · Sin perfil: {analisisCuentasMasivas.faltanPerfil} · Sin PIN perfil: {analisisCuentasMasivas.faltanPinPerfil} · Exceden límite: {analisisCuentasMasivas.excedidos}
                     </span>
                     {analisisCuentasMasivas.correosRepetidosArchivo.length > 0 && (
                       <small>Correos repetidos en archivo: {analisisCuentasMasivas.correosRepetidosArchivo.slice(0, 6).join(", ")}{analisisCuentasMasivas.correosRepetidosArchivo.length > 6 ? "..." : ""}</small>
                     )}
+                    {analisisCuentasMasivas.omitidos.slice(0, 5).map((registro) => (
+                      <small key={`omitida-${registro.numero}-${registro.original}`}>No se cargará línea {registro.numero}: {registro.omitidoMotivos.join(" · ")}</small>
+                    ))}
                     {analisisCuentasMasivas.invalidos.slice(0, 5).map((registro) => (
-                      <small key={`${registro.numero}-${registro.original}`}>Línea {registro.numero}: {registro.errores.join(" · ")}</small>
+                      <small key={`error-${registro.numero}-${registro.original}`}>Corregir línea {registro.numero}: {registro.errores.join(" · ")}</small>
                     ))}
                   </div>
                 )}
@@ -3889,7 +4044,7 @@ export default function AdminPage() {
                     <div>
                       <p className={styles.kicker}>Plataforma seleccionada</p>
                       <h3>{productoCuentaSeleccionado?.nombre || "Producto"}</h3>
-                      <span>{resumenCuentaSeleccionada?.disponibles || 0} libres · {resumenCuentaSeleccionada?.asignadas || 0} asignadas · {cuentasCompletasFiltradas.length} completas · {perfilesFiltrados.length} perfiles</span>
+                      <span>{resumenCuentaSeleccionada?.disponibles || 0} libres · {resumenCuentaSeleccionada?.asignadas || 0} asignadas · {cuentasCompletasFiltradas.length} completas · {perfilesFiltrados.length} perfiles · {cuentasSeleccionadas.length} seleccionadas</span>
                     </div>
                   </div>
 
