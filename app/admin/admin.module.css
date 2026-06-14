@@ -6757,3 +6757,244 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   JONAS STREAM - CUENTAS PRO V9
+   Carga masiva con :, TXT, validación y vista por plataforma.
+   ========================================================= */
+.bulkLimitRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.35fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.bulkFormatHelp {
+  min-height: 48px;
+  display: grid;
+  align-content: center;
+  padding: 12px 14px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 16px;
+  background: rgba(1, 231, 239, 0.055);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bulkFormatHelp strong {
+  color: var(--cyan-soft);
+}
+
+.bulkToolsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fileUploadButton {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  padding: 9px 13px;
+  cursor: pointer;
+  color: #001014;
+  background: linear-gradient(135deg, var(--cyan), var(--cyan-soft));
+  font-weight: 950;
+  box-shadow: 0 0 18px rgba(1, 231, 239, 0.18);
+}
+
+.fileUploadButton input {
+  display: none;
+}
+
+.fileNamePill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: rgba(1, 231, 239, 0.06);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.bulkAnalysisGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bulkAnalysisCard {
+  padding: 12px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.bulkAnalysisCard span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bulkAnalysisCard strong {
+  display: block;
+  margin: 5px 0;
+  color: var(--cyan-soft);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.bulkAnalysisCard small {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.bulkAnalysisDanger {
+  border-color: rgba(255, 143, 163, 0.38);
+  background: rgba(255, 143, 163, 0.075);
+}
+
+.bulkAnalysisDanger strong {
+  color: var(--danger);
+}
+
+.bulkAnalysisWarning {
+  border-color: rgba(255, 224, 130, 0.34);
+  background: rgba(255, 224, 130, 0.075);
+}
+
+.bulkAnalysisWarning strong {
+  color: var(--warning);
+}
+
+.bulkDetailBox {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  border-radius: 16px;
+  background: rgba(1, 231, 239, 0.045);
+}
+
+.bulkDetailBox strong {
+  color: var(--cyan-soft);
+}
+
+.bulkDetailBox span,
+.bulkDetailBox small {
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.accountPlatformHeader {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 42%, transparent);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--platform-color, #01E7EF) 20%, transparent), transparent 36%),
+    rgba(0, 0, 0, 0.24);
+}
+
+.accountPlatformHeader h3 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+
+.accountPlatformHeader span {
+  color: var(--text-muted);
+  font-weight: 800;
+}
+
+.accountBackButton {
+  min-height: 38px;
+  border: 1px solid rgba(1, 231, 239, 0.24);
+  border-radius: 13px;
+  padding: 9px 12px;
+  background: rgba(1, 231, 239, 0.08);
+  color: var(--cyan-soft);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.accountPlatformSplitGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.accountTableSection {
+  display: grid;
+  gap: 10px;
+}
+
+.accountSubtableTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.accountSubtableTitle h4 {
+  margin: 0 0 3px;
+  color: var(--text-main);
+  font-size: 17px;
+}
+
+.accountSubtableTitle span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.accountSubtableTitle strong {
+  min-width: 42px;
+  text-align: center;
+  color: var(--cyan-soft);
+  font-size: 24px;
+}
+
+.accountPlatformCard {
+  min-height: 112px;
+}
+
+.accountPlatformCard small + small {
+  margin-top: 4px;
+  color: color-mix(in srgb, var(--platform-color, #01E7EF) 72%, #ECFFFF);
+}
+
+@media (max-width: 980px) {
+  .bulkLimitRow,
+  .accountPlatformHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .bulkAnalysisGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .bulkAnalysisGrid {
+    grid-template-columns: 1fr;
+  }
+}

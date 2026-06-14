@@ -388,6 +388,8 @@ export default function AdminPage() {
   const [tipoCuentaRegistro, setTipoCuentaRegistro] = useState<"cuenta" | "perfil">("cuenta")
   const [cuentasMasivasTexto, setCuentasMasivasTexto] = useState("")
   const [importandoCuentas, setImportandoCuentas] = useState(false)
+  const [limitePerfilesCuenta, setLimitePerfilesCuenta] = useState("5")
+  const [archivoCuentasNombre, setArchivoCuentasNombre] = useState("")
 
   const [creditos, setCreditos] = useState<Credito[]>([])
   const [creditosDisponibles, setCreditosDisponibles] = useState(true)
@@ -1483,45 +1485,222 @@ export default function AdminPage() {
     })
   }
 
+  const obtenerLimitePerfilesCuenta = () => {
+    const numero = Number(limitePerfilesCuenta || 0)
+    if (!Number.isFinite(numero) || numero <= 0) return 1
+    return Math.min(50, Math.max(1, Math.floor(numero)))
+  }
+
+  const leerArchivoCuentasTxt = async (e: ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+
+    if (!archivo.name.toLowerCase().endsWith(".txt")) {
+      toast.error("Sube un archivo .txt")
+      e.target.value = ""
+      return
+    }
+
+    const texto = await archivo.text()
+    setCuentasMasivasTexto(texto)
+    setArchivoCuentasNombre(archivo.name)
+    toast.success(`Archivo cargado: ${archivo.name}`)
+    e.target.value = ""
+  }
+
+  const analizarCuentasMasivas = () => {
+    const producto = productos.find((item) => item.id === formCuenta.producto_id)
+    const productoNombre = producto?.nombre || formCuenta.producto_nombre || "Producto no seleccionado"
+    const limitePerfil = obtenerLimitePerfilesCuenta()
+    const lineas = cuentasMasivasTexto
+      .split("\n")
+      .map((linea, index) => ({ numero: index + 1, texto: linea.trim() }))
+      .filter((linea) => Boolean(linea.texto))
+
+    const existentesProducto = cuentas.filter((cuenta) => {
+      const mismoId = formCuenta.producto_id && cuenta.producto_id === formCuenta.producto_id
+      const mismoNombre = normalizarTexto(cuenta.producto_nombre) === normalizarTexto(productoNombre)
+      return mismoId || mismoNombre
+    })
+
+    const registros = lineas.map((linea) => {
+      const partes = linea.texto.split(",").map((parte) => parte.trim()).filter(Boolean)
+      const base = partes[0] || ""
+      const separadorBase = base.indexOf(":")
+      const errores: string[] = []
+
+      let correo = ""
+      let clave = ""
+      let perfil = ""
+      let pinPerfil = ""
+      let pinPublico = ""
+
+      if (separadorBase < 0) {
+        errores.push("falta ':' entre correo y contraseña")
+      } else {
+        correo = base.slice(0, separadorBase).trim()
+        clave = base.slice(separadorBase + 1).trim()
+      }
+
+      if (!correo) errores.push("falta correo")
+      if (!clave) errores.push("falta contraseña")
+      if (!formCuenta.producto_id) errores.push("selecciona producto")
+
+      if (tipoCuentaRegistro === "perfil") {
+        const perfilBase = partes[1] || ""
+        const separadorPerfil = perfilBase.lastIndexOf(":")
+
+        if (separadorPerfil < 0) {
+          errores.push("falta perfil o PIN. Usa Perfil:PIN")
+          perfil = perfilBase.trim()
+        } else {
+          perfil = perfilBase.slice(0, separadorPerfil).trim()
+          pinPerfil = perfilBase.slice(separadorPerfil + 1).trim()
+        }
+
+        if (!perfil) errores.push("falta nombre de perfil")
+        if (!pinPerfil) errores.push("falta PIN del perfil")
+        pinPublico = partes[2] || generarPinPublico()
+      } else {
+        pinPublico = partes[1] || generarPinPublico()
+      }
+
+      const claveDuplicado = `${formCuenta.producto_id}|${normalizarTexto(correo)}|${tipoCuentaRegistro === "perfil" ? normalizarTexto(perfil) : "cuenta-completa"}`
+      const existeEnSistema = existentesProducto.some((cuenta) => {
+        const mismoCorreo = normalizarTexto(cuenta.correo) === normalizarTexto(correo)
+        const mismoPerfil = tipoCuentaRegistro === "perfil"
+          ? normalizarTexto(cuenta.perfil) === normalizarTexto(perfil)
+          : !cuenta.perfil
+        return mismoCorreo && mismoPerfil
+      })
+
+      return {
+        numero: linea.numero,
+        original: linea.texto,
+        correo,
+        clave,
+        perfil,
+        pinPerfil,
+        pinPublico,
+        claveDuplicado,
+        existeEnSistema,
+        errores,
+        payload: {
+          producto_id: formCuenta.producto_id,
+          producto_nombre: producto?.nombre || formCuenta.producto_nombre || null,
+          correo,
+          clave,
+          perfil: tipoCuentaRegistro === "perfil" ? perfil || null : null,
+          pin_perfil: tipoCuentaRegistro === "perfil" ? pinPerfil || null : null,
+          pin_acceso: pinPublico,
+          estado: "disponible",
+          observacion_admin: formCuenta.observacion_admin.trim() || null,
+        },
+      }
+    })
+
+    const vistos = new Set<string>()
+    const duplicadosArchivo = new Set<string>()
+    registros.forEach((registro) => {
+      if (!registro.correo) return
+      if (vistos.has(registro.claveDuplicado)) duplicadosArchivo.add(registro.claveDuplicado)
+      vistos.add(registro.claveDuplicado)
+    })
+
+    const conteoCorreosArchivo = new Map<string, number>()
+    registros.forEach((registro) => {
+      const correoKey = normalizarTexto(registro.correo)
+      if (!correoKey) return
+      conteoCorreosArchivo.set(correoKey, (conteoCorreosArchivo.get(correoKey) || 0) + 1)
+    })
+
+    const correosRepetidosArchivo = Array.from(conteoCorreosArchivo.entries())
+      .filter(([, total]) => total > 1)
+      .map(([correo]) => correo)
+
+    const correosExcedidos = new Set<string>()
+    if (tipoCuentaRegistro === "perfil") {
+      const existentesPorCorreo = new Map<string, number>()
+      existentesProducto
+        .filter((cuenta) => Boolean(cuenta.perfil))
+        .forEach((cuenta) => {
+          const key = normalizarTexto(cuenta.correo)
+          if (!key) return
+          existentesPorCorreo.set(key, (existentesPorCorreo.get(key) || 0) + 1)
+        })
+
+      correosRepetidosArchivo.forEach((correo) => {
+        const existentes = existentesPorCorreo.get(correo) || 0
+        const nuevos = conteoCorreosArchivo.get(correo) || 0
+        if (existentes + nuevos > limitePerfil) correosExcedidos.add(correo)
+      })
+
+      registros.forEach((registro) => {
+        const correoKey = normalizarTexto(registro.correo)
+        if (!correoKey) return
+        const existentes = existentesPorCorreo.get(correoKey) || 0
+        const nuevos = conteoCorreosArchivo.get(correoKey) || 0
+        if (existentes + nuevos > limitePerfil) correosExcedidos.add(correoKey)
+      })
+    }
+
+    const registrosConEstado = registros.map((registro) => {
+      const errores = [...registro.errores]
+      if (registro.existeEnSistema) errores.push("ya existe en el sistema")
+      if (duplicadosArchivo.has(registro.claveDuplicado)) errores.push("duplicado dentro del archivo")
+      if (tipoCuentaRegistro === "perfil" && correosExcedidos.has(normalizarTexto(registro.correo))) {
+        errores.push(`excede el límite de ${limitePerfil} perfil(es) por cuenta`)
+      }
+
+      return { ...registro, errores, valido: errores.length === 0 }
+    })
+
+    const faltanCorreo = registrosConEstado.filter((registro) => registro.errores.includes("falta correo")).length
+    const faltanClave = registrosConEstado.filter((registro) => registro.errores.includes("falta contraseña")).length
+    const faltanPerfil = registrosConEstado.filter((registro) => registro.errores.includes("falta nombre de perfil")).length
+    const faltanPinPerfil = registrosConEstado.filter((registro) => registro.errores.includes("falta PIN del perfil")).length
+    const repetidosSistema = registrosConEstado.filter((registro) => registro.errores.includes("ya existe en el sistema")).length
+    const repetidosArchivo = registrosConEstado.filter((registro) => registro.errores.includes("duplicado dentro del archivo")).length
+    const excedidos = registrosConEstado.filter((registro) => registro.errores.some((error) => error.includes("excede el límite"))).length
+    const validos = registrosConEstado.filter((registro) => registro.valido)
+    const invalidos = registrosConEstado.filter((registro) => !registro.valido)
+
+    return {
+      totalLineas: lineas.length,
+      validos,
+      invalidos,
+      correosRepetidosArchivo,
+      faltanCorreo,
+      faltanClave,
+      faltanPerfil,
+      faltanPinPerfil,
+      repetidosSistema,
+      repetidosArchivo,
+      excedidos,
+      limitePerfil,
+    }
+  }
+
   const guardarCuentasMasivo = async () => {
     if (!formCuenta.producto_id) {
       toast.error("Selecciona un producto para la carga masiva")
       return
     }
 
-    const lineas = cuentasMasivasTexto
-      .split("\n")
-      .map((linea) => linea.trim())
-      .filter(Boolean)
+    const analisis = analizarCuentasMasivas()
 
-    if (lineas.length === 0) {
-      toast.error("Pega al menos una cuenta")
+    if (analisis.totalLineas === 0) {
+      toast.error("Pega al menos una cuenta o carga un TXT")
       return
     }
 
-    const producto = productos.find((item) => item.id === formCuenta.producto_id)
-    const registros = lineas.map((linea) => {
-      const partes = linea.split(/[;,|]/).map((parte) => parte.trim())
-      const [correo, clave, perfil, pinPerfil, pinPublico] = partes
-
-      return {
-        producto_id: formCuenta.producto_id,
-        producto_nombre: producto?.nombre || formCuenta.producto_nombre || null,
-        correo: correo || "",
-        clave: clave || "",
-        perfil: tipoCuentaRegistro === "perfil" ? perfil || null : null,
-        pin_perfil: tipoCuentaRegistro === "perfil" ? pinPerfil || null : null,
-        pin_acceso: pinPublico || generarPinPublico(),
-        estado: "disponible",
-        observacion_admin: formCuenta.observacion_admin.trim() || null,
-      }
-    })
-
-    const invalidas = registros.filter((registro) => !registro.correo || !registro.clave)
-    if (invalidas.length > 0) {
-      toast.error("Hay líneas sin correo o contraseña. Usa: correo,contraseña,perfil,pinPerfil,pinPublico")
+    if (analisis.invalidos.length > 0) {
+      const primerError = analisis.invalidos[0]
+      toast.error(`Corrige la línea ${primerError.numero}: ${primerError.errores.join(" · ")}`)
       return
     }
+
+    const registros = analisis.validos.map((registro) => registro.payload)
 
     setImportandoCuentas(true)
 
@@ -1533,7 +1712,8 @@ export default function AdminPage() {
       return
     }
 
-    await registrarLog("importar_masivo", "cuentas", undefined, `${registros.length} cuenta(s) importada(s) para ${producto?.nombre || "producto"}`)
+    const producto = productos.find((item) => item.id === formCuenta.producto_id)
+    await registrarLog("importar_masivo", "cuentas", undefined, `${registros.length} cuenta(s) importada(s) para ${producto?.nombre || "producto"} · ${tipoCuentaRegistro === "perfil" ? `límite ${analisis.limitePerfil} perfiles/cuenta` : "cuentas completas"}`)
 
     try {
       await sincronizarStockDesdeCuentas(false)
@@ -1542,6 +1722,7 @@ export default function AdminPage() {
     }
 
     setCuentasMasivasTexto("")
+    setArchivoCuentasNombre("")
     setImportandoCuentas(false)
     toast.success(`${registros.length} cuenta(s) importada(s)`)
     await cargarDatos()
@@ -1903,6 +2084,24 @@ export default function AdminPage() {
       .filter((item) => item.total > 0 || Number(item.producto.stock || 0) > 0 || item.producto.estado === "activo")
   }, [cuentas, productosParaCuentas])
 
+  const analisisCuentasMasivas = useMemo(() => analizarCuentasMasivas(), [
+    cuentasMasivasTexto,
+    formCuenta.producto_id,
+    formCuenta.producto_nombre,
+    formCuenta.observacion_admin,
+    tipoCuentaRegistro,
+    limitePerfilesCuenta,
+    cuentas,
+    productos,
+  ])
+
+  const productoCuentaSeleccionado = productosParaCuentas.find((producto) => producto.id === filtroCuentaProducto) || null
+  const resumenCuentaSeleccionada = productoCuentaSeleccionado
+    ? resumenCuentasPorProducto.find((item) => item.producto.id === productoCuentaSeleccionado.id)
+    : null
+  const cuentasCompletasFiltradas = cuentasFiltradas.filter((cuenta) => !cuenta.perfil)
+  const perfilesFiltrados = cuentasFiltradas.filter((cuenta) => Boolean(cuenta.perfil))
+
   const cuentasDisponiblesTotal = cuentas.filter((cuenta) => cuenta.estado === "disponible").length
   const cuentasAsignadasTotal = cuentas.filter((cuenta) => cuenta.estado === "asignada").length
   const cuentasVencidasTotal = cuentas.filter((cuenta) => cuenta.estado === "vencida").length
@@ -2151,6 +2350,81 @@ export default function AdminPage() {
 
   const comprobantesVisibles = comprobantesFiltrados.slice(0, limiteComprobantes)
   const logsVisibles = logsFiltrados.slice(0, limiteLogs)
+
+  const renderTablaCuentas = (titulo: string, descripcion: string, lista: CuentaInventario[]) => (
+    <div className={styles.accountTableSection}>
+      <div className={styles.accountSubtableTitle}>
+        <div>
+          <h4>{titulo}</h4>
+          <span>{descripcion}</span>
+        </div>
+        <strong>{lista.length}</strong>
+      </div>
+
+      {lista.length === 0 ? (
+        <EmptyState title="Sin registros" text="No hay cuentas en este grupo con los filtros actuales." />
+      ) : (
+        <div className={styles.tableWrap}>
+          <table className={`${styles.proTable} ${styles.accountsTablePro}`}>
+            <thead>
+              <tr>
+                <th>Correo</th>
+                <th>Contraseña</th>
+                <th>Perfil</th>
+                <th>PIN</th>
+                <th>Estado</th>
+                <th>Cliente</th>
+                <th>Fechas</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((cuenta) => {
+                const producto = productos.find((item) => item.id === cuenta.producto_id)
+                const nombreProducto = producto?.nombre || cuenta.producto_nombre || productoCuentaSeleccionado?.nombre || "Producto sin vincular"
+
+                return (
+                  <tr key={cuenta.id} style={estiloPlataforma(nombreProducto)}>
+                    <td>
+                      <strong>{cuenta.correo}</strong>
+                      <small>{nombreProducto}</small>
+                    </td>
+                    <td><strong>{cuenta.clave}</strong></td>
+                    <td>
+                      <strong>{cuenta.perfil || "Cuenta completa"}</strong>
+                      <small>{cuenta.perfil ? "Perfil de venta" : "Acceso completo"}</small>
+                    </td>
+                    <td>
+                      <strong>{cuenta.pin_acceso || "-"}</strong>
+                      <small>Perfil: {cuenta.pin_perfil || "-"}</small>
+                    </td>
+                    <td><StatusBadge estado={cuenta.estado || "disponible"} /></td>
+                    <td>
+                      <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
+                      <small>{cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</small>
+                    </td>
+                    <td>
+                      <strong>{cuenta.cliente_inicio ? fechaLegible(cuenta.cliente_inicio) : "Sin iniciar"}</strong>
+                      <small>Fin: {cuenta.cliente_fin ? fechaLegible(cuenta.cliente_fin) : "Sin vencimiento"}</small>
+                    </td>
+                    <td>
+                      <div className={styles.tableActions}>
+                        <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
+                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Libre</button>
+                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mant.</button>
+                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloq.</button>
+                        <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
 
   if (cargando) return <AdminSkeleton />
 
@@ -3487,140 +3761,160 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Carga masiva</p>
                   <h4>Importar muchas cuentas</h4>
-                  <span>Formato por línea: correo,contraseña,perfil,pinPerfil,pinPublico. Para cuenta completa basta: correo,contraseña.</span>
+                  <span>
+                    Cuenta completa: <strong>correo:contraseña</strong>. Perfil: <strong>correo:contraseña,P1 JOSE:2201</strong>.
+                    El PIN público de /codigos se genera automático si no lo agregas al final.
+                  </span>
                 </div>
+
+                {tipoCuentaRegistro === "perfil" && (
+                  <div className={styles.bulkLimitRow}>
+                    <div className={styles.fieldGroup}>
+                      <label>Máximo de perfiles por la misma cuenta</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={limitePerfilesCuenta}
+                        onChange={(e) => setLimitePerfilesCuenta(e.target.value)}
+                        className={styles.input}
+                      />
+                    </div>
+                    <div className={styles.bulkFormatHelp}>
+                      <strong>Ejemplo Netflix:</strong> si colocas 5, el mismo correo solo podrá tener 5 perfiles cargados. Así el sistema solo venderá esos 5 accesos.
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles.bulkToolsRow}>
+                  <label className={styles.fileUploadButton}>
+                    Cargar TXT
+                    <input type="file" accept=".txt,text/plain" onChange={leerArchivoCuentasTxt} />
+                  </label>
+                  {archivoCuentasNombre && <span className={styles.fileNamePill}>{archivoCuentasNombre}</span>}
+                  <button type="button" onClick={() => { setCuentasMasivasTexto(""); setArchivoCuentasNombre("") }} className={styles.secondaryButton}>Limpiar</button>
+                </div>
+
                 <textarea
                   value={cuentasMasivasTexto}
                   onChange={(e) => setCuentasMasivasTexto(e.target.value)}
-                  placeholder={`netflix01@gmail.com,clave123\nnetflix02@gmail.com,clave456\nperfil01@gmail.com,clave789,Perfil 1,1234,ABCD12`}
+                  placeholder={tipoCuentaRegistro === "perfil"
+                    ? `netflix01@gmail.com:clave123,P1 JOSE:2201\nnetflix01@gmail.com:clave123,P2 MARIA:2202\nnetflix01@gmail.com:clave123,P3 LUIS:2203`
+                    : `netflix01@gmail.com:clave123\nnetflix02@gmail.com:clave456\nnetflix03@gmail.com:clave789`}
                   className={`${styles.input} ${styles.bulkTextarea}`}
                 />
+
+                <div className={styles.bulkAnalysisGrid}>
+                  <div className={styles.bulkAnalysisCard}>
+                    <span>Importaré</span>
+                    <strong>{analisisCuentasMasivas.validos.length}</strong>
+                    <small>cuenta(s) válidas</small>
+                  </div>
+                  <div className={`${styles.bulkAnalysisCard} ${analisisCuentasMasivas.invalidos.length > 0 ? styles.bulkAnalysisDanger : ""}`}>
+                    <span>Con error</span>
+                    <strong>{analisisCuentasMasivas.invalidos.length}</strong>
+                    <small>línea(s) por corregir</small>
+                  </div>
+                  <div className={`${styles.bulkAnalysisCard} ${analisisCuentasMasivas.repetidosArchivo + analisisCuentasMasivas.repetidosSistema > 0 ? styles.bulkAnalysisWarning : ""}`}>
+                    <span>Repetidas</span>
+                    <strong>{analisisCuentasMasivas.repetidosArchivo + analisisCuentasMasivas.repetidosSistema}</strong>
+                    <small>archivo / sistema</small>
+                  </div>
+                  <div className={`${styles.bulkAnalysisCard} ${analisisCuentasMasivas.faltanClave + analisisCuentasMasivas.faltanPerfil + analisisCuentasMasivas.faltanPinPerfil > 0 ? styles.bulkAnalysisDanger : ""}`}>
+                    <span>Faltantes</span>
+                    <strong>{analisisCuentasMasivas.faltanClave + analisisCuentasMasivas.faltanPerfil + analisisCuentasMasivas.faltanPinPerfil}</strong>
+                    <small>clave / perfil / PIN</small>
+                  </div>
+                </div>
+
+                {cuentasMasivasTexto.trim() && (
+                  <div className={styles.bulkDetailBox}>
+                    <strong>Detalle de validación</strong>
+                    <span>
+                      Líneas: {analisisCuentasMasivas.totalLineas} · Sin correo: {analisisCuentasMasivas.faltanCorreo} · Sin contraseña: {analisisCuentasMasivas.faltanClave} · Sin perfil: {analisisCuentasMasivas.faltanPerfil} · Sin PIN perfil: {analisisCuentasMasivas.faltanPinPerfil} · Exceden límite: {analisisCuentasMasivas.excedidos}
+                    </span>
+                    {analisisCuentasMasivas.correosRepetidosArchivo.length > 0 && (
+                      <small>Correos repetidos en archivo: {analisisCuentasMasivas.correosRepetidosArchivo.slice(0, 6).join(", ")}{analisisCuentasMasivas.correosRepetidosArchivo.length > 6 ? "..." : ""}</small>
+                    )}
+                    {analisisCuentasMasivas.invalidos.slice(0, 5).map((registro) => (
+                      <small key={`${registro.numero}-${registro.original}`}>Línea {registro.numero}: {registro.errores.join(" · ")}</small>
+                    ))}
+                  </div>
+                )}
+
                 <button type="button" onClick={guardarCuentasMasivo} disabled={importandoCuentas || !cuentasMasivasTexto.trim()} className={styles.secondaryButton}>
-                  {importandoCuentas ? "Importando..." : "Importar cuentas pegadas"}
+                  {importandoCuentas ? "Importando..." : "Importar cuentas validadas"}
                 </button>
               </div>
             </article>
 
             <article className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <p className={styles.kicker}>Inventario por plataforma</p>
-                  <h3>Resumen de cuentas</h3>
-                  <span className={styles.panelHint}>Selecciona una plataforma para ver sus correos en lista.</span>
-                </div>
-                <span className={styles.countBadge}>{cuentasFiltradas.length} cuentas</span>
-              </div>
+              {filtroCuentaProducto === "todos" ? (
+                <>
+                  <div className={styles.panelHeader}>
+                    <div>
+                      <p className={styles.kicker}>Inventario por plataforma</p>
+                      <h3>Resumen de cuentas</h3>
+                      <span className={styles.panelHint}>Selecciona una plataforma para entrar a su lista de correos, contraseñas, cuentas completas y perfiles.</span>
+                    </div>
+                    <span className={styles.countBadge}>{cuentas.length} cuentas</span>
+                  </div>
 
-              <div className={styles.accountPlatformGrid}>
-                <button
-                  type="button"
-                  onClick={() => setFiltroCuentaProducto("todos")}
-                  className={`${styles.accountPlatformCard} ${filtroCuentaProducto === "todos" ? styles.accountPlatformActive : ""}`}
-                >
-                  <span>Todas</span>
-                  <strong>{cuentas.length}</strong>
-                  <small>{cuentasDisponiblesTotal} libres · {cuentasAsignadasTotal} asignadas</small>
-                </button>
+                  <div className={styles.accountPlatformGrid}>
+                    {resumenCuentasPorProducto.map((item) => {
+                      const completas = cuentas.filter((cuenta) => (cuenta.producto_id === item.producto.id || normalizarTexto(cuenta.producto_nombre) === normalizarTexto(item.producto.nombre)) && !cuenta.perfil).length
+                      const perfiles = cuentas.filter((cuenta) => (cuenta.producto_id === item.producto.id || normalizarTexto(cuenta.producto_nombre) === normalizarTexto(item.producto.nombre)) && Boolean(cuenta.perfil)).length
 
-                {resumenCuentasPorProducto.map((item) => (
-                  <button
-                    key={item.producto.id}
-                    type="button"
-                    onClick={() => setFiltroCuentaProducto(item.producto.id)}
-                    className={`${styles.accountPlatformCard} ${filtroCuentaProducto === item.producto.id ? styles.accountPlatformActive : ""}`}
-                    style={estiloPlataforma(item.producto.nombre)}
-                  >
-                    <span>{item.producto.nombre}</span>
-                    <strong>{item.total}</strong>
-                    <small>{item.disponibles} libres · {item.asignadas} asignadas · {item.bloqueadas} bloqueadas</small>
-                  </button>
-                ))}
-              </div>
-
-              <div className={styles.accountsToolbarPro}>
-                <input
-                  type="text"
-                  placeholder="Buscar por correo, producto, perfil, cliente o PIN..."
-                  value={busquedaCuenta}
-                  onChange={(e) => setBusquedaCuenta(e.target.value)}
-                  className={styles.input}
-                />
-                <div className={styles.toggleGroup}>
-                  <button type="button" onClick={() => setFiltroCuentaEstado("todos")} className={filtroCuentaEstado === "todos" ? styles.toggleActive : ""}>Todo</button>
-                  <button type="button" onClick={() => setFiltroCuentaEstado("disponible")} className={filtroCuentaEstado === "disponible" ? styles.toggleActive : ""}>Libre</button>
-                  <button type="button" onClick={() => setFiltroCuentaEstado("asignada")} className={filtroCuentaEstado === "asignada" ? styles.toggleActive : ""}>Asignada</button>
-                  <button type="button" onClick={() => setFiltroCuentaEstado("bloqueada")} className={filtroCuentaEstado === "bloqueada" ? styles.toggleActive : ""}>Bloqueada</button>
-                  <button type="button" onClick={() => setFiltroCuentaEstado("vencida")} className={filtroCuentaEstado === "vencida" ? styles.toggleActive : ""}>Vencida</button>
-                </div>
-              </div>
-
-              {cuentasFiltradas.length === 0 ? (
-                <EmptyState title="Sin cuentas" text="Registra cuentas disponibles para que luego puedan asignarse a pedidos." />
+                      return (
+                        <button
+                          key={item.producto.id}
+                          type="button"
+                          onClick={() => setFiltroCuentaProducto(item.producto.id)}
+                          className={styles.accountPlatformCard}
+                          style={estiloPlataforma(item.producto.nombre)}
+                        >
+                          <span>{item.producto.nombre}</span>
+                          <strong>{item.total}</strong>
+                          <small>{item.disponibles} libres · {item.asignadas} asignadas</small>
+                          <small>{completas} completas · {perfiles} perfiles</small>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
               ) : (
-                <div className={styles.tableWrap}>
-                  <table className={`${styles.proTable} ${styles.accountsTablePro}`}>
-                    <thead>
-                      <tr>
-                        <th>Producto</th>
-                        <th>Correo</th>
-                        <th>Tipo</th>
-                        <th>PIN</th>
-                        <th>Estado</th>
-                        <th>Cliente</th>
-                        <th>Vigencia</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cuentasFiltradas.map((cuenta) => {
-                        const producto = productos.find((item) => item.id === cuenta.producto_id)
-                        const nombreProducto = producto?.nombre || cuenta.producto_nombre || "Producto sin vincular"
-                        const tipoCuenta = cuenta.perfil ? "Perfil" : "Cuenta completa"
+                <>
+                  <div className={styles.accountPlatformHeader} style={estiloPlataforma(productoCuentaSeleccionado?.nombre)}>
+                    <button type="button" onClick={() => { setFiltroCuentaProducto("todos"); setBusquedaCuenta(""); setFiltroCuentaEstado("todos") }} className={styles.accountBackButton}>← Volver a plataformas</button>
+                    <div>
+                      <p className={styles.kicker}>Plataforma seleccionada</p>
+                      <h3>{productoCuentaSeleccionado?.nombre || "Producto"}</h3>
+                      <span>{resumenCuentaSeleccionada?.disponibles || 0} libres · {resumenCuentaSeleccionada?.asignadas || 0} asignadas · {cuentasCompletasFiltradas.length} completas · {perfilesFiltrados.length} perfiles</span>
+                    </div>
+                  </div>
 
-                        return (
-                          <tr key={cuenta.id} style={estiloPlataforma(nombreProducto)}>
-                            <td>
-                              <div className={styles.accountProductPill}>
-                                <strong>{nombreProducto}</strong>
-                                <small>{producto?.tipo_venta || tipoCuenta}</small>
-                              </div>
-                            </td>
-                            <td>
-                              <strong>{cuenta.correo}</strong>
-                              <small>Clave: {cuenta.clave}</small>
-                            </td>
-                            <td>
-                              <strong>{tipoCuenta}</strong>
-                              <small>{cuenta.perfil || "Sin perfil"}</small>
-                            </td>
-                            <td>
-                              <strong>{cuenta.pin_acceso || "-"}</strong>
-                              <small>Perfil: {cuenta.pin_perfil || "-"}</small>
-                            </td>
-                            <td><StatusBadge estado={cuenta.estado || "disponible"} /></td>
-                            <td>
-                              <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
-                              <small>{cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</small>
-                            </td>
-                            <td>
-                              <strong>{fechaLegible(cuenta.cliente_inicio)}</strong>
-                              <small>Fin: {fechaLegible(cuenta.cliente_fin)}</small>
-                            </td>
-                            <td>
-                              <div className={styles.tableActions}>
-                                <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
-                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Libre</button>
-                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mant.</button>
-                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloq.</button>
-                                <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                  <div className={styles.accountsToolbarPro}>
+                    <input
+                      type="text"
+                      placeholder="Buscar correo, perfil, cliente o PIN dentro de esta plataforma..."
+                      value={busquedaCuenta}
+                      onChange={(e) => setBusquedaCuenta(e.target.value)}
+                      className={styles.input}
+                    />
+                    <div className={styles.toggleGroup}>
+                      <button type="button" onClick={() => setFiltroCuentaEstado("todos")} className={filtroCuentaEstado === "todos" ? styles.toggleActive : ""}>Todo</button>
+                      <button type="button" onClick={() => setFiltroCuentaEstado("disponible")} className={filtroCuentaEstado === "disponible" ? styles.toggleActive : ""}>Libre</button>
+                      <button type="button" onClick={() => setFiltroCuentaEstado("asignada")} className={filtroCuentaEstado === "asignada" ? styles.toggleActive : ""}>Asignada</button>
+                      <button type="button" onClick={() => setFiltroCuentaEstado("bloqueada")} className={filtroCuentaEstado === "bloqueada" ? styles.toggleActive : ""}>Bloqueada</button>
+                      <button type="button" onClick={() => setFiltroCuentaEstado("vencida")} className={filtroCuentaEstado === "vencida" ? styles.toggleActive : ""}>Vencida</button>
+                    </div>
+                  </div>
+
+                  <div className={styles.accountPlatformSplitGrid}>
+                    {renderTablaCuentas("Cuentas completas", "Accesos completos disponibles o asignados para esta plataforma.", cuentasCompletasFiltradas)}
+                    {renderTablaCuentas("Perfiles", `Perfiles separados. Límite recomendado: ${obtenerLimitePerfilesCuenta()} por cada correo base.`, perfilesFiltrados)}
+                  </div>
+                </>
               )}
             </article>
           </div>
