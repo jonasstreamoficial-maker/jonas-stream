@@ -7971,8 +7971,6 @@
 .productPreviewImageMini img {
   width: 100% !important;
   height: 100% !important;
-  object-fit: contain !important;
-  object-position: center center !important;
   border-radius: 12px !important;
   background: transparent !important;
 }
@@ -7987,8 +7985,6 @@
 
 .productListMedia img,
 .productImage img {
-  object-fit: contain !important;
-  object-position: center center !important;
   padding: 8px !important;
 }
 
@@ -8066,5 +8062,221 @@
     min-height: unset !important;
     padding: 18px !important;
     border-radius: 24px !important;
+  }
+}
+
+/* =========================================================
+   JONAS STREAM ADMIN v17
+   Imagen editable + paleta estricta + cuentas/inventario más limpio.
+   ========================================================= */
+.productPreviewImageMini,
+.productListMedia,
+.productImage,
+.productImagePlaceholder {
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--platform-color, #01E7EF) 18%, transparent), transparent 58%),
+    rgba(0, 0, 0, 0.88) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.productPreviewImageMini {
+  height: 150px !important;
+  border-radius: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 60%, transparent) !important;
+}
+
+.productPreviewImageMini img,
+.productListMedia img,
+.productImage img {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  object-fit: cover;
+  object-position: center;
+  border-radius: inherit !important;
+  background: transparent !important;
+  transition: object-position 0.18s ease, transform 0.18s ease;
+}
+
+.productPreviewCardMini h4,
+.productPreviewCardMini p {
+  text-align: center !important;
+}
+
+.imageAdjustPanel {
+  display: grid;
+  gap: 14px;
+  padding: 15px;
+  border: 1px dashed rgba(1, 231, 239, 0.26);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(0, 251, 255, 0.11), transparent 38%),
+    rgba(0, 0, 0, 0.22);
+}
+
+.imageAdjustPanel h4 {
+  margin: 0 0 4px;
+  color: #ECFFFF;
+  font-size: 18px;
+}
+
+.imageAdjustPanel span {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.imageAdjustGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rangeInput {
+  width: 100%;
+  accent-color: var(--platform-color, #01E7EF);
+  cursor: pointer;
+}
+
+.productListRowPro,
+.inventoryListRowPro,
+.accountPlatformCard,
+.platformOrderCell,
+.platformInlinePill,
+.accountProductPill {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 68%, transparent) !important;
+}
+
+.productListRowPro,
+.inventoryListRowPro {
+  border-left-color: var(--platform-color, #01E7EF) !important;
+  box-shadow:
+    inset 0 0 20px color-mix(in srgb, var(--platform-color, #01E7EF) 7%, transparent),
+    0 0 22px color-mix(in srgb, var(--platform-color, #01E7EF) 10%, transparent) !important;
+}
+
+.productListTitleLine span,
+.inventoryLabel,
+.productListChips span,
+.groupPill,
+.accountPlatformCard small + small {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 42%, transparent) !important;
+  background: color-mix(in srgb, var(--platform-color, #01E7EF) 14%, rgba(0, 0, 0, 0.22)) !important;
+}
+
+.accountPlatformGrid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.accountPlatformCard {
+  min-height: 150px !important;
+  display: grid !important;
+  align-content: space-between !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--platform-color, #01E7EF) 24%, transparent), transparent 38%),
+    linear-gradient(135deg, color-mix(in srgb, var(--platform-color, #01E7EF) 16%, transparent), rgba(0, 0, 0, 0.28)) !important;
+}
+
+.accountPlatformTopline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accountPlatformTopline span {
+  display: block !important;
+  margin: 0 !important;
+  color: #ECFFFF !important;
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  line-height: 1.15 !important;
+}
+
+.accountPlatformTopline strong {
+  display: grid !important;
+  place-items: center !important;
+  width: 46px !important;
+  height: 46px !important;
+  margin: 0 !important;
+  border-radius: 16px !important;
+  background: color-mix(in srgb, var(--platform-color, #01E7EF) 14%, rgba(0, 0, 0, 0.42)) !important;
+  color: var(--platform-color, #01E7EF) !important;
+  font-size: 25px !important;
+  line-height: 1 !important;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--platform-color, #01E7EF) 34%, transparent) !important;
+}
+
+.accountPlatformStatsMini {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.accountPlatformStatsMini div {
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 28%, transparent);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.26);
+  text-align: center;
+}
+
+.accountPlatformStatsMini b {
+  color: #ECFFFF;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.accountPlatformStatsMini small {
+  color: #9BC8CB !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  line-height: 1.15 !important;
+}
+
+.inventoryHeroPro {
+  min-height: 170px !important;
+  padding: 26px !important;
+}
+
+.inventoryHeroPro h3 {
+  font-size: clamp(38px, 4.5vw, 62px) !important;
+}
+
+.inventoryHeroStats button {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 30%, rgba(1, 231, 239, 0.18)) !important;
+}
+
+.inventoryListRowPro .stockPillOk,
+.inventoryListRowPro .stockPill,
+.inventoryListRowPro .stockPillDanger {
+  font-size: 14px !important;
+}
+
+@media (max-width: 920px) {
+  .imageAdjustGrid,
+  .accountPlatformStatsMini {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .imageAdjustGrid,
+  .accountPlatformStatsMini,
+  .accountPlatformGrid {
+    grid-template-columns: 1fr !important;
   }
 }

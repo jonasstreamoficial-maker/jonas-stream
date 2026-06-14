@@ -32,6 +32,10 @@ type Producto = {
   precio_antes: number | null
   stock: number
   imagen?: string | null
+  imagen_fit?: string | null
+  imagen_pos_x?: number | null
+  imagen_pos_y?: number | null
+  imagen_zoom?: number | null
   categoria: string
   tipo_venta: string
   whatsapp: string
@@ -184,6 +188,10 @@ const productoInicial = {
   estado_catalogo: "ACTIVO",
   badge: "",
   accent: "jonas stream",
+  imagen_fit: "cover",
+  imagen_pos_x: "50",
+  imagen_pos_y: "50",
+  imagen_zoom: "1",
 }
 
 
@@ -253,38 +261,43 @@ const fechaLegible = (fecha?: string | null) => {
   return date.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" })
 }
 
-const coloresPlataforma: Array<{ claves: string[]; color: string }> = [
-  { claves: ["netflix"], color: "#e50914" },
-  { claves: ["disney premium", "disney+ premium"], color: "#00b2bb" },
-  { claves: ["disney estandar", "disney estándar", "disney standard", "disney", "disney+"], color: "#002062" },
-  { claves: ["prime video", "prime", "amazon"], color: "#007aff" },
-  { claves: ["max", "hbo"], color: "#0027ef" },
-  { claves: ["paramount", "paramount+"], color: "#0068ff" },
-  { claves: ["crunchyroll", "crunchy"], color: "#ff5800" },
-  { claves: ["vix premium", "vix"], color: "#ff5800" },
-  { claves: ["rakuten viki", "rakuten", "viki"], color: "#009dff" },
-  { claves: ["apple tv + mls", "apple tv mls", "mls"], color: "#ff1f1f" },
-  { claves: ["apple tv", "apple tv+"], color: "#9ca3af" },
-  { claves: ["plex"], color: "#feb100" },
-  { claves: ["universal"], color: "#ffff00" },
-  { claves: ["iptv"], color: "#5440eb" },
-  { claves: ["flujo tv", "flujo"], color: "#ff6224" },
-  { claves: ["dgo"], color: "#00b0f2" },
-  { claves: ["movistar"], color: "#7ed957" },
-  { claves: ["l1 max", "liga 1 max"], color: "#ff1f1f" },
-  { claves: ["spotify"], color: "#1db954" },
-  { claves: ["tidal"], color: "#9ca3af" },
-  { claves: ["deezer"], color: "#ff4fb8" },
-  { claves: ["apple music"], color: "#fa57c1" },
-  { claves: ["youtube premium", "youtube"], color: "#ff0000" },
-  { claves: ["canva"], color: "#00c4cc" },
-  { claves: ["surfshark"], color: "#64f5d2" },
-  { claves: ["hola vpn", "hola"], color: "#ff7a00" },
+const coloresPlataforma: Array<{ nombre: string; claves: string[]; color: string }> = [
+  { nombre: "Netflix", claves: ["netflix"], color: "#e50914" },
+  { nombre: "Disney Premium", claves: ["disney premium", "disney+ premium"], color: "#00b2bb" },
+  { nombre: "Disney Estandar", claves: ["disney estandar", "disney estándar", "disney standard", "disney", "disney+"], color: "#002062" },
+  { nombre: "Prime Video", claves: ["prime video", "prime", "amazon"], color: "#007aff" },
+  { nombre: "Max", claves: ["max", "hbo"], color: "#0027ef" },
+  { nombre: "Paramount+", claves: ["paramount+", "paramount"], color: "#0068ff" },
+  { nombre: "Crunchyroll", claves: ["crunchyroll", "crunchy"], color: "#ff5800" },
+  { nombre: "Vix Premium", claves: ["vix premium", "vix"], color: "#ff5800" },
+  { nombre: "Rakuten Viki", claves: ["rakuten viki", "rakuten", "viki"], color: "#009dff" },
+  { nombre: "Apple TV + MLS", claves: ["apple tv + mls", "apple tv mls", "mls"], color: "#ff1f1f" },
+  { nombre: "Apple TV", claves: ["apple tv", "apple tv+"], color: "#9ca3af" },
+  { nombre: "Plex", claves: ["plex"], color: "#feb100" },
+  { nombre: "Universal", claves: ["universal"], color: "#ffff00" },
+  { nombre: "IPTV", claves: ["iptv"], color: "#5440eb" },
+  { nombre: "Flujo TV", claves: ["flujo tv", "flujo"], color: "#ff6224" },
+  { nombre: "DGO", claves: ["dgo"], color: "#00b0f2" },
+  { nombre: "Movistar", claves: ["movistar"], color: "#7ed957" },
+  { nombre: "L1 Max", claves: ["l1 max", "liga 1 max"], color: "#ff1f1f" },
+  { nombre: "Spotify", claves: ["spotify"], color: "#1db954" },
+  { nombre: "Tidal", claves: ["tidal"], color: "#9ca3af" },
+  { nombre: "Deezer", claves: ["deezer"], color: "#ff4fb8" },
+  { nombre: "Apple Music", claves: ["apple music"], color: "#fa57c1" },
+  { nombre: "YouTube Premium", claves: ["youtube premium", "youtube"], color: "#ff0000" },
+  { nombre: "Canva", claves: ["canva"], color: "#00c4cc" },
+  { nombre: "Surfshark", claves: ["surfshark"], color: "#64f5d2" },
+  { nombre: "Hola VPN", claves: ["hola vpn", "hola"], color: "#ff7a00" },
 ]
 
+const limpiarTextoPlataforma = (valor?: string | number | null) =>
+  normalizarTexto(valor)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
 const obtenerColorPlataforma = (nombre?: string | null) => {
-  const texto = normalizarTexto(nombre)
-  const item = coloresPlataforma.find((plataforma) => plataforma.claves.some((clave) => texto.includes(clave)))
+  const texto = limpiarTextoPlataforma(nombre)
+  const item = coloresPlataforma.find((plataforma) => plataforma.claves.some((clave) => texto.includes(limpiarTextoPlataforma(clave))))
   return item?.color || "#01E7EF"
 }
 
@@ -292,9 +305,44 @@ const estiloPlataforma = (nombre?: string | null): CSSProperties => ({
   "--platform-color": obtenerColorPlataforma(nombre),
 } as CSSProperties)
 
+const obtenerColorProducto = (producto?: Pick<Producto, "nombre" | "accent"> | null) => {
+  if (!producto) return "#01E7EF"
+  const colorPorNombre = obtenerColorPlataforma(producto.nombre)
+  if (colorPorNombre !== "#01E7EF") return colorPorNombre
+  return obtenerColorPlataforma(producto.accent)
+}
+
+const estiloProducto = (producto?: Pick<Producto, "nombre" | "accent"> | null): CSSProperties => ({
+  "--platform-color": obtenerColorProducto(producto),
+} as CSSProperties)
+
 const textoColorProducto = (producto?: Pick<Producto, "nombre" | "accent"> | null) => {
   if (!producto) return "jonas stream"
   return `${producto.nombre || ""} ${producto.accent || ""}`.trim() || "jonas stream"
+}
+
+const clampNumber = (valor: string | number | null | undefined, minimo: number, maximo: number, fallback: number) => {
+  const numero = Number(valor)
+  if (!Number.isFinite(numero)) return fallback
+  return Math.min(maximo, Math.max(minimo, numero))
+}
+
+const estiloImagenAjustada = (
+  fit?: string | null,
+  posX?: string | number | null,
+  posY?: string | number | null,
+  zoom?: string | number | null,
+): CSSProperties => {
+  const x = clampNumber(posX, 0, 100, 50)
+  const y = clampNumber(posY, 0, 100, 50)
+  const escala = clampNumber(zoom, 1, 3, 1)
+
+  return {
+    objectFit: fit === "contain" ? "contain" : "cover",
+    objectPosition: `${x}% ${y}%`,
+    transform: `scale(${escala})`,
+    transformOrigin: `${x}% ${y}%`,
+  }
 }
 
 const etiquetaTipoVenta = (tipo?: string | null) => {
@@ -1296,6 +1344,10 @@ export default function AdminPage() {
       estado_catalogo: stock === 0 ? "AGOTADO" : formProducto.estado_catalogo,
       badge: formProducto.badge.trim(),
       accent: formProducto.accent,
+      imagen_fit: formProducto.imagen_fit || "cover",
+      imagen_pos_x: clampNumber(formProducto.imagen_pos_x, 0, 100, 50),
+      imagen_pos_y: clampNumber(formProducto.imagen_pos_y, 0, 100, 50),
+      imagen_zoom: clampNumber(formProducto.imagen_zoom, 1, 3, 1),
     }
 
     if (imagenUrl) payload.imagen = imagenUrl
@@ -1353,6 +1405,10 @@ export default function AdminPage() {
       estado_catalogo: producto.estado_catalogo || "ACTIVO",
       badge: producto.badge || "",
       accent: producto.accent || "jonas stream",
+      imagen_fit: producto.imagen_fit || "cover",
+      imagen_pos_x: String(producto.imagen_pos_x ?? 50),
+      imagen_pos_y: String(producto.imagen_pos_y ?? 50),
+      imagen_zoom: String(producto.imagen_zoom ?? 1),
     })
     setImagenFile(null)
     setTabActiva("productos")
@@ -3000,7 +3056,11 @@ export default function AdminPage() {
 
                     <div className={styles.productPreviewImageMini}>
                       {imagenPreviewProducto ? (
-                        <img src={imagenPreviewProducto} alt={formProducto.nombre || "Vista previa del producto"} />
+                        <img
+                          src={imagenPreviewProducto}
+                          alt={formProducto.nombre || "Vista previa del producto"}
+                          style={estiloImagenAjustada(formProducto.imagen_fit, formProducto.imagen_pos_x, formProducto.imagen_pos_y, formProducto.imagen_zoom)}
+                        />
                       ) : formProducto.nombre ? (
                         <strong>{formProducto.nombre.slice(0, 2).toUpperCase()}</strong>
                       ) : (
@@ -3146,6 +3206,35 @@ export default function AdminPage() {
                     {subiendoImagen && <p>Subiendo imagen...</p>}
                   </div>
 
+                  <div className={`${styles.imageAdjustPanel} ${styles.fieldFull}`}>
+                    <div>
+                      <p className={styles.kicker}>Ajuste de imagen</p>
+                      <h4>Centrar imagen manualmente</h4>
+                      <span>Usa cobertura para llenar todo el cuadro. Mueve X/Y y ajusta zoom hasta que quede centrado.</span>
+                    </div>
+
+                    <div className={styles.imageAdjustGrid}>
+                      <label className={styles.fieldLabel}>Modo de imagen
+                        <select name="imagen_fit" value={formProducto.imagen_fit} onChange={handleProductoChange} className={styles.input}>
+                          <option value="cover">Cubrir todo el cuadro</option>
+                          <option value="contain">Mostrar completa</option>
+                        </select>
+                      </label>
+
+                      <label className={styles.fieldLabel}>Mover horizontal: {formProducto.imagen_pos_x}%
+                        <input name="imagen_pos_x" type="range" min="0" max="100" step="1" value={formProducto.imagen_pos_x} onChange={handleProductoChange} className={styles.rangeInput} />
+                      </label>
+
+                      <label className={styles.fieldLabel}>Mover vertical: {formProducto.imagen_pos_y}%
+                        <input name="imagen_pos_y" type="range" min="0" max="100" step="1" value={formProducto.imagen_pos_y} onChange={handleProductoChange} className={styles.rangeInput} />
+                      </label>
+
+                      <label className={styles.fieldLabel}>Zoom: {formProducto.imagen_zoom}x
+                        <input name="imagen_zoom" type="range" min="1" max="3" step="0.05" value={formProducto.imagen_zoom} onChange={handleProductoChange} className={styles.rangeInput} />
+                      </label>
+                    </div>
+                  </div>
+
                   <div className={`${styles.formActions} ${styles.fieldFull}`}>
                     <button type="submit" disabled={guardandoProducto || subiendoImagen} className={styles.primaryButton}>
                       {guardandoProducto ? "Guardando..." : editandoId ? "Actualizar producto" : "Crear producto"}
@@ -3216,9 +3305,15 @@ export default function AdminPage() {
                   const estadoStock = stock <= 0 ? "Agotado" : stock <= 3 ? "Bajo stock" : "Stock estable"
 
                   return (
-                    <article key={p.id} className={styles.productListRowPro} style={estiloPlataforma(textoColorProducto(p))}>
+                    <article key={p.id} className={styles.productListRowPro} style={estiloProducto(p)}>
                       <div className={styles.productListMedia}>
-                        {p.imagen ? <img src={p.imagen} alt={p.nombre} /> : <strong>JS</strong>}
+                        {p.imagen ? (
+                          <img
+                            src={p.imagen}
+                            alt={p.nombre}
+                            style={estiloImagenAjustada(p.imagen_fit, p.imagen_pos_x, p.imagen_pos_y, p.imagen_zoom)}
+                          />
+                        ) : <strong>JS</strong>}
                       </div>
 
                       <div className={styles.productListMain}>
@@ -4223,12 +4318,19 @@ export default function AdminPage() {
                           type="button"
                           onClick={() => setFiltroCuentaProducto(item.producto.id)}
                           className={styles.accountPlatformCard}
-                          style={estiloPlataforma(item.producto.nombre)}
+                          style={estiloProducto(item.producto)}
                         >
-                          <span>{item.producto.nombre}</span>
-                          <strong>{item.total}</strong>
-                          <small>{item.disponibles} libres · {item.asignadas} asignadas</small>
-                          <small>{completas} completas · {perfiles} perfiles</small>
+                          <div className={styles.accountPlatformTopline}>
+                            <span>{item.producto.nombre}</span>
+                            <strong>{item.total}</strong>
+                          </div>
+
+                          <div className={styles.accountPlatformStatsMini}>
+                            <div><b>{item.disponibles}</b><small>Libres</small></div>
+                            <div><b>{item.asignadas}</b><small>Asignadas</small></div>
+                            <div><b>{completas}</b><small>Completas</small></div>
+                            <div><b>{perfiles}</b><small>Perfiles</small></div>
+                          </div>
                         </button>
                       )
                     })}
@@ -4353,7 +4455,7 @@ export default function AdminPage() {
                   const completas = cuentasProducto.filter((cuenta) => !cuenta.perfil).length
 
                   return (
-                    <article key={producto.id} style={estiloPlataforma(textoColorProducto(producto))} className={`${styles.inventoryListRowPro} ${esAgotado ? styles.inventoryCardDanger : esBajo ? styles.inventoryCardWarning : ""}`}>
+                    <article key={producto.id} style={estiloProducto(producto)} className={`${styles.inventoryListRowPro} ${esAgotado ? styles.inventoryCardDanger : esBajo ? styles.inventoryCardWarning : ""}`}>
                       <div className={styles.inventoryListMain}>
                         <span className={styles.inventoryLabel}>{etiquetaTipoVenta(producto.tipo_venta)}</span>
                         <h4>{producto.nombre}</h4>
