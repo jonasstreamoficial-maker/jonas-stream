@@ -183,7 +183,7 @@ const productoInicial = {
   stock_texto: "",
   estado_catalogo: "ACTIVO",
   badge: "",
-  accent: "prime",
+  accent: "jonas stream",
 }
 
 
@@ -244,6 +244,7 @@ const estadosCredito = ["todos", "activo", "inactivo", "suspendido"]
 
 const normalizarTexto = (valor?: string | number | null) => String(valor ?? "").trim().toLowerCase()
 const formatearSoles = (valor: number) => `S/ ${Number(valor || 0).toFixed(2)}`
+const formatearDolares = (valor: number) => `$ ${Number((valor || 0) / 3.75).toFixed(2)}`
 const generarPinPublico = () => Math.random().toString(36).slice(2, 8).toUpperCase()
 const fechaLegible = (fecha?: string | null) => {
   if (!fecha) return "Sin fecha"
@@ -372,6 +373,18 @@ export default function AdminPage() {
   const [guardandoConfig, setGuardandoConfig] = useState(false)
 
   const [imagenFile, setImagenFile] = useState<File | null>(null)
+  const productoEditandoPreview = useMemo(() => productos.find((producto) => producto.id === editandoId) || null, [productos, editandoId])
+  const imagenPreviewProducto = useMemo(() => {
+    if (imagenFile) return URL.createObjectURL(imagenFile)
+    return productoEditandoPreview?.imagen || null
+  }, [imagenFile, productoEditandoPreview?.imagen])
+
+  useEffect(() => {
+    return () => {
+      if (imagenPreviewProducto?.startsWith("blob:")) URL.revokeObjectURL(imagenPreviewProducto)
+    }
+  }, [imagenPreviewProducto])
+
   const [subiendoImagen, setSubiendoImagen] = useState(false)
   const [guardandoProducto, setGuardandoProducto] = useState(false)
   const [comprobantesDisponibles, setComprobantesDisponibles] = useState(true)
@@ -1326,7 +1339,7 @@ export default function AdminPage() {
       stock_texto: producto.stock_texto || "",
       estado_catalogo: producto.estado_catalogo || "ACTIVO",
       badge: producto.badge || "",
-      accent: producto.accent || "prime",
+      accent: producto.accent || "jonas stream",
     })
     setImagenFile(null)
     setTabActiva("productos")
@@ -2963,31 +2976,52 @@ export default function AdminPage() {
                 {editandoId && <span className={styles.editBadge}>Modo edición</span>}
               </div>
 
-              <div className={styles.productEditorShell} style={estiloPlataforma(formProducto.nombre || formProducto.accent)}>
+              <div className={styles.productEditorShell} style={estiloPlataforma(formProducto.nombre || formProducto.accent || "jonas stream")}>
                 <aside className={styles.productEditorPreview}>
                   <p className={styles.kicker}>Vista previa tienda</p>
                   <div className={styles.productPreviewCardMini}>
+                    <div className={styles.productPreviewBadgesMini}>
+                      <span>{formProducto.categoria || "Streaming"}</span>
+                      <span>{formProducto.tipo_venta || "Cuenta completa"}</span>
+                    </div>
+
                     <div className={styles.productPreviewImageMini}>
-                      {imagenFile ? (
-                        <span>Imagen lista</span>
+                      {imagenPreviewProducto ? (
+                        <img src={imagenPreviewProducto} alt={formProducto.nombre || "Vista previa del producto"} />
                       ) : formProducto.nombre ? (
                         <strong>{formProducto.nombre.slice(0, 2).toUpperCase()}</strong>
                       ) : (
                         <strong>JS</strong>
                       )}
                     </div>
+
                     <h4>{formProducto.nombre || "Nuevo producto"}</h4>
                     <p>{formProducto.descripcion || "Descripción corta del producto"}</p>
-                    <div className={styles.productPreviewMetaMini}>
-                      <span>{formProducto.tipo_venta || "Tipo"}</span>
-                      <span>{formProducto.duracion || "1 mes"}</span>
-                    </div>
+
                     <div className={styles.productPreviewStockMini}>
                       <span>Stock</span>
                       <strong>{formProducto.stock || "0"}</strong>
                     </div>
-                    <div className={styles.productPreviewPriceMini}>{formatearSoles(Number(formProducto.precio || 0))}</div>
-                    <small>{formProducto.publicacion ? "Se mostrará en tienda" : "Oculto en tienda"}</small>
+
+                    <div className={styles.productPreviewDetailsMini}>
+                      <div><span>Tipo</span><strong>{formProducto.tipo_venta || "Cuenta completa"}</strong></div>
+                      <div><span>Duración</span><strong>{formProducto.duracion || "1 mes"}</strong></div>
+                      <div><span>Proveedor</span><strong>{formProducto.proveedor || "Jonas Stream"}</strong></div>
+                      <div><span>Renovable</span><strong>{formProducto.renovable ? "Sí" : "No"}</strong></div>
+                    </div>
+
+                    <div className={styles.productPreviewStatusRow}>
+                      <span>{Number(formProducto.stock || 0) > 0 ? "Disponible" : "Agotado"}</span>
+                      <strong>{formProducto.stock_texto || (Number(formProducto.stock || 0) > 0 ? "Stock disponible" : "Consultar reposición")}</strong>
+                    </div>
+
+                    <div className={styles.pricePreviewGridMini}>
+                      <div><span>PEN</span><strong>{formatearSoles(Number(formProducto.precio || 0))}</strong>{formProducto.precio_antes && <small>Antes {formatearSoles(Number(formProducto.precio_antes || 0))}</small>}</div>
+                      <div><span>USD</span><strong>{formatearDolares(Number(formProducto.precio || 0))}</strong></div>
+                    </div>
+
+                    <button type="button" className={styles.previewBuyButtonMini}>Comprar</button>
+                    <small className={styles.previewPublicStateMini}>{formProducto.publicacion ? "Se mostrará en tienda y ver precios" : "Oculto para clientes"}</small>
                   </div>
                 </aside>
 
@@ -3052,6 +3086,7 @@ export default function AdminPage() {
 
                   <label className={styles.fieldLabel}>Color / plataforma
                     <select name="accent" value={formProducto.accent} onChange={handleProductoChange} className={styles.input}>
+                      <option value="jonas stream">Jonas Stream / Neón</option>
                       <option value="netflix">Netflix</option>
                       <option value="disney">Disney+</option>
                       <option value="prime">Prime Video</option>
@@ -4287,12 +4322,17 @@ export default function AdminPage() {
                   const porcentajeStock = Math.min(100, Math.max(0, (stock / 10) * 100))
 
                   return (
-                    <article key={producto.id} className={`${styles.inventoryCardPro} ${esAgotado ? styles.inventoryCardDanger : esBajo ? styles.inventoryCardWarning : ""}`}>
+                    <article key={producto.id} style={estiloPlataforma(producto.nombre)} className={`${styles.inventoryCardPro} ${esAgotado ? styles.inventoryCardDanger : esBajo ? styles.inventoryCardWarning : ""}`}>
                       <div className={styles.inventoryCardTop}>
                         <div>
-                          <span className={styles.inventoryLabel}>{producto.categoria || "Sin categoría"}</span>
+                          <span className={styles.inventoryLabel}>{producto.tipo_venta || "Sin tipo"}</span>
                           <h4>{producto.nombre}</h4>
-                          <p>{producto.proveedor || "Jonas Stream"} · {producto.estado_catalogo || "ACTIVO"}</p>
+                          <p>{producto.categoria || "Sin categoría"} · {producto.proveedor || "Jonas Stream"}</p>
+                          <div className={styles.inventoryTypeLine}>
+                            <span>{producto.tipo_venta || "No definido"}</span>
+                            <span>{producto.duracion || "1 mes"}</span>
+                            <span>{producto.publicacion ? "Publicado" : "Oculto"}</span>
+                          </div>
                         </div>
                         <div className={esAgotado ? styles.stockPillDanger : esBajo ? styles.stockPill : styles.stockPillOk}>{stock} und.</div>
                       </div>
