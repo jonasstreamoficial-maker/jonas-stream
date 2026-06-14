@@ -7950,3 +7950,121 @@
 .inventoryToolbarPro .toggleGroup button:first-child {
   min-width: 72px;
 }
+
+
+/* =========================================================
+   JONAS STREAM ADMIN v16 - Paleta real, preview centrado e inventario limpio
+   No genera imágenes. Solo muestra logos/archivos subidos y colores por plataforma.
+   ========================================================= */
+.productPreviewCardMini h4,
+.productPreviewCardMini p {
+  text-align: center !important;
+}
+
+.productPreviewImageMini {
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--platform-color, #01E7EF) 18%, transparent), transparent 58%),
+    rgba(255, 255, 255, 0.96) !important;
+  padding: 10px !important;
+}
+
+.productPreviewImageMini img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+}
+
+.productListMedia,
+.productImage,
+.productImagePlaceholder {
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--platform-color, #01E7EF) 16%, transparent), transparent 58%),
+    rgba(255, 255, 255, 0.96) !important;
+}
+
+.productListMedia img,
+.productImage img {
+  object-fit: contain !important;
+  object-position: center center !important;
+  padding: 8px !important;
+}
+
+.inventoryHeroPro {
+  grid-template-columns: minmax(0, 1.08fr) minmax(500px, 0.92fr) !important;
+  min-height: 164px !important;
+  padding: 24px !important;
+  border-radius: 30px !important;
+  align-items: center !important;
+}
+
+.inventoryHeroPro h3 {
+  font-size: clamp(34px, 4.2vw, 58px) !important;
+  line-height: 0.96 !important;
+  margin: 10px 0 !important;
+}
+
+.inventoryHeroPro p {
+  max-width: 820px !important;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+}
+
+.inventoryHeroStats {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.inventoryHeroStats button {
+  min-height: 106px !important;
+  padding: 18px !important;
+  border-radius: 24px !important;
+}
+
+.inventoryHeroStats strong {
+  font-size: clamp(32px, 4vw, 48px) !important;
+}
+
+.inventoryHeroStats span {
+  font-size: 12px !important;
+}
+
+.inventoryHeroStats button:nth-child(1) strong {
+  color: #ff8fa3 !important;
+}
+
+.inventoryHeroStats button:nth-child(2) strong {
+  color: #ffe082 !important;
+}
+
+.inventoryHeroStats button:nth-child(3) strong {
+  color: #7cffb2 !important;
+}
+
+.inventoryListRowPro,
+.accountPlatformCard,
+.accountsTablePro tr,
+.platformOrderCell,
+.platformInlinePill {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 58%, transparent) !important;
+}
+
+@media (max-width: 1180px) {
+  .inventoryHeroPro {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .inventoryHeroStats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .inventoryHeroPro {
+    min-height: unset !important;
+    padding: 18px !important;
+    border-radius: 24px !important;
+  }
+}

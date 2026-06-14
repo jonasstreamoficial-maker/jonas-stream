@@ -254,29 +254,29 @@ const fechaLegible = (fecha?: string | null) => {
 }
 
 const coloresPlataforma: Array<{ claves: string[]; color: string }> = [
-  { claves: ["disney premium", "disney+ premium"], color: "#00b2bb" },
-  { claves: ["disney estandar", "disney estándar", "disney", "disney+"], color: "#002062" },
-  { claves: ["apple tv + mls", "apple tv mls", "mls"], color: "#ff1f1f" },
-  { claves: ["apple music"], color: "#fa57c1" },
-  { claves: ["youtube premium", "youtube"], color: "#ff0000" },
-  { claves: ["prime video", "prime", "amazon"], color: "#007aff" },
   { claves: ["netflix"], color: "#e50914" },
+  { claves: ["disney premium", "disney+ premium"], color: "#00b2bb" },
+  { claves: ["disney estandar", "disney estándar", "disney standard", "disney", "disney+"], color: "#002062" },
+  { claves: ["prime video", "prime", "amazon"], color: "#007aff" },
   { claves: ["max", "hbo"], color: "#0027ef" },
-  { claves: ["paramount"], color: "#0068ff" },
+  { claves: ["paramount", "paramount+"], color: "#0068ff" },
   { claves: ["crunchyroll", "crunchy"], color: "#ff5800" },
-  { claves: ["vix"], color: "#ff5800" },
-  { claves: ["rakuten", "viki"], color: "#009dff" },
-  { claves: ["apple tv"], color: "#9ca3af" },
+  { claves: ["vix premium", "vix"], color: "#ff5800" },
+  { claves: ["rakuten viki", "rakuten", "viki"], color: "#009dff" },
+  { claves: ["apple tv + mls", "apple tv mls", "mls"], color: "#ff1f1f" },
+  { claves: ["apple tv", "apple tv+"], color: "#9ca3af" },
   { claves: ["plex"], color: "#feb100" },
   { claves: ["universal"], color: "#ffff00" },
   { claves: ["iptv"], color: "#5440eb" },
   { claves: ["flujo tv", "flujo"], color: "#ff6224" },
   { claves: ["dgo"], color: "#00b0f2" },
   { claves: ["movistar"], color: "#7ed957" },
-  { claves: ["l1 max"], color: "#ff1f1f" },
+  { claves: ["l1 max", "liga 1 max"], color: "#ff1f1f" },
   { claves: ["spotify"], color: "#1db954" },
   { claves: ["tidal"], color: "#9ca3af" },
   { claves: ["deezer"], color: "#ff4fb8" },
+  { claves: ["apple music"], color: "#fa57c1" },
+  { claves: ["youtube premium", "youtube"], color: "#ff0000" },
   { claves: ["canva"], color: "#00c4cc" },
   { claves: ["surfshark"], color: "#64f5d2" },
   { claves: ["hola vpn", "hola"], color: "#ff7a00" },
@@ -4296,12 +4296,6 @@ export default function AdminPage() {
               </div>
             </section>
 
-            <div className={styles.metricsGridCompact}>
-              <MetricCard title="Stock estable" value={productos.filter((p) => Number(p.stock) > 3).length} detail="Productos sin alerta" tone="success" />
-              <MetricCard title="Bajo stock" value={productosBajoStock.length} detail="1 a 3 unidades" tone="warning" />
-              <MetricCard title="Agotados" value={productosAgotados.length} detail="Reponer urgente" tone="danger" />
-              <MetricCard title="Salud" value={`${saludInventario}%`} detail="Estado general" tone="info" />
-            </div>
 
             <article className={`${styles.panel} ${styles.autoInventoryPanel} ${styles.autoInventoryPanelPro}`}>
               <div>
