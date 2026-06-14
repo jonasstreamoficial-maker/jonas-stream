@@ -6379,3 +6379,90 @@
     flex: 1;
   }
 }
+
+/* Confirmaciones Jonas: reemplaza alertas nativas del navegador */
+.confirmPanel {
+  width: min(460px, 94vw) !important;
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 14px;
+  padding: 18px;
+  overflow: visible !important;
+}
+
+.confirmIcon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #001014;
+  background: linear-gradient(135deg, var(--cyan), var(--cyan-soft));
+  font-weight: 1000;
+  font-size: 24px;
+  box-shadow: 0 0 24px rgba(1, 231, 239, 0.28);
+}
+
+.confirmDanger .confirmIcon {
+  color: #270008;
+  background: linear-gradient(135deg, #ff8fa3, #ff4d6d);
+  box-shadow: 0 0 24px rgba(255, 80, 112, 0.26);
+}
+
+.confirmWarning .confirmIcon {
+  color: #241700;
+  background: linear-gradient(135deg, #ffe082, #ffb84d);
+  box-shadow: 0 0 24px rgba(255, 224, 130, 0.24);
+}
+
+.confirmInfo .confirmIcon {
+  color: #001014;
+  background: linear-gradient(135deg, var(--cyan), #64f5d2);
+}
+
+.confirmContent h3 {
+  margin: 0 0 8px;
+  font-size: 21px;
+  line-height: 1.08;
+}
+
+.confirmContent p:not(.kicker) {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.confirmContent span {
+  display: block;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 13px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.confirmActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+@media (max-width: 560px) {
+  .confirmPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmActions {
+    flex-direction: column-reverse;
+  }
+
+  .confirmActions button {
+    width: 100%;
+  }
+}

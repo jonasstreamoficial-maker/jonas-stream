@@ -351,6 +351,16 @@ export default function AdminPage() {
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
   const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("tabla")
   const [comprobanteModal, setComprobanteModal] = useState<{ url: string; titulo: string; detalle?: string } | null>(null)
+  const [confirmacionModal, setConfirmacionModal] = useState<{
+    titulo: string
+    mensaje: string
+    detalle?: string
+    tono?: "danger" | "warning" | "info"
+    textoConfirmar?: string
+    textoCancelar?: string
+    onConfirmar: () => Promise<void> | void
+  } | null>(null)
+  const [procesandoConfirmacion, setProcesandoConfirmacion] = useState(false)
 
   const [busquedaHistorial, setBusquedaHistorial] = useState("")
   const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
@@ -421,6 +431,39 @@ export default function AdminPage() {
       console.error("Error log:", err)
     }
   }, [])
+
+  const pedirConfirmacion = useCallback((config: {
+    titulo: string
+    mensaje: string
+    detalle?: string
+    tono?: "danger" | "warning" | "info"
+    textoConfirmar?: string
+    textoCancelar?: string
+    onConfirmar: () => Promise<void> | void
+  }) => {
+    setConfirmacionModal({
+      titulo: config.titulo,
+      mensaje: config.mensaje,
+      detalle: config.detalle,
+      tono: config.tono || "warning",
+      textoConfirmar: config.textoConfirmar || "Confirmar",
+      textoCancelar: config.textoCancelar || "Cancelar",
+      onConfirmar: config.onConfirmar,
+    })
+  }, [])
+
+  const ejecutarConfirmacion = async () => {
+    if (!confirmacionModal) return
+
+    setProcesandoConfirmacion(true)
+
+    try {
+      await confirmacionModal.onConfirmar()
+      setConfirmacionModal(null)
+    } finally {
+      setProcesandoConfirmacion(false)
+    }
+  }
 
   const cargarDatos = useCallback(async (usuarioActual?: Usuario | null, mostrarSkeleton = false) => {
     if (mostrarSkeleton) setCargando(true)
@@ -649,21 +692,27 @@ export default function AdminPage() {
     }
   }
 
-  const eliminarUsuario = async (id: string) => {
-    const confirmar = confirm("¿Seguro que quieres eliminar este usuario? Esta acción no se puede deshacer.")
-    if (!confirmar) return
+  const eliminarUsuario = (id: string) => {
+    pedirConfirmacion({
+      titulo: "Eliminar usuario",
+      mensaje: "Esta acción eliminará el usuario del panel.",
+      detalle: "No se puede deshacer desde la web.",
+      tono: "danger",
+      textoConfirmar: "Eliminar",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("usuarios").delete().eq("id", id)
 
-    const { error } = await supabase.from("usuarios").delete().eq("id", id)
-
-    if (!error) {
-      setUsuarios((prev) => prev.filter((u) => u.id !== id))
-      registrarEvento("Usuario eliminado")
-      await registrarLog("eliminar", "usuarios", id, "Usuario eliminado")
-      toast.success("Usuario eliminado")
-      await cargarDatos()
-    } else {
-      toast.error("No se pudo eliminar el usuario")
-    }
+        if (!error) {
+          setUsuarios((prev) => prev.filter((u) => u.id !== id))
+          registrarEvento("Usuario eliminado")
+          await registrarLog("eliminar", "usuarios", id, "Usuario eliminado")
+          toast.success("Usuario eliminado")
+          await cargarDatos()
+        } else {
+          toast.error("No se pudo eliminar el usuario")
+        }
+      },
+    })
   }
 
   const calcularEstadoInventario = (stock: number) => ({
@@ -838,23 +887,30 @@ export default function AdminPage() {
     }
   }
 
-  const eliminarPedido = async (id: string) => {
+  const eliminarPedido = (id: string) => {
     const pedidoObjetivo = pedidos.find((pedido) => pedido.id === id)
-    const confirmar = confirm(`¿Eliminar pedido #${id.slice(0, 8)}? Esta acción no se puede deshacer.`)
-    if (!confirmar) return
 
-    const { error } = await supabase.from("pedidos").delete().eq("id", id)
+    pedirConfirmacion({
+      titulo: `Eliminar pedido #${id.slice(0, 8)}`,
+      mensaje: "Este pedido será eliminado del panel.",
+      detalle: pedidoObjetivo ? `${pedidoObjetivo.cliente_nombre} · ${formatearSoles(pedidoObjetivo.total)} · ${pedidoObjetivo.metodo_pago || "Sin método"}` : "Esta acción no se puede deshacer.",
+      tono: "danger",
+      textoConfirmar: "Eliminar",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("pedidos").delete().eq("id", id)
 
-    if (!error) {
-      setPedidos((prev) => prev.filter((pedido) => pedido.id !== id))
-      setPedidosSeleccionados((prev) => prev.filter((pedidoId) => pedidoId !== id))
-      registrarEvento(`Pedido #${id.slice(0, 8)} eliminado`)
-      await registrarLog("eliminar", "pedidos", id, `Pedido eliminado${pedidoObjetivo?.cliente_nombre ? ` · ${pedidoObjetivo.cliente_nombre}` : ""}`)
-      toast.success("Pedido eliminado")
-      await cargarDatos()
-    } else {
-      toast.error("No se pudo eliminar el pedido")
-    }
+        if (!error) {
+          setPedidos((prev) => prev.filter((pedido) => pedido.id !== id))
+          setPedidosSeleccionados((prev) => prev.filter((pedidoId) => pedidoId !== id))
+          registrarEvento(`Pedido #${id.slice(0, 8)} eliminado`)
+          await registrarLog("eliminar", "pedidos", id, `Pedido eliminado${pedidoObjetivo?.cliente_nombre ? ` · ${pedidoObjetivo.cliente_nombre}` : ""}`)
+          toast.success("Pedido eliminado")
+          await cargarDatos()
+        } else {
+          toast.error("No se pudo eliminar el pedido")
+        }
+      },
+    })
   }
 
   const alternarPedidoSeleccionado = (id: string) => {
@@ -870,81 +926,93 @@ export default function AdminPage() {
     })
   }
 
-  const actualizarPedidosMasivo = async (nuevoEstado: string) => {
+  const actualizarPedidosMasivo = (nuevoEstado: string) => {
     if (pedidosSeleccionados.length === 0) {
       toast.error("Selecciona al menos un pedido")
       return
     }
 
-    const confirmar = confirm(`¿Actualizar ${pedidosSeleccionados.length} pedido(s) a ${nuevoEstado}?`)
-    if (!confirmar) return
+    pedirConfirmacion({
+      titulo: nuevoEstado === "completado" ? "Completar lote" : `Actualizar lote a ${nuevoEstado}`,
+      mensaje: `Se actualizarán ${pedidosSeleccionados.length} pedido(s).`,
+      detalle: nuevoEstado === "completado" ? "El sistema intentará asignar cuentas disponibles automáticamente." : "Revisa que la selección sea correcta antes de continuar.",
+      tono: nuevoEstado === "cancelado" ? "danger" : "warning",
+      textoConfirmar: nuevoEstado === "completado" ? "Completar lote" : "Actualizar",
+      onConfirmar: async () => {
+        setProcesandoMasivo(true)
+        const ids = [...pedidosSeleccionados]
 
-    setProcesandoMasivo(true)
-    const ids = [...pedidosSeleccionados]
+        if (nuevoEstado === "completado") {
+          try {
+            const resultado = await asignarCuentasPorPedido(ids)
 
-    if (nuevoEstado === "completado") {
-      try {
-        const resultado = await asignarCuentasPorPedido(ids)
+            setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: "completado" } : pedido))
+            setPedidosSeleccionados([])
+            registrarEvento(`${resultado.pedidos_completados} pedido(s) completados con cuentas asignadas`, true)
+            await registrarLog("completar_masivo_y_asignar", "pedidos", undefined, `${resultado.pedidos_completados} pedidos · ${resultado.cuentas_asignadas} cuentas`)
+            toast.success(`${resultado.pedidos_completados} pedido(s) completados y ${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+            setProcesandoMasivo(false)
+            await cargarDatos()
+          } catch (error) {
+            const mensaje = error instanceof Error ? error.message : "No se pudieron completar los pedidos"
+            toast.error(mensaje)
+            setProcesandoMasivo(false)
+          }
 
-        setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: "completado" } : pedido))
+          return
+        }
+
+        const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).in("id", ids)
+
+        if (error) {
+          toast.error("No se pudieron actualizar los pedidos seleccionados")
+          setProcesandoMasivo(false)
+          return
+        }
+
+        setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: nuevoEstado } : pedido))
         setPedidosSeleccionados([])
-        registrarEvento(`${resultado.pedidos_completados} pedido(s) completados con cuentas asignadas`, true)
-        await registrarLog("completar_masivo_y_asignar", "pedidos", undefined, `${resultado.pedidos_completados} pedidos · ${resultado.cuentas_asignadas} cuentas`)
-        toast.success(`${resultado.pedidos_completados} pedido(s) completados y ${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+        registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
+        await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
+        toast.success(`${ids.length} pedido(s) actualizados`)
         setProcesandoMasivo(false)
         await cargarDatos()
-      } catch (error) {
-        const mensaje = error instanceof Error ? error.message : "No se pudieron completar los pedidos"
-        toast.error(mensaje)
-        setProcesandoMasivo(false)
-      }
-
-      return
-    }
-
-    const { error } = await supabase.from("pedidos").update({ estado: nuevoEstado }).in("id", ids)
-
-    if (error) {
-      toast.error("No se pudieron actualizar los pedidos seleccionados")
-      setProcesandoMasivo(false)
-      return
-    }
-
-    setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: nuevoEstado } : pedido))
-    setPedidosSeleccionados([])
-    registrarEvento(`${ids.length} pedido(s) actualizados a ${nuevoEstado}`, nuevoEstado === "completado")
-    await registrarLog("actualizar_masivo", "pedidos", undefined, `${ids.length} pedidos a ${nuevoEstado}`)
-    toast.success(`${ids.length} pedido(s) actualizados`)
-    setProcesandoMasivo(false)
-    await cargarDatos()
+      },
+    })
   }
 
-  const eliminarPedidosSeleccionados = async () => {
+  const eliminarPedidosSeleccionados = () => {
     if (pedidosSeleccionados.length === 0) {
       toast.error("Selecciona al menos un pedido")
       return
     }
 
-    const confirmar = confirm(`¿Eliminar ${pedidosSeleccionados.length} pedido(s)? Esta acción no se puede deshacer.`)
-    if (!confirmar) return
+    pedirConfirmacion({
+      titulo: "Eliminar pedidos seleccionados",
+      mensaje: `Se eliminarán ${pedidosSeleccionados.length} pedido(s).`,
+      detalle: "Esta acción no se puede deshacer.",
+      tono: "danger",
+      textoConfirmar: "Eliminar lote",
+      onConfirmar: async () => {
+        setProcesandoMasivo(true)
+        const ids = [...pedidosSeleccionados]
+        const { error } = await supabase.from("pedidos").delete().in("id", ids)
 
-    setProcesandoMasivo(true)
-    const ids = [...pedidosSeleccionados]
-    const { error } = await supabase.from("pedidos").delete().in("id", ids)
+        if (error) {
+          toast.error("No se pudieron eliminar los pedidos seleccionados")
+          setProcesandoMasivo(false)
+          return
+        }
 
-    if (error) {
-      toast.error("No se pudieron eliminar los pedidos seleccionados")
-      setProcesandoMasivo(false)
-      return
-    }
-
-    setPedidos((prev) => prev.filter((pedido) => !ids.includes(pedido.id)))
-    setPedidosSeleccionados([])
-    registrarEvento(`${ids.length} pedido(s) eliminados`)
-    await registrarLog("eliminar_masivo", "pedidos", undefined, `${ids.length} pedidos eliminados`)
-    toast.success(`${ids.length} pedido(s) eliminados`)
-    setProcesandoMasivo(false)
-    await cargarDatos()
+        setPedidos((prev) => prev.filter((pedido) => !ids.includes(pedido.id)))
+        setPedidosSeleccionados([])
+        registrarEvento(`${ids.length} pedido(s) eliminados`)
+        await registrarLog("eliminar_masivo", "pedidos", undefined, `${ids.length} pedidos eliminados`)
+        toast.success(`${ids.length} pedido(s) eliminados`)
+        setProcesandoMasivo(false)
+        await cargarDatos()
+      },
+    })
   }
 
   const sincronizarInventarioAutomatico = async () => {
@@ -1177,24 +1245,30 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const eliminarProducto = async (id: string) => {
-    const confirmar = confirm("¿Seguro que quieres eliminar este producto? Esta acción no se puede deshacer.")
-    if (!confirmar) return
+  const eliminarProducto = (id: string) => {
+    const productoObjetivo = productos.find((producto) => producto.id === id)
 
-    const { error } = await supabase.from("productos").delete().eq("id", id)
+    pedirConfirmacion({
+      titulo: "Eliminar producto",
+      mensaje: productoObjetivo ? `Eliminarás ${productoObjetivo.nombre}.` : "Eliminarás este producto.",
+      detalle: "No se eliminarán las cuentas ya asignadas, pero el producto saldrá del catálogo.",
+      tono: "danger",
+      textoConfirmar: "Eliminar",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("productos").delete().eq("id", id)
 
-    if (!error) {
-      setProductos((prev) => prev.filter((p) => p.id !== id))
-      registrarEvento("Producto eliminado")
-      await registrarLog("eliminar", "productos", id, "Producto eliminado")
-      toast.success("Producto eliminado")
-      await cargarDatos()
-    } else {
-      toast.error("No se pudo eliminar el producto")
-    }
+        if (!error) {
+          setProductos((prev) => prev.filter((p) => p.id !== id))
+          registrarEvento("Producto eliminado")
+          await registrarLog("eliminar", "productos", id, "Producto eliminado")
+          toast.success("Producto eliminado")
+          await cargarDatos()
+        } else {
+          toast.error("No se pudo eliminar el producto")
+        }
+      },
+    })
   }
-
-
 
   const limpiarFormularioCuenta = () => {
     setFormCuenta(cuentaInicial)
@@ -1311,29 +1385,34 @@ export default function AdminPage() {
     await cargarDatos()
   }
 
-  const eliminarCuenta = async (cuenta: CuentaInventario) => {
-    const confirmar = confirm(`¿Eliminar la cuenta ${cuenta.correo}? Esta acción no se puede deshacer.`)
-    if (!confirmar) return
+  const eliminarCuenta = (cuenta: CuentaInventario) => {
+    pedirConfirmacion({
+      titulo: "Eliminar cuenta",
+      mensaje: `Eliminarás la cuenta ${cuenta.correo}.`,
+      detalle: `${cuenta.producto_nombre || "Producto no definido"} · Estado: ${cuenta.estado}` ,
+      tono: "danger",
+      textoConfirmar: "Eliminar",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("cuentas").delete().eq("id", cuenta.id)
 
-    const { error } = await supabase.from("cuentas").delete().eq("id", cuenta.id)
+        if (error) {
+          toast.error("No se pudo eliminar la cuenta")
+          return
+        }
 
-    if (error) {
-      toast.error("No se pudo eliminar la cuenta")
-      return
-    }
+        await registrarLog("eliminar", "cuentas", cuenta.id, cuenta.correo)
 
-    await registrarLog("eliminar", "cuentas", cuenta.id, cuenta.correo)
+        try {
+          await sincronizarStockDesdeCuentas(false)
+        } catch {
+          toast("Cuenta eliminada, pero revisa la sincronización de stock")
+        }
 
-    try {
-      await sincronizarStockDesdeCuentas(false)
-    } catch {
-      toast("Cuenta eliminada, pero revisa la sincronización de stock")
-    }
-
-    toast.success("Cuenta eliminada")
-    await cargarDatos()
+        toast.success("Cuenta eliminada")
+        await cargarDatos()
+      },
+    })
   }
-
 
   const limpiarFormularioCredito = () => {
     setFormCredito(creditoInicial)
@@ -1459,21 +1538,28 @@ export default function AdminPage() {
     await cargarDatos()
   }
 
-  const eliminarCredito = async (credito: Credito) => {
+  const eliminarCredito = (credito: Credito) => {
     const usuarioCredito = usuarios.find((item) => item.id === credito.usuario_id)
-    const confirmar = confirm(`¿Eliminar el crédito de ${usuarioCredito?.correo || "este usuario"}? Esta acción no se puede deshacer.`)
-    if (!confirmar) return
 
-    const { error } = await supabase.from("creditos").delete().eq("id", credito.id)
+    pedirConfirmacion({
+      titulo: "Eliminar crédito",
+      mensaje: `Eliminarás el crédito de ${usuarioCredito?.correo || "este usuario"}.`,
+      detalle: `Saldo actual: ${formatearSoles(Number(credito.saldo || 0))}` ,
+      tono: "danger",
+      textoConfirmar: "Eliminar",
+      onConfirmar: async () => {
+        const { error } = await supabase.from("creditos").delete().eq("id", credito.id)
 
-    if (error) {
-      toast.error(error.message || "No se pudo eliminar el crédito")
-      return
-    }
+        if (error) {
+          toast.error(error.message || "No se pudo eliminar el crédito")
+          return
+        }
 
-    await registrarLog("eliminar", "creditos", credito.id, usuarioCredito?.correo || credito.usuario_id)
-    toast.success("Crédito eliminado")
-    await cargarDatos()
+        await registrarLog("eliminar", "creditos", credito.id, usuarioCredito?.correo || credito.usuario_id)
+        toast.success("Crédito eliminado")
+        await cargarDatos()
+      },
+    })
   }
 
   const handleConfigChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -1685,11 +1771,54 @@ export default function AdminPage() {
   const usuariosClientesAprobados = usuarios.filter((item) => item.rol === "cliente" && (item.estado === "aprobado" || item.estado === "activo"))
   const usuariosSinCreditoTotal = usuariosClientesAprobados.filter((item) => !usuariosConCreditoIds.has(item.id)).length
 
+  const comprobantesPorPedido = useMemo(() => {
+    const mapa = new Map<string, Comprobante>()
+
+    comprobantes.forEach((comprobante) => {
+      if (!comprobante.pedido_id) return
+      mapa.set(comprobante.pedido_id, comprobante)
+    })
+
+    return mapa
+  }, [comprobantes])
+
+  const obtenerComprobantePedido = useCallback((pedido: Pedido) => {
+    const urlDirecta = obtenerComprobanteUrl(pedido)
+
+    if (urlDirecta) {
+      return { url: urlDirecta, origen: "pedido" as const, comprobante: null as Comprobante | null }
+    }
+
+    const comprobantePorId = comprobantesPorPedido.get(pedido.id)
+    const urlPorId = comprobantePorId ? obtenerComprobanteUrl(comprobantePorId) : null
+
+    if (urlPorId) {
+      return { url: urlPorId, origen: "comprobantes" as const, comprobante: comprobantePorId }
+    }
+
+    const comprobantePorCoincidencia = comprobantes.find((comprobante) => {
+      const mismoCorreo = normalizarTexto(comprobante.cliente_correo) === normalizarTexto(pedido.cliente_correo)
+      const mismoMonto = Math.abs(Number(comprobante.monto || 0) - Number(pedido.total || 0)) < 0.01
+      const mismoMetodo = !comprobante.metodo_pago || !pedido.metodo_pago || normalizarTexto(comprobante.metodo_pago) === normalizarTexto(pedido.metodo_pago)
+      const tieneUrl = Boolean(obtenerComprobanteUrl(comprobante))
+      return mismoCorreo && mismoMonto && mismoMetodo && tieneUrl
+    })
+
+    const urlCoincidencia = comprobantePorCoincidencia ? obtenerComprobanteUrl(comprobantePorCoincidencia) : null
+
+    if (urlCoincidencia) {
+      return { url: urlCoincidencia, origen: "coincidencia" as const, comprobante: comprobantePorCoincidencia }
+    }
+
+    return null
+  }, [comprobantes, comprobantesPorPedido])
+
   const pedidosFiltrados: Pedido[] = useMemo(() => {
     return [...pedidos]
       .filter((pedido) => {
         const texto = normalizarTexto(`${pedido.id} ${pedido.cliente_nombre} ${pedido.cliente_correo} ${pedido.metodo_pago} ${pedido.producto_nombre}`)
-        const comprobanteUrl = obtenerComprobanteUrl(pedido)
+        const comprobanteInfo = obtenerComprobantePedido(pedido)
+        const comprobanteUrl = comprobanteInfo?.url || null
         const coincideBusqueda = texto.includes(normalizarTexto(busquedaPedido))
         const coincideEstado = filtroEstadoPedido === "todos" || pedido.estado === filtroEstadoPedido
         const coincideMetodo = filtroMetodoPago === "todos" || pedido.metodo_pago === filtroMetodoPago
@@ -1709,7 +1838,7 @@ export default function AdminPage() {
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         }
       })
-  }, [pedidos, busquedaPedido, filtroEstadoPedido, filtroMetodoPago, filtroComprobantePedido, ordenPedido])
+  }, [pedidos, busquedaPedido, filtroEstadoPedido, filtroMetodoPago, filtroComprobantePedido, ordenPedido, obtenerComprobantePedido])
 
   const usuariosFiltrados = useMemo(() => {
     return usuarios.filter((u) => {
@@ -2453,7 +2582,8 @@ export default function AdminPage() {
                       </thead>
                       <tbody>
                         {pedidosVisibles.map((pedido) => {
-                          const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                          const comprobanteInfo = obtenerComprobantePedido(pedido)
+                          const comprobanteUrl = comprobanteInfo?.url || null
                           const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
                           const estadoPedidoNormalizado = normalizarTexto(pedido.estado)
                           const esPendiente = estadoPedidoNormalizado === "pendiente"
@@ -2516,7 +2646,7 @@ export default function AdminPage() {
                                 {comprobanteUrl ? (
                                   <button
                                     type="button"
-                                    onClick={() => abrirComprobanteModal(comprobanteUrl, `Pedido #${pedido.id.slice(0, 8)}`, `${pedido.cliente_nombre} · ${formatearSoles(pedido.total)} · ${pedido.metodo_pago || "Pago no definido"}`)}
+                                    onClick={() => abrirComprobanteModal(comprobanteUrl, `Pedido #${pedido.id.slice(0, 8)}`, `${pedido.cliente_nombre} · ${formatearSoles(pedido.total)} · ${pedido.metodo_pago || "Pago no definido"} · ${comprobanteInfo?.origen === "comprobantes" ? "Tabla comprobantes" : comprobanteInfo?.origen === "coincidencia" ? "Coincidencia automática" : "Pedido"}`)}
                                     className={styles.viewVoucherButton}
                                     title="Ver comprobante"
                                   >
@@ -2567,7 +2697,8 @@ export default function AdminPage() {
                 ) : (
                   <div className={styles.cardsGrid}>
                     {pedidosVisibles.map((pedido) => {
-                      const comprobanteUrl = obtenerComprobanteUrl(pedido)
+                      const comprobanteInfo = obtenerComprobantePedido(pedido)
+                      const comprobanteUrl = comprobanteInfo?.url || null
                       const horasDesdeCreacion = (Date.now() - new Date(pedido.created_at).getTime()) / (1000 * 60 * 60)
                       const estadoPedidoNormalizado = normalizarTexto(pedido.estado)
                       const esPendiente = estadoPedidoNormalizado === "pendiente"
@@ -2646,7 +2777,7 @@ export default function AdminPage() {
                             {comprobanteUrl ? (
                               <button
                                 type="button"
-                                onClick={() => abrirComprobanteModal(comprobanteUrl, `Pedido #${pedido.id.slice(0, 8)}`, `${pedido.cliente_nombre} · ${formatearSoles(pedido.total)} · ${pedido.metodo_pago || "Pago no definido"}`)}
+                                onClick={() => abrirComprobanteModal(comprobanteUrl, `Pedido #${pedido.id.slice(0, 8)}`, `${pedido.cliente_nombre} · ${formatearSoles(pedido.total)} · ${pedido.metodo_pago || "Pago no definido"} · ${comprobanteInfo?.origen === "comprobantes" ? "Tabla comprobantes" : comprobanteInfo?.origen === "coincidencia" ? "Coincidencia automática" : "Pedido"}`)}
                                 className={styles.viewVoucherButton}
                               >
                                 👁 Ver voucher
@@ -3802,6 +3933,44 @@ export default function AdminPage() {
             </form>
           </article>
         )}
+        {confirmacionModal && (
+          <div className={styles.modalBackdrop} onClick={() => !procesandoConfirmacion && setConfirmacionModal(null)} role="presentation">
+            <div
+              className={`${styles.modalPanel} ${styles.confirmPanel} ${confirmacionModal.tono === "danger" ? styles.confirmDanger : confirmacionModal.tono === "info" ? styles.confirmInfo : styles.confirmWarning}`}
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label={confirmacionModal.titulo}
+            >
+              <div className={styles.confirmIcon}>{confirmacionModal.tono === "danger" ? "!" : confirmacionModal.tono === "info" ? "i" : "?"}</div>
+              <div className={styles.confirmContent}>
+                <p className={styles.kicker}>Confirmación segura</p>
+                <h3>{confirmacionModal.titulo}</h3>
+                <p>{confirmacionModal.mensaje}</p>
+                {confirmacionModal.detalle && <span>{confirmacionModal.detalle}</span>}
+              </div>
+              <div className={styles.confirmActions}>
+                <button
+                  type="button"
+                  onClick={() => setConfirmacionModal(null)}
+                  disabled={procesandoConfirmacion}
+                  className={styles.secondaryButton}
+                >
+                  {confirmacionModal.textoCancelar || "Cancelar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={ejecutarConfirmacion}
+                  disabled={procesandoConfirmacion}
+                  className={confirmacionModal.tono === "danger" ? styles.dangerButton : styles.primaryButton}
+                >
+                  {procesandoConfirmacion ? "Procesando..." : confirmacionModal.textoConfirmar || "Confirmar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {comprobanteModal && (
           <div className={styles.modalBackdrop} onClick={() => setComprobanteModal(null)} role="presentation">
             <div className={styles.modalPanel} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Comprobante de pago">
