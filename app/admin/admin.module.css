@@ -5031,3 +5031,632 @@
     flex-direction: column;
   }
 }
+
+/* ADMIN COMPACTO FINAL - Menos texto, tarjetas delgadas y sidebar fijo */
+.adminShell {
+  display: block !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+.sidebar {
+  position: fixed !important;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 290px;
+  height: 100vh;
+  padding: 18px 16px;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.brandBox {
+  padding: 13px;
+  border-radius: 20px;
+}
+
+.brandMark,
+.userMiniAvatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+}
+
+.brandBox h1 {
+  font-size: 17px;
+}
+
+.brandEyebrow,
+.kicker,
+.navGroupTitle {
+  font-size: 10px !important;
+  letter-spacing: 0.14em !important;
+}
+
+.nav {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 4px;
+  gap: 10px;
+}
+
+.navGroupItems {
+  gap: 5px;
+}
+
+.navButton {
+  min-height: 40px;
+  padding: 9px 11px;
+  border-radius: 15px;
+}
+
+.navButton strong {
+  font-size: 13px;
+}
+
+.navIcon {
+  width: 23px;
+  height: 23px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.navButton em {
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
+}
+
+.sidebarFooter {
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding: 12px;
+  border-radius: 20px;
+}
+
+.sidebarFooter .userMiniCard p {
+  font-size: 14px;
+}
+
+.sidebarFooter .userMiniCard span {
+  font-size: 11px;
+}
+
+.sidebarFooterMeta {
+  margin: 10px 0;
+}
+
+.rolePill,
+.sessionPill {
+  padding: 5px 9px;
+  font-size: 10px;
+}
+
+.logoutButton {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.content {
+  margin-left: 290px;
+  padding: 18px 24px 28px;
+  min-height: 100vh;
+}
+
+.sectionStack {
+  gap: 14px;
+}
+
+.topbar {
+  align-items: center;
+  padding: 15px 18px;
+  margin-bottom: 14px;
+  border-radius: 20px;
+}
+
+.topbar h2 {
+  font-size: clamp(26px, 2.7vw, 36px);
+  line-height: 1;
+}
+
+.topbar span,
+.panelHint,
+.topbar p {
+  font-size: 13px;
+}
+
+.commandCenter {
+  gap: 8px;
+}
+
+.searchBox {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.refreshButton,
+.topbarPill,
+.countBadge,
+.editBadge {
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.adminQuickStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.adminQuickStats button {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 16px;
+  color: #ECFFFF;
+  background: rgba(3, 19, 22, 0.68);
+  cursor: pointer;
+}
+
+.adminQuickStats span {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.adminQuickStats strong {
+  color: #00FBFF;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.adminCompactPage {
+  gap: 12px;
+}
+
+.compactDashboardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 18px;
+  background: rgba(3, 19, 22, 0.68);
+}
+
+.compactDashboardHeader h3 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.compactHeaderActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.compactMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compactMetricCard {
+  min-height: 82px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  border-radius: 16px;
+  color: #ECFFFF;
+  text-align: left;
+  background: rgba(3, 19, 22, 0.7);
+  cursor: pointer;
+}
+
+.compactMetricCard span {
+  color: #9BC8CB;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.compactMetricCard strong {
+  color: #00FBFF;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.compactMetricCard small {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.compactMetricSuccess strong { color: #7cffb2; }
+.compactMetricWarning { border-color: rgba(255, 224, 130, 0.26); }
+.compactMetricWarning strong { color: #ffe082; }
+.compactMetricDanger { border-color: rgba(255, 143, 163, 0.30); }
+.compactMetricDanger strong { color: #ff8fa3; }
+
+.compactWorkGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compactDataRow {
+  width: 100%;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(1, 231, 239, 0.12);
+  border-radius: 14px;
+  color: #ECFFFF;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+}
+
+.compactDataRow strong,
+.compactDataRow b {
+  display: block;
+  color: #ECFFFF;
+  font-size: 13px;
+}
+
+.compactDataRow span,
+.compactDataRow small {
+  display: block;
+  color: #9BC8CB;
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.panel,
+.metricCard,
+.productCard,
+.orderCard,
+.userCard,
+.rowCard,
+.reviewCard,
+.reviewCardPro,
+.accountCardPro,
+.inventoryCardPro,
+.creditoCardPro,
+.userCardPro {
+  border-radius: 18px !important;
+}
+
+.panel {
+  padding: 15px !important;
+}
+
+.panelHeader {
+  margin-bottom: 12px !important;
+  gap: 10px;
+}
+
+.panelHeader h3 {
+  font-size: 20px !important;
+  line-height: 1.1;
+}
+
+.primaryButton,
+.secondaryButton,
+.successButton,
+.dangerButton,
+.dangerGhostButton,
+.linkButton {
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.input {
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.textarea {
+  min-height: 82px;
+}
+
+.filtersGrid,
+.filtersGridWide,
+.filtersGridCompact,
+.formGrid {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.metricCard {
+  min-height: 88px !important;
+  padding: 13px !important;
+}
+
+.metricCard p {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.metricCard strong {
+  font-size: 24px !important;
+}
+
+.metricCard span {
+  margin-top: 7px;
+  font-size: 11px;
+}
+
+.metricsGrid,
+.metricsGridCompact,
+.metricsGridPro,
+.miniStatsGrid,
+.paymentStatsGrid,
+.auditStatsGrid {
+  gap: 10px !important;
+}
+
+.productGrid,
+.cardsGrid,
+.accountsGridPro,
+.inventoryGridPro,
+.creditosGridPro,
+.reviewGridPro,
+.reviewGrid {
+  gap: 12px !important;
+}
+
+.productBody,
+.orderCard,
+.userCard,
+.reviewBodyPro,
+.accountCardPro,
+.inventoryCardPro,
+.creditoCardPro,
+.userCardPro {
+  padding: 13px !important;
+}
+
+.productBody h4,
+.orderCard h4,
+.userCard h4,
+.rowCard h4,
+.reviewTopline h4,
+.accountCardTop h4,
+.inventoryCardTop h4,
+.creditoCardTop h4,
+.userCardTopline h4 {
+  font-size: 17px !important;
+  margin-bottom: 5px !important;
+}
+
+.productBody p,
+.placeholderPanel p,
+.emptyState p,
+.userCard p,
+.rowCard p {
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 9px;
+}
+
+.productImage,
+.productImagePlaceholder {
+  height: 130px !important;
+  font-size: 30px !important;
+}
+
+.productPreviewStrip {
+  padding: 11px !important;
+  margin-bottom: 12px !important;
+  border-radius: 16px !important;
+}
+
+.previewOrb,
+.avatar {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+}
+
+.proTable th,
+.proTable td {
+  padding: 10px 11px !important;
+  font-size: 12px;
+}
+
+.proTable small {
+  font-size: 11px;
+}
+
+.statusBadge,
+.offerBadge,
+.badgeDanger,
+.badgeWarning,
+.badgeInfo,
+.badgeOk,
+.checkOk,
+.checkWarn,
+.checkBad {
+  min-height: 22px;
+  padding: 5px 8px;
+  font-size: 10px !important;
+}
+
+.tableActions button {
+  min-height: 30px;
+  padding: 6px 9px;
+  font-size: 11px;
+}
+
+.orderHeroLine h4,
+.paymentHeroCopy h3,
+.productOpsMain h4,
+.inventoryHeroPro h3,
+.accountsHeroPro h3,
+.creditosHeroCopy h3,
+.usersHeroCopy h3,
+.auditHeroCopy h3,
+.placeholderPanel h3,
+.heroPanel h3 {
+  font-size: clamp(22px, 2.4vw, 30px) !important;
+  line-height: 1.05 !important;
+  margin: 6px 0 8px !important;
+}
+
+.dashboardCommandHero,
+.dashboardHeroPro,
+.paymentHeroPro,
+.productOpsPanel,
+.inventoryHeroPro,
+.accountsHeroPro,
+.creditosHeroPro,
+.usersHeroPro,
+.auditHeroPro,
+.autoInventoryPanel,
+.autoInventoryPanelPro,
+.heroPanel,
+.proRibbon {
+  min-height: unset !important;
+  padding: 14px !important;
+  border-radius: 20px !important;
+  gap: 12px !important;
+}
+
+.commandMoneyCard,
+.dashboardHeroMoney,
+.paymentHeroPanel,
+.creditosHeroPanel,
+.auditHeroPanel {
+  min-height: unset !important;
+  padding: 14px !important;
+  border-radius: 18px !important;
+}
+
+.commandMoneyCard strong,
+.dashboardHeroMoney strong,
+.paymentHeroPanel strong,
+.creditosHeroPanel strong {
+  font-size: clamp(28px, 3vw, 38px) !important;
+}
+
+.dashboardAlertGrid,
+.dashboardDecisionMatrix,
+.dashboardGridPro,
+.decisionGrid,
+.dashboardGrid,
+.analyticsGrid,
+.commandGrid {
+  gap: 12px !important;
+}
+
+.alertActionCard,
+.decisionCard,
+.dashboardListButton,
+.nextActionItem,
+.priorityItem,
+.liveItem,
+.compactItem,
+.rowCard {
+  min-height: unset !important;
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+}
+
+.alertActionCard strong,
+.priorityItem strong,
+.proRibbonStats button span,
+.miniStatCard strong,
+.paymentStatCard strong,
+.productOpsStats strong,
+.inventoryHeroStats strong,
+.auditStatCard strong {
+  font-size: 24px !important;
+}
+
+.emptyState {
+  min-height: 110px !important;
+  padding: 16px !important;
+}
+
+.emptyState div,
+.placeholderOrb {
+  font-size: 26px !important;
+}
+
+.reviewMediaPro,
+.reviewMediaPro a,
+.reviewMediaPro img,
+.reviewPlaceholderPro,
+.reviewMedia,
+.reviewMedia a,
+.reviewMedia img,
+.reviewPlaceholder {
+  min-height: 200px !important;
+}
+
+@media (max-width: 1280px) {
+  .compactMetricGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .compactWorkGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1100px) {
+  .adminShell {
+    display: block !important;
+  }
+  .sidebar {
+    position: relative !important;
+    width: auto;
+    height: auto;
+    overflow: visible;
+  }
+  .content {
+    margin-left: 0;
+    padding: 16px;
+  }
+  .adminQuickStats,
+  .compactMetricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar,
+  .compactDashboardHeader,
+  .compactDataRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .adminQuickStats,
+  .compactMetricGrid {
+    grid-template-columns: 1fr;
+  }
+  .compactHeaderActions,
+  .compactHeaderActions button {
+    width: 100%;
+  }
+}
