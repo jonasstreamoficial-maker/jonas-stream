@@ -7641,3 +7641,273 @@
   font-size: 10px;
   font-weight: 900;
 }
+
+
+/* =========================================================
+   PRODUCTOS / INVENTARIO V14 - Lista compacta y preview limpio
+   ========================================================= */
+.productEditorShell {
+  align-items: start !important;
+}
+
+.productEditorPreview {
+  position: sticky;
+  top: 18px;
+}
+
+.productPreviewCardMini {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 70%, transparent) !important;
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--platform-color, #01E7EF) 28%, transparent), transparent 42%),
+    linear-gradient(180deg, rgba(3, 19, 22, 0.98), rgba(0, 7, 9, 0.96)) !important;
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.38),
+    0 0 28px color-mix(in srgb, var(--platform-color, #01E7EF) 18%, transparent) !important;
+}
+
+.productPreviewImageMini {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--platform-color, #01E7EF) 22%, rgba(3, 19, 22, 0.95)), rgba(0, 0, 0, 0.88)) !important;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 45%, transparent) !important;
+}
+
+.productPreviewImageMini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.productPreviewBadgesMini span,
+.productPreviewStatusRow span,
+.previewBuyButtonMini {
+  background: color-mix(in srgb, var(--platform-color, #01E7EF) 78%, #031316) !important;
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 60%, transparent) !important;
+}
+
+.productPreviewStockMini,
+.productPreviewDetailsMini div,
+.pricePreviewGridMini div,
+.productPreviewStatusRow {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 38%, rgba(1, 231, 239, 0.12)) !important;
+  background: rgba(3, 19, 22, 0.76) !important;
+}
+
+.productFormNote {
+  display: grid;
+  gap: 3px;
+  align-content: center;
+  min-height: 54px;
+  padding: 10px 12px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 14px;
+  background: rgba(1, 231, 239, 0.045);
+  color: #c7f8fa;
+}
+
+.productFormNote strong {
+  color: #01E7EF;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.productFormNote span,
+.fieldLabel small {
+  color: #9BC8CB;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.productListPro,
+.inventoryListPro {
+  display: grid;
+  gap: 8px;
+}
+
+.productListRowPro,
+.inventoryListRowPro {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 45%, rgba(1, 231, 239, 0.16));
+  border-left: 5px solid var(--platform-color, #01E7EF);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--platform-color, #01E7EF) 12%, transparent), transparent 34%),
+    rgba(3, 19, 22, 0.82);
+  box-shadow: inset 0 0 20px rgba(1, 231, 239, 0.025);
+}
+
+.productListRowPro {
+  grid-template-columns: 78px minmax(220px, 1.4fr) minmax(110px, 0.45fr) minmax(85px, 0.35fr) minmax(90px, 0.35fr) minmax(240px, 0.75fr);
+}
+
+.productListMedia {
+  width: 78px;
+  height: 52px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 45%, transparent);
+  background: rgba(0, 0, 0, 0.48);
+  display: grid;
+  place-items: center;
+  color: #01E7EF;
+  font-weight: 900;
+}
+
+.productListMedia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.productListMain,
+.inventoryListMain {
+  min-width: 0;
+}
+
+.productListTitleLine {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.productListTitleLine h4,
+.inventoryListMain h4 {
+  margin: 0;
+  color: #ECFFFF;
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+.productListTitleLine span,
+.inventoryLabel {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 40%, transparent);
+  background: color-mix(in srgb, var(--platform-color, #01E7EF) 14%, rgba(1, 231, 239, 0.08));
+  color: #dfffff;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.productListMain p,
+.inventoryListMain p {
+  margin: 4px 0 0;
+  color: #9BC8CB;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.productListChips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+}
+
+.productListChips span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(1, 231, 239, 0.07);
+  border: 1px solid rgba(1, 231, 239, 0.12);
+  color: #bcebed;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.productListMoney strong,
+.productListStock strong {
+  display: block;
+  color: #01E7EF;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.productListMoney small,
+.productListStock span,
+.productListState small {
+  display: block;
+  color: #9BC8CB;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+.productListActions,
+.inventoryQuickActions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.productListActions button,
+.inventoryQuickActions button {
+  min-height: 31px !important;
+  padding: 6px 9px !important;
+  font-size: 11px !important;
+}
+
+.inventoryListRowPro {
+  grid-template-columns: minmax(260px, 1.1fr) minmax(360px, 1fr) 92px minmax(220px, 0.7fr);
+}
+
+.inventoryMiniStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.inventoryMiniStats span {
+  min-height: 42px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 7px 8px;
+  border: 1px solid rgba(1, 231, 239, 0.14);
+  border-radius: 12px;
+  background: rgba(1, 231, 239, 0.04);
+  color: #9BC8CB;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.inventoryMiniStats strong {
+  color: #ECFFFF;
+  font-size: 14px;
+}
+
+@media (max-width: 1380px) {
+  .productListRowPro,
+  .inventoryListRowPro {
+    grid-template-columns: 1fr;
+  }
+
+  .productListMedia {
+    width: 100%;
+    height: 120px;
+  }
+
+  .productListActions,
+  .inventoryQuickActions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .inventoryMiniStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

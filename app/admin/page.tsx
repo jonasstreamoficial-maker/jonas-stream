@@ -254,16 +254,16 @@ const fechaLegible = (fecha?: string | null) => {
 }
 
 const coloresPlataforma: Array<{ claves: string[]; color: string }> = [
-  { claves: ["disney premium"], color: "#00b2bb" },
-  { claves: ["disney estandar", "disney estándar"], color: "#002062" },
-  { claves: ["apple tv + mls", "apple tv mls"], color: "#ff1f1f" },
+  { claves: ["disney premium", "disney+ premium"], color: "#00b2bb" },
+  { claves: ["disney estandar", "disney estándar", "disney", "disney+"], color: "#002062" },
+  { claves: ["apple tv + mls", "apple tv mls", "mls"], color: "#ff1f1f" },
   { claves: ["apple music"], color: "#fa57c1" },
-  { claves: ["youtube premium"], color: "#ff0000" },
-  { claves: ["prime video", "prime"], color: "#007aff" },
+  { claves: ["youtube premium", "youtube"], color: "#ff0000" },
+  { claves: ["prime video", "prime", "amazon"], color: "#007aff" },
   { claves: ["netflix"], color: "#e50914" },
-  { claves: ["max"], color: "#0027ef" },
+  { claves: ["max", "hbo"], color: "#0027ef" },
   { claves: ["paramount"], color: "#0068ff" },
-  { claves: ["crunchyroll"], color: "#ff5800" },
+  { claves: ["crunchyroll", "crunchy"], color: "#ff5800" },
   { claves: ["vix"], color: "#ff5800" },
   { claves: ["rakuten", "viki"], color: "#009dff" },
   { claves: ["apple tv"], color: "#9ca3af" },
@@ -291,6 +291,19 @@ const obtenerColorPlataforma = (nombre?: string | null) => {
 const estiloPlataforma = (nombre?: string | null): CSSProperties => ({
   "--platform-color": obtenerColorPlataforma(nombre),
 } as CSSProperties)
+
+const textoColorProducto = (producto?: Pick<Producto, "nombre" | "accent"> | null) => {
+  if (!producto) return "jonas stream"
+  return `${producto.nombre || ""} ${producto.accent || ""}`.trim() || "jonas stream"
+}
+
+const etiquetaTipoVenta = (tipo?: string | null) => {
+  const normalizado = normalizarTexto(tipo)
+  if (normalizado.includes("perfil")) return "Perfil"
+  if (normalizado.includes("cuenta")) return "Cuenta completa"
+  if (normalizado.includes("gift") || normalizado.includes("codigo") || normalizado.includes("código")) return "Código"
+  return tipo || "Sin tipo"
+}
 
 const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
   const posibleComprobante = item as Partial<Pedido & Comprobante>
@@ -2971,12 +2984,12 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Catálogo</p>
                   <h3>{editandoId ? "Editar producto" : "Crear producto"}</h3>
-                  <span className={styles.panelHint}>Edición estable con validación de precio, stock, estado visual e imagen.</span>
+                  <span className={styles.panelHint}>Formulario limpio: solo lo necesario para vender. Lo sensible queda en Cuentas.</span>
                 </div>
                 {editandoId && <span className={styles.editBadge}>Modo edición</span>}
               </div>
 
-              <div className={styles.productEditorShell} style={estiloPlataforma(formProducto.nombre || formProducto.accent || "jonas stream")}>
+              <div className={styles.productEditorShell} style={estiloPlataforma(`${formProducto.nombre} ${formProducto.accent}`)}>
                 <aside className={styles.productEditorPreview}>
                   <p className={styles.kicker}>Vista previa tienda</p>
                   <div className={styles.productPreviewCardMini}>
@@ -3044,6 +3057,7 @@ export default function AdminPage() {
 
                   <label className={styles.fieldLabel}>Stock inicial
                     <input name="stock" type="number" min="0" placeholder="0" value={formProducto.stock} onChange={handleProductoChange} className={styles.input} />
+                    <small>Luego se sincroniza desde Cuentas disponibles.</small>
                   </label>
 
                   <label className={styles.fieldLabel}>Categoría
@@ -3080,38 +3094,42 @@ export default function AdminPage() {
                     </select>
                   </label>
 
-                  <label className={styles.fieldLabel}>Etiqueta visual
-                    <input name="badge" placeholder="Opcional" value={formProducto.badge} onChange={handleProductoChange} className={styles.input} />
-                  </label>
-
                   <label className={styles.fieldLabel}>Color / plataforma
                     <select name="accent" value={formProducto.accent} onChange={handleProductoChange} className={styles.input}>
                       <option value="jonas stream">Jonas Stream / Neón</option>
                       <option value="netflix">Netflix</option>
-                      <option value="disney">Disney+</option>
-                      <option value="prime">Prime Video</option>
+                      <option value="disney premium">Disney Premium</option>
+                      <option value="disney estandar">Disney Estándar</option>
+                      <option value="prime video">Prime Video</option>
                       <option value="max">Max</option>
-                      <option value="spotify">Spotify</option>
-                      <option value="youtube">YouTube</option>
-                      <option value="crunchy">Crunchyroll</option>
                       <option value="paramount">Paramount+</option>
-                      <option value="canva">Canva</option>
-                      <option value="office">Microsoft 365</option>
+                      <option value="crunchyroll">Crunchyroll</option>
+                      <option value="vix premium">Vix Premium</option>
+                      <option value="rakuten viki">Rakuten Viki</option>
+                      <option value="apple tv">Apple TV</option>
+                      <option value="apple tv mls">Apple TV + MLS</option>
+                      <option value="plex">Plex</option>
+                      <option value="universal">Universal</option>
                       <option value="iptv">IPTV</option>
-                      <option value="viki">Viki</option>
+                      <option value="flujo tv">Flujo TV</option>
+                      <option value="dgo">DGO</option>
+                      <option value="movistar">Movistar</option>
+                      <option value="l1 max">L1 Max</option>
+                      <option value="spotify">Spotify</option>
+                      <option value="tidal">Tidal</option>
+                      <option value="deezer">Deezer</option>
+                      <option value="apple music">Apple Music</option>
+                      <option value="youtube premium">YouTube Premium</option>
+                      <option value="canva">Canva</option>
+                      <option value="surfshark">Surfshark</option>
+                      <option value="hola vpn">Hola VPN</option>
                     </select>
                   </label>
 
-                  <label className={styles.fieldLabel}>WhatsApp
-                    <input name="whatsapp" placeholder="Link o número" value={formProducto.whatsapp} onChange={handleProductoChange} className={styles.input} />
-                  </label>
-
-                  <label className={styles.fieldLabel}>Estado interno
-                    <select name="estado" value={formProducto.estado} onChange={handleProductoChange} className={styles.input}>
-                      <option value="activo">Activo</option>
-                      <option value="inactivo">Inactivo</option>
-                    </select>
-                  </label>
+                  <div className={styles.productFormNote}>
+                    <strong>Catálogo limpio</strong>
+                    <span>La etiqueta, WhatsApp y estado interno se mantienen automáticos. Aquí solo editas lo visible para vender.</span>
+                  </div>
 
                   <div className={`${styles.checkGroup} ${styles.fieldFull}`}>
                     <label><input type="checkbox" name="renovable" checked={formProducto.renovable} onChange={handleProductoChange} /> Renovable</label>
@@ -3189,42 +3207,56 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              <div className={`${styles.productGrid} ${styles.productGridSlim}`}>
+              <div className={styles.productListPro}>
                 {productosVisibles.length === 0 ? (
                   <EmptyState title="Sin productos" text="No hay productos que coincidan con los filtros." />
-                ) : productosVisibles.map((p) => (
-                  <article key={p.id} className={`${styles.productCard} ${styles.productCardPro} ${styles.productCardSlim} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`} style={estiloPlataforma(p.nombre)}>
-                    {p.imagen ? <img src={p.imagen} alt={p.nombre} className={styles.productImage} /> : <div className={styles.productImagePlaceholder}>JS</div>}
-                    <div className={styles.productBody}>
-                      <div className={styles.productTopline}>
-                        <StatusBadge estado={p.estado} />
-                        <div className={styles.productStateCluster}>
-                          {Number(p.stock) <= 0 && <span className={styles.badgeDanger}>Agotado</span>}
-                          {Number(p.stock) > 0 && Number(p.stock) <= 3 && <span className={styles.badgeWarning}>Bajo stock</span>}
-                          {p.destacado && <span className={styles.badgeInfo}>Destacado</span>}
-                          {p.oferta && <span className={styles.offerBadge}>Oferta</span>}
+                ) : productosVisibles.map((p) => {
+                  const stock = Number(p.stock || 0)
+                  const estadoStock = stock <= 0 ? "Agotado" : stock <= 3 ? "Bajo stock" : "Stock estable"
+
+                  return (
+                    <article key={p.id} className={styles.productListRowPro} style={estiloPlataforma(textoColorProducto(p))}>
+                      <div className={styles.productListMedia}>
+                        {p.imagen ? <img src={p.imagen} alt={p.nombre} /> : <strong>JS</strong>}
+                      </div>
+
+                      <div className={styles.productListMain}>
+                        <div className={styles.productListTitleLine}>
+                          <h4>{p.nombre}</h4>
+                          <span>{etiquetaTipoVenta(p.tipo_venta)}</span>
+                        </div>
+                        <p>{p.descripcion || p.categoria || "Producto del catálogo Jonas Stream"}</p>
+                        <div className={styles.productListChips}>
+                          <span>{p.categoria || "Sin categoría"}</span>
+                          <span>{p.duracion || "1 mes"}</span>
+                          <span>{p.publicacion ? "Publicado" : "Oculto"}</span>
+                          <span>{p.renovable ? "Renovable" : "No renovable"}</span>
                         </div>
                       </div>
-                      <h4>{p.nombre}</h4>
-                      <p>{p.tipo_venta || "Sin tipo"} · {p.duracion || "1 mes"}</p>
-                      <div className={styles.productHealthLine}>
-                        <span>{p.publicacion ? "Publicado" : "Oculto"}</span>
-                        <strong>{Number(p.stock) <= 0 ? "Reponer ahora" : Number(p.stock) <= 3 ? "Stock limitado" : "Stock estable"}</strong>
+
+                      <div className={styles.productListMoney}>
+                        <strong>{formatearSoles(p.precio)}</strong>
+                        {p.precio_antes ? <small>Antes {formatearSoles(Number(p.precio_antes))}</small> : <small>Precio actual</small>}
                       </div>
-                      <div className={styles.productMetaCompact}>
-                        <span>{formatearSoles(p.precio)}</span>
-                        <span className={Number(p.stock) <= 3 ? styles.metaDanger : ""}>Stock: {p.stock}</span>
-                        <span>{p.publicacion ? "Publicado" : "Oculto"}</span>
-                        <span>{p.renovable ? "Renovable" : "No renovable"}</span>
+
+                      <div className={styles.productListStock}>
+                        <strong>{stock}</strong>
+                        <span>{estadoStock}</span>
                       </div>
-                      <div className={styles.cardActions}>
+
+                      <div className={styles.productListState}>
+                        <StatusBadge estado={p.estado} />
+                        <small>{p.publicacion ? "Visible" : "Oculto"}</small>
+                      </div>
+
+                      <div className={styles.productListActions}>
                         <button type="button" onClick={() => editarProducto(p)} className={styles.secondaryButton}>Editar</button>
                         <button type="button" onClick={() => irACargarCuentasProducto(p)} className={styles.successButton}>Agregar cuentas</button>
                         <button type="button" onClick={() => eliminarProducto(p.id)} className={styles.dangerButton}>Eliminar</button>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  )
+                })}
               </div>
 
               {productosFiltrados.length > productosVisibles.length && (
@@ -4312,44 +4344,39 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className={styles.inventoryGridPro}>
+              <div className={styles.inventoryListPro}>
                 {productosInventarioFiltrados.length === 0 ? (
                   <EmptyState title="Sin productos" text="No hay productos que coincidan con el filtro de inventario." />
                 ) : productosInventarioFiltrados.map((producto) => {
                   const stock = Number(producto.stock || 0)
                   const esAgotado = stock <= 0
                   const esBajo = stock > 0 && stock <= 3
-                  const porcentajeStock = Math.min(100, Math.max(0, (stock / 10) * 100))
+                  const cuentasProducto = cuentas.filter((cuenta) => cuenta.producto_id === producto.id || normalizarTexto(cuenta.producto_nombre) === normalizarTexto(producto.nombre))
+                  const libres = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "disponible").length
+                  const asignadas = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "asignada").length
+                  const perfiles = cuentasProducto.filter((cuenta) => Boolean(cuenta.perfil)).length
+                  const completas = cuentasProducto.filter((cuenta) => !cuenta.perfil).length
 
                   return (
-                    <article key={producto.id} style={estiloPlataforma(producto.nombre)} className={`${styles.inventoryCardPro} ${esAgotado ? styles.inventoryCardDanger : esBajo ? styles.inventoryCardWarning : ""}`}>
-                      <div className={styles.inventoryCardTop}>
-                        <div>
-                          <span className={styles.inventoryLabel}>{producto.tipo_venta || "Sin tipo"}</span>
-                          <h4>{producto.nombre}</h4>
-                          <p>{producto.categoria || "Sin categoría"} · {producto.proveedor || "Jonas Stream"}</p>
-                          <div className={styles.inventoryTypeLine}>
-                            <span>{producto.tipo_venta || "No definido"}</span>
-                            <span>{producto.duracion || "1 mes"}</span>
-                            <span>{producto.publicacion ? "Publicado" : "Oculto"}</span>
-                          </div>
-                        </div>
-                        <div className={esAgotado ? styles.stockPillDanger : esBajo ? styles.stockPill : styles.stockPillOk}>{stock} und.</div>
+                    <article key={producto.id} style={estiloPlataforma(textoColorProducto(producto))} className={`${styles.inventoryListRowPro} ${esAgotado ? styles.inventoryCardDanger : esBajo ? styles.inventoryCardWarning : ""}`}>
+                      <div className={styles.inventoryListMain}>
+                        <span className={styles.inventoryLabel}>{etiquetaTipoVenta(producto.tipo_venta)}</span>
+                        <h4>{producto.nombre}</h4>
+                        <p>{producto.categoria || "Sin categoría"} · {producto.duracion || "1 mes"} · {producto.publicacion ? "Publicado" : "Oculto"}</p>
                       </div>
 
-                      <div className={styles.stockMeter}>
-                        <span style={{ width: `${porcentajeStock}%` }}></span>
+                      <div className={styles.inventoryMiniStats}>
+                        <span><strong>{libres}</strong> Libres</span>
+                        <span><strong>{asignadas}</strong> Asignadas</span>
+                        <span><strong>{completas}</strong> C. completas</span>
+                        <span><strong>{perfiles}</strong> Perfiles</span>
                       </div>
 
-                      <div className={styles.inventoryStatusLine}>
-                        <strong>{esAgotado ? "Reponer ahora" : esBajo ? "Stock limitado" : "Inventario estable"}</strong>
-                        <small>{producto.publicacion ? "Publicado" : "Oculto"}</small>
-                      </div>
+                      <div className={esAgotado ? styles.stockPillDanger : esBajo ? styles.stockPill : styles.stockPillOk}>{stock} stock</div>
 
                       <div className={styles.inventoryQuickActions}>
                         <button type="button" onClick={() => irACargarCuentasProducto(producto)} className={styles.successButton}>Agregar cuentas</button>
-                        <button type="button" onClick={() => editarProducto(producto)} className={styles.primaryButton}>Editar producto</button>
-                        <button type="button" onClick={sincronizarInventarioAutomatico} className={styles.secondaryButton}>Sincronizar</button>
+                        <button type="button" onClick={() => editarProducto(producto)} className={styles.primaryButton}>Editar</button>
                       </div>
                     </article>
                   )
