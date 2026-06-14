@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type CSSProperties,
   type FormEvent,
 } from "react"
 import { useRouter } from "next/navigation"
@@ -263,6 +264,57 @@ const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
   )
 }
 
+const coloresPlataforma: Record<string, string> = {
+  netflix: "#e50914",
+  "netflix premium": "#e50914",
+  disney: "#002062",
+  "disney estandar": "#002062",
+  "disney estándar": "#002062",
+  "disney premium": "#00b2bb",
+  prime: "#007aff",
+  "prime video": "#007aff",
+  max: "#0027ef",
+  paramount: "#0068ff",
+  "paramount+": "#0068ff",
+  crunchy: "#ff5800",
+  crunchyroll: "#ff5800",
+  vix: "#ff5800",
+  "vix premium": "#ff5800",
+  viki: "#009dff",
+  "rakuten viki": "#009dff",
+  apple: "#9ca3af",
+  "apple tv": "#9ca3af",
+  "apple tv + mls": "#ff1f1f",
+  plex: "#feb100",
+  universal: "#ffff00",
+  iptv: "#5440eb",
+  "flujo tv": "#ff6224",
+  dgo: "#00b0f2",
+  movistar: "#7ed957",
+  "l1 max": "#ff1f1f",
+  spotify: "#1db954",
+  tidal: "#9ca3af",
+  deezer: "#ff4fb8",
+  "apple music": "#fa57c1",
+  youtube: "#ff0000",
+  "youtube premium": "#ff0000",
+  canva: "#00c4cc",
+  surfshark: "#64f5d2",
+  "hola vpn": "#ff7a00",
+}
+
+const obtenerColorPlataforma = (...valores: Array<string | null | undefined>) => {
+  const texto = normalizarTexto(valores.filter(Boolean).join(" "))
+  const match = Object.entries(coloresPlataforma)
+    .sort((a, b) => b[0].length - a[0].length)
+    .find(([clave]) => texto.includes(clave))
+  return match?.[1] || "#01E7EF"
+}
+
+const estiloPlataforma = (...valores: Array<string | null | undefined>) => ({
+  "--platform-color": obtenerColorPlataforma(...valores),
+} as CSSProperties)
+
 export default function AdminPage() {
   const router = useRouter()
 
@@ -308,7 +360,8 @@ export default function AdminPage() {
 
   const [busquedaComprobante, setBusquedaComprobante] = useState("")
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
-  const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("revision")
+  const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("tabla")
+  const [comprobantePreview, setComprobantePreview] = useState<{ url: string; id: string; cliente: string; monto: number; metodo: string; fecha?: string | null } | null>(null)
 
   const [busquedaHistorial, setBusquedaHistorial] = useState("")
   const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
@@ -1914,89 +1967,281 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <section className={styles.adminQuickStats}>
-          <button type="button" onClick={() => setTabActiva("pedidos")}>
-            <span>Pedidos</span>
-            <strong>{pedidosPendientes}</strong>
-          </button>
-          <button type="button" onClick={() => setTabActiva("comprobantes")}>
-            <span>Pagos</span>
-            <strong>{comprobantesPendientes}</strong>
-          </button>
-          <button type="button" onClick={() => setTabActiva("inventario")}>
-            <span>Stock crítico</span>
-            <strong>{productosCriticos.length}</strong>
-          </button>
-          <button type="button" onClick={() => setTabActiva("usuarios")}>
-            <span>Usuarios</span>
-            <strong>{usuariosPendientes}</strong>
-          </button>
+        <section className={styles.proRibbon}>
+          <div className={styles.proRibbonMain}>
+            <span className={styles.proTag}>PRO CONTROL 2.0</span>
+            <strong>Vista ejecutiva activa</strong>
+            <p>Pedidos, stock, comprobantes, usuarios e historial centralizados sin tocar RLS todavía.</p>
+          </div>
+          <div className={styles.proRibbonStats}>
+            <button type="button" onClick={() => setTabActiva("pedidos")}>
+              <span>{pedidosPendientes}</span>
+              Pedidos pendientes
+            </button>
+            <button type="button" onClick={() => setTabActiva("inventario")}>
+              <span>{productosCriticos.length}</span>
+              Stock crítico
+            </button>
+            <button type="button" onClick={() => setTabActiva("comprobantes")}>
+              <span>{comprobantesPendientes}</span>
+              Comprobantes
+            </button>
+            <button type="button" onClick={() => setTabActiva("usuarios")}>
+              <span>{usuariosPendientes}</span>
+              Usuarios por aprobar
+            </button>
+          </div>
         </section>
 
         {tabActiva === "dashboard" && (
-          <div className={`${styles.sectionStack} ${styles.adminCompactPage}`}>
-            <section className={styles.compactDashboardHeader}>
-              <div>
-                <p className={styles.kicker}>Panel operativo</p>
-                <h3>Resumen rápido</h3>
-                <span className={styles.panelHint}>Solo lo necesario: ventas, pendientes, pagos y stock.</span>
-              </div>
-              <div className={styles.compactHeaderActions}>
-                <button type="button" onClick={() => { setTabActiva("pedidos"); setFiltroEstadoPedido("pendiente") }} className={styles.primaryButton}>Pedidos</button>
-                <button type="button" onClick={() => { setTabActiva("comprobantes"); setFiltroEstadoComprobante("pendiente") }} className={styles.secondaryButton}>Comprobantes</button>
-                <button type="button" onClick={() => setTabActiva("inventario")} className={styles.secondaryButton}>Inventario</button>
-              </div>
-            </section>
+          <div className={styles.sectionStack}>
+            <section className={styles.dashboardCommandHero}>
+              <div className={styles.commandHeroMain}>
+                <span className={styles.proTag}>DASHBOARD PRO PULIDO</span>
+                <h3>Centro de mando Jonas Stream</h3>
+                <p>
+                  Entra, mira el estado real del negocio y actúa en segundos: ventas, pagos,
+                  pedidos urgentes, usuarios pendientes y stock crítico en un solo lugar.
+                </p>
 
-            <section className={styles.compactMetricGrid}>
-              <button type="button" onClick={() => setTabActiva("pedidos")} className={`${styles.compactMetricCard} ${styles.compactMetricSuccess}`}>
-                <span>Ventas</span>
+                <div className={styles.commandHeroFocus}>
+                  <span>Prioridad actual</span>
+                  <strong>{prioridadPrincipal}</strong>
+                  <small>
+                    {pedidosUrgentes.length > 0
+                      ? `${pedidosUrgentes.length} pedido(s) requieren atención inmediata.`
+                      : comprobantesPendientesDashboard > 0
+                      ? `${comprobantesPendientesDashboard} pago(s) necesitan validación.`
+                      : productosCriticosTotal > 0
+                      ? `${productosCriticosTotal} producto(s) están en nivel crítico.`
+                      : "No hay bloqueos críticos ahora mismo."}
+                  </small>
+                </div>
+
+                <div className={styles.dashboardHeroActions}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTabActiva("pedidos")
+                      setFiltroEstadoPedido("pendiente")
+                    }}
+                    className={styles.primaryButton}
+                  >
+                    Atender pendientes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTabActiva("comprobantes")
+                      setFiltroEstadoComprobante("pendiente")
+                    }}
+                    className={styles.secondaryButton}
+                  >
+                    Revisar pagos
+                  </button>
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.secondaryButton}>
+                    Ver stock crítico
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.commandMoneyCard}>
+                <p>Ingreso confirmado</p>
                 <strong>{formatearSoles(ventasTotales)}</strong>
-                <small>Hoy: {formatearSoles(ventasHoy)}</small>
+                <span>{pedidosCompletados} ventas completadas · Ticket {formatearSoles(ticketPromedio)}</span>
+
+                <div className={styles.commandMoneyGrid}>
+                  <div>
+                    <small>Hoy</small>
+                    <b>{formatearSoles(ventasHoy)}</b>
+                  </div>
+                  <div>
+                    <small>Por cobrar</small>
+                    <b>{formatearSoles(ingresosPendientes)}</b>
+                  </div>
+                  <div>
+                    <small>Conversión</small>
+                    <b>{tasaConversion}%</b>
+                  </div>
+                  <div>
+                    <small>Salud stock</small>
+                    <b>{saludInventario}%</b>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className={styles.dashboardAlertGrid}>
+              <button
+                type="button"
+                onClick={() => {
+                  setTabActiva("pedidos")
+                  setFiltroEstadoPedido("pendiente")
+                }}
+                className={`${styles.alertActionCard} ${pedidosUrgentes.length > 0 ? styles.alertCardDanger : ""}`}
+              >
+                <span>◉</span>
+                <div>
+                  <strong>{pedidosUrgentes.length}</strong>
+                  <p>Pedidos urgentes</p>
+                  <small>{pedidosSinPago.length} sin comprobante visible</small>
+                </div>
               </button>
-              <button type="button" onClick={() => { setTabActiva("pedidos"); setFiltroEstadoPedido("pendiente") }} className={`${styles.compactMetricCard} ${pedidosPendientes > 0 ? styles.compactMetricWarning : ""}`}>
-                <span>Pendientes</span>
-                <strong>{pedidosPendientes}</strong>
-                <small>{formatearSoles(ingresosPendientes)} por cobrar</small>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTabActiva("comprobantes")
+                  setFiltroEstadoComprobante("pendiente")
+                }}
+                className={`${styles.alertActionCard} ${comprobantesPendientesDashboard > 0 ? styles.alertCardWarning : ""}`}
+              >
+                <span>▤</span>
+                <div>
+                  <strong>{comprobantesPendientesDashboard}</strong>
+                  <p>Pagos por validar</p>
+                  <small>Evita entregar sin revisar</small>
+                </div>
               </button>
-              <button type="button" onClick={() => { setTabActiva("comprobantes"); setFiltroEstadoComprobante("pendiente") }} className={`${styles.compactMetricCard} ${comprobantesPendientesDashboard > 0 ? styles.compactMetricWarning : ""}`}>
-                <span>Pagos por revisar</span>
-                <strong>{comprobantesPendientesDashboard}</strong>
-                <small>{pedidosConComprobante} comprobante(s)</small>
+
+              <button
+                type="button"
+                onClick={() => setTabActiva("inventario")}
+                className={`${styles.alertActionCard} ${productosCriticosTotal > 0 ? styles.alertCardDanger : ""}`}
+              >
+                <span>▦</span>
+                <div>
+                  <strong>{productosCriticosTotal}</strong>
+                  <p>Alertas de stock</p>
+                  <small>{productosAgotados.length} agotados · {productosBajoStock.length} bajos</small>
+                </div>
               </button>
-              <button type="button" onClick={() => setTabActiva("inventario")} className={`${styles.compactMetricCard} ${productosCriticosTotal > 0 ? styles.compactMetricDanger : ""}`}>
-                <span>Stock crítico</span>
-                <strong>{productosCriticosTotal}</strong>
-                <small>{productosAgotados.length} agotados · {productosBajoStock.length} bajos</small>
-              </button>
-              <button type="button" onClick={() => { setTabActiva("usuarios"); setFiltroEstadoUsuario("pendiente") }} className={`${styles.compactMetricCard} ${usuariosPendientes > 0 ? styles.compactMetricWarning : ""}`}>
-                <span>Usuarios pendientes</span>
-                <strong>{usuariosPendientes}</strong>
-                <small>{usuariosAprobados} aprobados</small>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTabActiva("usuarios")
+                  setFiltroEstadoUsuario("pendiente")
+                }}
+                className={`${styles.alertActionCard} ${usuariosPendientes > 0 ? styles.alertCardWarning : ""}`}
+              >
+                <span>◎</span>
+                <div>
+                  <strong>{usuariosPendientes}</strong>
+                  <p>Usuarios pendientes</p>
+                  <small>{usuariosAprobados} aprobados · {usuariosRechazados} rechazados</small>
+                </div>
               </button>
             </section>
 
-            <section className={styles.compactWorkGrid}>
+            <div className={styles.metricsGridPro}>
+              <MetricCard title="Ventas reales" value={formatearSoles(ventasTotales)} detail={`${formatearSoles(ventasHoy)} vendido hoy`} tone="success" />
+              <MetricCard title="Por cobrar" value={formatearSoles(ingresosPendientes)} detail={`${pedidosPendientes} pedidos pendientes`} tone="warning" />
+              <MetricCard title="Pedidos hoy" value={pedidosHoy.length} detail={`${pedidosUrgentes.length} urgentes detectados`} tone="info" />
+              <MetricCard title="Stock crítico" value={productosCriticosTotal} detail={`${productosDisponibles} productos estables`} tone="danger" />
+              <MetricCard title="Comprobantes" value={comprobantesUnificados.length || pedidosConComprobante} detail={`${comprobantesPendientesDashboard} pendientes`} tone="neutral" />
+              <MetricCard title="Usuarios" value={totalUsuarios} detail={`${usuariosPendientes} pendientes · ${usuariosAdmin} admin`} tone="info" />
+              <MetricCard title="Catálogo activo" value={productosActivos} detail={`${productosOferta} ofertas · ${productosDestacados} destacados`} tone="success" />
+              <MetricCard title="Actividad hoy" value={actividadHoyTotal} detail={`${logsHoy} acciones registradas`} tone="neutral" />
+            </div>
+
+            <section className={styles.dashboardDecisionMatrix}>
+              <article className={`${styles.panel} ${styles.nextActionsPanel}`}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Siguiente acción</p>
+                    <h3>Qué hacer primero</h3>
+                    <span className={styles.panelHint}>Ordenado por impacto operativo: dinero, entrega y stock.</span>
+                  </div>
+                </div>
+
+                <div className={styles.nextActionList}>
+                  <button type="button" onClick={() => { setTabActiva("pedidos"); setFiltroEstadoPedido("pendiente") }} className={styles.nextActionItem}>
+                    <em className={pedidosUrgentes.length > 0 ? styles.actionPulseDanger : styles.actionPulseOk}></em>
+                    <div>
+                      <strong>Atender pedidos pendientes</strong>
+                      <span>{pedidosPendientes} pendientes · {formatearSoles(ingresosPendientes)} por confirmar</span>
+                    </div>
+                    <b>Ir</b>
+                  </button>
+
+                  <button type="button" onClick={() => { setTabActiva("comprobantes"); setFiltroEstadoComprobante("pendiente") }} className={styles.nextActionItem}>
+                    <em className={comprobantesPendientesDashboard > 0 ? styles.actionPulseWarning : styles.actionPulseOk}></em>
+                    <div>
+                      <strong>Validar comprobantes</strong>
+                      <span>{comprobantesPendientesDashboard} pagos pendientes de revisión</span>
+                    </div>
+                    <b>Ir</b>
+                  </button>
+
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.nextActionItem}>
+                    <em className={productosCriticosTotal > 0 ? styles.actionPulseDanger : styles.actionPulseOk}></em>
+                    <div>
+                      <strong>Controlar inventario</strong>
+                      <span>{productosAgotados.length} agotados · {productosBajoStock.length} bajo stock</span>
+                    </div>
+                    <b>Ir</b>
+                  </button>
+                </div>
+              </article>
+
+              <article className={`${styles.panel} ${styles.businessSnapshotPanel}`}>
+                <div className={styles.panelHeader}>
+                  <div>
+                    <p className={styles.kicker}>Snapshot</p>
+                    <h3>Lectura rápida</h3>
+                    <span className={styles.panelHint}>Resumen para decidir sin entrar a cada módulo.</span>
+                  </div>
+                </div>
+
+                <div className={styles.snapshotGrid}>
+                  <div>
+                    <span>Producto más movido</span>
+                    <strong>{productoMasMovido ? productoMasMovido[0] : "Sin ventas aún"}</strong>
+                    <small>{productoMasMovido ? `${productoMasMovido[1]} venta(s) completadas` : "Cuando haya ventas, aparecerá aquí."}</small>
+                  </div>
+                  <div>
+                    <span>Riesgo operativo</span>
+                    <strong>{pedidosUrgentes.length + productosCriticosTotal + comprobantesPendientesDashboard}</strong>
+                    <small>Suma de urgencias visibles</small>
+                  </div>
+                  <div>
+                    <span>Usuarios activos</span>
+                    <strong>{usuariosAprobados}</strong>
+                    <small>{usuariosProveedor} proveedores · {usuariosCliente} clientes</small>
+                  </div>
+                  <div>
+                    <span>Historial crítico</span>
+                    <strong>{logsCriticos}</strong>
+                    <small>{logsSistema} acciones de sistema</small>
+                  </div>
+                </div>
+              </article>
+            </section>
+
+            <div className={styles.dashboardGridPro}>
               <article className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <div>
-                    <p className={styles.kicker}>Pedidos</p>
-                    <h3>Revisar primero</h3>
+                    <p className={styles.kicker}>Cola de trabajo</p>
+                    <h3>Pedidos que mirar primero</h3>
+                    <span className={styles.panelHint}>Priorizados por pendiente, antigüedad y comprobante.</span>
                   </div>
-                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.linkButton}>Ver</button>
+                  <button type="button" onClick={() => setTabActiva("pedidos")} className={styles.linkButton}>Ver pedidos</button>
                 </div>
+
                 <div className={styles.compactList}>
                   {(pedidosUrgentes.length > 0 ? pedidosUrgentes : pedidos.slice(0, 5)).slice(0, 5).length === 0 ? (
-                    <EmptyState title="Sin pedidos" text="No hay pedidos para mostrar." />
+                    <EmptyState title="Sin pedidos" text="Aún no hay pedidos registrados." />
                   ) : (
                     (pedidosUrgentes.length > 0 ? pedidosUrgentes : pedidos.slice(0, 5)).slice(0, 5).map((pedido) => (
-                      <button key={pedido.id} type="button" onClick={() => setTabActiva("pedidos")} className={styles.compactDataRow}>
+                      <button key={pedido.id} type="button" onClick={() => setTabActiva("pedidos")} className={styles.dashboardListButton}>
                         <div>
-                          <strong>#{pedido.id.slice(0, 8)}</strong>
-                          <span>{pedido.cliente_nombre || "cliente"} · {pedido.metodo_pago || "pago"}</span>
+                          <strong>{pedido.cliente_nombre}</strong>
+                          <span>#{pedido.id.slice(0, 8)} · {pedido.producto_nombre || "Producto no definido"}</span>
                         </div>
-                        <div>
-                          <b>{formatearSoles(pedido.total)}</b>
+                        <div className={styles.compactRight}>
+                          <strong>{formatearSoles(pedido.total)}</strong>
                           <StatusBadge estado={pedido.estado} />
                         </div>
                       </button>
@@ -2008,25 +2253,24 @@ export default function AdminPage() {
               <article className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <div>
-                    <p className={styles.kicker}>Comprobantes</p>
-                    <h3>Pagos por validar</h3>
+                    <p className={styles.kicker}>Inventario</p>
+                    <h3>Stock que puede frenar ventas</h3>
+                    <span className={styles.panelHint}>Reposición rápida desde inventario.</span>
                   </div>
-                  <button type="button" onClick={() => setTabActiva("comprobantes")} className={styles.linkButton}>Ver</button>
+                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.linkButton}>Gestionar</button>
                 </div>
+
                 <div className={styles.compactList}>
-                  {comprobantesUnificados.filter((c) => c.estado === "pendiente").slice(0, 5).length === 0 ? (
-                    <EmptyState title="Sin pagos pendientes" text="No hay comprobantes pendientes." />
+                  {productosCriticos.length === 0 ? (
+                    <EmptyState title="Stock estable" text="No hay productos críticos por ahora." />
                   ) : (
-                    comprobantesUnificados.filter((c) => c.estado === "pendiente").slice(0, 5).map((comprobante) => (
-                      <button key={`${comprobante.origen}-${comprobante.id}`} type="button" onClick={() => setTabActiva("comprobantes")} className={styles.compactDataRow}>
+                    productosCriticos.map((producto) => (
+                      <button key={producto.id} type="button" onClick={() => editarProducto(producto)} className={styles.dashboardListButton}>
                         <div>
-                          <strong>{comprobante.cliente}</strong>
-                          <span>{comprobante.metodo || "Método"} · {fechaLegible(comprobante.fecha)}</span>
+                          <strong>{producto.nombre}</strong>
+                          <span>{producto.categoria || "Sin categoría"} · {producto.proveedor || "Jonas Stream"}</span>
                         </div>
-                        <div>
-                          <b>{formatearSoles(comprobante.monto)}</b>
-                          <span className={styles.badgeWarning}>Pendiente</span>
-                        </div>
+                        <div className={Number(producto.stock) <= 0 ? styles.stockPillDanger : styles.stockPill}>{producto.stock} und.</div>
                       </button>
                     ))
                   )}
@@ -2036,28 +2280,24 @@ export default function AdminPage() {
               <article className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <div>
-                    <p className={styles.kicker}>Inventario</p>
-                    <h3>Stock crítico</h3>
+                    <p className={styles.kicker}>Auditoría</p>
+                    <h3>Última acción importante</h3>
+                    <span className={styles.panelHint}>Control interno del panel.</span>
                   </div>
-                  <button type="button" onClick={() => setTabActiva("inventario")} className={styles.linkButton}>Gestionar</button>
+                  <button type="button" onClick={() => setTabActiva("historial")} className={styles.linkButton}>Historial</button>
                 </div>
-                <div className={styles.compactList}>
-                  {productosCriticos.length === 0 ? (
-                    <EmptyState title="Stock estable" text="No hay productos críticos por ahora." />
-                  ) : (
-                    productosCriticos.slice(0, 5).map((producto) => (
-                      <button key={producto.id} type="button" onClick={() => editarProducto(producto)} className={styles.compactDataRow}>
-                        <div>
-                          <strong>{producto.nombre}</strong>
-                          <span>{producto.categoria || "Sin categoría"}</span>
-                        </div>
-                        <div className={Number(producto.stock) <= 0 ? styles.stockPillDanger : styles.stockPill}>{producto.stock} und.</div>
-                      </button>
-                    ))
-                  )}
-                </div>
+                {!ultimaAccionImportante ? (
+                  <EmptyState title="Sin historial" text="Las acciones del panel aparecerán aquí." />
+                ) : (
+                  <div className={styles.auditPreviewPro}>
+                    <span>{ultimaAccionImportante.entidad}</span>
+                    <strong>{ultimaAccionImportante.accion}</strong>
+                    <p>{ultimaAccionImportante.detalle || "Sin detalle"}</p>
+                    <small>{ultimaAccionImportante.actor_nombre || "Sistema"} · {fechaLegible(ultimaAccionImportante.created_at)}</small>
+                  </div>
+                )}
               </article>
-            </section>
+            </div>
           </div>
         )}
 
@@ -2245,7 +2485,7 @@ export default function AdminPage() {
                 {productosVisibles.length === 0 ? (
                   <EmptyState title="Sin productos" text="No hay productos que coincidan con los filtros." />
                 ) : productosVisibles.map((p) => (
-                  <article key={p.id} className={`${styles.productCard} ${styles.productCardPro} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`}>
+                  <article key={p.id} style={estiloPlataforma(p.nombre, p.accent, p.categoria)} className={`${styles.productCard} ${styles.productCardPro} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`}>
                     {p.imagen ? <img src={p.imagen} alt={p.nombre} className={styles.productImage} /> : <div className={styles.productImagePlaceholder}>JS</div>}
                     <div className={styles.productBody}>
                       <div className={styles.productTopline}>
@@ -2922,7 +3162,15 @@ export default function AdminPage() {
                               <td>{comprobante.metodo}</td>
                               <td><StatusBadge estado={comprobante.estado} /></td>
                               <td><span className={comprobante.origen === "tabla" ? styles.badgeInfo : styles.badgeOk}>{comprobante.origen === "tabla" ? "Tabla" : "Pedido"}</span></td>
-                              <td>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.badgeWarning}>Sin archivo</span>}</td>
+                              <td>{comprobante.url ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setComprobantePreview({ url: comprobante.url || "", id: comprobante.id, cliente: comprobante.cliente, monto: comprobante.monto, metodo: comprobante.metodo, fecha: comprobante.fecha })}
+                                    className={styles.previewButton}
+                                  >
+                                    Ver comprobante
+                                  </button>
+                                ) : <span className={styles.badgeWarning}>Sin archivo</span>}</td>
                               <td>
                                 <div className={styles.tableActions}>
                                   <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar</button>
@@ -2945,10 +3193,14 @@ export default function AdminPage() {
                           <article key={comprobante.id} className={`${styles.reviewCardPro} ${estadoCritico ? styles.reviewPending : ""} ${sinArchivo ? styles.reviewNoFile : ""}`}>
                             <div className={styles.reviewMediaPro}>
                               {comprobante.url ? (
-                                <a href={comprobante.url} target="_blank" rel="noreferrer">
+                                <button
+                                  type="button"
+                                  onClick={() => setComprobantePreview({ url: comprobante.url || "", id: comprobante.id, cliente: comprobante.cliente, monto: comprobante.monto, metodo: comprobante.metodo, fecha: comprobante.fecha })}
+                                  className={styles.reviewPreviewButton}
+                                >
                                   <img src={comprobante.url} alt={`Comprobante ${comprobante.id.slice(0, 8)}`} />
-                                  <span>Abrir comprobante</span>
-                                </a>
+                                  <span>Ver comprobante</span>
+                                </button>
                               ) : (
                                 <div className={styles.reviewPlaceholderPro}>
                                   <strong>Sin archivo</strong>
@@ -3122,69 +3374,48 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className={styles.accountsGridPro}>
-                {cuentasFiltradas.length === 0 ? (
-                  <EmptyState title="Sin cuentas" text="Registra cuentas disponibles para que luego puedan asignarse a pedidos." />
-                ) : cuentasFiltradas.map((cuenta) => {
-                  const producto = productos.find((item) => item.id === cuenta.producto_id)
-                  const estado = normalizarTexto(cuenta.estado)
-                  const esDisponible = estado === "disponible"
-                  const esAsignada = estado === "asignada"
-                  const esProblema = estado === "bloqueada" || estado === "mantenimiento" || estado === "vencida"
-
-                  return (
-                    <article key={cuenta.id} className={`${styles.accountCardPro} ${esDisponible ? styles.accountCardAvailable : esAsignada ? styles.accountCardAssigned : esProblema ? styles.accountCardDanger : ""}`}>
-                      <div className={styles.accountCardTop}>
-                        <div>
-                          <span className={styles.inventoryLabel}>{producto?.nombre || cuenta.producto_nombre || "Producto sin vincular"}</span>
-                          <h4>{cuenta.correo}</h4>
-                          <p>{cuenta.perfil || "Sin perfil"} · PIN perfil: {cuenta.pin_perfil || "-"}</p>
-                        </div>
-                        <StatusBadge estado={cuenta.estado || "disponible"} />
-                      </div>
-
-                      <div className={styles.accountSecretGrid}>
-                        <div>
-                          <span>Clave</span>
-                          <strong>{cuenta.clave}</strong>
-                        </div>
-                        <div>
-                          <span>PIN consulta</span>
-                          <strong>{cuenta.pin_acceso || "-"}</strong>
-                        </div>
-                      </div>
-
-                      <div className={styles.accountMetaGrid}>
-                        <div>
-                          <span>Cliente</span>
-                          <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
-                        </div>
-                        <div>
-                          <span>Inicio</span>
-                          <strong>{fechaLegible(cuenta.cliente_inicio)}</strong>
-                        </div>
-                        <div>
-                          <span>Fin</span>
-                          <strong>{fechaLegible(cuenta.cliente_fin)}</strong>
-                        </div>
-                        <div>
-                          <span>Pedido</span>
-                          <strong>{cuenta.pedido_id ? `#${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</strong>
-                        </div>
-                      </div>
-
-                      {cuenta.observacion_admin && <p className={styles.accountNote}>{cuenta.observacion_admin}</p>}
-
-                      <div className={styles.inventoryQuickActions}>
-                        <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Disponible</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mantenimiento</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloquear</button>
-                        <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
-                      </div>
-                    </article>
-                  )
-                })}
+              <div className={styles.tableWrap}>
+                <table className={`${styles.proTable} ${styles.accountsTablePro}`}>
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Cuenta</th>
+                      <th>Perfil / PIN</th>
+                      <th>Cliente</th>
+                      <th>Vigencia</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cuentasFiltradas.length === 0 ? (
+                      <tr>
+                        <td colSpan={7}><EmptyState title="Sin cuentas" text="Registra cuentas disponibles para que luego puedan asignarse a pedidos." /></td>
+                      </tr>
+                    ) : cuentasFiltradas.map((cuenta) => {
+                      const producto = productos.find((item) => item.id === cuenta.producto_id)
+                      return (
+                        <tr key={cuenta.id}>
+                          <td><strong>{producto?.nombre || cuenta.producto_nombre || "Producto sin vincular"}</strong><small>{cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</small></td>
+                          <td><strong>{cuenta.correo}</strong><small>Clave: {cuenta.clave}</small></td>
+                          <td><strong>{cuenta.perfil || "Sin perfil"}</strong><small>PIN perfil: {cuenta.pin_perfil || "-"} · Consulta: {cuenta.pin_acceso || "-"}</small></td>
+                          <td><strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong><small>{cuenta.cliente_correo || "-"}</small></td>
+                          <td><strong>{fechaLegible(cuenta.cliente_inicio)}</strong><small>Fin: {fechaLegible(cuenta.cliente_fin)}</small></td>
+                          <td><StatusBadge estado={cuenta.estado || "disponible"} /></td>
+                          <td>
+                            <div className={styles.tableActions}>
+                              <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.secondaryButton}>Editar</button>
+                              <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Disponible</button>
+                              <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mant.</button>
+                              <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloquear</button>
+                              <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
             </article>
           </div>
@@ -3437,48 +3668,58 @@ export default function AdminPage() {
               {creditosFiltrados.length === 0 ? (
                 <EmptyState title="Sin créditos" text="Aún no hay saldos registrados o no coinciden con los filtros." />
               ) : (
-                <div className={styles.creditosGridPro}>
-                  {creditosFiltrados.map((credito) => {
-                    const usuarioCredito = usuarios.find((item) => item.id === credito.usuario_id)
-                    const saldo = Number(credito.saldo || 0)
-                    const estaActivo = normalizarTexto(credito.estado) === "activo"
+                <div className={styles.tableWrap}>
+                  <table className={`${styles.proTable} ${styles.creditosTablePro}`}>
+                    <thead>
+                      <tr>
+                        <th>Cliente</th>
+                        <th>Correo</th>
+                        <th>Rol</th>
+                        <th>Saldo</th>
+                        <th>Estado</th>
+                        <th>Creado</th>
+                        <th>Ajustes</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {creditosFiltrados.map((credito) => {
+                        const usuarioCredito = usuarios.find((item) => item.id === credito.usuario_id)
+                        const saldo = Number(credito.saldo || 0)
+                        const estaActivo = normalizarTexto(credito.estado) === "activo"
 
-                    return (
-                      <article key={credito.id} className={`${styles.creditoCardPro} ${!estaActivo ? styles.creditoCardPaused : saldo <= 0 ? styles.creditoCardDanger : ""}`}>
-                        <div className={styles.creditoCardTop}>
-                          <div>
-                            <span className={styles.inventoryLabel}>{usuarioCredito?.rol || "usuario"}</span>
-                            <h4>{usuarioCredito?.nombre || "Usuario no encontrado"}</h4>
-                            <p>{usuarioCredito?.correo || credito.usuario_id}</p>
-                          </div>
-                          <StatusBadge estado={credito.estado || "activo"} />
-                        </div>
-
-                        <div className={styles.creditoAmountBox}>
-                          <span>Saldo disponible</span>
-                          <strong>{formatearSoles(saldo)}</strong>
-                          <small>{credito.created_at ? `Creado ${fechaLegible(credito.created_at)}` : "Sin fecha registrada"}</small>
-                        </div>
-
-                        <div className={styles.creditoQuickGrid}>
-                          <button type="button" onClick={() => ajustarCredito(credito, -10)} className={styles.dangerGhostButton}>-10</button>
-                          <button type="button" onClick={() => ajustarCredito(credito, 10)} className={styles.secondaryButton}>+10</button>
-                          <button type="button" onClick={() => ajustarCredito(credito, 50)} className={styles.secondaryButton}>+50</button>
-                          <button type="button" onClick={() => ajustarCredito(credito, 100)} className={styles.successButton}>+100</button>
-                        </div>
-
-                        <div className={styles.cardActions}>
-                          <button type="button" onClick={() => editarCredito(credito)} className={styles.primaryButton}>Editar</button>
-                          {estaActivo ? (
-                            <button type="button" onClick={() => actualizarEstadoCredito(credito, "suspendido")} className={styles.dangerButton}>Suspender</button>
-                          ) : (
-                            <button type="button" onClick={() => actualizarEstadoCredito(credito, "activo")} className={styles.successButton}>Activar</button>
-                          )}
-                          <button type="button" onClick={() => eliminarCredito(credito)} className={styles.dangerGhostButton}>Eliminar</button>
-                        </div>
-                      </article>
-                    )
-                  })}
+                        return (
+                          <tr key={credito.id}>
+                            <td><strong>{usuarioCredito?.nombre || "Usuario no encontrado"}</strong><small>ID {credito.usuario_id.slice(0, 8)}</small></td>
+                            <td>{usuarioCredito?.correo || credito.usuario_id}</td>
+                            <td><span className={styles.roleChip}>{usuarioCredito?.rol || "usuario"}</span></td>
+                            <td><strong className={styles.moneyCell}>{formatearSoles(saldo)}</strong></td>
+                            <td><StatusBadge estado={credito.estado || "activo"} /></td>
+                            <td>{credito.created_at ? fechaLegible(credito.created_at) : "Sin fecha"}</td>
+                            <td>
+                              <div className={styles.tableActions}>
+                                <button type="button" onClick={() => ajustarCredito(credito, -10)} className={styles.dangerGhostButton}>-10</button>
+                                <button type="button" onClick={() => ajustarCredito(credito, 10)} className={styles.secondaryButton}>+10</button>
+                                <button type="button" onClick={() => ajustarCredito(credito, 50)} className={styles.secondaryButton}>+50</button>
+                                <button type="button" onClick={() => ajustarCredito(credito, 100)} className={styles.successButton}>+100</button>
+                              </div>
+                            </td>
+                            <td>
+                              <div className={styles.tableActions}>
+                                <button type="button" onClick={() => editarCredito(credito)} className={styles.secondaryButton}>Editar</button>
+                                {estaActivo ? (
+                                  <button type="button" onClick={() => actualizarEstadoCredito(credito, "suspendido")} className={styles.dangerButton}>Suspender</button>
+                                ) : (
+                                  <button type="button" onClick={() => actualizarEstadoCredito(credito, "activo")} className={styles.successButton}>Activar</button>
+                                )}
+                                <button type="button" onClick={() => eliminarCredito(credito)} className={styles.dangerGhostButton}>Eliminar</button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </article>
@@ -3673,6 +3914,28 @@ export default function AdminPage() {
               </div>
             </form>
           </article>
+        )}
+
+        {comprobantePreview && (
+          <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+            <div className={styles.voucherModal}>
+              <div className={styles.voucherModalHeader}>
+                <div>
+                  <p className={styles.kicker}>Comprobante</p>
+                  <h3>#{comprobantePreview.id.slice(0, 8)}</h3>
+                  <span>{comprobantePreview.cliente} · {formatearSoles(comprobantePreview.monto)} · {comprobantePreview.metodo}</span>
+                </div>
+                <button type="button" onClick={() => setComprobantePreview(null)} className={styles.closeModalButton}>Cerrar</button>
+              </div>
+              <div className={styles.voucherModalImageWrap}>
+                <img src={comprobantePreview.url} alt={`Comprobante ${comprobantePreview.id.slice(0, 8)}`} className={styles.voucherModalImage} />
+              </div>
+              <div className={styles.voucherModalFooter}>
+                <span>{fechaLegible(comprobantePreview.fecha)}</span>
+                <a href={comprobantePreview.url} target="_blank" rel="noreferrer" className={styles.secondaryButton}>Abrir en pestaña</a>
+              </div>
+            </div>
+          </div>
         )}
       </section>
     </main>
