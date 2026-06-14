@@ -404,7 +404,7 @@ export default function AdminPage() {
   const [cuentasDisponibles, setCuentasDisponibles] = useState(true)
   const [sincronizandoInventario, setSincronizandoInventario] = useState(false)
   const [busquedaInventario, setBusquedaInventario] = useState("")
-  const [filtroInventario, setFiltroInventario] = useState<"todos" | "critico" | "agotado" | "bajo" | "estable">("critico")
+  const [filtroInventario, setFiltroInventario] = useState<"todos" | "critico" | "agotado" | "bajo" | "estable">("todos")
 
   const [formCuenta, setFormCuenta] = useState(cuentaInicial)
   const [editandoCuentaId, setEditandoCuentaId] = useState<string | null>(null)
@@ -1247,15 +1247,15 @@ export default function AdminPage() {
 
     const precio = Number(formProducto.precio)
     const precioAntes = formProducto.precio_antes ? Number(formProducto.precio_antes) : null
-    const stock = Number(formProducto.stock)
+    const stock = Number(formProducto.stock || 0)
 
-    if (!formProducto.nombre.trim() || !formProducto.precio || !formProducto.stock) {
-      toast.error("Completa nombre, precio y stock")
+    if (!formProducto.nombre.trim() || !formProducto.precio) {
+      toast.error("Completa nombre y precio")
       return
     }
 
     if (Number.isNaN(precio) || precio < 0 || Number.isNaN(stock) || stock < 0) {
-      toast.error("Precio y stock deben ser números válidos")
+      toast.error("Precio debe ser válido")
       return
     }
 
@@ -3012,7 +3012,7 @@ export default function AdminPage() {
                     <p>{formProducto.descripcion || "Descripción corta del producto"}</p>
 
                     <div className={styles.productPreviewStockMini}>
-                      <span>Stock</span>
+                      <span>Stock sincronizado</span>
                       <strong>{formProducto.stock || "0"}</strong>
                     </div>
 
@@ -3024,8 +3024,8 @@ export default function AdminPage() {
                     </div>
 
                     <div className={styles.productPreviewStatusRow}>
-                      <span>{Number(formProducto.stock || 0) > 0 ? "Disponible" : "Agotado"}</span>
-                      <strong>{formProducto.stock_texto || (Number(formProducto.stock || 0) > 0 ? "Stock disponible" : "Consultar reposición")}</strong>
+                      <span>{Number(formProducto.stock || 0) > 0 ? "Disponible" : "Sin stock"}</span>
+                      <strong>{formProducto.stock_texto || (Number(formProducto.stock || 0) > 0 ? "Stock sincronizado" : "Carga cuentas para vender")}</strong>
                     </div>
 
                     <div className={styles.pricePreviewGridMini}>
@@ -3055,10 +3055,11 @@ export default function AdminPage() {
                     <input name="precio_antes" type="number" min="0" step="0.01" placeholder="Opcional" value={formProducto.precio_antes} onChange={handleProductoChange} className={styles.input} />
                   </label>
 
-                  <label className={styles.fieldLabel}>Stock inicial
-                    <input name="stock" type="number" min="0" placeholder="0" value={formProducto.stock} onChange={handleProductoChange} className={styles.input} />
-                    <small>Luego se sincroniza desde Cuentas disponibles.</small>
-                  </label>
+                  <div className={`${styles.productSyncNote} ${styles.fieldLabel}`}>
+                    <span>Stock automático</span>
+                    <strong>{formProducto.stock || "0"} disponible(s)</strong>
+                    <small>Se calcula desde Admin → Cuentas. No se edita en Productos.</small>
+                  </div>
 
                   <label className={styles.fieldLabel}>Categoría
                     <input name="categoria" placeholder="Streaming, música, diseño..." value={formProducto.categoria} onChange={handleProductoChange} className={styles.input} />
@@ -3128,7 +3129,7 @@ export default function AdminPage() {
 
                   <div className={styles.productFormNote}>
                     <strong>Catálogo limpio</strong>
-                    <span>La etiqueta, WhatsApp y estado interno se mantienen automáticos. Aquí solo editas lo visible para vender.</span>
+                    <span>Productos define cómo se verá y cuánto cuesta. Cuentas define el stock real que se venderá.</span>
                   </div>
 
                   <div className={`${styles.checkGroup} ${styles.fieldFull}`}>
@@ -4322,7 +4323,7 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Operación</p>
                   <h3>Control de inventario</h3>
-                  <span className={styles.panelHint}>Filtra, repone, descuenta o edita productos sin salir del módulo.</span>
+                  <span className={styles.panelHint}>Por defecto muestra todo. Luego filtra críticos, agotados, bajo stock o estables.</span>
                 </div>
                 <span className={styles.countBadge}>{productosInventarioFiltrados.length} productos</span>
               </div>
@@ -4336,11 +4337,11 @@ export default function AdminPage() {
                   className={styles.input}
                 />
                 <div className={styles.toggleGroup}>
+                  <button type="button" onClick={() => setFiltroInventario("todos")} className={filtroInventario === "todos" ? styles.toggleActive : ""}>Todo</button>
                   <button type="button" onClick={() => setFiltroInventario("critico")} className={filtroInventario === "critico" ? styles.toggleActive : ""}>Críticos</button>
                   <button type="button" onClick={() => setFiltroInventario("agotado")} className={filtroInventario === "agotado" ? styles.toggleActive : ""}>Agotados</button>
                   <button type="button" onClick={() => setFiltroInventario("bajo")} className={filtroInventario === "bajo" ? styles.toggleActive : ""}>Bajo</button>
                   <button type="button" onClick={() => setFiltroInventario("estable")} className={filtroInventario === "estable" ? styles.toggleActive : ""}>Estable</button>
-                  <button type="button" onClick={() => setFiltroInventario("todos")} className={filtroInventario === "todos" ? styles.toggleActive : ""}>Todo</button>
                 </div>
               </div>
 
