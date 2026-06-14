@@ -6142,3 +6142,69 @@
     border-radius: 18px !important;
   }
 }
+
+/* =========================================================
+   FIX V4 - quitar espacio gigante arriba del Admin
+   Causa: sidebar en flujo vertical por display:block + sticky.
+   Solución: layout grid real, sidebar fijo dentro de la columna izquierda.
+   ========================================================= */
+.adminShell {
+  display: grid !important;
+  grid-template-columns: 286px minmax(0, 1fr) !important;
+  align-items: start !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+}
+
+.sidebar {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  position: sticky !important;
+  top: 0 !important;
+  width: auto !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  align-self: start !important;
+}
+
+.content {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  margin-left: 0 !important;
+  padding: 18px 22px 28px !important;
+  min-height: 100vh !important;
+}
+
+.topbar {
+  margin-top: 0 !important;
+}
+
+.backgroundGlow {
+  z-index: 0 !important;
+}
+
+.sidebar,
+.content {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 1100px) {
+  .adminShell {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .sidebar {
+    position: relative !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .content {
+    margin-left: 0 !important;
+    padding: 16px !important;
+  }
+}
