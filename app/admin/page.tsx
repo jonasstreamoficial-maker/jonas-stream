@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type CSSProperties,
   type FormEvent,
 } from "react"
 import { useRouter } from "next/navigation"
@@ -248,6 +249,46 @@ const fechaLegible = (fecha?: string | null) => {
   if (Number.isNaN(date.getTime())) return "Sin fecha"
   return date.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" })
 }
+
+const coloresPlataforma: Array<{ claves: string[]; color: string }> = [
+  { claves: ["disney premium"], color: "#00b2bb" },
+  { claves: ["disney estandar", "disney estándar"], color: "#002062" },
+  { claves: ["apple tv + mls", "apple tv mls"], color: "#ff1f1f" },
+  { claves: ["apple music"], color: "#fa57c1" },
+  { claves: ["youtube premium"], color: "#ff0000" },
+  { claves: ["prime video", "prime"], color: "#007aff" },
+  { claves: ["netflix"], color: "#e50914" },
+  { claves: ["max"], color: "#0027ef" },
+  { claves: ["paramount"], color: "#0068ff" },
+  { claves: ["crunchyroll"], color: "#ff5800" },
+  { claves: ["vix"], color: "#ff5800" },
+  { claves: ["rakuten", "viki"], color: "#009dff" },
+  { claves: ["apple tv"], color: "#9ca3af" },
+  { claves: ["plex"], color: "#feb100" },
+  { claves: ["universal"], color: "#ffff00" },
+  { claves: ["iptv"], color: "#5440eb" },
+  { claves: ["flujo tv", "flujo"], color: "#ff6224" },
+  { claves: ["dgo"], color: "#00b0f2" },
+  { claves: ["movistar"], color: "#7ed957" },
+  { claves: ["l1 max"], color: "#ff1f1f" },
+  { claves: ["spotify"], color: "#1db954" },
+  { claves: ["tidal"], color: "#9ca3af" },
+  { claves: ["deezer"], color: "#ff4fb8" },
+  { claves: ["canva"], color: "#00c4cc" },
+  { claves: ["surfshark"], color: "#64f5d2" },
+  { claves: ["hola vpn", "hola"], color: "#ff7a00" },
+]
+
+const obtenerColorPlataforma = (nombre?: string | null) => {
+  const texto = normalizarTexto(nombre)
+  const item = coloresPlataforma.find((plataforma) => plataforma.claves.some((clave) => texto.includes(clave)))
+  return item?.color || "#01E7EF"
+}
+
+const estiloPlataforma = (nombre?: string | null): CSSProperties => ({
+  "--platform-color": obtenerColorPlataforma(nombre),
+} as CSSProperties)
+
 const obtenerComprobanteUrl = (item: Pedido | Comprobante) => {
   const posibleComprobante = item as Partial<Pedido & Comprobante>
 
@@ -308,7 +349,8 @@ export default function AdminPage() {
 
   const [busquedaComprobante, setBusquedaComprobante] = useState("")
   const [filtroEstadoComprobante, setFiltroEstadoComprobante] = useState("todos")
-  const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("revision")
+  const [vistaComprobantes, setVistaComprobantes] = useState<"revision" | "tabla">("tabla")
+  const [comprobanteModal, setComprobanteModal] = useState<{ url: string; titulo: string; detalle?: string } | null>(null)
 
   const [busquedaHistorial, setBusquedaHistorial] = useState("")
   const [filtroEntidadLog, setFiltroEntidadLog] = useState("todos")
@@ -1487,6 +1529,15 @@ export default function AdminPage() {
     router.push("/login")
   }
 
+  const abrirComprobanteModal = (url?: string | null, titulo = "Comprobante", detalle?: string) => {
+    if (!url) {
+      toast.error("Este registro no tiene comprobante visible")
+      return
+    }
+
+    setComprobanteModal({ url, titulo, detalle })
+  }
+
   const esProveedor = usuario?.rol === "proveedor"
   const totalUsuarios = usuarios.length
   const totalProductos = productos.length
@@ -1792,6 +1843,24 @@ export default function AdminPage() {
 
     return mapa
   }, [cuentas])
+  const obtenerProductoPedido = (pedido: Pedido, cuenta?: CuentaInventario | null) => {
+    const nombreBase = cuenta?.producto_nombre || pedido.producto_nombre || "Producto no definido"
+    const productoPorId = cuenta?.producto_id ? productos.find((producto) => producto.id === cuenta.producto_id) : null
+    const productoPorNombre = productos.find((producto) => {
+      const productoNombre = normalizarTexto(producto.nombre)
+      const pedidoProducto = normalizarTexto(nombreBase)
+      return productoNombre === pedidoProducto || productoNombre.includes(pedidoProducto) || pedidoProducto.includes(productoNombre)
+    })
+    const producto = productoPorId || productoPorNombre || null
+    const tipo = producto?.tipo_venta || (cuenta?.perfil ? "Perfil" : "Cuenta completa")
+
+    return {
+      nombre: producto?.nombre || nombreBase,
+      tipo,
+      color: obtenerColorPlataforma(producto?.nombre || nombreBase),
+    }
+  }
+
   const comprobantesVisibles = comprobantesFiltrados.slice(0, limiteComprobantes)
   const logsVisibles = logsFiltrados.slice(0, limiteLogs)
 
@@ -2245,7 +2314,7 @@ export default function AdminPage() {
                 {productosVisibles.length === 0 ? (
                   <EmptyState title="Sin productos" text="No hay productos que coincidan con los filtros." />
                 ) : productosVisibles.map((p) => (
-                  <article key={p.id} className={`${styles.productCard} ${styles.productCardPro} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`}>
+                  <article key={p.id} className={`${styles.productCard} ${styles.productCardPro} ${Number(p.stock) <= 0 ? styles.cardDanger : Number(p.stock) <= 3 ? styles.cardWarning : ""}`} style={estiloPlataforma(p.nombre)}>
                     {p.imagen ? <img src={p.imagen} alt={p.nombre} className={styles.productImage} /> : <div className={styles.productImagePlaceholder}>JS</div>}
                     <div className={styles.productBody}>
                       <div className={styles.productTopline}>
@@ -2371,6 +2440,7 @@ export default function AdminPage() {
                         <tr>
                           <th className={styles.checkColumn}><input type="checkbox" aria-label="Seleccionar pedidos visibles" checked={pedidosVisiblesIds.length > 0 && pedidosVisiblesIds.every((id) => pedidosSeleccionados.includes(id))} onChange={() => seleccionarPedidosVisibles(pedidosVisiblesIds)} /></th>
                           <th>Pedido</th>
+                          <th>Producto</th>
                           <th>Cliente</th>
                           <th>Total</th>
                           <th>Pago</th>
@@ -2391,6 +2461,7 @@ export default function AdminPage() {
                           const esCancelado = estadoPedidoNormalizado === "cancelado"
                           const cuentasDelPedido = cuentasPorPedido.get(pedido.id) || []
                           const cuentaPrincipal = cuentasDelPedido[0]
+                          const productoPedido = obtenerProductoPedido(pedido, cuentaPrincipal)
                           const entregaLista = esCompletado || cuentasDelPedido.length > 0
                           const esUrgente = esPendiente && horasDesdeCreacion >= 24
                           const sinComprobante = !comprobanteUrl
@@ -2399,6 +2470,15 @@ export default function AdminPage() {
                             <tr key={pedido.id} className={pedidosSeleccionados.includes(pedido.id) ? styles.rowSelected : ""}>
                               <td className={styles.checkColumn}><input type="checkbox" aria-label={`Seleccionar pedido ${pedido.id.slice(0, 8)}`} checked={pedidosSeleccionados.includes(pedido.id)} onChange={() => alternarPedidoSeleccionado(pedido.id)} /></td>
                               <td><strong>#{pedido.id.slice(0, 8)}</strong><small>{fechaLegible(pedido.created_at)}</small></td>
+                              <td>
+                                <div className={styles.platformOrderCell} style={estiloPlataforma(productoPedido.nombre)}>
+                                  <span className={styles.platformDot}></span>
+                                  <div>
+                                    <strong>{productoPedido.nombre}</strong>
+                                    <small>{productoPedido.tipo}</small>
+                                  </div>
+                                </div>
+                              </td>
                               <td><strong>{pedido.cliente_nombre}</strong><small>{pedido.cliente_correo}</small></td>
                               <td>{formatearSoles(pedido.total)}</td>
                               <td>{pedido.metodo_pago || "No definido"}</td>
@@ -2432,7 +2512,20 @@ export default function AdminPage() {
                                   {!esUrgente && !sinComprobante && !altoValor && <span className={styles.badgeOk}>OK</span>}
                                 </div>
                               </td>
-                              <td>{comprobanteUrl ? <a href={comprobanteUrl} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.mutedText}>Sin voucher</span>}</td>
+                              <td>
+                                {comprobanteUrl ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirComprobanteModal(comprobanteUrl, `Pedido #${pedido.id.slice(0, 8)}`, `${pedido.cliente_nombre} · ${formatearSoles(pedido.total)} · ${pedido.metodo_pago || "Pago no definido"}`)}
+                                    className={styles.viewVoucherButton}
+                                    title="Ver comprobante"
+                                  >
+                                    👁 Ver
+                                  </button>
+                                ) : (
+                                  <span className={styles.mutedText}>Sin voucher</span>
+                                )}
+                              </td>
                               <td>
                                 <div className={styles.tableActions}>
                                   {esCompletado ? (
@@ -2482,6 +2575,7 @@ export default function AdminPage() {
                       const esCancelado = estadoPedidoNormalizado === "cancelado"
                       const cuentasDelPedido = cuentasPorPedido.get(pedido.id) || []
                       const cuentaPrincipal = cuentasDelPedido[0]
+                      const productoPedido = obtenerProductoPedido(pedido, cuentaPrincipal)
                       const entregaLista = esCompletado || cuentasDelPedido.length > 0
                       const esUrgente = esPendiente && horasDesdeCreacion >= 24
                       const sinComprobante = !comprobanteUrl
@@ -2515,6 +2609,13 @@ export default function AdminPage() {
 
                           <div className={styles.infoGrid}>
                             <span>Correo</span><strong>{pedido.cliente_correo}</strong>
+                            <span>Producto</span>
+                            <strong>
+                              <span className={styles.platformInlinePill} style={estiloPlataforma(productoPedido.nombre)}>
+                                {productoPedido.nombre}
+                              </span>
+                              <small>{productoPedido.tipo}</small>
+                            </strong>
                             <span>Método</span><strong>{pedido.metodo_pago || "No definido"}</strong>
                             <span>Fecha</span><strong>{fechaLegible(pedido.created_at)}</strong>
                             <span>Tiempo</span><strong>{horasDesdeCreacion < 1 ? "Hace menos de 1h" : `Hace ${Math.floor(horasDesdeCreacion)}h`}</strong>
@@ -2543,7 +2644,13 @@ export default function AdminPage() {
                           <div className={styles.orderVoucherBox}>
                             <span>Comprobante</span>
                             {comprobanteUrl ? (
-                              <a href={comprobanteUrl} target="_blank" rel="noreferrer">Abrir voucher</a>
+                              <button
+                                type="button"
+                                onClick={() => abrirComprobanteModal(comprobanteUrl, `Pedido #${pedido.id.slice(0, 8)}`, `${pedido.cliente_nombre} · ${formatearSoles(pedido.total)} · ${pedido.metodo_pago || "Pago no definido"}`)}
+                                className={styles.viewVoucherButton}
+                              >
+                                👁 Ver voucher
+                              </button>
                             ) : (
                               <strong>Sin comprobante adjunto</strong>
                             )}
@@ -2922,7 +3029,19 @@ export default function AdminPage() {
                               <td>{comprobante.metodo}</td>
                               <td><StatusBadge estado={comprobante.estado} /></td>
                               <td><span className={comprobante.origen === "tabla" ? styles.badgeInfo : styles.badgeOk}>{comprobante.origen === "tabla" ? "Tabla" : "Pedido"}</span></td>
-                              <td>{comprobante.url ? <a href={comprobante.url} target="_blank" rel="noreferrer">Abrir</a> : <span className={styles.badgeWarning}>Sin archivo</span>}</td>
+                              <td>
+                                {comprobante.url ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirComprobanteModal(comprobante.url, `Comprobante #${comprobante.id.slice(0, 8)}`, `${comprobante.cliente} · ${formatearSoles(comprobante.monto)} · ${comprobante.metodo || "Pago no definido"}`)}
+                                    className={styles.viewVoucherButton}
+                                  >
+                                    👁 Ver
+                                  </button>
+                                ) : (
+                                  <span className={styles.badgeWarning}>Sin archivo</span>
+                                )}
+                              </td>
                               <td>
                                 <div className={styles.tableActions}>
                                   <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar</button>
@@ -2987,6 +3106,15 @@ export default function AdminPage() {
                               </div>
 
                               <div className={styles.reviewActionsPro}>
+                                {comprobante.url && (
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirComprobanteModal(comprobante.url, `Comprobante #${comprobante.id.slice(0, 8)}`, `${comprobante.cliente} · ${formatearSoles(comprobante.monto)} · ${comprobante.metodo || "Pago no definido"}`)}
+                                    className={styles.viewVoucherButton}
+                                  >
+                                    👁 Ver comprobante
+                                  </button>
+                                )}
                                 <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar pago</button>
                                 <button type="button" onClick={() => resolverComprobantePro(comprobante, "observado")} className={styles.secondaryButton}>Observar</button>
                                 <button type="button" onClick={() => resolverComprobantePro(comprobante, "rechazado")} className={styles.dangerButton}>Rechazar</button>
@@ -3674,6 +3802,27 @@ export default function AdminPage() {
             </form>
           </article>
         )}
+        {comprobanteModal && (
+          <div className={styles.modalBackdrop} onClick={() => setComprobanteModal(null)} role="presentation">
+            <div className={styles.modalPanel} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Comprobante de pago">
+              <div className={styles.modalHeader}>
+                <div>
+                  <p className={styles.kicker}>Comprobante de pago</p>
+                  <h3>{comprobanteModal.titulo}</h3>
+                  {comprobanteModal.detalle && <span>{comprobanteModal.detalle}</span>}
+                </div>
+                <div className={styles.modalHeaderActions}>
+                  <a href={comprobanteModal.url} target="_blank" rel="noreferrer" className={styles.secondaryButton}>Abrir original</a>
+                  <button type="button" onClick={() => setComprobanteModal(null)} className={styles.dangerGhostButton}>Cerrar</button>
+                </div>
+              </div>
+              <div className={styles.modalBody}>
+                <img src={comprobanteModal.url} alt={comprobanteModal.titulo} className={styles.modalImage} />
+              </div>
+            </div>
+          </div>
+        )}
+
       </section>
     </main>
   )
@@ -3728,6 +3877,7 @@ function AdminSkeleton() {
             {Array.from({ length: 2 }).map((_, index) => <article key={index} className={`${styles.panel} ${styles.skeletonPanel}`}><div className={styles.skeletonTitle}></div><div className={styles.skeletonItem}></div><div className={styles.skeletonItem}></div><div className={styles.skeletonItem}></div></article>)}
           </div>
         </div>
+
       </section>
     </main>
   )
