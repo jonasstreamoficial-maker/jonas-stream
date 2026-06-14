@@ -9,19 +9,15 @@ function normalizarCorreo(valor: unknown) {
 }
 
 function normalizarPin(valor: unknown) {
-  return String(valor || "").trim().toUpperCase().replace(/\s+/g, "")
+  return String(valor || "").trim().toUpperCase()
 }
 
-function pinValido(pin: string) {
-  return /^[A-Z0-9-]{3,32}$/.test(pin)
-}
-
-function estadoCuentaPermiteAcceso(estado: string) {
+function estadoCuentaBloquea(estado: string) {
   const limpio = estado.toLowerCase().trim()
-  return ["asignada", "entregada", "activo", "activa"].includes(limpio)
+  return limpio === "bloqueada" || limpio === "bloqueado" || limpio === "mantenimiento"
 }
 
-function mensajeEstadoCuenta(estado: string) {
+function mensajeEstado(estado: string) {
   const limpio = estado.toLowerCase().trim()
 
   if (limpio === "bloqueada" || limpio === "bloqueado") {
@@ -32,15 +28,7 @@ function mensajeEstadoCuenta(estado: string) {
     return "Esta cuenta está en mantenimiento. Contacta con soporte."
   }
 
-  if (limpio === "vencida" || limpio === "vencido") {
-    return "Esta cuenta está vencida. Contacta con soporte."
-  }
-
-  if (limpio === "disponible") {
-    return "Esta cuenta aún no está asignada a un cliente. Contacta con soporte."
-  }
-
-  return "Esta cuenta no está activa. Contacta con soporte."
+  return "Esta cuenta no está disponible. Contacta con soporte."
 }
 
 export async function POST(request: Request) {
@@ -57,22 +45,15 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!pinValido(pin)) {
-      return NextResponse.json(
-        { ok: false, error: "El PIN ingresado no tiene un formato válido." },
-        { status: 400 }
-      )
-    }
-
     const supabase = getSupabaseAdmin()
 
-    // 1. Sistema principal: Admin → Cuentas.
-    // Aquí viven el PIN, las fechas, la clave, el perfil y el estado real.
+    // Fuente principal: Admin → Cuentas.
+    // Esta tabla define el PIN, las fechas, la clave, el perfil y el estado real.
     const { data: cuenta, error: errorCuenta } = await supabase
       .from("cuentas")
       .select("*")
       .ilike("correo", correo)
-      .ilike("pin_acceso", pin)
+      .eq("pin_acceso", pin)
       .limit(1)
       .maybeSingle()
 
@@ -84,9 +65,9 @@ export async function POST(request: Request) {
       const estadoCuenta = String(cuenta.estado || "").toLowerCase()
       const correoCuenta = normalizarCorreo(cuenta.correo)
 
-      if (!estadoCuentaPermiteAcceso(estadoCuenta)) {
+      if (estadoCuentaBloquea(estadoCuenta)) {
         return NextResponse.json(
-          { ok: false, error: mensajeEstadoCuenta(estadoCuenta) },
+          { ok: false, error: mensajeEstado(estadoCuenta) },
           { status: 403 }
         )
       }
@@ -99,7 +80,7 @@ export async function POST(request: Request) {
         .limit(15)
 
       if (errorMensajes) {
-        console.error("Error cargando mensajes desde cuentas:", errorMensajes)
+        console.error("Error cargando mensajes:", errorMensajes)
 
         return NextResponse.json(
           { ok: false, error: "No se pudieron cargar los mensajes." },
@@ -118,7 +99,6 @@ export async function POST(request: Request) {
           estado: cuenta.estado,
           fecha_inicio: cuenta.cliente_inicio || null,
           fecha_vencimiento: cuenta.cliente_fin || null,
-
           clave: cuenta.clave,
           perfil: cuenta.perfil,
           pin_perfil: cuenta.pin_perfil,
@@ -150,13 +130,13 @@ export async function POST(request: Request) {
       })
     }
 
-    // 2. Respaldo antiguo: soporte_clientes.
-    // Esto mantiene vivos los correos/PIN que ya tenías antes del inventario por Admin → Cuentas.
+    // Compatibilidad temporal: soporte_clientes.
+    // Se mantiene para no romper correos/PIN antiguos mientras migras todo a Admin → Cuentas.
     const { data: cliente, error: errorCliente } = await supabase
       .from("soporte_clientes")
       .select("*")
       .ilike("correo_asignado", correo)
-      .ilike("pin_acceso", pin)
+      .eq("pin_acceso", pin)
       .limit(1)
       .maybeSingle()
 
