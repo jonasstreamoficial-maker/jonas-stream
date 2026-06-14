@@ -7151,3 +7151,300 @@
     width: 100%;
   }
 }
+
+/* =========================================================
+   JONAS STREAM ADMIN v12 - Productos / Cuentas / Inventario
+   Orden: Pedidos → Comprobantes → Productos → Cuentas → Inventario
+   Stock real: Cuentas disponibles → Productos → Tienda / Ver precios
+   ========================================================= */
+
+.productEditorShell {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.productEditorPreview {
+  position: sticky;
+  top: 18px;
+}
+
+.productPreviewCardMini {
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 64%, transparent);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 70% 8%, color-mix(in srgb, var(--platform-color, #01E7EF) 22%, transparent), transparent 30%),
+    linear-gradient(180deg, rgba(4, 22, 25, 0.96), rgba(0, 6, 8, 0.95));
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.32), 0 0 28px color-mix(in srgb, var(--platform-color, #01E7EF) 14%, transparent);
+  padding: 16px;
+  overflow: hidden;
+}
+
+.productPreviewImageMini {
+  height: 150px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  margin-bottom: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--platform-color, #01E7EF) 36%, #101820), rgba(0, 0, 0, 0.58));
+  color: #ecffff;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.productPreviewImageMini strong {
+  font-size: 42px;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--platform-color, #01E7EF) 60%, transparent);
+}
+
+.productPreviewCardMini h4 {
+  margin: 0;
+  color: #ecffff;
+  font-size: 22px;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.productPreviewCardMini p {
+  min-height: 38px;
+  margin: 6px 0 12px;
+  color: #9bc8cb;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.productPreviewMetaMini,
+.productPreviewStockMini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.productPreviewMetaMini span,
+.productPreviewStockMini {
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 34%, rgba(255,255,255,0.08));
+  border-radius: 14px;
+  padding: 9px 10px;
+  background: rgba(0, 0, 0, 0.22);
+  color: #ecffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.productPreviewStockMini {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.productPreviewStockMini span,
+.productPreviewCardMini small {
+  color: #9bc8cb;
+  font-weight: 800;
+}
+
+.productPreviewStockMini strong,
+.productPreviewPriceMini {
+  color: #ecffff;
+  font-weight: 1000;
+}
+
+.productPreviewPriceMini {
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 42%, transparent);
+  border-radius: 16px;
+  padding: 12px;
+  margin: 8px 0;
+  color: #00fbff;
+  font-size: 22px;
+}
+
+.productEditorForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fieldLabel {
+  display: grid;
+  gap: 6px;
+  color: #00fbff;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fieldLabel .input,
+.fieldLabel input,
+.fieldLabel select,
+.fieldLabel textarea {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.productStockSummaryMini {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+
+.productStockSummaryMini button {
+  min-height: 54px;
+  border: 1px solid rgba(1, 231, 239, 0.18);
+  border-radius: 16px;
+  background: rgba(0, 10, 12, 0.62);
+  color: #ecffff;
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.productStockSummaryMini strong {
+  display: block;
+  color: #00fbff;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.productStockSummaryMini span {
+  display: block;
+  margin-top: 4px;
+  color: #9bc8cb;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.productGridSlim {
+  grid-template-columns: repeat(auto-fit, minmax(218px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.productCardSlim {
+  min-height: 0 !important;
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 55%, transparent) !important;
+  box-shadow: 0 18px 44px rgba(0,0,0,.26), 0 0 22px color-mix(in srgb, var(--platform-color, #01E7EF) 14%, transparent) !important;
+}
+
+.productCardSlim .productImage,
+.productCardSlim .productImagePlaceholder {
+  height: 112px !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 30%, transparent);
+}
+
+.productCardSlim .productBody {
+  padding: 11px !important;
+}
+
+.productCardSlim h4 {
+  font-size: 15px !important;
+  line-height: 1.1 !important;
+  margin: 8px 0 3px !important;
+}
+
+.productCardSlim p {
+  min-height: auto !important;
+  margin: 0 0 8px !important;
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+}
+
+.productCardSlim .productHealthLine {
+  padding: 8px 9px !important;
+  margin: 8px 0 !important;
+  border-radius: 13px !important;
+}
+
+.productMetaCompact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+
+.productMetaCompact span {
+  border: 1px solid rgba(1,231,239,.18);
+  border-radius: 999px;
+  background: rgba(1,231,239,.07);
+  color: #d8ffff;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.productCardSlim .cardActions {
+  gap: 7px !important;
+}
+
+.productCardSlim .cardActions button {
+  min-height: 31px !important;
+  padding: 7px 9px !important;
+  font-size: 11px !important;
+}
+
+.inventoryHeroPro,
+.autoInventoryPanelPro {
+  padding: 16px !important;
+  border-radius: 20px !important;
+}
+
+.inventoryHeroPro h3,
+.autoInventoryPanelPro h3 {
+  font-size: 24px !important;
+  line-height: 1.08 !important;
+}
+
+.inventoryHeroPro p,
+.autoInventoryPanelPro p {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+.inventoryGridPro {
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.inventoryCardPro {
+  padding: 13px !important;
+  border-radius: 18px !important;
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 38%, rgba(1,231,239,.15)) !important;
+}
+
+.inventoryQuickActions button {
+  min-height: 32px !important;
+  padding: 7px 10px !important;
+  font-size: 11px !important;
+}
+
+@media (max-width: 1100px) {
+  .productEditorShell {
+    grid-template-columns: 1fr;
+  }
+
+  .productEditorPreview {
+    position: relative;
+    top: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .productEditorForm,
+  .productStockSummaryMini {
+    grid-template-columns: 1fr;
+  }
+
+  .productPreviewImageMini {
+    height: 120px;
+  }
+}
