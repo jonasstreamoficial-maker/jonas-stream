@@ -8280,3 +8280,219 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* =========================================================
+   JONAS STREAM ADMIN v18
+   Preview sin ajuste manual + chips con color de plataforma + resumen en filas.
+   ========================================================= */
+.productEditorShell,
+.productPreviewCardMini,
+.productListRowPro,
+.inventoryListRowPro,
+.accountPlatformRowPro {
+  --platform-color: var(--platform-color, #01E7EF);
+}
+
+.productPreviewImageMini img,
+.productListMedia img,
+.productImage img {
+  object-fit: cover !important;
+  object-position: center center !important;
+  transform: none !important;
+  transform-origin: center center !important;
+}
+
+.productPreviewBadgesMini span {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 78%, transparent) !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.18), transparent 34%),
+    color-mix(in srgb, var(--platform-color, #01E7EF) 82%, #001014) !important;
+  color: #ECFFFF !important;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--platform-color, #01E7EF) 24%, transparent) !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65) !important;
+}
+
+.productPreviewStockMini,
+.productPreviewDetailsMini div,
+.pricePreviewGridMini div {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 42%, rgba(1, 231, 239, 0.14)) !important;
+}
+
+.productPreviewStatusRow .previewStockOkMini,
+.previewStockOkMini {
+  color: #7cffb2 !important;
+  background: rgba(124, 255, 178, 0.12) !important;
+  border: 1px solid rgba(124, 255, 178, 0.38) !important;
+  box-shadow: 0 0 16px rgba(124, 255, 178, 0.14) !important;
+}
+
+.productPreviewStatusRow .previewStockBadMini,
+.previewStockBadMini {
+  color: #ffd7df !important;
+  background: rgba(229, 9, 20, 0.18) !important;
+  border: 1px solid rgba(229, 9, 20, 0.55) !important;
+  box-shadow: 0 0 18px rgba(229, 9, 20, 0.16) !important;
+}
+
+.previewBuyButtonMini {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.2), transparent 35%),
+    linear-gradient(135deg, color-mix(in srgb, var(--platform-color, #01E7EF) 92%, #001014), color-mix(in srgb, var(--platform-color, #01E7EF) 72%, #000000)) !important;
+  color: #ffffff !important;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 68%, transparent) !important;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.74) !important;
+}
+
+.productPreviewCardMini h4 {
+  color: color-mix(in srgb, var(--platform-color, #01E7EF) 72%, #ECFFFF) !important;
+}
+
+.accountPlatformListPro {
+  display: grid;
+  gap: 10px;
+}
+
+.accountPlatformRowPro {
+  width: 100%;
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(420px, 1.25fr) 96px;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 58%, transparent);
+  border-left: 5px solid var(--platform-color, #01E7EF);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--platform-color, #01E7EF) 18%, transparent), transparent 34%),
+    linear-gradient(90deg, color-mix(in srgb, var(--platform-color, #01E7EF) 10%, rgba(3, 19, 22, 0.92)), rgba(3, 19, 22, 0.82));
+  color: #ECFFFF;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s ease;
+  box-shadow:
+    inset 0 0 22px color-mix(in srgb, var(--platform-color, #01E7EF) 7%, transparent),
+    0 0 24px color-mix(in srgb, var(--platform-color, #01E7EF) 9%, transparent);
+}
+
+.accountPlatformRowPro:hover {
+  transform: translateY(-1px);
+  border-color: var(--platform-color, #01E7EF);
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--platform-color, #01E7EF) 18%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--platform-color, #01E7EF) 9%, transparent);
+}
+
+.accountPlatformMainPro {
+  min-width: 0;
+}
+
+.accountPlatformMainPro span {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 7px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 44%, transparent);
+  background: color-mix(in srgb, var(--platform-color, #01E7EF) 14%, rgba(0, 0, 0, 0.28));
+  color: color-mix(in srgb, var(--platform-color, #01E7EF) 72%, #ECFFFF);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.accountPlatformMainPro strong {
+  display: block;
+  color: #ECFFFF;
+  font-size: 17px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.accountPlatformMainPro small {
+  display: block;
+  margin-top: 5px;
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.accountPlatformStatsRowPro {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.accountPlatformStatsRowPro div {
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 25%, transparent);
+  background: rgba(0, 0, 0, 0.28);
+  text-align: center;
+}
+
+.accountPlatformStatsRowPro b {
+  display: block;
+  color: #ECFFFF;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.accountPlatformStatsRowPro small {
+  color: #9BC8CB;
+  font-size: 9px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.accountPlatformTotalPro {
+  width: 78px;
+  min-height: 66px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  justify-self: end;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 36%, transparent);
+  background: color-mix(in srgb, var(--platform-color, #01E7EF) 13%, rgba(0, 0, 0, 0.36));
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--platform-color, #01E7EF) 8%, transparent);
+}
+
+.accountPlatformTotalPro strong {
+  color: var(--platform-color, #01E7EF);
+  font-size: 26px;
+  line-height: 1;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--platform-color, #01E7EF) 30%, transparent);
+}
+
+.accountPlatformTotalPro span {
+  margin-top: 4px;
+  color: #9BC8CB;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1180px) {
+  .accountPlatformRowPro {
+    grid-template-columns: 1fr;
+  }
+
+  .accountPlatformTotalPro {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .accountPlatformStatsRowPro {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

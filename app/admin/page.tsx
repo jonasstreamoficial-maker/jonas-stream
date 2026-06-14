@@ -32,10 +32,6 @@ type Producto = {
   precio_antes: number | null
   stock: number
   imagen?: string | null
-  imagen_fit?: string | null
-  imagen_pos_x?: number | null
-  imagen_pos_y?: number | null
-  imagen_zoom?: number | null
   categoria: string
   tipo_venta: string
   whatsapp: string
@@ -188,10 +184,6 @@ const productoInicial = {
   estado_catalogo: "ACTIVO",
   badge: "",
   accent: "jonas stream",
-  imagen_fit: "cover",
-  imagen_pos_x: "50",
-  imagen_pos_y: "50",
-  imagen_zoom: "1",
 }
 
 
@@ -319,30 +311,6 @@ const estiloProducto = (producto?: Pick<Producto, "nombre" | "accent"> | null): 
 const textoColorProducto = (producto?: Pick<Producto, "nombre" | "accent"> | null) => {
   if (!producto) return "jonas stream"
   return `${producto.nombre || ""} ${producto.accent || ""}`.trim() || "jonas stream"
-}
-
-const clampNumber = (valor: string | number | null | undefined, minimo: number, maximo: number, fallback: number) => {
-  const numero = Number(valor)
-  if (!Number.isFinite(numero)) return fallback
-  return Math.min(maximo, Math.max(minimo, numero))
-}
-
-const estiloImagenAjustada = (
-  fit?: string | null,
-  posX?: string | number | null,
-  posY?: string | number | null,
-  zoom?: string | number | null,
-): CSSProperties => {
-  const x = clampNumber(posX, 0, 100, 50)
-  const y = clampNumber(posY, 0, 100, 50)
-  const escala = clampNumber(zoom, 1, 3, 1)
-
-  return {
-    objectFit: fit === "contain" ? "contain" : "cover",
-    objectPosition: `${x}% ${y}%`,
-    transform: `scale(${escala})`,
-    transformOrigin: `${x}% ${y}%`,
-  }
 }
 
 const etiquetaTipoVenta = (tipo?: string | null) => {
@@ -1344,10 +1312,6 @@ export default function AdminPage() {
       estado_catalogo: stock === 0 ? "AGOTADO" : formProducto.estado_catalogo,
       badge: formProducto.badge.trim(),
       accent: formProducto.accent,
-      imagen_fit: formProducto.imagen_fit || "cover",
-      imagen_pos_x: clampNumber(formProducto.imagen_pos_x, 0, 100, 50),
-      imagen_pos_y: clampNumber(formProducto.imagen_pos_y, 0, 100, 50),
-      imagen_zoom: clampNumber(formProducto.imagen_zoom, 1, 3, 1),
     }
 
     if (imagenUrl) payload.imagen = imagenUrl
@@ -1405,10 +1369,6 @@ export default function AdminPage() {
       estado_catalogo: producto.estado_catalogo || "ACTIVO",
       badge: producto.badge || "",
       accent: producto.accent || "jonas stream",
-      imagen_fit: producto.imagen_fit || "cover",
-      imagen_pos_x: String(producto.imagen_pos_x ?? 50),
-      imagen_pos_y: String(producto.imagen_pos_y ?? 50),
-      imagen_zoom: String(producto.imagen_zoom ?? 1),
     })
     setImagenFile(null)
     setTabActiva("productos")
@@ -3045,7 +3005,7 @@ export default function AdminPage() {
                 {editandoId && <span className={styles.editBadge}>Modo edición</span>}
               </div>
 
-              <div className={styles.productEditorShell} style={estiloPlataforma(`${formProducto.nombre} ${formProducto.accent}`)}>
+              <div className={styles.productEditorShell} style={estiloProducto({ nombre: formProducto.nombre, accent: formProducto.accent })}>
                 <aside className={styles.productEditorPreview}>
                   <p className={styles.kicker}>Vista previa tienda</p>
                   <div className={styles.productPreviewCardMini}>
@@ -3059,7 +3019,6 @@ export default function AdminPage() {
                         <img
                           src={imagenPreviewProducto}
                           alt={formProducto.nombre || "Vista previa del producto"}
-                          style={estiloImagenAjustada(formProducto.imagen_fit, formProducto.imagen_pos_x, formProducto.imagen_pos_y, formProducto.imagen_zoom)}
                         />
                       ) : formProducto.nombre ? (
                         <strong>{formProducto.nombre.slice(0, 2).toUpperCase()}</strong>
@@ -3084,7 +3043,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className={styles.productPreviewStatusRow}>
-                      <span>{Number(formProducto.stock || 0) > 0 ? "Disponible" : "Sin stock"}</span>
+                      <span className={Number(formProducto.stock || 0) > 0 ? styles.previewStockOkMini : styles.previewStockBadMini}>{Number(formProducto.stock || 0) > 0 ? "Disponible" : "Sin stock"}</span>
                       <strong>{formProducto.stock_texto || (Number(formProducto.stock || 0) > 0 ? "Stock sincronizado" : "Carga cuentas para vender")}</strong>
                     </div>
 
@@ -3206,35 +3165,6 @@ export default function AdminPage() {
                     {subiendoImagen && <p>Subiendo imagen...</p>}
                   </div>
 
-                  <div className={`${styles.imageAdjustPanel} ${styles.fieldFull}`}>
-                    <div>
-                      <p className={styles.kicker}>Ajuste de imagen</p>
-                      <h4>Centrar imagen manualmente</h4>
-                      <span>Usa cobertura para llenar todo el cuadro. Mueve X/Y y ajusta zoom hasta que quede centrado.</span>
-                    </div>
-
-                    <div className={styles.imageAdjustGrid}>
-                      <label className={styles.fieldLabel}>Modo de imagen
-                        <select name="imagen_fit" value={formProducto.imagen_fit} onChange={handleProductoChange} className={styles.input}>
-                          <option value="cover">Cubrir todo el cuadro</option>
-                          <option value="contain">Mostrar completa</option>
-                        </select>
-                      </label>
-
-                      <label className={styles.fieldLabel}>Mover horizontal: {formProducto.imagen_pos_x}%
-                        <input name="imagen_pos_x" type="range" min="0" max="100" step="1" value={formProducto.imagen_pos_x} onChange={handleProductoChange} className={styles.rangeInput} />
-                      </label>
-
-                      <label className={styles.fieldLabel}>Mover vertical: {formProducto.imagen_pos_y}%
-                        <input name="imagen_pos_y" type="range" min="0" max="100" step="1" value={formProducto.imagen_pos_y} onChange={handleProductoChange} className={styles.rangeInput} />
-                      </label>
-
-                      <label className={styles.fieldLabel}>Zoom: {formProducto.imagen_zoom}x
-                        <input name="imagen_zoom" type="range" min="1" max="3" step="0.05" value={formProducto.imagen_zoom} onChange={handleProductoChange} className={styles.rangeInput} />
-                      </label>
-                    </div>
-                  </div>
-
                   <div className={`${styles.formActions} ${styles.fieldFull}`}>
                     <button type="submit" disabled={guardandoProducto || subiendoImagen} className={styles.primaryButton}>
                       {guardandoProducto ? "Guardando..." : editandoId ? "Actualizar producto" : "Crear producto"}
@@ -3311,7 +3241,6 @@ export default function AdminPage() {
                           <img
                             src={p.imagen}
                             alt={p.nombre}
-                            style={estiloImagenAjustada(p.imagen_fit, p.imagen_pos_x, p.imagen_pos_y, p.imagen_zoom)}
                           />
                         ) : <strong>JS</strong>}
                       </div>
@@ -4307,7 +4236,7 @@ export default function AdminPage() {
                     <span className={styles.countBadge}>{cuentas.length} cuentas</span>
                   </div>
 
-                  <div className={styles.accountPlatformGrid}>
+                  <div className={styles.accountPlatformListPro}>
                     {resumenCuentasPorProducto.map((item) => {
                       const completas = cuentas.filter((cuenta) => (cuenta.producto_id === item.producto.id || normalizarTexto(cuenta.producto_nombre) === normalizarTexto(item.producto.nombre)) && !cuenta.perfil).length
                       const perfiles = cuentas.filter((cuenta) => (cuenta.producto_id === item.producto.id || normalizarTexto(cuenta.producto_nombre) === normalizarTexto(item.producto.nombre)) && Boolean(cuenta.perfil)).length
@@ -4317,19 +4246,25 @@ export default function AdminPage() {
                           key={item.producto.id}
                           type="button"
                           onClick={() => setFiltroCuentaProducto(item.producto.id)}
-                          className={styles.accountPlatformCard}
+                          className={styles.accountPlatformRowPro}
                           style={estiloProducto(item.producto)}
                         >
-                          <div className={styles.accountPlatformTopline}>
-                            <span>{item.producto.nombre}</span>
-                            <strong>{item.total}</strong>
+                          <div className={styles.accountPlatformMainPro}>
+                            <span>{etiquetaTipoVenta(item.producto.tipo_venta)}</span>
+                            <strong>{item.producto.nombre}</strong>
+                            <small>{item.producto.publicacion ? "Publicado" : "Oculto"} · {item.producto.duracion || "1 mes"}</small>
                           </div>
 
-                          <div className={styles.accountPlatformStatsMini}>
+                          <div className={styles.accountPlatformStatsRowPro}>
                             <div><b>{item.disponibles}</b><small>Libres</small></div>
                             <div><b>{item.asignadas}</b><small>Asignadas</small></div>
                             <div><b>{completas}</b><small>Completas</small></div>
                             <div><b>{perfiles}</b><small>Perfiles</small></div>
+                          </div>
+
+                          <div className={styles.accountPlatformTotalPro}>
+                            <strong>{item.total}</strong>
+                            <span>Total</span>
                           </div>
                         </button>
                       )
@@ -4338,7 +4273,7 @@ export default function AdminPage() {
                 </>
               ) : (
                 <>
-                  <div className={styles.accountPlatformHeader} style={estiloPlataforma(productoCuentaSeleccionado?.nombre)}>
+                  <div className={styles.accountPlatformHeader} style={estiloProducto(productoCuentaSeleccionado)}>
                     <button type="button" onClick={() => { setFiltroCuentaProducto("todos"); setBusquedaCuenta(""); setFiltroCuentaEstado("todos") }} className={styles.accountBackButton}>← Volver a plataformas</button>
                     <div>
                       <p className={styles.kicker}>Plataforma seleccionada</p>
