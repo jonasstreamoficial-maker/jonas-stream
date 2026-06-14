@@ -6466,3 +6466,35 @@
     width: 100%;
   }
 }
+
+/* ADMIN V7 - Comprobantes compactos tipo Pedidos */
+.syncHint {
+  display: block;
+  margin-top: 5px;
+  color: #ffe082;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.adminCompactPage .panel,
+.panel .tableWrap {
+  scroll-margin-top: 14px;
+}
+
+.proTable td .viewVoucherButton {
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.proTable td .successButton,
+.proTable td .secondaryButton,
+.proTable td .dangerButton,
+.proTable td .dangerGhostButton {
+  min-height: 30px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+

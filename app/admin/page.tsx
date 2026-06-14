@@ -853,6 +853,49 @@ export default function AdminPage() {
     }
   }
 
+  const sincronizarComprobanteDePedido = async (pedido: Pedido, nuevoEstado = "aprobado") => {
+    const idsRelacionados = comprobantes
+      .filter((comprobante) => {
+        const mismoPedido = comprobante.pedido_id === pedido.id
+        const mismoCorreo = normalizarTexto(comprobante.cliente_correo) === normalizarTexto(pedido.cliente_correo)
+        const mismoMonto = Math.abs(Number(comprobante.monto || 0) - Number(pedido.total || 0)) < 0.01
+        const mismoMetodo = !comprobante.metodo_pago || !pedido.metodo_pago || normalizarTexto(comprobante.metodo_pago) === normalizarTexto(pedido.metodo_pago)
+        const estaPendiente = normalizarTexto(comprobante.estado || "pendiente") === "pendiente"
+
+        return estaPendiente && (mismoPedido || (mismoCorreo && mismoMonto && mismoMetodo))
+      })
+      .map((comprobante) => comprobante.id)
+
+    const idsUnicos = Array.from(new Set(idsRelacionados))
+
+    if (idsUnicos.length === 0) return 0
+
+    const { error } = await supabase
+      .from("comprobantes")
+      .update({ estado: nuevoEstado })
+      .in("id", idsUnicos)
+
+    if (error) {
+      console.error("No se pudo sincronizar comprobante:", error)
+      toast("Pedido entregado, pero revisa el estado del comprobante")
+      return 0
+    }
+
+    setComprobantes((prev) => prev.map((comprobante) => (
+      idsUnicos.includes(comprobante.id) ? { ...comprobante, estado: nuevoEstado } : comprobante
+    )))
+
+    await registrarLog(
+      "sincronizar_comprobante",
+      "comprobantes",
+      pedido.id,
+      `${idsUnicos.length} comprobante(s) marcado(s) como ${nuevoEstado} por entrega del pedido #${pedido.id.slice(0, 8)}`
+    )
+
+    return idsUnicos.length
+  }
+
+
   const actualizarEstadoPedido = async (id: string, nuevoEstado: string) => {
     const pedidoActual = pedidos.find((pedido) => pedido.id === id)
     const debeAsignarCuenta = nuevoEstado === "completado" && pedidoActual?.estado !== "completado"
@@ -860,11 +903,12 @@ export default function AdminPage() {
     if (debeAsignarCuenta) {
       try {
         const resultado = await asignarCuentasPorPedido([id])
+        const comprobantesActualizados = pedidoActual ? await sincronizarComprobanteDePedido(pedidoActual, "aprobado") : 0
 
         setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: "completado" } : p)))
         registrarEvento("Pedido completado con cuenta asignada", true)
-        await registrarLog("completar_y_asignar", "pedidos", id, `${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
-        toast.success(`Pedido completado y ${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+        await registrarLog("completar_y_asignar", "pedidos", id, `${resultado.cuentas_asignadas} cuenta(s) asignada(s) · ${comprobantesActualizados} comprobante(s) aprobado(s)`)
+        toast.success(`Pedido completado y ${resultado.cuentas_asignadas} cuenta(s) asignada(s)${comprobantesActualizados > 0 ? ` · ${comprobantesActualizados} comprobante(s) aprobado(s)` : ""}`)
         await cargarDatos()
       } catch (error) {
         const mensaje = error instanceof Error ? error.message : "No se pudo completar el pedido"
@@ -945,12 +989,18 @@ export default function AdminPage() {
         if (nuevoEstado === "completado") {
           try {
             const resultado = await asignarCuentasPorPedido(ids)
+            const comprobantesActualizadosLista = await Promise.all(
+              pedidos
+                .filter((pedido) => ids.includes(pedido.id))
+                .map((pedido) => sincronizarComprobanteDePedido(pedido, "aprobado"))
+            )
+            const comprobantesActualizados = comprobantesActualizadosLista.reduce((acc, total) => acc + total, 0)
 
             setPedidos((prev) => prev.map((pedido) => ids.includes(pedido.id) ? { ...pedido, estado: "completado" } : pedido))
             setPedidosSeleccionados([])
             registrarEvento(`${resultado.pedidos_completados} pedido(s) completados con cuentas asignadas`, true)
-            await registrarLog("completar_masivo_y_asignar", "pedidos", undefined, `${resultado.pedidos_completados} pedidos · ${resultado.cuentas_asignadas} cuentas`)
-            toast.success(`${resultado.pedidos_completados} pedido(s) completados y ${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+            await registrarLog("completar_masivo_y_asignar", "pedidos", undefined, `${resultado.pedidos_completados} pedidos · ${resultado.cuentas_asignadas} cuentas · ${comprobantesActualizados} comprobantes`)
+            toast.success(`${resultado.pedidos_completados} pedido(s) completados y ${resultado.cuentas_asignadas} cuenta(s) asignada(s)${comprobantesActualizados > 0 ? ` · ${comprobantesActualizados} comprobante(s) aprobado(s)` : ""}`)
             setProcesandoMasivo(false)
             await cargarDatos()
           } catch (error) {
@@ -1067,23 +1117,32 @@ export default function AdminPage() {
     }
 
     if (comprobante.pedidoId) {
+      const pedidoId = comprobante.pedidoId
+      const pedidoRelacionado = pedidos.find((pedido) => pedido.id === pedidoId)
+      const pedidoYaCompletado = normalizarTexto(pedidoRelacionado?.estado) === "completado"
+
       if (estadoPedido === "completado") {
-        try {
-          const resultado = await asignarCuentasPorPedido([comprobante.pedidoId])
-          setPedidos((prev) => prev.map((p) => (p.id === comprobante.pedidoId ? { ...p, estado: "completado" } : p)))
-          await registrarLog("aprobar_comprobante_y_asignar", "pedidos", comprobante.pedidoId, `${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
-        } catch (error) {
-          const mensaje = error instanceof Error ? error.message : "Comprobante actualizado, pero no se pudo asignar la cuenta"
-          toast.error(mensaje)
-          await cargarDatos()
-          return
+        if (pedidoYaCompletado) {
+          setPedidos((prev) => prev.map((p) => (p.id === pedidoId ? { ...p, estado: "completado" } : p)))
+          await registrarLog("sincronizar_comprobante_entregado", "pedidos", pedidoId, "Comprobante aprobado para pedido ya entregado")
+        } else {
+          try {
+            const resultado = await asignarCuentasPorPedido([pedidoId])
+            setPedidos((prev) => prev.map((p) => (p.id === pedidoId ? { ...p, estado: "completado" } : p)))
+            await registrarLog("aprobar_comprobante_y_asignar", "pedidos", pedidoId, `${resultado.cuentas_asignadas} cuenta(s) asignada(s)`)
+          } catch (error) {
+            const mensaje = error instanceof Error ? error.message : "Comprobante actualizado, pero no se pudo asignar la cuenta"
+            toast.error(mensaje)
+            await cargarDatos()
+            return
+          }
         }
       } else {
-        const { error: pedidoError } = await supabase.from("pedidos").update({ estado: estadoPedido }).eq("id", comprobante.pedidoId)
+        const { error: pedidoError } = await supabase.from("pedidos").update({ estado: estadoPedido }).eq("id", pedidoId)
 
         if (!pedidoError) {
-          setPedidos((prev) => prev.map((p) => (p.id === comprobante.pedidoId ? { ...p, estado: estadoPedido } : p)))
-          await registrarLog("actualizar_por_comprobante", "pedidos", comprobante.pedidoId, `Comprobante ${nuevoEstado}`)
+          setPedidos((prev) => prev.map((p) => (p.id === pedidoId ? { ...p, estado: estadoPedido } : p)))
+          await registrarLog("actualizar_por_comprobante", "pedidos", pedidoId, `Comprobante ${nuevoEstado}`)
         }
       }
     }
@@ -3034,237 +3093,157 @@ export default function AdminPage() {
         )}
 
         {tabActiva === "comprobantes" && (
-          <div className={styles.sectionStack}>
-            <section className={styles.paymentHeroPro}>
-              <div className={styles.paymentHeroCopy}>
-                <span className={styles.proTag}>COMPROBANTES PRO</span>
-                <h3>Centro de revisión de pagos</h3>
-                <p>
-                  Valida vouchers, revisa cliente, monto, método y estado del pedido desde una sola pantalla. Si apruebas un comprobante, el pedido queda listo para completar.
-                </p>
-                <div className={styles.dashboardHeroActions}>
-                  <button type="button" onClick={() => setFiltroEstadoComprobante("pendiente")} className={styles.primaryButton}>Revisar pendientes</button>
-                  <button type="button" onClick={() => setVistaComprobantes("revision")} className={styles.secondaryButton}>Vista revisión</button>
-                  <button type="button" onClick={() => setVistaComprobantes("tabla")} className={styles.secondaryButton}>Vista tabla</button>
-                </div>
+          <article className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.kicker}>Pagos</p>
+                <h3>Comprobantes</h3>
+                <span className={styles.panelHint}>Lista compacta para validar pagos, ver voucher y sincronizar pedidos entregados.</span>
               </div>
+              <span className={styles.countBadge}>{comprobantesFiltrados.length} comprobantes</span>
+            </div>
 
-              <div className={styles.paymentHeroPanel}>
-                <p>Pagos en revisión</p>
+            {!comprobantesDisponibles && (
+              <div className={styles.noticeBox}>
+                No encontré la tabla <strong>comprobantes</strong>. Este módulo usará los vouchers guardados directamente en pedidos cuando existan.
+              </div>
+            )}
+
+            <div className={styles.miniStatsGrid}>
+              <button type="button" onClick={() => setFiltroEstadoComprobante("pendiente")} className={styles.miniStatCard}>
+                <span>Pendientes</span>
                 <strong>{comprobantesUnificados.filter((c) => c.estado === "pendiente").length}</strong>
-                <span>{formatearSoles(comprobantesUnificados.filter((c) => c.estado === "pendiente").reduce((acc, item) => acc + Number(item.monto || 0), 0))} pendientes por validar</span>
-                <div className={styles.moneySplitGrid}>
-                  <div>
-                    <small>Aprobados</small>
-                    <b>{comprobantesUnificados.filter((c) => c.estado === "aprobado" || c.estado === "completado").length}</b>
-                  </div>
-                  <div>
-                    <small>Sin archivo</small>
-                    <b>{comprobantesUnificados.filter((c) => !c.url).length}</b>
-                  </div>
-                </div>
+                <small>{formatearSoles(comprobantesUnificados.filter((c) => c.estado === "pendiente").reduce((acc, item) => acc + Number(item.monto || 0), 0))}</small>
+              </button>
+              <button type="button" onClick={() => setFiltroEstadoComprobante("aprobado")} className={styles.miniStatCard}>
+                <span>Aprobados</span>
+                <strong>{comprobantesUnificados.filter((c) => c.estado === "aprobado" || c.estado === "completado").length}</strong>
+                <small>Pagos validados</small>
+              </button>
+              <button type="button" onClick={() => setFiltroEstadoComprobante("observado")} className={styles.miniStatCard}>
+                <span>Observados</span>
+                <strong>{comprobantesUnificados.filter((c) => c.estado === "observado").length}</strong>
+                <small>Revisión manual</small>
+              </button>
+              <button type="button" onClick={() => { setFiltroEstadoComprobante("todos"); setBusquedaComprobante("") }} className={styles.miniStatCard}>
+                <span>Vista completa</span>
+                <strong>{comprobantesUnificados.length}</strong>
+                <small>Limpiar filtros</small>
+              </button>
+            </div>
+
+            <div className={styles.filtersGridWide}>
+              <input type="text" placeholder="Buscar comprobante, cliente, correo, pedido o método..." value={busquedaComprobante} onChange={(e) => setBusquedaComprobante(e.target.value)} className={styles.input} />
+              <select value={filtroEstadoComprobante} onChange={(e) => setFiltroEstadoComprobante(e.target.value)} className={styles.input}>
+                <option value="todos">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="aprobado">Aprobado</option>
+                <option value="completado">Completado</option>
+                <option value="observado">Observado</option>
+                <option value="rechazado">Rechazado</option>
+              </select>
+              <button type="button" onClick={() => { setFiltroEstadoComprobante("pendiente"); setVistaComprobantes("tabla") }} className={styles.secondaryButton}>Solo pendientes</button>
+              <button type="button" onClick={() => { setFiltroEstadoComprobante("todos"); setBusquedaComprobante(""); setVistaComprobantes("tabla") }} className={styles.secondaryButton}>Limpiar filtros</button>
+              <button type="button" onClick={() => setVistaComprobantes("tabla")} className={vistaComprobantes === "tabla" ? styles.primaryButton : styles.secondaryButton}>Tabla</button>
+            </div>
+
+            <div className={styles.toolbarInline}>
+              <div className={styles.bulkInfo}>
+                <strong>{comprobantesFiltrados.length}</strong>
+                <span>filtrados · {formatearSoles(comprobantesFiltrados.reduce((acc, item) => acc + Number(item.monto || 0), 0))}</span>
               </div>
-            </section>
-
-            <article className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <p className={styles.kicker}>Pagos</p>
-                  <h3>Comprobantes reales</h3>
-                  <span className={styles.panelHint}>Lee la tabla comprobantes si existe; si no, muestra vouchers guardados en pedidos.</span>
-                </div>
-                <span className={styles.countBadge}>{comprobantesFiltrados.length} comprobantes</span>
+              <div className={styles.bulkActions}>
+                <button type="button" onClick={() => { setFiltroEstadoComprobante("pendiente"); setBusquedaComprobante("") }} className={styles.primaryButton}>Cola pendiente</button>
+                <button type="button" onClick={() => { setTabActiva("pedidos"); setFiltroComprobantePedido("con") }} className={styles.secondaryButton}>Ver pedidos con pago</button>
               </div>
+            </div>
 
-              {!comprobantesDisponibles && (
-                <div className={styles.noticeBox}>
-                  No encontré la tabla <strong>comprobantes</strong>. Por ahora este módulo usa URLs de comprobante dentro de pedidos si tus columnas existen.
-                </div>
-              )}
-
-              <div className={styles.paymentStatsGrid}>
-                <button type="button" onClick={() => setFiltroEstadoComprobante("pendiente")} className={styles.paymentStatCard}>
-                  <span>Pendientes</span>
-                  <strong>{comprobantesUnificados.filter((c) => c.estado === "pendiente").length}</strong>
-                  <small>{formatearSoles(comprobantesUnificados.filter((c) => c.estado === "pendiente").reduce((acc, item) => acc + Number(item.monto || 0), 0))}</small>
-                </button>
-                <button type="button" onClick={() => setFiltroEstadoComprobante("aprobado")} className={styles.paymentStatCard}>
-                  <span>Aprobados</span>
-                  <strong>{comprobantesUnificados.filter((c) => c.estado === "aprobado" || c.estado === "completado").length}</strong>
-                  <small>Pagos listos para entrega</small>
-                </button>
-                <button type="button" onClick={() => setFiltroEstadoComprobante("observado")} className={styles.paymentStatCard}>
-                  <span>Observados</span>
-                  <strong>{comprobantesUnificados.filter((c) => c.estado === "observado").length}</strong>
-                  <small>Necesitan revisión manual</small>
-                </button>
-                <button type="button" onClick={() => setFiltroEstadoComprobante("rechazado")} className={`${styles.paymentStatCard} ${styles.paymentStatDanger}`}>
-                  <span>Rechazados</span>
-                  <strong>{comprobantesUnificados.filter((c) => c.estado === "rechazado").length}</strong>
-                  <small>Revisar con cliente</small>
-                </button>
-              </div>
-
-              <div className={styles.filtersGridCompact}>
-                <input type="text" placeholder="Buscar cliente, correo, pedido o método..." value={busquedaComprobante} onChange={(e) => setBusquedaComprobante(e.target.value)} className={styles.input} />
-                <select value={filtroEstadoComprobante} onChange={(e) => setFiltroEstadoComprobante(e.target.value)} className={styles.input}>
-                  <option value="todos">Todos los estados</option>
-                  <option value="pendiente">Pendiente</option>
-                  <option value="aprobado">Aprobado</option>
-                  <option value="completado">Completado</option>
-                  <option value="observado">Observado</option>
-                  <option value="rechazado">Rechazado</option>
-                </select>
-              </div>
-
-              <div className={styles.toolbarInline}>
-                <div className={styles.bulkInfo}>
-                  <strong>{comprobantesFiltrados.length}</strong>
-                  <span>filtrados · {formatearSoles(comprobantesFiltrados.reduce((acc, item) => acc + Number(item.monto || 0), 0))}</span>
-                </div>
-                <div className={styles.bulkActions}>
-                  <button type="button" onClick={() => { setFiltroEstadoComprobante("todos"); setBusquedaComprobante("") }} className={styles.secondaryButton}>Limpiar filtros</button>
-                  <button type="button" onClick={() => { setFiltroEstadoComprobante("pendiente"); setVistaComprobantes("revision") }} className={styles.primaryButton}>Cola pendiente</button>
-                </div>
-                <div className={styles.toggleGroup}>
-                  <button type="button" onClick={() => setVistaComprobantes("revision")} className={vistaComprobantes === "revision" ? styles.toggleActive : ""}>Revisión</button>
-                  <button type="button" onClick={() => setVistaComprobantes("tabla")} className={vistaComprobantes === "tabla" ? styles.toggleActive : ""}>Tabla</button>
-                </div>
-              </div>
-
-              {comprobantesFiltrados.length === 0 ? (
-                <EmptyState title="Sin comprobantes" text="Cuando tus pedidos tengan voucher o actives la tabla comprobantes, aparecerán aquí." />
-              ) : (
-                <>
-                  {vistaComprobantes === "tabla" ? (
-                    <div className={styles.tableWrap}>
-                      <table className={styles.proTable}>
-                        <thead>
-                          <tr>
-                            <th>Comprobante</th>
-                            <th>Cliente</th>
-                            <th>Monto</th>
-                            <th>Método</th>
-                            <th>Estado</th>
-                            <th>Origen</th>
-                            <th>Archivo</th>
-                            <th>Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {comprobantesVisibles.map((comprobante) => (
-                            <tr key={comprobante.id}>
-                              <td><strong>#{comprobante.id.slice(0, 8)}</strong><small>{fechaLegible(comprobante.fecha)}</small></td>
-                              <td><strong>{comprobante.cliente}</strong><small>{comprobante.correo || "Sin correo"}</small></td>
-                              <td>{formatearSoles(comprobante.monto)}</td>
-                              <td>{comprobante.metodo}</td>
-                              <td><StatusBadge estado={comprobante.estado} /></td>
-                              <td><span className={comprobante.origen === "tabla" ? styles.badgeInfo : styles.badgeOk}>{comprobante.origen === "tabla" ? "Tabla" : "Pedido"}</span></td>
-                              <td>
-                                {comprobante.url ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => abrirComprobanteModal(comprobante.url, `Comprobante #${comprobante.id.slice(0, 8)}`, `${comprobante.cliente} · ${formatearSoles(comprobante.monto)} · ${comprobante.metodo || "Pago no definido"}`)}
-                                    className={styles.viewVoucherButton}
-                                  >
-                                    👁 Ver
-                                  </button>
-                                ) : (
-                                  <span className={styles.badgeWarning}>Sin archivo</span>
-                                )}
-                              </td>
-                              <td>
-                                <div className={styles.tableActions}>
-                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar</button>
-                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "observado")} className={styles.secondaryButton}>Observar</button>
-                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "rechazado")} className={styles.dangerButton}>Rechazar</button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className={styles.reviewGridPro}>
+            {comprobantesFiltrados.length === 0 ? (
+              <EmptyState title="Sin comprobantes" text="Cuando tus pedidos tengan voucher o actives la tabla comprobantes, aparecerán aquí." />
+            ) : (
+              <>
+                <div className={styles.tableWrap}>
+                  <table className={styles.proTable}>
+                    <thead>
+                      <tr>
+                        <th>Comprobante</th>
+                        <th>Cliente</th>
+                        <th>Pedido</th>
+                        <th>Monto</th>
+                        <th>Método</th>
+                        <th>Estado</th>
+                        <th>Archivo</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {comprobantesVisibles.map((comprobante) => {
-                        const estadoCritico = comprobante.estado === "pendiente" || comprobante.estado === "observado"
-                        const sinArchivo = !comprobante.url
+                        const pedidoRelacionado = comprobante.pedidoId ? pedidos.find((pedido) => pedido.id === comprobante.pedidoId) : null
+                        const pedidoEntregado = normalizarTexto(pedidoRelacionado?.estado) === "completado"
+                        const comprobantePendiente = normalizarTexto(comprobante.estado) === "pendiente"
+                        const necesitaSincronizar = pedidoEntregado && comprobantePendiente
+                        const estadoVisual = necesitaSincronizar ? "pendiente" : comprobante.estado
 
                         return (
-                          <article key={comprobante.id} className={`${styles.reviewCardPro} ${estadoCritico ? styles.reviewPending : ""} ${sinArchivo ? styles.reviewNoFile : ""}`}>
-                            <div className={styles.reviewMediaPro}>
+                          <tr key={`${comprobante.origen}-${comprobante.id}`}>
+                            <td>
+                              <strong>#{comprobante.id.slice(0, 8)}</strong>
+                              <small>{fechaLegible(comprobante.fecha)}</small>
+                            </td>
+                            <td>
+                              <strong>{comprobante.cliente}</strong>
+                              <small>{comprobante.correo || "Sin correo"}</small>
+                            </td>
+                            <td>
+                              <strong>{comprobante.pedidoId ? `#${comprobante.pedidoId.slice(0, 8)}` : "Sin pedido"}</strong>
+                              <small>{pedidoEntregado ? "Pedido entregado" : pedidoRelacionado?.estado ? `Pedido ${pedidoRelacionado.estado}` : comprobante.origen === "tabla" ? "Tabla comprobantes" : "Pedido"}</small>
+                            </td>
+                            <td>{formatearSoles(comprobante.monto)}</td>
+                            <td>{comprobante.metodo || "No definido"}</td>
+                            <td>
+                              <StatusBadge estado={estadoVisual} />
+                              {necesitaSincronizar && <small className={styles.syncHint}>Entregado: falta aprobar comprobante</small>}
+                            </td>
+                            <td>
                               {comprobante.url ? (
-                                <a href={comprobante.url} target="_blank" rel="noreferrer">
-                                  <img src={comprobante.url} alt={`Comprobante ${comprobante.id.slice(0, 8)}`} />
-                                  <span>Abrir comprobante</span>
-                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => abrirComprobanteModal(comprobante.url, `Comprobante #${comprobante.id.slice(0, 8)}`, `${comprobante.cliente} · ${formatearSoles(comprobante.monto)} · ${comprobante.metodo || "Pago no definido"}`)}
+                                  className={styles.viewVoucherButton}
+                                  title="Ver comprobante"
+                                >
+                                  👁 Ver
+                                </button>
                               ) : (
-                                <div className={styles.reviewPlaceholderPro}>
-                                  <strong>Sin archivo</strong>
-                                  <small>El cliente todavía no adjuntó voucher o la URL no existe.</small>
-                                </div>
+                                <span className={styles.badgeWarning}>Sin archivo</span>
                               )}
-                            </div>
-
-                            <div className={styles.reviewBodyPro}>
-                              <div className={styles.reviewTopline}>
-                                <div>
-                                  <p className={styles.kicker}>Revisión de pago</p>
-                                  <h4>#{comprobante.id.slice(0, 8)}</h4>
-                                </div>
-                                <StatusBadge estado={comprobante.estado} />
-                              </div>
-
-                              <div className={styles.reviewAmountBox}>
-                                <span>Monto declarado</span>
-                                <strong>{formatearSoles(comprobante.monto)}</strong>
-                                <small>{comprobante.metodo || "Método no definido"}</small>
-                              </div>
-
-                              <div className={styles.infoGrid}>
-                                <span>Cliente</span><strong>{comprobante.cliente}</strong>
-                                <span>Correo</span><strong>{comprobante.correo || "Sin correo"}</strong>
-                                <span>Pedido</span><strong>{comprobante.pedidoId ? `#${comprobante.pedidoId.slice(0, 8)}` : "Sin pedido vinculado"}</strong>
-                                <span>Fecha</span><strong>{fechaLegible(comprobante.fecha)}</strong>
-                                <span>Origen</span><strong>{comprobante.origen === "tabla" ? "Tabla comprobantes" : "Pedido con voucher"}</strong>
-                              </div>
-
-                              <div className={styles.reviewChecklist}>
-                                <span className={comprobante.url ? styles.checkOk : styles.checkBad}>{comprobante.url ? "Archivo visible" : "Sin archivo"}</span>
-                                <span className={Number(comprobante.monto || 0) > 0 ? styles.checkOk : styles.checkWarn}>{Number(comprobante.monto || 0) > 0 ? "Monto válido" : "Monto por confirmar"}</span>
-                                <span className={comprobante.pedidoId ? styles.checkOk : styles.checkWarn}>{comprobante.pedidoId ? "Pedido vinculado" : "Sin pedido"}</span>
-                              </div>
-
-                              <div className={styles.reviewActionsPro}>
-                                {comprobante.url && (
-                                  <button
-                                    type="button"
-                                    onClick={() => abrirComprobanteModal(comprobante.url, `Comprobante #${comprobante.id.slice(0, 8)}`, `${comprobante.cliente} · ${formatearSoles(comprobante.monto)} · ${comprobante.metodo || "Pago no definido"}`)}
-                                    className={styles.viewVoucherButton}
-                                  >
-                                    👁 Ver comprobante
-                                  </button>
+                            </td>
+                            <td>
+                              <div className={styles.tableActions}>
+                                {necesitaSincronizar ? (
+                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Sincronizar</button>
+                                ) : (
+                                  <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar</button>
                                 )}
-                                <button type="button" onClick={() => resolverComprobantePro(comprobante, "aprobado")} className={styles.successButton}>Aprobar pago</button>
                                 <button type="button" onClick={() => resolverComprobantePro(comprobante, "observado")} className={styles.secondaryButton}>Observar</button>
                                 <button type="button" onClick={() => resolverComprobantePro(comprobante, "rechazado")} className={styles.dangerButton}>Rechazar</button>
                               </div>
-                            </div>
-                          </article>
+                            </td>
+                          </tr>
                         )
                       })}
-                    </div>
-                  )}
-                  {comprobantesFiltrados.length > comprobantesVisibles.length && (
-                    <div className={styles.loadMoreBox}>
-                      <button type="button" onClick={() => setLimiteComprobantes((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más comprobantes</button>
-                    </div>
-                  )}
-                </>
-              )}
-            </article>
-          </div>
+                    </tbody>
+                  </table>
+                </div>
+
+                {comprobantesFiltrados.length > comprobantesVisibles.length && (
+                  <div className={styles.loadMoreBox}>
+                    <button type="button" onClick={() => setLimiteComprobantes((prev) => prev + 12)} className={styles.secondaryButton}>Cargar más comprobantes</button>
+                  </div>
+                )}
+              </>
+            )}
+          </article>
         )}
 
 
