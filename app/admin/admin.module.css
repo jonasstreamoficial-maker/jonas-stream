@@ -6498,3 +6498,262 @@
   font-size: 11px;
 }
 
+
+/* ==========================================================
+   CUENTAS PRO V8 - registro guiado, carga masiva y lista por plataforma
+   ========================================================== */
+.accountRegisterPanel {
+  position: relative;
+  overflow: hidden;
+}
+
+.accountRegisterPanel::after {
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: -140px;
+  top: -160px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 251, 255, 0.12), transparent 62%);
+  pointer-events: none;
+}
+
+.accountTypeSwitch {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.accountTypeSwitch button {
+  min-height: 82px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  background: rgba(0, 0, 0, 0.26);
+  color: #9BC8CB;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.accountTypeSwitch button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 251, 255, 0.38);
+  box-shadow: 0 0 22px rgba(1, 231, 239, 0.1);
+}
+
+.accountTypeSwitch strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #ECFFFF;
+  font-size: 16px;
+}
+
+.accountTypeSwitch span {
+  color: #9BC8CB;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.accountTypeActive {
+  border-color: rgba(0, 251, 255, 0.62) !important;
+  background:
+    radial-gradient(circle at 0% 50%, rgba(0, 251, 255, 0.18), transparent 42%),
+    rgba(1, 231, 239, 0.095) !important;
+  box-shadow: 0 0 24px rgba(1, 231, 239, 0.16), inset 0 0 24px rgba(0, 251, 255, 0.04);
+}
+
+.accountsFormGridPro {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fieldGroup label {
+  color: #00FBFF;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fieldGroupFull,
+.accountsFormGridPro .formActions {
+  grid-column: 1 / -1;
+}
+
+.accountBulkBox {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px dashed rgba(1, 231, 239, 0.24);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(0, 251, 255, 0.1), transparent 34%),
+    rgba(0, 0, 0, 0.22);
+}
+
+.accountBulkBox h4 {
+  margin: 0 0 5px;
+  color: #ECFFFF;
+  font-size: 20px;
+}
+
+.accountBulkBox span {
+  color: #9BC8CB;
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+.bulkTextarea {
+  min-height: 120px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  line-height: 1.5;
+}
+
+.accountPlatformGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.accountPlatformCard {
+  --platform-color: #01E7EF;
+  min-height: 106px;
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--platform-color) 55%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--platform-color) 12%, transparent), rgba(3, 19, 22, 0.78));
+  color: #ECFFFF;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.accountPlatformCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--platform-color), transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--platform-color) 45%, transparent);
+}
+
+.accountPlatformCard:hover,
+.accountPlatformActive {
+  transform: translateY(-2px);
+  border-color: var(--platform-color) !important;
+  box-shadow: 0 0 25px color-mix(in srgb, var(--platform-color) 22%, transparent), inset 0 0 24px color-mix(in srgb, var(--platform-color) 8%, transparent);
+}
+
+.accountPlatformCard span {
+  display: block;
+  margin-bottom: 8px;
+  color: #ECFFFF;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.accountPlatformCard strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--platform-color);
+  font-size: 34px;
+  line-height: 1;
+  text-shadow: 0 0 22px color-mix(in srgb, var(--platform-color) 28%, transparent);
+}
+
+.accountPlatformCard small {
+  color: #9BC8CB;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.accountsTablePro {
+  min-width: 1250px;
+}
+
+.accountsTablePro tr {
+  --platform-color: #01E7EF;
+}
+
+.accountsTablePro tbody tr {
+  border-left: 4px solid var(--platform-color);
+}
+
+.accountProductPill {
+  min-width: 190px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--platform-color) 60%, transparent);
+  background:
+    radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--platform-color) 22%, transparent), transparent 48%),
+    rgba(0, 0, 0, 0.26);
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--platform-color) 7%, transparent);
+}
+
+.accountProductPill strong {
+  display: block;
+  color: #ECFFFF;
+  overflow-wrap: anywhere;
+}
+
+.accountProductPill small {
+  color: var(--platform-color) !important;
+  font-weight: 950 !important;
+}
+
+.accountsToolbarPro {
+  align-items: stretch;
+}
+
+.accountsToolbarPro .toggleGroup {
+  align-self: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 920px) {
+  .accountTypeSwitch,
+  .accountsFormGridPro {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldGroupFull,
+  .accountsFormGridPro .formActions {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .accountTypeSwitch button,
+  .accountBulkBox,
+  .accountPlatformCard {
+    border-radius: 18px;
+  }
+
+  .accountPlatformGrid {
+    grid-template-columns: 1fr;
+  }
+}

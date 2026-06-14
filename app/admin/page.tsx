@@ -243,6 +243,7 @@ const estadosCredito = ["todos", "activo", "inactivo", "suspendido"]
 
 const normalizarTexto = (valor?: string | number | null) => String(valor ?? "").trim().toLowerCase()
 const formatearSoles = (valor: number) => `S/ ${Number(valor || 0).toFixed(2)}`
+const generarPinPublico = () => Math.random().toString(36).slice(2, 8).toUpperCase()
 const fechaLegible = (fecha?: string | null) => {
   if (!fecha) return "Sin fecha"
   const date = new Date(fecha)
@@ -383,6 +384,10 @@ export default function AdminPage() {
   const [guardandoCuenta, setGuardandoCuenta] = useState(false)
   const [busquedaCuenta, setBusquedaCuenta] = useState("")
   const [filtroCuentaEstado, setFiltroCuentaEstado] = useState("todos")
+  const [filtroCuentaProducto, setFiltroCuentaProducto] = useState("todos")
+  const [tipoCuentaRegistro, setTipoCuentaRegistro] = useState<"cuenta" | "perfil">("cuenta")
+  const [cuentasMasivasTexto, setCuentasMasivasTexto] = useState("")
+  const [importandoCuentas, setImportandoCuentas] = useState(false)
 
   const [creditos, setCreditos] = useState<Credito[]>([])
   const [creditosDisponibles, setCreditosDisponibles] = useState(true)
@@ -1332,6 +1337,7 @@ export default function AdminPage() {
   const limpiarFormularioCuenta = () => {
     setFormCuenta(cuentaInicial)
     setEditandoCuentaId(null)
+    setTipoCuentaRegistro("cuenta")
   }
 
   const handleCuentaChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -1339,6 +1345,8 @@ export default function AdminPage() {
 
     if (name === "producto_id") {
       const producto = productos.find((item) => item.id === value)
+      const tipoProducto = normalizarTexto(producto?.tipo_venta)
+      setTipoCuentaRegistro(tipoProducto.includes("perfil") ? "perfil" : "cuenta")
       setFormCuenta((prev) => ({
         ...prev,
         producto_id: value,
@@ -1359,26 +1367,27 @@ export default function AdminPage() {
     }
 
     if (!formCuenta.correo.trim() || !formCuenta.clave.trim()) {
-      toast.error("Completa correo y clave")
+      toast.error("Completa correo y contraseña")
       return
     }
 
-    if (!formCuenta.pin_acceso.trim()) {
-      toast.error("Crea un PIN de acceso para consulta pública")
+    if (tipoCuentaRegistro === "perfil" && !formCuenta.perfil.trim()) {
+      toast.error("Completa el nombre del perfil")
       return
     }
 
     setGuardandoCuenta(true)
 
     const producto = productos.find((item) => item.id === formCuenta.producto_id)
+    const pinPublico = formCuenta.pin_acceso.trim() || generarPinPublico()
     const payload = {
       producto_id: formCuenta.producto_id,
       producto_nombre: producto?.nombre || formCuenta.producto_nombre || null,
       correo: formCuenta.correo.trim(),
       clave: formCuenta.clave.trim(),
-      perfil: formCuenta.perfil.trim() || null,
-      pin_perfil: formCuenta.pin_perfil.trim() || null,
-      pin_acceso: formCuenta.pin_acceso.trim(),
+      perfil: tipoCuentaRegistro === "perfil" ? formCuenta.perfil.trim() || null : null,
+      pin_perfil: tipoCuentaRegistro === "perfil" ? formCuenta.pin_perfil.trim() || null : null,
+      pin_acceso: pinPublico,
       estado: formCuenta.estado,
       observacion_admin: formCuenta.observacion_admin.trim() || null,
     }
@@ -1393,8 +1402,8 @@ export default function AdminPage() {
       return
     }
 
-    await registrarLog(editandoCuentaId ? "actualizar" : "crear", "cuentas", editandoCuentaId || undefined, payload.producto_nombre || payload.correo)
-    toast.success(editandoCuentaId ? "Cuenta actualizada" : "Cuenta registrada")
+    await registrarLog(editandoCuentaId ? "actualizar" : "crear", "cuentas", editandoCuentaId || undefined, `${payload.producto_nombre || payload.correo} · ${tipoCuentaRegistro === "perfil" ? "Perfil" : "Cuenta completa"}`)
+    toast.success(editandoCuentaId ? "Cuenta actualizada" : `Cuenta registrada · PIN público ${pinPublico}`)
 
     try {
       await sincronizarStockDesdeCuentas(false)
@@ -1409,6 +1418,7 @@ export default function AdminPage() {
 
   const editarCuenta = (cuenta: CuentaInventario) => {
     setEditandoCuentaId(cuenta.id)
+    setTipoCuentaRegistro(cuenta.perfil ? "perfil" : "cuenta")
     setFormCuenta({
       producto_id: cuenta.producto_id || "",
       producto_nombre: cuenta.producto_nombre || "",
@@ -1471,6 +1481,70 @@ export default function AdminPage() {
         await cargarDatos()
       },
     })
+  }
+
+  const guardarCuentasMasivo = async () => {
+    if (!formCuenta.producto_id) {
+      toast.error("Selecciona un producto para la carga masiva")
+      return
+    }
+
+    const lineas = cuentasMasivasTexto
+      .split("\n")
+      .map((linea) => linea.trim())
+      .filter(Boolean)
+
+    if (lineas.length === 0) {
+      toast.error("Pega al menos una cuenta")
+      return
+    }
+
+    const producto = productos.find((item) => item.id === formCuenta.producto_id)
+    const registros = lineas.map((linea) => {
+      const partes = linea.split(/[;,|]/).map((parte) => parte.trim())
+      const [correo, clave, perfil, pinPerfil, pinPublico] = partes
+
+      return {
+        producto_id: formCuenta.producto_id,
+        producto_nombre: producto?.nombre || formCuenta.producto_nombre || null,
+        correo: correo || "",
+        clave: clave || "",
+        perfil: tipoCuentaRegistro === "perfil" ? perfil || null : null,
+        pin_perfil: tipoCuentaRegistro === "perfil" ? pinPerfil || null : null,
+        pin_acceso: pinPublico || generarPinPublico(),
+        estado: "disponible",
+        observacion_admin: formCuenta.observacion_admin.trim() || null,
+      }
+    })
+
+    const invalidas = registros.filter((registro) => !registro.correo || !registro.clave)
+    if (invalidas.length > 0) {
+      toast.error("Hay líneas sin correo o contraseña. Usa: correo,contraseña,perfil,pinPerfil,pinPublico")
+      return
+    }
+
+    setImportandoCuentas(true)
+
+    const { error } = await supabase.from("cuentas").insert(registros)
+
+    if (error) {
+      toast.error(error.message || "No se pudo importar las cuentas")
+      setImportandoCuentas(false)
+      return
+    }
+
+    await registrarLog("importar_masivo", "cuentas", undefined, `${registros.length} cuenta(s) importada(s) para ${producto?.nombre || "producto"}`)
+
+    try {
+      await sincronizarStockDesdeCuentas(false)
+    } catch {
+      toast("Cuentas importadas, pero revisa la sincronización de stock")
+    }
+
+    setCuentasMasivasTexto("")
+    setImportandoCuentas(false)
+    toast.success(`${registros.length} cuenta(s) importada(s)`)
+    await cargarDatos()
   }
 
   const limpiarFormularioCredito = () => {
@@ -1790,6 +1864,10 @@ export default function AdminPage() {
 
 
 
+  const productosParaCuentas = useMemo(() => {
+    return [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  }, [productos])
+
   const cuentasFiltradas: CuentaInventario[] = useMemo(() => {
     const query = normalizarTexto(busquedaCuenta)
 
@@ -1798,10 +1876,32 @@ export default function AdminPage() {
       const texto = normalizarTexto(`${cuenta.correo} ${cuenta.producto_nombre} ${producto?.nombre} ${cuenta.perfil} ${cuenta.pin_acceso} ${cuenta.cliente_correo} ${cuenta.estado}`)
       const coincideBusqueda = !query || texto.includes(query)
       const coincideEstado = filtroCuentaEstado === "todos" || cuenta.estado === filtroCuentaEstado
+      const coincideProducto = filtroCuentaProducto === "todos" || cuenta.producto_id === filtroCuentaProducto || cuenta.producto_nombre === filtroCuentaProducto
 
-      return coincideBusqueda && coincideEstado
+      return coincideBusqueda && coincideEstado && coincideProducto
     })
-  }, [cuentas, productos, busquedaCuenta, filtroCuentaEstado])
+  }, [cuentas, productos, busquedaCuenta, filtroCuentaEstado, filtroCuentaProducto])
+
+  const resumenCuentasPorProducto = useMemo(() => {
+    return productosParaCuentas
+      .map((producto) => {
+        const cuentasProducto = cuentas.filter((cuenta) => cuenta.producto_id === producto.id || normalizarTexto(cuenta.producto_nombre) === normalizarTexto(producto.nombre))
+        const disponibles = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "disponible").length
+        const asignadas = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "asignada").length
+        const vencidas = cuentasProducto.filter((cuenta) => normalizarTexto(cuenta.estado) === "vencida").length
+        const bloqueadas = cuentasProducto.filter((cuenta) => ["bloqueada", "mantenimiento"].includes(normalizarTexto(cuenta.estado))).length
+
+        return {
+          producto,
+          total: cuentasProducto.length,
+          disponibles,
+          asignadas,
+          vencidas,
+          bloqueadas,
+        }
+      })
+      .filter((item) => item.total > 0 || Number(item.producto.stock || 0) > 0 || item.producto.estado === "activo")
+  }, [cuentas, productosParaCuentas])
 
   const cuentasDisponiblesTotal = cuentas.filter((cuenta) => cuenta.estado === "disponible").length
   const cuentasAsignadasTotal = cuentas.filter((cuenta) => cuenta.estado === "asignada").length
@@ -3254,8 +3354,7 @@ export default function AdminPage() {
                 <span className={styles.proTag}>Inventario de accesos</span>
                 <h3>Cuentas registradas</h3>
                 <p>
-                  Registra correos, claves, perfiles y PIN de consulta. Las fechas de inicio y vencimiento se llenarán después,
-                  cuando una cuenta sea asignada a un pedido aprobado o a una compra con créditos.
+                  Controla correos, perfiles, PIN público y disponibilidad real por plataforma. El stock de Productos se sincroniza desde las cuentas disponibles.
                 </p>
               </div>
 
@@ -3281,45 +3380,96 @@ export default function AdminPage() {
 
             {!cuentasDisponibles && (
               <div className={styles.noticeBox}>
-                La tabla <strong>cuentas</strong> todavía no existe o no tiene permisos. Primero ejecuta el SQL incluido en este ZIP:
-                <strong> supabase/sql/crear-tabla-cuentas.sql</strong>.
+                La tabla <strong>cuentas</strong> todavía no existe o no tiene permisos. Primero ejecuta el SQL de cuentas.
               </div>
             )}
 
-            <article className={styles.panel}>
+            <article className={`${styles.panel} ${styles.accountRegisterPanel}`}>
               <div className={styles.panelHeader}>
                 <div>
                   <p className={styles.kicker}>Registro</p>
                   <h3>{editandoCuentaId ? "Editar cuenta" : "Registrar cuenta"}</h3>
-                  <span className={styles.panelHint}>Aquí solo cargas la cuenta. La fecha se calculará cuando se entregue al cliente.</span>
+                  <span className={styles.panelHint}>Elige un producto creado en Productos. Si es cuenta completa, solo necesitas producto, correo y contraseña. Si es perfil, agrega perfil y PIN.</span>
                 </div>
                 {editandoCuentaId && <span className={styles.editBadge}>Modo edición</span>}
               </div>
 
-              <form onSubmit={guardarCuenta} className={styles.accountsFormGrid}>
-                <select name="producto_id" value={formCuenta.producto_id} onChange={handleCuentaChange} className={styles.input}>
-                  <option value="">Selecciona producto</option>
-                  {productos.map((producto) => (
-                    <option key={producto.id} value={producto.id}>
-                      {producto.nombre} · {producto.tipo_venta || "Sin tipo"}
-                    </option>
-                  ))}
-                </select>
+              <div className={styles.accountTypeSwitch}>
+                <button
+                  type="button"
+                  onClick={() => setTipoCuentaRegistro("cuenta")}
+                  className={tipoCuentaRegistro === "cuenta" ? styles.accountTypeActive : ""}
+                >
+                  <strong>Cuenta completa</strong>
+                  <span>Producto + correo + contraseña</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoCuentaRegistro("perfil")}
+                  className={tipoCuentaRegistro === "perfil" ? styles.accountTypeActive : ""}
+                >
+                  <strong>Perfil</strong>
+                  <span>Producto + perfil + PIN interno</span>
+                </button>
+              </div>
 
-                <select name="estado" value={formCuenta.estado} onChange={handleCuentaChange} className={styles.input}>
-                  <option value="disponible">Disponible</option>
-                  <option value="asignada">Asignada</option>
-                  <option value="mantenimiento">Mantenimiento</option>
-                  <option value="bloqueada">Bloqueada</option>
-                  <option value="vencida">Vencida</option>
-                </select>
+              <form onSubmit={guardarCuenta} className={styles.accountsFormGridPro}>
+                <div className={styles.fieldGroup}>
+                  <label>Selecciona producto</label>
+                  <select name="producto_id" value={formCuenta.producto_id} onChange={handleCuentaChange} className={styles.input}>
+                    <option value="">Selecciona producto</option>
+                    {productosParaCuentas.map((producto) => (
+                      <option key={producto.id} value={producto.id}>
+                        {producto.nombre} · {producto.tipo_venta || "Sin tipo"} · Stock {producto.stock ?? 0}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <input name="correo" placeholder="Correo de la cuenta" value={formCuenta.correo} onChange={handleCuentaChange} className={styles.input} />
-                <input name="clave" placeholder="Clave de la cuenta" value={formCuenta.clave} onChange={handleCuentaChange} className={styles.input} />
-                <input name="perfil" placeholder="Perfil / usuario interno" value={formCuenta.perfil} onChange={handleCuentaChange} className={styles.input} />
-                <input name="pin_perfil" placeholder="PIN del perfil" value={formCuenta.pin_perfil} onChange={handleCuentaChange} className={styles.input} />
-                <input name="pin_acceso" placeholder="PIN de consulta pública" value={formCuenta.pin_acceso} onChange={handleCuentaChange} className={styles.input} />
-                <textarea name="observacion_admin" placeholder="Observación interna" value={formCuenta.observacion_admin} onChange={handleCuentaChange} className={`${styles.input} ${styles.textarea}`} />
+                <div className={styles.fieldGroup}>
+                  <label>Estado de la cuenta</label>
+                  <select name="estado" value={formCuenta.estado} onChange={handleCuentaChange} className={styles.input}>
+                    <option value="disponible">Disponible</option>
+                    <option value="asignada">Asignada</option>
+                    <option value="mantenimiento">Mantenimiento</option>
+                    <option value="bloqueada">Bloqueada</option>
+                    <option value="vencida">Vencida</option>
+                  </select>
+                </div>
+
+                <div className={styles.fieldGroup}>
+                  <label>Correo de la cuenta</label>
+                  <input name="correo" placeholder="ejemplo@correo.com" value={formCuenta.correo} onChange={handleCuentaChange} className={styles.input} />
+                </div>
+
+                <div className={styles.fieldGroup}>
+                  <label>Contraseña de la cuenta</label>
+                  <input name="clave" placeholder="Contraseña" value={formCuenta.clave} onChange={handleCuentaChange} className={styles.input} />
+                </div>
+
+                {tipoCuentaRegistro === "perfil" && (
+                  <>
+                    <div className={styles.fieldGroup}>
+                      <label>Nombre de perfil / usuario interno</label>
+                      <input name="perfil" placeholder="Perfil 1, usuario, pantalla..." value={formCuenta.perfil} onChange={handleCuentaChange} className={styles.input} />
+                    </div>
+
+                    <div className={styles.fieldGroup}>
+                      <label>PIN del perfil</label>
+                      <input name="pin_perfil" placeholder="PIN interno del perfil" value={formCuenta.pin_perfil} onChange={handleCuentaChange} className={styles.input} />
+                    </div>
+                  </>
+                )}
+
+                <div className={styles.fieldGroup}>
+                  <label>PIN público para /codigos</label>
+                  <input name="pin_acceso" placeholder="Déjalo vacío para generar uno" value={formCuenta.pin_acceso} onChange={handleCuentaChange} className={styles.input} />
+                </div>
+
+                <div className={`${styles.fieldGroup} ${styles.fieldGroupFull}`}>
+                  <label>Observación interna</label>
+                  <textarea name="observacion_admin" placeholder="Notas privadas: proveedor, renovación, restricción, etc." value={formCuenta.observacion_admin} onChange={handleCuentaChange} className={`${styles.input} ${styles.textarea}`} />
+                </div>
 
                 <div className={styles.formActions}>
                   <button type="submit" disabled={guardandoCuenta} className={styles.primaryButton}>
@@ -3332,16 +3482,59 @@ export default function AdminPage() {
                   )}
                 </div>
               </form>
+
+              <div className={styles.accountBulkBox}>
+                <div>
+                  <p className={styles.kicker}>Carga masiva</p>
+                  <h4>Importar muchas cuentas</h4>
+                  <span>Formato por línea: correo,contraseña,perfil,pinPerfil,pinPublico. Para cuenta completa basta: correo,contraseña.</span>
+                </div>
+                <textarea
+                  value={cuentasMasivasTexto}
+                  onChange={(e) => setCuentasMasivasTexto(e.target.value)}
+                  placeholder={`netflix01@gmail.com,clave123\nnetflix02@gmail.com,clave456\nperfil01@gmail.com,clave789,Perfil 1,1234,ABCD12`}
+                  className={`${styles.input} ${styles.bulkTextarea}`}
+                />
+                <button type="button" onClick={guardarCuentasMasivo} disabled={importandoCuentas || !cuentasMasivasTexto.trim()} className={styles.secondaryButton}>
+                  {importandoCuentas ? "Importando..." : "Importar cuentas pegadas"}
+                </button>
+              </div>
             </article>
 
             <article className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <p className={styles.kicker}>Inventario</p>
-                  <h3>Lista de cuentas</h3>
-                  <span className={styles.panelHint}>Controla disponibles, asignadas, vencidas, bloqueadas y mantenimiento.</span>
+                  <p className={styles.kicker}>Inventario por plataforma</p>
+                  <h3>Resumen de cuentas</h3>
+                  <span className={styles.panelHint}>Selecciona una plataforma para ver sus correos en lista.</span>
                 </div>
                 <span className={styles.countBadge}>{cuentasFiltradas.length} cuentas</span>
+              </div>
+
+              <div className={styles.accountPlatformGrid}>
+                <button
+                  type="button"
+                  onClick={() => setFiltroCuentaProducto("todos")}
+                  className={`${styles.accountPlatformCard} ${filtroCuentaProducto === "todos" ? styles.accountPlatformActive : ""}`}
+                >
+                  <span>Todas</span>
+                  <strong>{cuentas.length}</strong>
+                  <small>{cuentasDisponiblesTotal} libres · {cuentasAsignadasTotal} asignadas</small>
+                </button>
+
+                {resumenCuentasPorProducto.map((item) => (
+                  <button
+                    key={item.producto.id}
+                    type="button"
+                    onClick={() => setFiltroCuentaProducto(item.producto.id)}
+                    className={`${styles.accountPlatformCard} ${filtroCuentaProducto === item.producto.id ? styles.accountPlatformActive : ""}`}
+                    style={estiloPlataforma(item.producto.nombre)}
+                  >
+                    <span>{item.producto.nombre}</span>
+                    <strong>{item.total}</strong>
+                    <small>{item.disponibles} libres · {item.asignadas} asignadas · {item.bloqueadas} bloqueadas</small>
+                  </button>
+                ))}
               </div>
 
               <div className={styles.accountsToolbarPro}>
@@ -3354,76 +3547,81 @@ export default function AdminPage() {
                 />
                 <div className={styles.toggleGroup}>
                   <button type="button" onClick={() => setFiltroCuentaEstado("todos")} className={filtroCuentaEstado === "todos" ? styles.toggleActive : ""}>Todo</button>
-                  <button type="button" onClick={() => setFiltroCuentaEstado("disponible")} className={filtroCuentaEstado === "disponible" ? styles.toggleActive : ""}>Disponible</button>
+                  <button type="button" onClick={() => setFiltroCuentaEstado("disponible")} className={filtroCuentaEstado === "disponible" ? styles.toggleActive : ""}>Libre</button>
                   <button type="button" onClick={() => setFiltroCuentaEstado("asignada")} className={filtroCuentaEstado === "asignada" ? styles.toggleActive : ""}>Asignada</button>
+                  <button type="button" onClick={() => setFiltroCuentaEstado("bloqueada")} className={filtroCuentaEstado === "bloqueada" ? styles.toggleActive : ""}>Bloqueada</button>
                   <button type="button" onClick={() => setFiltroCuentaEstado("vencida")} className={filtroCuentaEstado === "vencida" ? styles.toggleActive : ""}>Vencida</button>
                 </div>
               </div>
 
-              <div className={styles.accountsGridPro}>
-                {cuentasFiltradas.length === 0 ? (
-                  <EmptyState title="Sin cuentas" text="Registra cuentas disponibles para que luego puedan asignarse a pedidos." />
-                ) : cuentasFiltradas.map((cuenta) => {
-                  const producto = productos.find((item) => item.id === cuenta.producto_id)
-                  const estado = normalizarTexto(cuenta.estado)
-                  const esDisponible = estado === "disponible"
-                  const esAsignada = estado === "asignada"
-                  const esProblema = estado === "bloqueada" || estado === "mantenimiento" || estado === "vencida"
+              {cuentasFiltradas.length === 0 ? (
+                <EmptyState title="Sin cuentas" text="Registra cuentas disponibles para que luego puedan asignarse a pedidos." />
+              ) : (
+                <div className={styles.tableWrap}>
+                  <table className={`${styles.proTable} ${styles.accountsTablePro}`}>
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Correo</th>
+                        <th>Tipo</th>
+                        <th>PIN</th>
+                        <th>Estado</th>
+                        <th>Cliente</th>
+                        <th>Vigencia</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cuentasFiltradas.map((cuenta) => {
+                        const producto = productos.find((item) => item.id === cuenta.producto_id)
+                        const nombreProducto = producto?.nombre || cuenta.producto_nombre || "Producto sin vincular"
+                        const tipoCuenta = cuenta.perfil ? "Perfil" : "Cuenta completa"
 
-                  return (
-                    <article key={cuenta.id} className={`${styles.accountCardPro} ${esDisponible ? styles.accountCardAvailable : esAsignada ? styles.accountCardAssigned : esProblema ? styles.accountCardDanger : ""}`}>
-                      <div className={styles.accountCardTop}>
-                        <div>
-                          <span className={styles.inventoryLabel}>{producto?.nombre || cuenta.producto_nombre || "Producto sin vincular"}</span>
-                          <h4>{cuenta.correo}</h4>
-                          <p>{cuenta.perfil || "Sin perfil"} · PIN perfil: {cuenta.pin_perfil || "-"}</p>
-                        </div>
-                        <StatusBadge estado={cuenta.estado || "disponible"} />
-                      </div>
-
-                      <div className={styles.accountSecretGrid}>
-                        <div>
-                          <span>Clave</span>
-                          <strong>{cuenta.clave}</strong>
-                        </div>
-                        <div>
-                          <span>PIN consulta</span>
-                          <strong>{cuenta.pin_acceso || "-"}</strong>
-                        </div>
-                      </div>
-
-                      <div className={styles.accountMetaGrid}>
-                        <div>
-                          <span>Cliente</span>
-                          <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
-                        </div>
-                        <div>
-                          <span>Inicio</span>
-                          <strong>{fechaLegible(cuenta.cliente_inicio)}</strong>
-                        </div>
-                        <div>
-                          <span>Fin</span>
-                          <strong>{fechaLegible(cuenta.cliente_fin)}</strong>
-                        </div>
-                        <div>
-                          <span>Pedido</span>
-                          <strong>{cuenta.pedido_id ? `#${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</strong>
-                        </div>
-                      </div>
-
-                      {cuenta.observacion_admin && <p className={styles.accountNote}>{cuenta.observacion_admin}</p>}
-
-                      <div className={styles.inventoryQuickActions}>
-                        <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Disponible</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mantenimiento</button>
-                        <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloquear</button>
-                        <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
+                        return (
+                          <tr key={cuenta.id} style={estiloPlataforma(nombreProducto)}>
+                            <td>
+                              <div className={styles.accountProductPill}>
+                                <strong>{nombreProducto}</strong>
+                                <small>{producto?.tipo_venta || tipoCuenta}</small>
+                              </div>
+                            </td>
+                            <td>
+                              <strong>{cuenta.correo}</strong>
+                              <small>Clave: {cuenta.clave}</small>
+                            </td>
+                            <td>
+                              <strong>{tipoCuenta}</strong>
+                              <small>{cuenta.perfil || "Sin perfil"}</small>
+                            </td>
+                            <td>
+                              <strong>{cuenta.pin_acceso || "-"}</strong>
+                              <small>Perfil: {cuenta.pin_perfil || "-"}</small>
+                            </td>
+                            <td><StatusBadge estado={cuenta.estado || "disponible"} /></td>
+                            <td>
+                              <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
+                              <small>{cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</small>
+                            </td>
+                            <td>
+                              <strong>{fechaLegible(cuenta.cliente_inicio)}</strong>
+                              <small>Fin: {fechaLegible(cuenta.cliente_fin)}</small>
+                            </td>
+                            <td>
+                              <div className={styles.tableActions}>
+                                <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
+                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Libre</button>
+                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mant.</button>
+                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloq.</button>
+                                <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </article>
           </div>
         )}
