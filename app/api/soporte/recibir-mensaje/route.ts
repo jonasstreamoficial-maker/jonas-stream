@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
+export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 type PayloadMensaje = {
   correo_destino?: string
+  correo?: string
+  to?: string
+  destinatario?: string
   plataforma?: string | null
   remitente?: string | null
+  from?: string | null
   asunto?: string | null
+  subject?: string | null
   cuerpo_texto?: string | null
+  text?: string | null
+  mensaje?: string | null
   cuerpo_html?: string | null
+  html?: string | null
   fecha_mensaje?: string | null
 }
 
@@ -40,12 +49,16 @@ function normalizarCorreo(valor: unknown) {
   return limpiarTextoSeguro(valor, 320)?.toLowerCase() || ""
 }
 
+function texto(valor: unknown, maxLength = 10000) {
+  return limpiarTextoSeguro(valor, maxLength)
+}
+
 function normalizarFecha(valor: unknown) {
-  const texto = limpiarTextoSeguro(valor, 120)
+  const valorLimpio = limpiarTextoSeguro(valor, 120)
 
-  if (!texto) return new Date().toISOString()
+  if (!valorLimpio) return new Date().toISOString()
 
-  const fecha = new Date(texto)
+  const fecha = new Date(valorLimpio)
 
   if (Number.isNaN(fecha.getTime())) {
     return new Date().toISOString()
@@ -54,8 +67,8 @@ function normalizarFecha(valor: unknown) {
   return fecha.toISOString()
 }
 
-function detectarPlataforma(correoDestino: string, texto: string) {
-  const base = `${correoDestino} ${texto}`.toLowerCase()
+function detectarPlataforma(correoDestino: string, contenido: string) {
+  const base = `${correoDestino} ${contenido}`.toLowerCase()
 
   if (base.includes("netflix")) return "Netflix"
   if (base.includes("disney")) return "Disney+"
@@ -69,12 +82,13 @@ function detectarPlataforma(correoDestino: string, texto: string) {
   if (base.includes("apple")) return "Apple TV"
   if (base.includes("paramount")) return "Paramount+"
   if (base.includes("canva")) return "Canva"
+  if (base.includes("surfshark")) return "Surfshark"
 
   return null
 }
 
-function extraerCodigo(texto: string) {
-  const base = texto || ""
+function extraerCodigo(contenido: string) {
+  const base = contenido || ""
 
   const patronesDirectos = [
     /c[oó]digo detectado:\s*(\d[\d\s-]{2,14}\d)/iu,
@@ -116,10 +130,10 @@ function extraerCodigo(texto: string) {
   return null
 }
 
-function extraerLinks(texto: string) {
+function extraerLinks(contenido: string) {
   const links = new Set<string>()
   const regex = /https?:\/\/[^\s<>"'\]\)]+/gi
-  const matches = texto.match(regex) || []
+  const matches = contenido.match(regex) || []
 
   for (const match of matches) {
     const url = match.replace(/[)\].,;]+$/g, "").trim()
@@ -230,7 +244,6 @@ function seleccionarEnlacePrincipal(params: {
   const plataformaLower = (plataforma || "").toLowerCase()
   const base = `${asunto} ${cuerpo}`.toLowerCase()
 
-  // Netflix: prioriza enlaces reales de activación/verificación.
   if (plataformaLower.includes("netflix")) {
     return (
       links.find((link) =>
@@ -239,17 +252,14 @@ function seleccionarEnlacePrincipal(params: {
     )
   }
 
-  // Max / HBO: confirmado, el enlace correcto es el primero.
   if (tipo === "password" && esMaxOHbo(plataforma)) {
     return links[0]
   }
 
-  // Vix: normalmente el primer enlace es el botón principal.
   if (plataformaLower.includes("vix")) {
     return links[0]
   }
 
-  // Para contraseña, prioriza enlaces con palabras de recuperación.
   if (tipo === "password") {
     return (
       links.find((link) =>
@@ -258,7 +268,6 @@ function seleccionarEnlacePrincipal(params: {
     )
   }
 
-  // Para activar, confirmar, registrar o verificar.
   if (tipo === "enlace") {
     return (
       links.find((link) =>
@@ -287,7 +296,6 @@ function seleccionarEnlacesTelegram(params: {
 
   if (!links.length) return []
 
-  // Max / HBO: confirmado, solo enviar el primer enlace.
   if (tipo === "password" && esMaxOHbo(plataforma)) {
     return [links[0]]
   }
@@ -397,16 +405,10 @@ function construirAlertaTelegram(params: {
     )
   }
 
-  if (tipo === "seguridad") {
+  if (tipo === "seguridad" || tipo === "normal") {
     partes.push("")
     partes.push("<b>Resumen:</b>")
-    partes.push(escapeHtml(crearResumen(cuerpoTexto, 500)))
-  }
-
-  if (tipo === "normal") {
-    partes.push("")
-    partes.push("<b>Resumen:</b>")
-    partes.push(escapeHtml(crearResumen(cuerpoTexto, 350)))
+    partes.push(escapeHtml(crearResumen(cuerpoTexto, tipo === "seguridad" ? 500 : 350)))
   }
 
   partes.push("")
@@ -415,7 +417,7 @@ function construirAlertaTelegram(params: {
   return partes.join("\n").slice(0, 3900)
 }
 
-async function enviarTelegram(texto: string) {
+async function enviarTelegram(contenido: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN
   const chatId = process.env.TELEGRAM_CHAT_ID
 
@@ -432,7 +434,7 @@ async function enviarTelegram(texto: string) {
       },
       body: JSON.stringify({
         chat_id: chatId,
-        text: texto,
+        text: contenido,
         parse_mode: "HTML",
         disable_web_page_preview: true,
       }),
@@ -449,8 +451,8 @@ async function enviarTelegram(texto: string) {
 
 export async function POST(request: Request) {
   try {
-    const secret = request.headers.get("x-jonas-secret")
     const expectedSecret = process.env.JONAS_WEBHOOK_SECRET
+    const secret = request.headers.get("x-jonas-secret")
 
     if (!expectedSecret) {
       console.error("Falta configurar JONAS_WEBHOOK_SECRET")
@@ -473,73 +475,93 @@ export async function POST(request: Request) {
     try {
       body = (await request.json()) as PayloadMensaje
     } catch (error) {
-      console.error("JSON inválido en recibir-mensaje:", error)
+      console.error("JSON inválido en recibir mensaje:", error)
 
       return NextResponse.json(
-        { ok: false, error: "JSON inválido" },
+        { ok: false, error: "JSON inválido." },
         { status: 400 }
       )
     }
 
-    const correoDestino = normalizarCorreo(body.correo_destino)
+    const correoDestino = normalizarCorreo(
+      body.correo_destino || body.correo || body.to || body.destinatario
+    )
 
     if (!correoDestino) {
       return NextResponse.json(
-        { ok: false, error: "Falta correo_destino" },
+        { ok: false, error: "Falta correo_destino." },
         { status: 400 }
       )
     }
 
-    const remitente = limpiarTextoSeguro(body.remitente, 500)
-    const asunto = limpiarTextoSeguro(body.asunto, 500) || "Sin asunto"
-    const cuerpoTexto =
-      limpiarTextoSeguro(body.cuerpo_texto, 50000) ||
-      "Correo recibido sin cuerpo de texto detectable."
-    const cuerpoHtml = limpiarTextoSeguro(body.cuerpo_html, 50000)
+    const remitente = texto(body.remitente || body.from, 320)
+    const asunto = texto(body.asunto || body.subject, 500) || "Sin asunto"
+    const cuerpoTexto = texto(body.cuerpo_texto || body.text || body.mensaje, 20000) || ""
+    const cuerpoHtml = texto(body.cuerpo_html || body.html, 50000)
     const fechaMensaje = normalizarFecha(body.fecha_mensaje)
 
     const supabase = getSupabaseAdmin()
 
-    const { data: cliente, error: errorCliente } = await supabase
-      .from("soporte_clientes")
-      .select("id,nombre,plataforma,correo_asignado,estado")
-      .eq("correo_asignado", correoDestino)
+    // 1. Fuente principal: Admin → Cuentas.
+    const { data: cuenta, error: errorCuenta } = await supabase
+      .from("cuentas")
+      .select(
+        "id,producto_nombre,correo,cliente_nombre,cliente_correo,pin_acceso,cliente_inicio,cliente_fin,estado"
+      )
+      .ilike("correo", correoDestino)
+      .limit(1)
       .maybeSingle()
 
-    if (errorCliente) {
-      console.error("Error buscando cliente:", {
-        code: errorCliente.code,
-        message: errorCliente.message,
-        details: errorCliente.details,
-        hint: errorCliente.hint,
-        correoDestino,
-      })
-
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Error buscando cliente",
-          detalle: errorCliente.message,
-        },
-        { status: 500 }
-      )
+    if (errorCuenta) {
+      console.error("Error buscando cuenta para mensaje:", errorCuenta)
     }
 
-    const plataformaDetectada = detectarPlataforma(
-      correoDestino,
-      `${remitente || ""} ${asunto} ${cuerpoTexto}`
-    )
+    // 2. Soporte panel legacy/sincronizado.
+    // Aunque exista en cuentas, igual buscamos soporte_clientes para guardar cliente_id correctamente.
+    const { data: clienteLegacy, error: errorClienteLegacy } = await supabase
+      .from("soporte_clientes")
+      .select(
+        "id,nombre,plataforma,correo_asignado,estado,pin_acceso,fecha_inicio,fecha_vencimiento"
+      )
+      .ilike("correo_asignado", correoDestino)
+      .limit(1)
+      .maybeSingle()
 
-    const plataformaFinal =
-      limpiarTextoSeguro(body.plataforma, 100) ||
-      cliente?.plataforma ||
-      plataformaDetectada ||
-      null
+    if (errorClienteLegacy) {
+      console.error("Error buscando soporte_clientes para mensaje:", errorClienteLegacy)
+    }
 
-    const nuevoMensaje = {
-      cliente_id: cliente?.id || null,
+    const plataforma =
+      texto(body.plataforma, 160) ||
+      texto(cuenta?.producto_nombre, 160) ||
+      texto(clienteLegacy?.plataforma, 160) ||
+      detectarPlataforma(correoDestino, `${asunto}\n${cuerpoTexto}`) ||
+      "Sin plataforma"
+
+    const clienteParaTelegram: ClienteSoporte | null = clienteLegacy
+      ? {
+          id: clienteLegacy.id,
+          nombre: clienteLegacy.nombre,
+          plataforma: clienteLegacy.plataforma,
+          correo_asignado: clienteLegacy.correo_asignado,
+          estado: clienteLegacy.estado,
+        }
+      : cuenta
+        ? {
+            id: cuenta.id,
+            nombre: cuenta.cliente_nombre || cuenta.producto_nombre || "Cliente",
+            plataforma: cuenta.producto_nombre || "Cuenta asignada",
+            correo_asignado: cuenta.correo,
+            estado: cuenta.estado,
+          }
+        : null
+
+    const payload = {
+      // cliente_id queda ligado a soporte_clientes, no a cuentas.
+      // Si el trigger de sincronización ya creó el registro, aquí se guarda relacionado.
+      cliente_id: clienteLegacy?.id || null,
       correo_destino: correoDestino,
-      plataforma: plataformaFinal,
+      plataforma,
       remitente,
       asunto,
       cuerpo_texto: cuerpoTexto,
@@ -550,72 +572,68 @@ export async function POST(request: Request) {
 
     const { data: mensajeInsertado, error: errorInsert } = await supabase
       .from("soporte_mensajes")
-      .insert([nuevoMensaje])
-      .select("id,correo_destino,asunto,cliente_id")
+      .insert([payload])
+      .select("*")
       .single()
 
     if (errorInsert) {
-      console.error("Error insertando mensaje:", {
-        code: errorInsert.code,
-        message: errorInsert.message,
-        details: errorInsert.details,
-        hint: errorInsert.hint,
-        correoDestino,
-        asunto,
-        remitente,
-        fechaMensaje,
-        cuerpoLength: cuerpoTexto.length,
-        htmlLength: cuerpoHtml?.length || 0,
-      })
+      console.error("Error guardando mensaje de soporte:", errorInsert)
 
       return NextResponse.json(
-        {
-          ok: false,
-          error: "No se pudo guardar el mensaje",
-          detalle: errorInsert.message,
-          code: errorInsert.code,
-        },
+        { ok: false, error: "No se pudo guardar el mensaje." },
         { status: 500 }
       )
     }
 
     const alertaTelegram = construirAlertaTelegram({
       correoDestino,
-      plataforma: plataformaFinal,
+      plataforma,
       remitente,
       asunto,
       cuerpoTexto,
       fechaMensaje,
-      cliente: cliente as ClienteSoporte | null,
+      cliente: clienteParaTelegram,
     })
 
     await enviarTelegram(alertaTelegram)
 
     return NextResponse.json({
       ok: true,
-      mensaje: "Mensaje guardado correctamente",
-      data: mensajeInsertado,
-      cliente_encontrado: Boolean(cliente),
-      telegram: "procesado",
+      mensaje: mensajeInsertado,
+      match: cuenta
+        ? {
+            origen: "cuentas",
+            cuenta_id: cuenta.id,
+            producto_nombre: cuenta.producto_nombre,
+            correo: cuenta.correo,
+            estado: cuenta.estado,
+            pin_acceso: cuenta.pin_acceso,
+            fecha_inicio: cuenta.cliente_inicio,
+            fecha_vencimiento: cuenta.cliente_fin,
+            soporte_cliente_id: clienteLegacy?.id || null,
+          }
+        : clienteLegacy
+          ? {
+              origen: "soporte_clientes",
+              cliente_id: clienteLegacy.id,
+              plataforma: clienteLegacy.plataforma,
+              correo: clienteLegacy.correo_asignado,
+              estado: clienteLegacy.estado,
+              pin_acceso: clienteLegacy.pin_acceso,
+              fecha_inicio: clienteLegacy.fecha_inicio,
+              fecha_vencimiento: clienteLegacy.fecha_vencimiento,
+            }
+          : {
+              origen: "sin_registro",
+              correo: correoDestino,
+            },
     })
   } catch (error) {
-    console.error("Error general en recibir-mensaje:", error)
+    console.error("Error en recibir mensaje de soporte:", error)
 
     return NextResponse.json(
-      {
-        ok: false,
-        error: "Error interno del servidor",
-        detalle: error instanceof Error ? error.message : String(error),
-      },
+      { ok: false, error: "Error interno del servidor." },
       { status: 500 }
     )
   }
-}
-
-export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    version: "recibir-mensaje-telegram-max-primer-link-2026-06-06-v4",
-    mensaje: "API de soporte activa con alertas Telegram y primer enlace Max/HBO.",
-  })
 }
