@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -1087,6 +1088,26 @@ export default function AdminPage() {
     if (ok) await cargarDatos()
   }
 
+  const irACargarCuentasProducto = (producto: Producto) => {
+    const productoEsPerfil = esProductoPerfil(producto)
+
+    setTipoCuentaRegistro(productoEsPerfil ? "perfil" : "cuenta")
+    setFormCuenta((prev) => ({
+      ...prev,
+      producto_id: producto.id,
+      producto_nombre: producto.nombre,
+      perfil: productoEsPerfil ? prev.perfil : "",
+      pin_perfil: productoEsPerfil ? prev.pin_perfil : "",
+      estado: "disponible",
+    }))
+    setFiltroCuentaProducto(producto.id)
+    setFiltroCuentaEstado("todos")
+    setBusquedaCuenta("")
+    setTabActiva("cuentas")
+    toast("Producto seleccionado. Carga las cuentas reales para sincronizar stock.")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   const actualizarEstadoComprobante = async (id: string, nuevoEstado: string) => {
     const { error } = await supabase.from("comprobantes").update({ estado: nuevoEstado }).eq("id", id)
 
@@ -1783,12 +1804,21 @@ export default function AdminPage() {
       .toLocaleString("es-PE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })
       .replace(/[/:, ]+/g, "-")
       .replace(/-$/g, "")
-    const grupoLote = tipoCuentaRegistro === "perfil"
-      ? `GRUPO:${producto?.nombre || formCuenta.producto_nombre || "Producto"}-${analisis.limitePerfil}P-${fechaLote}`
-      : `GRUPO:${producto?.nombre || formCuenta.producto_nombre || "Producto"}-COMPLETA-${fechaLote}`
+    const productoGrupo = (producto?.nombre || formCuenta.producto_nombre || "Producto")
+      .replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ+.-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
 
     const registros = analisis.validos.map((registro) => {
       const observacionBase = String(registro.payload.observacion_admin || "").trim()
+      const correoGrupo = normalizarTexto(registro.correo)
+        .replace(/[^a-z0-9@._-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+      const grupoLote = tipoCuentaRegistro === "perfil"
+        ? `GRUPO:${productoGrupo}-${analisis.limitePerfil}P-${correoGrupo || "sin-correo"}-${fechaLote}`
+        : `GRUPO:${productoGrupo}-COMPLETA-${fechaLote}`
+
       return {
         ...registro.payload,
         observacion_admin: observacionBase ? `${observacionBase} · ${grupoLote}` : grupoLote,
@@ -2463,6 +2493,58 @@ export default function AdminPage() {
     const seleccionadosVisibles = idsVisibles.filter((id) => cuentasSeleccionadas.includes(id)).length
     const todosSeleccionados = idsVisibles.length > 0 && seleccionadosVisibles === idsVisibles.length
 
+    const gruposOrdenados = Array.from(
+      lista.reduce((mapa, cuenta) => {
+        const grupo = obtenerGrupoCuenta(cuenta)
+        const actuales = mapa.get(grupo) || []
+        actuales.push(cuenta)
+        mapa.set(grupo, actuales)
+        return mapa
+      }, new Map<string, CuentaInventario[]>())
+    ).map(([grupo, items]) => ({ grupo, items }))
+
+    const alternarGrupoCuentas = (items: CuentaInventario[]) => {
+      const ids = items.map((cuenta) => cuenta.id)
+      setCuentasSeleccionadas((prev) => {
+        const todos = ids.length > 0 && ids.every((id) => prev.includes(id))
+        if (todos) return prev.filter((id) => !ids.includes(id))
+        return Array.from(new Set([...prev, ...ids]))
+      })
+    }
+
+    const eliminarGrupoCuentas = (grupo: string, items: CuentaInventario[]) => {
+      if (items.length === 0) return
+
+      pedirConfirmacion({
+        titulo: `Eliminar grupo ${grupo}`,
+        mensaje: `Eliminarás ${items.length} cuenta(s) de este grupo.`,
+        detalle: "Úsalo para borrar un bloque completo de perfiles o cuentas cargadas en el mismo lote.",
+        tono: "danger",
+        textoConfirmar: "Eliminar grupo",
+        onConfirmar: async () => {
+          const ids = items.map((cuenta) => cuenta.id)
+          const { error } = await supabase.from("cuentas").delete().in("id", ids)
+
+          if (error) {
+            toast.error("No se pudo eliminar el grupo")
+            return
+          }
+
+          setCuentasSeleccionadas((prev) => prev.filter((id) => !ids.includes(id)))
+          await registrarLog("eliminar_grupo", "cuentas", undefined, `${ids.length} cuenta(s) eliminada(s) · ${grupo}`)
+
+          try {
+            await sincronizarStockDesdeCuentas(false)
+          } catch {
+            toast("Grupo eliminado, pero revisa la sincronización de stock")
+          }
+
+          toast.success(`${ids.length} cuenta(s) eliminada(s) del grupo`)
+          await cargarDatos()
+        },
+      })
+    }
+
     return (
       <div className={styles.accountTableSection}>
         <div className={styles.accountSubtableTitle}>
@@ -2514,57 +2596,85 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {lista.map((cuenta) => {
-                  const producto = productos.find((item) => item.id === cuenta.producto_id)
-                  const nombreProducto = producto?.nombre || cuenta.producto_nombre || productoCuentaSeleccionado?.nombre || "Producto sin vincular"
-                  const grupo = obtenerGrupoCuenta(cuenta)
-                  const seleccionado = cuentasSeleccionadas.includes(cuenta.id)
+                {gruposOrdenados.map(({ grupo, items }) => {
+                  const idsGrupo = items.map((cuenta) => cuenta.id)
+                  const seleccionadosGrupo = idsGrupo.filter((id) => cuentasSeleccionadas.includes(id)).length
+                  const nombreProductoGrupo = productos.find((item) => item.id === items[0]?.producto_id)?.nombre || items[0]?.producto_nombre || productoCuentaSeleccionado?.nombre || "Producto"
 
                   return (
-                    <tr key={cuenta.id} style={estiloPlataforma(nombreProducto)} className={seleccionado ? styles.rowSelected : ""}>
-                      <td className={styles.checkColumn}>
-                        <input
-                          type="checkbox"
-                          checked={seleccionado}
-                          onChange={() => alternarCuentaSeleccionada(cuenta.id)}
-                          aria-label={`Seleccionar ${cuenta.correo}`}
-                        />
-                      </td>
-                      <td>
-                        <strong>{cuenta.correo}</strong>
-                        <small>{nombreProducto}</small>
-                      </td>
-                      <td><strong>{cuenta.clave}</strong></td>
-                      <td>
-                        <strong>{cuenta.perfil || "Cuenta completa"}</strong>
-                        <small>{cuenta.perfil ? "Perfil de venta" : "Acceso completo"}</small>
-                      </td>
-                      <td>
-                        <strong>{cuenta.pin_acceso || "-"}</strong>
-                        <small>Perfil: {cuenta.pin_perfil || "-"}</small>
-                      </td>
-                      <td><StatusBadge estado={cuenta.estado || "disponible"} /></td>
-                      <td>
-                        <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
-                        <small>{cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</small>
-                      </td>
-                      <td>
-                        <span className={styles.groupPill}>{grupo}</span>
-                      </td>
-                      <td>
-                        <strong>{cuenta.cliente_inicio ? fechaLegible(cuenta.cliente_inicio) : "Sin iniciar"}</strong>
-                        <small>Fin: {cuenta.cliente_fin ? fechaLegible(cuenta.cliente_fin) : "Sin vencimiento"}</small>
-                      </td>
-                      <td>
-                        <div className={styles.tableActions}>
-                          <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
-                          <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Libre</button>
-                          <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mant.</button>
-                          <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloq.</button>
-                          <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
-                        </div>
-                      </td>
-                    </tr>
+                    <Fragment key={grupo}>
+                      <tr className={styles.accountGroupRow} style={estiloPlataforma(nombreProductoGrupo)}>
+                        <td colSpan={10}>
+                          <div className={styles.accountGroupHeader}>
+                            <div>
+                              <strong>{grupo}</strong>
+                              <span>{items.length} registro(s) · {seleccionadosGrupo} seleccionado(s)</span>
+                            </div>
+                            <div>
+                              <button type="button" onClick={() => alternarGrupoCuentas(items)} className={styles.secondaryButton}>
+                                {seleccionadosGrupo === items.length ? "Quitar grupo" : "Seleccionar grupo"}
+                              </button>
+                              <button type="button" onClick={() => eliminarGrupoCuentas(grupo, items)} className={styles.dangerButton}>
+                                Eliminar grupo
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {items.map((cuenta) => {
+                        const producto = productos.find((item) => item.id === cuenta.producto_id)
+                        const nombreProducto = producto?.nombre || cuenta.producto_nombre || productoCuentaSeleccionado?.nombre || "Producto sin vincular"
+                        const seleccionado = cuentasSeleccionadas.includes(cuenta.id)
+
+                        return (
+                          <tr key={cuenta.id} style={estiloPlataforma(nombreProducto)} className={seleccionado ? styles.rowSelected : ""}>
+                            <td className={styles.checkColumn}>
+                              <input
+                                type="checkbox"
+                                checked={seleccionado}
+                                onChange={() => alternarCuentaSeleccionada(cuenta.id)}
+                                aria-label={`Seleccionar ${cuenta.correo}`}
+                              />
+                            </td>
+                            <td>
+                              <strong>{cuenta.correo}</strong>
+                              <small>{nombreProducto}</small>
+                            </td>
+                            <td><strong>{cuenta.clave}</strong></td>
+                            <td>
+                              <strong>{cuenta.perfil || "Cuenta completa"}</strong>
+                              <small>{cuenta.perfil ? "Perfil de venta" : "Acceso completo"}</small>
+                            </td>
+                            <td>
+                              <strong>{cuenta.pin_acceso || "-"}</strong>
+                              <small>Perfil: {cuenta.pin_perfil || "-"}</small>
+                            </td>
+                            <td><StatusBadge estado={cuenta.estado || "disponible"} /></td>
+                            <td>
+                              <strong>{cuenta.cliente_nombre || cuenta.cliente_correo || "Sin asignar"}</strong>
+                              <small>{cuenta.pedido_id ? `Pedido #${cuenta.pedido_id.slice(0, 8)}` : "Sin pedido"}</small>
+                            </td>
+                            <td>
+                              <span className={styles.groupPill}>{grupo}</span>
+                            </td>
+                            <td>
+                              <strong>{cuenta.cliente_inicio ? fechaLegible(cuenta.cliente_inicio) : "Sin iniciar"}</strong>
+                              <small>Fin: {cuenta.cliente_fin ? fechaLegible(cuenta.cliente_fin) : "Sin vencimiento"}</small>
+                            </td>
+                            <td>
+                              <div className={styles.tableActions}>
+                                <button type="button" onClick={() => editarCuenta(cuenta)} className={styles.primaryButton}>Editar</button>
+                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "disponible")} className={styles.successButton}>Libre</button>
+                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "mantenimiento")} className={styles.secondaryButton}>Mant.</button>
+                                <button type="button" onClick={() => actualizarEstadoCuenta(cuenta, "bloqueada")} className={styles.dangerGhostButton}>Bloq.</button>
+                                <button type="button" onClick={() => eliminarCuenta(cuenta)} className={styles.dangerButton}>Eliminar</button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </Fragment>
                   )
                 })}
               </tbody>
@@ -2953,7 +3063,7 @@ export default function AdminPage() {
                 <div>
                   <p className={styles.kicker}>Productos</p>
                   <h3>Lista de productos</h3>
-                  <span className={styles.panelHint}>Control comercial del catálogo con alertas, estado visual y acciones rápidas.</span>
+                  <span className={styles.panelHint}>Catálogo comercial. El stock real se sincroniza desde Cuentas disponibles; no lo manejes manualmente.</span>
                 </div>
                 <span className={styles.countBadge}>{productosFiltrados.length} resultados</span>
               </div>
@@ -2962,7 +3072,7 @@ export default function AdminPage() {
                 <div className={styles.productOpsMain}>
                   <span className={styles.proTag}>PRODUCTOS PRO</span>
                   <h4>Catálogo listo para vender</h4>
-                  <p>Detecta productos agotados, ofertas, publicaciones activas y artículos sin imagen antes de que afecten la tienda.</p>
+                  <p>Crea primero el producto que vas a vender. Luego agrega cuentas reales desde Cuentas para que el stock se sincronice solo.</p>
                 </div>
                 <div className={styles.productOpsStats}>
                   <button type="button" onClick={() => { setFiltroEstadoProducto("activo"); setFiltroStockProducto("todos") }}>
@@ -3055,7 +3165,7 @@ export default function AdminPage() {
                       </div>
                       <div className={styles.cardActions}>
                         <button type="button" onClick={() => editarProducto(p)} className={styles.secondaryButton}>Editar</button>
-                        <button type="button" onClick={() => reponerProductoRapido(p)} className={styles.successButton}>+10 stock</button>
+                        <button type="button" onClick={() => irACargarCuentasProducto(p)} className={styles.successButton}>Agregar cuentas</button>
                         <button type="button" onClick={() => eliminarProducto(p.id)} className={styles.dangerButton}>Eliminar</button>
                       </div>
                     </div>
@@ -3848,7 +3958,7 @@ export default function AdminPage() {
                     ))}
                   </select>
                   {productosParaRegistroCuenta.length === 0 && (
-                    <small className={styles.fieldHelp}>No hay productos de este tipo. Créalo primero en Productos o cambia Cuenta completa / Perfil.</small>
+                    <small className={styles.fieldHelp}>No hay productos de este tipo. Primero crea el producto en Productos con tipo Cuenta Completa o Perfiles.</small>
                   )}
                 </div>
 
@@ -4187,7 +4297,7 @@ export default function AdminPage() {
                         <button type="button" onClick={() => ajustarStockProducto(producto, -1)} className={styles.dangerGhostButton}>-1</button>
                         <button type="button" onClick={() => ajustarStockProducto(producto, 1)} className={styles.secondaryButton}>+1</button>
                         <button type="button" onClick={() => ajustarStockProducto(producto, 5)} className={styles.secondaryButton}>+5</button>
-                        <button type="button" onClick={() => reponerProductoRapido(producto, 10)} className={styles.successButton}>+10</button>
+                        <button type="button" onClick={() => irACargarCuentasProducto(producto)} className={styles.successButton}>Agregar cuentas</button>
                         <button type="button" onClick={() => editarProducto(producto)} className={styles.primaryButton}>Editar</button>
                       </div>
                     </article>

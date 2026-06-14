@@ -7080,3 +7080,74 @@
     width: 100%;
   }
 }
+
+
+/* ==========================================================
+   CUENTAS PRO V11 - productos primero, stock por cuentas y grupos visibles
+   ========================================================== */
+.accountGroupRow td {
+  padding: 10px 12px !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--platform-color, #01E7EF) 18%, rgba(0, 0, 0, 0.28)), rgba(0, 0, 0, 0.24)) !important;
+  border-top: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 34%, transparent) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--platform-color, #01E7EF) 18%, transparent) !important;
+}
+
+.accountGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accountGroupHeader strong {
+  display: block;
+  color: color-mix(in srgb, var(--platform-color, #01E7EF) 82%, #ECFFFF);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+}
+
+.accountGroupHeader span {
+  display: block;
+  margin-top: 3px;
+  color: #9BC8CB;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.accountGroupHeader > div:last-child {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.accountGroupHeader button {
+  min-height: 30px !important;
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+  border-radius: 999px !important;
+}
+
+.productCardPro {
+  border-color: color-mix(in srgb, var(--platform-color, #01E7EF) 45%, transparent) !important;
+}
+
+.productCardPro .successButton {
+  background: linear-gradient(135deg, rgba(1, 231, 239, 0.18), rgba(124, 255, 178, 0.12));
+  color: #7cffb2;
+  border-color: rgba(124, 255, 178, 0.32);
+}
+
+@media (max-width: 900px) {
+  .accountGroupHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .accountGroupHeader > div:last-child,
+  .accountGroupHeader button {
+    width: 100%;
+  }
+}
