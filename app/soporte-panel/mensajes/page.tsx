@@ -51,19 +51,31 @@ const PATRON_CODIGO_TEXTO =
 
 const PLATAFORMAS = [
   "Netflix",
+  "Disney Estandar",
+  "Disney Premium",
   "Prime Video",
-  "Disney+",
-  "Crunchyroll",
-  "Vix",
   "Max",
-  "Spotify",
-  "YouTube Premium",
-  "Apple TV",
-  "Deezer",
-  "Tidal",
-  "Rakuten Viki",
   "Paramount+",
+  "Crunchyroll",
+  "Vix Premium",
+  "Rakuten Viki",
+  "Apple TV",
+  "Apple TV + MLS",
+  "Plex",
+  "Universal",
+  "IPTV",
+  "Flujo TV",
+  "DGO",
+  "Movistar",
+  "L1 Max",
+  "Spotify",
+  "Tidal",
+  "Deezer",
+  "Apple Music",
+  "YouTube Premium",
   "Canva",
+  "Surfshark",
+  "Hola VPN",
   "Otro",
 ]
 
@@ -72,100 +84,160 @@ const PALETA_PLATAFORMAS: Record<
   { fondo: string; borde: string; texto: string; brillo: string }
 > = {
   netflix: {
-    fondo: "rgba(1, 231, 239, 0.08)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#01E7EF",
-    brillo: "rgba(1, 231, 239, 0.18)",
+    fondo: "rgba(229, 9, 20, 0.14)",
+    borde: "rgba(229, 9, 20, 0.70)",
+    texto: "#e50914",
+    brillo: "rgba(229, 9, 20, 0.28)",
+  },
+  "disney estandar": {
+    fondo: "rgba(0, 32, 98, 0.34)",
+    borde: "#002062",
+    texto: "#7FA6FF",
+    brillo: "rgba(0, 32, 98, 0.36)",
+  },
+  "disney premium": {
+    fondo: "rgba(0, 178, 187, 0.16)",
+    borde: "rgba(0, 178, 187, 0.72)",
+    texto: "#00b2bb",
+    brillo: "rgba(0, 178, 187, 0.26)",
   },
   "prime video": {
-    fondo: "rgba(0, 251, 255, 0.08)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#00FBFF",
-    brillo: "rgba(0, 251, 255, 0.18)",
-  },
-  "disney+": {
-    fondo: "rgba(1, 139, 144, 0.18)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#ECFFFF",
-    brillo: "rgba(1, 139, 144, 0.18)",
-  },
-  crunchyroll: {
-    fondo: "rgba(1, 231, 239, 0.10)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#01E7EF",
-    brillo: "rgba(1, 231, 239, 0.18)",
-  },
-  vix: {
-    fondo: "rgba(0, 251, 255, 0.10)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#00FBFF",
-    brillo: "rgba(0, 251, 255, 0.18)",
+    fondo: "rgba(0, 122, 255, 0.16)",
+    borde: "rgba(0, 122, 255, 0.72)",
+    texto: "#007aff",
+    brillo: "rgba(0, 122, 255, 0.28)",
   },
   max: {
-    fondo: "rgba(1, 139, 144, 0.16)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#ECFFFF",
-    brillo: "rgba(1, 231, 239, 0.18)",
-  },
-  spotify: {
-    fondo: "rgba(1, 231, 239, 0.08)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#01E7EF",
-    brillo: "rgba(1, 231, 239, 0.18)",
-  },
-  "youtube premium": {
-    fondo: "rgba(0, 251, 255, 0.08)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#00FBFF",
-    brillo: "rgba(0, 251, 255, 0.18)",
-  },
-  "apple tv": {
-    fondo: "rgba(236, 255, 255, 0.08)",
-    borde: "rgba(236, 255, 255, 0.18)",
-    texto: "#ECFFFF",
-    brillo: "rgba(236, 255, 255, 0.12)",
-  },
-  deezer: {
-    fondo: "rgba(1, 231, 239, 0.10)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#01E7EF",
-    brillo: "rgba(1, 231, 239, 0.18)",
-  },
-  tidal: {
-    fondo: "rgba(236, 255, 255, 0.08)",
-    borde: "rgba(236, 255, 255, 0.18)",
-    texto: "#ECFFFF",
-    brillo: "rgba(236, 255, 255, 0.12)",
-  },
-  "rakuten viki": {
-    fondo: "rgba(0, 251, 255, 0.08)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#00FBFF",
-    brillo: "rgba(0, 251, 255, 0.18)",
+    fondo: "rgba(0, 39, 239, 0.18)",
+    borde: "#0027ef",
+    texto: "#4D6DFF",
+    brillo: "rgba(0, 39, 239, 0.32)",
   },
   "paramount+": {
-    fondo: "rgba(1, 139, 144, 0.16)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#ECFFFF",
-    brillo: "rgba(1, 231, 239, 0.18)",
+    fondo: "rgba(0, 104, 255, 0.16)",
+    borde: "rgba(0, 104, 255, 0.72)",
+    texto: "#0068ff",
+    brillo: "rgba(0, 104, 255, 0.28)",
+  },
+  crunchyroll: {
+    fondo: "rgba(255, 88, 0, 0.16)",
+    borde: "rgba(255, 88, 0, 0.76)",
+    texto: "#ff5800",
+    brillo: "rgba(255, 88, 0, 0.30)",
+  },
+  "vix premium": {
+    fondo: "rgba(255, 88, 0, 0.16)",
+    borde: "rgba(255, 88, 0, 0.76)",
+    texto: "#ff5800",
+    brillo: "rgba(255, 88, 0, 0.30)",
+  },
+  "rakuten viki": {
+    fondo: "rgba(0, 157, 255, 0.16)",
+    borde: "rgba(0, 157, 255, 0.72)",
+    texto: "#009dff",
+    brillo: "rgba(0, 157, 255, 0.28)",
+  },
+  "apple tv": {
+    fondo: "rgba(156, 163, 175, 0.14)",
+    borde: "rgba(156, 163, 175, 0.72)",
+    texto: "#9ca3af",
+    brillo: "rgba(156, 163, 175, 0.22)",
+  },
+  "apple tv + mls": {
+    fondo: "rgba(255, 31, 31, 0.16)",
+    borde: "rgba(255, 31, 31, 0.76)",
+    texto: "#ff1f1f",
+    brillo: "rgba(255, 31, 31, 0.30)",
+  },
+  plex: {
+    fondo: "rgba(254, 177, 0, 0.16)",
+    borde: "rgba(254, 177, 0, 0.76)",
+    texto: "#feb100",
+    brillo: "rgba(254, 177, 0, 0.30)",
+  },
+  universal: {
+    fondo: "rgba(255, 255, 0, 0.13)",
+    borde: "rgba(255, 255, 0, 0.70)",
+    texto: "#ffff00",
+    brillo: "rgba(255, 255, 0, 0.26)",
+  },
+  iptv: {
+    fondo: "rgba(84, 64, 235, 0.18)",
+    borde: "rgba(84, 64, 235, 0.76)",
+    texto: "#5440eb",
+    brillo: "rgba(84, 64, 235, 0.32)",
+  },
+  "flujo tv": {
+    fondo: "rgba(255, 98, 36, 0.16)",
+    borde: "rgba(255, 98, 36, 0.76)",
+    texto: "#ff6224",
+    brillo: "rgba(255, 98, 36, 0.30)",
+  },
+  dgo: {
+    fondo: "rgba(0, 176, 242, 0.16)",
+    borde: "rgba(0, 176, 242, 0.72)",
+    texto: "#00b0f2",
+    brillo: "rgba(0, 176, 242, 0.28)",
+  },
+  movistar: {
+    fondo: "rgba(126, 217, 87, 0.16)",
+    borde: "rgba(126, 217, 87, 0.72)",
+    texto: "#7ed957",
+    brillo: "rgba(126, 217, 87, 0.28)",
+  },
+  "l1 max": {
+    fondo: "rgba(255, 31, 31, 0.16)",
+    borde: "rgba(255, 31, 31, 0.76)",
+    texto: "#ff1f1f",
+    brillo: "rgba(255, 31, 31, 0.30)",
+  },
+  spotify: {
+    fondo: "rgba(29, 185, 84, 0.16)",
+    borde: "rgba(29, 185, 84, 0.72)",
+    texto: "#1db954",
+    brillo: "rgba(29, 185, 84, 0.28)",
+  },
+  tidal: {
+    fondo: "rgba(156, 163, 175, 0.14)",
+    borde: "rgba(156, 163, 175, 0.72)",
+    texto: "#9ca3af",
+    brillo: "rgba(156, 163, 175, 0.22)",
+  },
+  deezer: {
+    fondo: "rgba(255, 79, 184, 0.16)",
+    borde: "rgba(255, 79, 184, 0.72)",
+    texto: "#ff4fb8",
+    brillo: "rgba(255, 79, 184, 0.30)",
+  },
+  "apple music": {
+    fondo: "rgba(250, 87, 193, 0.16)",
+    borde: "rgba(250, 87, 193, 0.72)",
+    texto: "#fa57c1",
+    brillo: "rgba(250, 87, 193, 0.30)",
+  },
+  "youtube premium": {
+    fondo: "rgba(255, 0, 0, 0.16)",
+    borde: "rgba(255, 0, 0, 0.72)",
+    texto: "#ff0000",
+    brillo: "rgba(255, 0, 0, 0.30)",
   },
   canva: {
-    fondo: "rgba(1, 231, 239, 0.08)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#01E7EF",
-    brillo: "rgba(1, 231, 239, 0.18)",
+    fondo: "rgba(0, 196, 204, 0.16)",
+    borde: "rgba(0, 196, 204, 0.72)",
+    texto: "#00c4cc",
+    brillo: "rgba(0, 196, 204, 0.28)",
   },
-  "iptv / app tv": {
-    fondo: "rgba(1, 139, 144, 0.16)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#ECFFFF",
-    brillo: "rgba(1, 231, 239, 0.18)",
+  surfshark: {
+    fondo: "rgba(100, 245, 210, 0.14)",
+    borde: "rgba(100, 245, 210, 0.72)",
+    texto: "#64f5d2",
+    brillo: "rgba(100, 245, 210, 0.26)",
   },
-  "app música": {
-    fondo: "rgba(0, 251, 255, 0.08)",
-    borde: "rgba(1, 231, 239, 0.18)",
-    texto: "#00FBFF",
-    brillo: "rgba(0, 251, 255, 0.18)",
+  "hola vpn": {
+    fondo: "rgba(255, 122, 0, 0.16)",
+    borde: "rgba(255, 122, 0, 0.76)",
+    texto: "#ff7a00",
+    brillo: "rgba(255, 122, 0, 0.30)",
   },
   otro: {
     fondo: "rgba(155, 200, 203, 0.10)",
@@ -175,26 +247,40 @@ const PALETA_PLATAFORMAS: Record<
   },
 }
 
+
 const normalizarPlataforma = (valor: string | null | undefined) => {
   const texto = String(valor || "otro").trim().toLowerCase()
 
   if (texto.includes("netflix")) return "netflix"
+  if (texto.includes("disney") && texto.includes("premium")) return "disney premium"
+  if (texto.includes("disney")) return "disney estandar"
   if (texto.includes("prime") || texto.includes("amazon")) return "prime video"
-  if (texto.includes("disney")) return "disney+"
-  if (texto.includes("crunchy")) return "crunchyroll"
-  if (texto.includes("vix")) return "vix"
-  if (texto.includes("max") || texto.includes("hbo")) return "max"
-  if (texto.includes("spotify")) return "spotify"
-  if (texto.includes("youtube")) return "youtube premium"
-  if (texto.includes("apple")) return "apple tv"
-  if (texto.includes("deezer")) return "deezer"
-  if (texto.includes("tidal")) return "tidal"
-  if (texto.includes("viki") || texto.includes("rakuten")) return "rakuten viki"
   if (texto.includes("paramount")) return "paramount+"
+  if (texto.includes("crunchy")) return "crunchyroll"
+  if (texto.includes("vix")) return "vix premium"
+  if (texto.includes("l1")) return "l1 max"
+  if (texto.includes("max") || texto.includes("hbo")) return "max"
+  if (texto.includes("rakuten") || texto.includes("viki")) return "rakuten viki"
+  if (texto.includes("apple") && texto.includes("mls")) return "apple tv + mls"
+  if (texto.includes("apple") && (texto.includes("music") || texto.includes("música") || texto.includes("musica"))) return "apple music"
+  if (texto.includes("apple")) return "apple tv"
+  if (texto.includes("plex")) return "plex"
+  if (texto.includes("universal")) return "universal"
+  if (texto.includes("iptv")) return "iptv"
+  if (texto.includes("flujo")) return "flujo tv"
+  if (texto.includes("dgo")) return "dgo"
+  if (texto.includes("movistar")) return "movistar"
+  if (texto.includes("spotify")) return "spotify"
+  if (texto.includes("tidal")) return "tidal"
+  if (texto.includes("deezer")) return "deezer"
+  if (texto.includes("youtube")) return "youtube premium"
   if (texto.includes("canva")) return "canva"
+  if (texto.includes("surfshark")) return "surfshark"
+  if (texto.includes("hola")) return "hola vpn"
 
   return "otro"
 }
+
 
 const estiloChipPlataforma = (plataforma: string | null | undefined): CSSProperties => {
   const paleta =
@@ -205,7 +291,7 @@ const estiloChipPlataforma = (plataforma: string | null | undefined): CSSPropert
     alignItems: "center",
     width: "fit-content",
     border: `1px solid ${paleta.borde}`,
-    background: paleta.fondo,
+    background: `linear-gradient(135deg, ${paleta.fondo}, rgba(3, 19, 22, 0.78))`,
     color: paleta.texto,
     borderRadius: "999px",
     padding: "7px 11px",
@@ -1093,7 +1179,7 @@ export default function SoporteMensajesPage() {
         </div>
 
         <div style={styles.platformLegend}>
-          {PLATAFORMAS.slice(0, 13).map((plataforma) => (
+          {PLATAFORMAS.map((plataforma) => (
             <span key={plataforma} style={estiloChipPlataforma(plataforma)}>
               {plataforma}
             </span>
@@ -1451,7 +1537,7 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: "18px",
     display: "grid",
     placeItems: "center",
-    background: "linear-gradient(135deg, #01E7EF, #00FBFF)",
+    background: "linear-gradient(135deg, #01E7EF, #00FBFF, #018B90)",
     color: "#000000",
     fontWeight: 1000,
     boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)",
@@ -1463,7 +1549,7 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: "19px",
     display: "grid",
     placeItems: "center",
-    background: "linear-gradient(135deg, #01E7EF, #00FBFF)",
+    background: "linear-gradient(135deg, #01E7EF, #00FBFF, #018B90)",
     color: "#000000",
     fontWeight: 1000,
     margin: "0 auto 18px",
@@ -1795,7 +1881,7 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "linear-gradient(135deg, #01E7EF, #00FBFF)",
+    background: "linear-gradient(135deg, #01E7EF, #00FBFF, #018B90)",
     color: "#000000",
     borderRadius: "14px",
     padding: "11px 14px",
@@ -1824,7 +1910,7 @@ const styles: Record<string, CSSProperties> = {
   },
   buttonPrimary: {
     border: "none",
-    background: "linear-gradient(135deg, #01E7EF, #00FBFF)",
+    background: "linear-gradient(135deg, #01E7EF, #00FBFF, #018B90)",
     color: "#000000",
     borderRadius: "15px",
     padding: "13px 16px",
