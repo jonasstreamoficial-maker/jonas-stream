@@ -1682,3 +1682,73 @@
     min-height: 44px !important;
   }
 }
+
+/* =====================================================
+   V4 - Ajuste final solicitado
+   - Separación uniforme entre cabecera, pestañas y formulario
+   - Marca lateral JONAS STREAM más separada del contenido
+   ===================================================== */
+
+.editorShell {
+  --editor-section-gap: 14px;
+}
+
+@media (min-width: 901px) {
+  .editorSideBrand {
+    left: clamp(-180px, -8vw, -112px) !important;
+    color: rgba(1, 231, 239, 0.13) !important;
+    text-shadow:
+      0 0 18px rgba(0, 251, 255, 0.08),
+      0 0 34px rgba(0, 251, 255, 0.05) !important;
+  }
+
+  .editorSideBrandRight {
+    right: clamp(-180px, -8vw, -112px) !important;
+  }
+}
+
+@media (max-width: 1500px) and (min-width: 901px) {
+  .editorSideBrand {
+    display: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .mobileStickyHeader {
+    margin-bottom: var(--editor-section-gap) !important;
+    padding-bottom: 0 !important;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.99) 0%, rgba(3, 19, 22, 0.99) 100%) !important;
+  }
+
+  .mobileStickyHeader .editorTopbar {
+    margin-bottom: var(--editor-section-gap) !important;
+  }
+
+  .mobileGroupTabs {
+    margin: 0 !important;
+  }
+
+  .workspace {
+    margin-top: 0 !important;
+  }
+
+  .editorPanel {
+    margin-top: 0 !important;
+  }
+
+  .formCard {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileStickyHeader {
+    margin-bottom: var(--editor-section-gap) !important;
+    padding-bottom: 0 !important;
+  }
+
+  .mobileStickyHeader .editorTopbar {
+    margin-bottom: var(--editor-section-gap) !important;
+  }
+}
