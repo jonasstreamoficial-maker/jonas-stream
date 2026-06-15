@@ -48,33 +48,52 @@ const benefits = [
   {
     number: "01",
     title: "Comunidad privada",
-    text: "Forma parte del grupo exclusivo de socios revendedores para recibir soporte, guía y novedades del negocio.",
+    text: "Forma parte del grupo exclusivo de socios revendedores para recibir soporte, guía, novedades y acompañamiento real del negocio.",
   },
   {
     number: "02",
     title: "Catálogo exclusivo",
-    text: "Accede a precios rebajados, promociones especiales y mejores condiciones que el público general.",
+    text: "Accede a precios rebajados, promociones especiales y mejores condiciones que el público general para revender con margen.",
   },
   {
     number: "03",
     title: "Publicidad editable",
-    text: "Obtén material visual editable para publicar más profesional y vender con una mejor imagen.",
+    text: "Obtén material visual editable para publicar más profesional, captar clientes y vender con una mejor imagen.",
   },
   {
     number: "04",
     title: "Ganancias por reventa",
-    text: "Compras a precio socio y revendes por perfil o cuenta para generar ingresos con buena rentabilidad.",
+    text: "Compras a precio socio y revendes por perfil o cuenta para generar ingresos con buena rentabilidad desde el primer día.",
   },
   {
     number: "05",
     title: "Soporte y orientación",
-    text: "No empiezas solo. Recibes acompañamiento para entender cómo funciona la dinámica de compra, venta y activación.",
+    text: "No empiezas solo. Recibes acompañamiento para entender cómo funciona la compra, venta, activación y atención al cliente.",
   },
   {
     number: "06",
-    title: "Oportunidad de afiliación",
-    text: "También puedes recomendar el acceso a otros y ganar activando nuevos socios dentro de la comunidad.",
+    title: "Afiliación de socios",
+    text: "También puedes recomendar el acceso a otras personas y ganar afiliando nuevos socios a la comunidad.",
   },
+];
+
+const pricingLeft = [
+  "Catálogo VIP con precios rebajados.",
+  "Promociones más accesibles que al público general.",
+  "Comunidad privada de socios.",
+];
+
+const pricingRight = [
+  "Plantilla de Excel Premium para el control de ventas profesional.",
+  "Publicidad editable en Canva PRO.",
+  "Oportunidad de generar ingresos desde casa.",
+];
+
+const affiliateBenefits = [
+  "Catálogo exclusivo",
+  "Promociones activas",
+  "Comunidad privada",
+  "Material publicitario",
 ];
 
 const legalCopy: Record<Exclude<LegalModal, null>, LegalCopyItem> = {
@@ -493,6 +512,9 @@ export default function QuieroSerSocioPage() {
                 Accede a un catálogo exclusivo con excelentes precios, actualizado constantemente,
                 y una plantilla de Excel para organizar tus ventas de forma profesional.
               </p>
+              <Link href="/ver-precios" className={styles.vipLink}>
+                VER PRECIOS VIP
+              </Link>
             </article>
           </div>
         </section>
@@ -505,7 +527,7 @@ export default function QuieroSerSocioPage() {
 
           <div className={styles.benefitsGrid}>
             {benefits.map((benefit) => (
-              <article key={benefit.number} className={styles.benefitCard}>
+              <article key={benefit.number} className={`${styles.benefitCard} ${styles.dynamicBenefit}`}>
                 <div className={styles.benefitNumber}>{benefit.number}</div>
                 <h3>{benefit.title}</h3>
                 <p>{benefit.text}</p>
@@ -528,14 +550,54 @@ export default function QuieroSerSocioPage() {
               <div className={styles.rateInline}>Tipo de cambio manual: 1 USD = S/ {USD_RATE}</div>
             </div>
 
-            <div className={styles.pricingList}>
-              <div className={styles.pricingItem}>✅ Catálogo exclusivo con precios rebajados</div>
-              <div className={styles.pricingItem}>
-                ✅ Promociones más accesibles que al público general
+            <div className={styles.pricingListTwoColumns}>
+              <div className={styles.pricingColumn}>
+                {pricingLeft.map((item) => (
+                  <div key={item} className={styles.pricingItem}>✅ {item}</div>
+                ))}
               </div>
-              <div className={styles.pricingItem}>✅ Comunidad privada de socios</div>
-              <div className={styles.pricingItem}>✅ Publicidad editable en Canva PRO</div>
-              <div className={styles.pricingItem}>✅ Oportunidad de generar ingresos desde casa</div>
+
+              <div className={styles.pricingColumn}>
+                {pricingRight.map((item) => (
+                  <div key={item} className={styles.pricingItem}>✅ {item}</div>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.affiliateBox}>
+              <div className={styles.affiliateHeader}>
+                <span>AFILIACIÓN ADICIONAL</span>
+                <h3>Además de vender, también podrás afiliar</h3>
+                <p>
+                  Recomiendas la comunidad a un amigo o familiar y tú decides cuánto cobrarle por
+                  inscripción. Puede ser <strong>S/10, S/20 o S/30</strong>.
+                </p>
+              </div>
+
+              <div className={styles.affiliateGrid}>
+                <div className={styles.affiliateStep}>
+                  <strong>01</strong>
+                  <p>Nosotros solo cobramos <b>S/5</b> por activar al nuevo socio.</p>
+                </div>
+
+                <div className={styles.affiliateStep}>
+                  <strong>02</strong>
+                  <p>El nuevo socio recibe los mismos beneficios principales que tú.</p>
+                </div>
+
+                <div className={styles.affiliateStep}>
+                  <strong>03</strong>
+                  <p>Ganas vendiendo plataformas y también recomendando nuevos socios.</p>
+                </div>
+              </div>
+
+              <div className={styles.affiliateBenefits}>
+                {affiliateBenefits.map((benefit) => (
+                  <span key={benefit}>✅ {benefit}</span>
+                ))}
+              </div>
+
+              <p className={styles.affiliateFinal}>Hoy puedes empezar a ganar vendiendo y recomendando.</p>
             </div>
 
             <div className={styles.pricingActions}>
