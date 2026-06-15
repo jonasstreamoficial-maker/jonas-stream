@@ -364,7 +364,7 @@ export default function QuieroSerSocioPage() {
             </Link>
 
             <Link href="/ver-precios" className={styles.topLinkPrimary}>
-              VER PRECIOS
+              VER PRECIOS VIP
             </Link>
 
             <a
@@ -405,7 +405,7 @@ export default function QuieroSerSocioPage() {
             </a>
 
             <Link href="/ver-precios" className={styles.heroBtnSecondary}>
-              VER PRECIOS
+              VER PRECIOS VIP
             </Link>
           </div>
         </section>
