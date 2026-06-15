@@ -264,6 +264,97 @@ const factoryContent: SocioContent = {
   footerText: "© 2026 Jonas Stream. Todos los derechos reservados.",
 };
 
+
+const termsSections = [
+  {
+    title: "1. Condiciones generales de uso",
+    paragraphs: [
+      "El uso de esta página implica la aceptación de estos términos y condiciones. La información publicada corresponde a la oferta comercial vigente de Jonas Stream y puede actualizarse sin aviso previo.",
+      "Los precios, promociones, beneficios y disponibilidad de plataformas pueden variar según stock, condiciones del proveedor y cambios propios de cada servicio digital.",
+    ],
+  },
+  {
+    title: "2. Servicio para socios revendedores",
+    paragraphs: [
+      "El acceso de socio permite recibir información comercial, catálogo de precios, orientación básica y material de apoyo para la reventa de servicios digitales disponibles.",
+      "La participación como socio no constituye relación laboral, sociedad legal ni representación exclusiva. Cada socio gestiona sus ventas de forma independiente y responsable.",
+    ],
+  },
+  {
+    title: "3. Pagos, activación y entrega",
+    paragraphs: [
+      "Toda activación se procesa después de validar el pago por los canales oficiales. El usuario debe enviar datos correctos para evitar retrasos en la atención.",
+      "Los tiempos de entrega pueden variar por demanda, disponibilidad, revisión de pagos, incidencias técnicas o validaciones de seguridad.",
+    ],
+  },
+  {
+    title: "4. Uso correcto de cuentas y accesos",
+    paragraphs: [
+      "El cliente o socio debe usar los accesos entregados de forma responsable. No está permitido cambiar correos, claves, datos de recuperación, perfiles, PIN o configuraciones sin autorización.",
+      "El mal uso, reventa no autorizada fuera de las condiciones indicadas, cambios indebidos o manipulación de accesos puede generar suspensión del soporte o pérdida de garantía.",
+    ],
+  },
+  {
+    title: "5. Garantías, soporte y responsabilidad",
+    paragraphs: [
+      "El soporte se brinda por los canales oficiales indicados en la página. La garantía aplica según el tipo de producto, plazo informado y condiciones específicas de cada plataforma.",
+      "Jonas Stream no se responsabiliza por fallas externas de plataformas, caídas del servicio, cambios de políticas, bloqueos por uso indebido o problemas ocasionados por datos incorrectos enviados por el usuario.",
+    ],
+  },
+  {
+    title: "6. Promociones y afiliación",
+    paragraphs: [
+      "Las promociones son temporales y pueden finalizar, modificarse o renovarse según criterio comercial. La afiliación de nuevos socios depende de las condiciones vigentes al momento de la inscripción.",
+      "Los beneficios ofrecidos al nuevo socio se entregan conforme al plan, promoción o acceso disponible al momento de su activación.",
+    ],
+  },
+  {
+    title: "7. Contacto oficial",
+    paragraphs: [
+      "Para consultas, reclamos, activaciones o soporte, el usuario debe comunicarse únicamente mediante los canales oficiales de Jonas Stream indicados en esta página.",
+    ],
+  },
+];
+
+const privacySections = [
+  {
+    title: "1. Información que recopilamos",
+    paragraphs: [
+      "Podemos recopilar datos básicos necesarios para atender solicitudes, procesar activaciones y brindar soporte: nombre, número de WhatsApp, usuario de redes sociales, datos de contacto, comprobantes de pago e información necesaria para el servicio solicitado.",
+    ],
+  },
+  {
+    title: "2. Uso de la información",
+    paragraphs: [
+      "La información se utiliza únicamente para validar pagos, coordinar activaciones, entregar accesos, brindar soporte técnico, comunicar novedades del servicio y mantener un historial básico de atención al cliente.",
+    ],
+  },
+  {
+    title: "3. Protección de datos",
+    paragraphs: [
+      "Aplicamos medidas razonables de seguridad para proteger la información recibida y evitar accesos no autorizados, pérdida, alteración o uso indebido de los datos del cliente.",
+    ],
+  },
+  {
+    title: "4. No venta de datos",
+    paragraphs: [
+      "Jonas Stream no vende, alquila ni comparte datos personales con terceros para fines comerciales externos. La información solo se usa para la atención y gestión del servicio solicitado.",
+    ],
+  },
+  {
+    title: "5. Conservación de información",
+    paragraphs: [
+      "Los datos pueden conservarse durante el tiempo necesario para control interno, soporte, validación de pagos, historial de atención y cumplimiento de obligaciones aplicables.",
+    ],
+  },
+  {
+    title: "6. Derechos del usuario",
+    paragraphs: [
+      "El usuario puede solicitar actualización, corrección o eliminación de sus datos comunicándose por los canales oficiales de Jonas Stream. La atención de estas solicitudes se realizará conforme a la disponibilidad operativa y condiciones legales aplicables.",
+    ],
+  },
+];
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -534,16 +625,22 @@ export default function QuieroSerSocioPage() {
               </button>
             </header>
             <div className={styles.legalBody}>
-              <span className={styles.legalDate}>Actualizado 2026</span>
+              <span className={styles.legalDate}>Última actualización: 2026</span>
               <p className={styles.legalIntro}>
-                Esta sección mantiene la información legal básica de Jonas Stream. Luego puedes conectarla al editor legal independiente.
+                {legalModal === "terms"
+                  ? "Estos términos regulan el uso de la página, promociones, accesos, beneficios y atención comercial de Jonas Stream."
+                  : "En Jonas Stream respetamos la privacidad de nuestros clientes y protegemos sus datos personales."}
               </p>
-              <section className={styles.legalSection}>
-                <h3>{legalModal === "terms" ? "Condiciones de uso" : "Privacidad"}</h3>
-                <p>
-                  El contenido, precios, promociones y beneficios pueden variar según disponibilidad. La atención se realiza por los canales oficiales indicados en la página.
-                </p>
-              </section>
+
+              {(legalModal === "terms" ? termsSections : privacySections).map((section) => (
+                <section key={section.title} className={styles.legalSection}>
+                  <h3>{section.title}</h3>
+                  {section.paragraphs.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </section>
+              ))}
+
               <div className={styles.legalNotice}>Para consultas específicas, comunícate por WhatsApp con Jonas Stream.</div>
             </div>
           </article>
