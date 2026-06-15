@@ -506,7 +506,17 @@ export default function PortadaEditorPage() {
   return (
     <>
       <main className={styles.editorShell}>
-      <div className={styles.mobileStickyHeader}>
+        <span className={styles.editorSideBrand} aria-hidden="true">
+          {draft.sideBrandText || "JONAS STREAM"}
+        </span>
+        <span
+          className={`${styles.editorSideBrand} ${styles.editorSideBrandRight}`}
+          aria-hidden="true"
+        >
+          {draft.sideBrandText || "JONAS STREAM"}
+        </span>
+
+        <div className={styles.mobileStickyHeader}>
         <section className={styles.editorTopbar}>
           <div>
             <p className={styles.kicker}>EDITOR WEB / PORTADA</p>
