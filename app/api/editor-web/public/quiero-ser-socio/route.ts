@@ -5,7 +5,6 @@ const PAGE_SLUG = "quiero-ser-socio";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -13,7 +12,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("web_pages")
-      .select("slug,published_content,updated_at,published_at")
+      .select("published_content,published_at,updated_at")
       .eq("slug", PAGE_SLUG)
       .maybeSingle();
 
@@ -21,26 +20,27 @@ export async function GET() {
       throw error;
     }
 
+    const content = data?.published_content || {};
+
     return NextResponse.json(
       {
         ok: true,
-        slug: data?.slug || PAGE_SLUG,
-        content: data?.published_content || {},
-        updatedAt: data?.updated_at || null,
+        content,
+        publishedContent: content,
         publishedAt: data?.published_at || null,
+        updatedAt: data?.updated_at || null,
       },
       {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-          Pragma: "no-cache",
-          Expires: "0",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
         },
       }
     );
   } catch (error) {
     console.error("GET /api/editor-web/public/quiero-ser-socio", error);
+
     return NextResponse.json(
-      { ok: false, error: "No se pudo cargar Quiero ser socio publicado." },
+      { error: "No se pudo cargar el contenido publicado." },
       { status: 500 }
     );
   }
