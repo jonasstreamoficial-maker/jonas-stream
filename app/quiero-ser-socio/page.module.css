@@ -3351,3 +3351,163 @@
     animation: none !important;
   }
 }
+
+/* ==========================================================
+   FIX FINAL V7 - SOLO BOTÓN HERO "QUIERO SER SOCIO"
+   Aplica el estilo premium cyan de la portada únicamente
+   al botón marcado dentro del bloque principal.
+   ========================================================== */
+
+.heroActions .heroBtnPrimary {
+  position: relative !important;
+  z-index: 1 !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  color: #ecffff !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.24), transparent 64%),
+    linear-gradient(
+      135deg,
+      rgba(1, 231, 239, 0.35),
+      rgba(1, 139, 144, 0.18)
+    ) !important;
+  border-color: rgba(1, 231, 239, 0.46) !important;
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.16),
+    0 0 18px rgba(1, 231, 239, 0.26),
+    0 0 42px rgba(0, 251, 255, 0.12),
+    inset 0 0 22px rgba(0, 251, 255, 0.055) !important;
+  text-shadow:
+    0 0 8px rgba(236, 255, 255, 0.24),
+    0 0 16px rgba(0, 251, 255, 0.18) !important;
+  animation: heroSocioPulseV7 2.7s ease-in-out infinite !important;
+}
+
+.heroActions .heroBtnPrimary::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  border-radius: inherit !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(0, 251, 255, 0.42),
+      transparent 42%,
+      rgba(0, 251, 255, 0.38)
+    ) !important;
+  z-index: -1 !important;
+  opacity: 0.5 !important;
+  filter: blur(0.35px) !important;
+  pointer-events: none !important;
+  transition: opacity 0.28s ease !important;
+}
+
+.heroActions .heroBtnPrimary::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -80% -35% !important;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 36%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 64%
+    ) !important;
+  transform: translateX(-72%) !important;
+  animation: heroSocioSweepV7 3.7s ease-in-out infinite !important;
+  pointer-events: none !important;
+}
+
+.heroActions .heroBtnPrimary:hover {
+  transform: translateY(-4px) scale(1.03) !important;
+  letter-spacing: 1px !important;
+  border-color: rgba(0, 251, 255, 0.78) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.34), transparent 64%),
+    linear-gradient(
+      135deg,
+      rgba(1, 231, 239, 0.44),
+      rgba(1, 139, 144, 0.22)
+    ) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.3),
+    0 0 28px rgba(0, 251, 255, 0.38),
+    0 0 64px rgba(0, 251, 255, 0.22),
+    inset 0 0 28px rgba(0, 251, 255, 0.09) !important;
+}
+
+.heroActions .heroBtnPrimary:hover::after {
+  opacity: 0.78 !important;
+}
+
+.heroActions .heroBtnPrimary:active {
+  transform: translateY(1px) scale(0.98) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.18),
+    0 0 18px rgba(0, 251, 255, 0.25),
+    inset 0 0 18px rgba(0, 251, 255, 0.07) !important;
+}
+
+@keyframes heroSocioPulseV7 {
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow:
+      0 0 0 1px rgba(1, 231, 239, 0.16),
+      0 0 18px rgba(1, 231, 239, 0.24),
+      0 0 42px rgba(0, 251, 255, 0.1),
+      inset 0 0 22px rgba(0, 251, 255, 0.055);
+  }
+
+  50% {
+    filter: brightness(1.18);
+    box-shadow:
+      0 0 0 1px rgba(0, 251, 255, 0.3),
+      0 0 30px rgba(0, 251, 255, 0.42),
+      0 0 72px rgba(0, 251, 255, 0.22),
+      inset 0 0 28px rgba(0, 251, 255, 0.1);
+  }
+}
+
+@keyframes heroSocioSweepV7 {
+  0%,
+  44% {
+    transform: translateX(-72%);
+    opacity: 0;
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(72%);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .heroActions .heroBtnPrimary {
+    min-width: 0 !important;
+    width: 100% !important;
+    animation: heroSocioPulseV7 3.1s ease-in-out infinite !important;
+  }
+
+  .heroActions .heroBtnPrimary:hover {
+    transform: none !important;
+    letter-spacing: 0.4px !important;
+  }
+}
+
+@media (hover: none) {
+  .heroActions .heroBtnPrimary:hover {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroActions .heroBtnPrimary,
+  .heroActions .heroBtnPrimary::before {
+    animation: none !important;
+  }
+}
