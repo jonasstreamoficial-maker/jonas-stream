@@ -3103,3 +3103,251 @@
     animation: none !important;
   }
 }
+
+/* ==========================================================
+   FIX FINAL V6 - SOLO DETALLES FINALES
+   Plataforma con brillo tipo botón principal + beneficios rojo/cyan.
+   Pegar al final. No cambia estructura responsive.
+   ========================================================== */
+
+/* Asegura que el botón superior QUIERO SER SOCIO use clase brillante */
+.topLinkSocio {
+  position: relative !important;
+  overflow: hidden !important;
+  color: #ffffff !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 255, 136, 0.32), transparent 64%),
+    linear-gradient(135deg, rgba(29, 185, 84, 0.34), rgba(0, 255, 136, 0.16)) !important;
+  border-color: rgba(0, 255, 136, 0.68) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.18),
+    0 0 20px rgba(0, 255, 136, 0.34),
+    0 0 46px rgba(0, 255, 136, 0.14),
+    inset 0 0 22px rgba(0, 255, 136, 0.08) !important;
+  animation: socioButtonBreathV6 2.25s ease-in-out infinite !important;
+}
+
+.topLinkSocio::after {
+  content: "";
+  position: absolute;
+  inset: -80% -35%;
+  background: linear-gradient(
+    115deg,
+    transparent 36%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 64%
+  );
+  transform: translateX(-72%);
+  animation: socioButtonSweepV6 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.topLinkSocio:hover {
+  transform: translateY(-3px) scale(1.018) !important;
+  border-color: rgba(0, 255, 136, 0.95) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.28),
+    0 0 34px rgba(0, 255, 136, 0.48),
+    0 0 80px rgba(0, 255, 136, 0.24),
+    inset 0 0 30px rgba(0, 255, 136, 0.12) !important;
+}
+
+@keyframes socioButtonBreathV6 {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes socioButtonSweepV6 {
+  0%, 42% {
+    transform: translateX(-72%);
+    opacity: 0;
+  }
+  52% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(72%);
+    opacity: 0;
+  }
+}
+
+/* Plataformas: brillo/parpadeo tipo botón, con color de cada marca */
+.platformCard {
+  animation: platformBreathV6 3.2s ease-in-out infinite !important;
+  cursor: pointer !important;
+}
+
+.platformCard:nth-child(1) { animation-delay: 0s !important; }
+.platformCard:nth-child(2) { animation-delay: .14s !important; }
+.platformCard:nth-child(3) { animation-delay: .28s !important; }
+.platformCard:nth-child(4) { animation-delay: .42s !important; }
+.platformCard:nth-child(5) { animation-delay: .56s !important; }
+.platformCard:nth-child(6) { animation-delay: .70s !important; }
+.platformCard:nth-child(7) { animation-delay: .84s !important; }
+.platformCard:nth-child(8) { animation-delay: .98s !important; }
+.platformCard:nth-child(9) { animation-delay: 1.12s !important; }
+.platformCard:nth-child(10) { animation-delay: 1.26s !important; }
+
+.platformCard::after {
+  opacity: 0.95 !important;
+  animation: platformSweepV6 4.6s ease-in-out infinite !important;
+}
+
+.platformCard:hover {
+  transform: translateY(-6px) scale(1.025) !important;
+  border-color: rgba(var(--app-rgb), 0.9) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(var(--app-rgb), 0.42), transparent 66%),
+    linear-gradient(180deg, rgba(var(--app-rgb), 0.20), rgba(3, 19, 22, 0.98)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.045),
+    inset 0 0 30px rgba(var(--app-rgb), 0.16),
+    0 0 0 1px rgba(var(--app-rgb), 0.2),
+    0 0 34px rgba(var(--app-rgb), 0.38),
+    0 0 76px rgba(var(--app-rgb), 0.18),
+    0 22px 38px rgba(0, 0, 0, 0.3) !important;
+}
+
+@keyframes platformBreathV6 {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 255, 255, 0.018),
+      0 0 0 1px rgba(var(--app-rgb), 0.06),
+      0 0 16px rgba(var(--app-rgb), 0.12),
+      0 14px 28px rgba(0, 0, 0, 0.18);
+  }
+  50% {
+    filter: brightness(1.14);
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 255, 255, 0.032),
+      0 0 0 1px rgba(var(--app-rgb), 0.16),
+      0 0 28px rgba(var(--app-rgb), 0.28),
+      0 0 56px rgba(var(--app-rgb), 0.12),
+      0 18px 32px rgba(0, 0, 0, 0.24);
+  }
+}
+
+@keyframes platformSweepV6 {
+  0%, 44% {
+    transform: translateX(-70%);
+    opacity: 0;
+  }
+  54% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(70%);
+    opacity: 0;
+  }
+}
+
+/* Primer beneficio: al pasar mouse queda ROJO con borde completo brillante */
+.netflixCard {
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background 0.28s ease,
+    filter 0.28s ease !important;
+}
+
+.netflixCard:hover {
+  transform: translateY(-7px) scale(1.012) !important;
+  border-color: rgba(229, 9, 20, 0.82) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(229, 9, 20, 0.18), transparent 52%),
+    radial-gradient(circle at 18% 100%, rgba(229, 9, 20, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(26, 5, 8, 0.92), rgba(3, 19, 22, 0.99)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 0 34px rgba(229, 9, 20, 0.08),
+    0 0 0 1px rgba(229, 9, 20, 0.18),
+    0 0 34px rgba(229, 9, 20, 0.36),
+    0 0 74px rgba(229, 9, 20, 0.18),
+    0 24px 48px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Segundo beneficio: ya no verde, ahora color Jonas/cyan */
+.greenCard {
+  border: 2px solid rgba(1, 231, 239, 0.34) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.1), transparent 58%),
+    linear-gradient(180deg, rgba(7, 27, 30, 0.9), rgba(3, 19, 22, 0.99)) !important;
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.08),
+    0 0 26px rgba(1, 231, 239, 0.11),
+    0 18px 34px rgba(0, 0, 0, 0.18) !important;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background 0.28s ease,
+    filter 0.28s ease !important;
+}
+
+.greenCard .infoKicker {
+  color: var(--cyan) !important;
+  border-color: rgba(1, 231, 239, 0.26) !important;
+  background: rgba(1, 231, 239, 0.1) !important;
+}
+
+.greenCard:hover {
+  transform: translateY(-7px) scale(1.012) !important;
+  border-color: rgba(0, 251, 255, 0.72) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.18), transparent 54%),
+    radial-gradient(circle at 18% 100%, rgba(1, 139, 144, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(7, 27, 30, 0.94), rgba(3, 19, 22, 0.99)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 0 34px rgba(0, 251, 255, 0.08),
+    0 0 0 1px rgba(0, 251, 255, 0.16),
+    0 0 34px rgba(0, 251, 255, 0.32),
+    0 0 72px rgba(1, 231, 239, 0.18),
+    0 24px 48px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Botón VER PRECIOS VIP: color Jonas, no verde */
+.vipLink {
+  color: var(--white) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.18), transparent 66%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.24), rgba(1, 139, 144, 0.16)) !important;
+  border-color: rgba(1, 231, 239, 0.34) !important;
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.1),
+    0 0 18px rgba(1, 231, 239, 0.16),
+    inset 0 0 18px rgba(1, 231, 239, 0.045) !important;
+}
+
+.vipLink:hover {
+  border-color: rgba(0, 251, 255, 0.76) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.16),
+    0 0 28px rgba(0, 251, 255, 0.3),
+    0 0 58px rgba(1, 231, 239, 0.18),
+    0 18px 32px rgba(0, 0, 0, 0.24) !important;
+}
+
+@media (hover: none) {
+  .platformCard:hover,
+  .netflixCard:hover,
+  .greenCard:hover,
+  .vipLink:hover {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platformCard,
+  .platformCard::after,
+  .topLinkSocio,
+  .topLinkSocio::after {
+    animation: none !important;
+  }
+}

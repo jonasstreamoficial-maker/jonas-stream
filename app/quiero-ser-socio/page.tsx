@@ -507,10 +507,10 @@ export default function QuieroSerSocioPage() {
 
             <article className={`${styles.infoCard} ${styles.greenCard}`}>
               <span className={styles.infoKicker}>SEGUNDO BENEFICIO</span>
-              <h3>Catálogo + Control Profesional</h3>
+              <h3>Catálogo VIP</h3>
               <p>
-                Accede a un catálogo exclusivo con excelentes precios, actualizado constantemente,
-                y una plantilla de Excel para organizar tus ventas de forma profesional.
+                Accede a un catálogo VIP con excelentes precios, actualizado constantemente,
+                para revender y tener un buen margen de ganancia.
               </p>
               <Link href="/ver-precios" className={styles.vipLink}>
                 VER PRECIOS VIP
