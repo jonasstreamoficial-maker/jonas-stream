@@ -44,7 +44,7 @@ const PATRON_PASSWORD_TEXTO =
   /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password|set new password|establecer contraseña|nueva contraseña|reset your password|password reset/i
 
 const PATRON_CODIGO_TEXTO =
-  /c[oó]digo|code|verification|verificaci[oó]n|security code|one[-\s]?time|passcode|otp|inicio de sesi[oó]n|sign[-\s]?in|login|acceso|hogar|household/i
+  /c[oó]digo|code|verification|verificaci[oó]n|security code|one[-\s]?time|one time|passcode|otp|inicio de sesi[oó]n|sign[-\s]?in|login|acceso|hogar|household|clave de un solo uso|clave.*uso|un solo uso/i
 
 function limpiarTextoSeguro(valor: unknown, maxLength = 10000) {
   if (valor === null || valor === undefined) return null
@@ -89,28 +89,28 @@ function decodificarEntidadesBasicas(valor: string) {
     .replace(/&gt;/gi, ">")
 }
 
-function decodificarTracking(valor: string) {
-  try {
-    let texto = decodificarEntidadesBasicas(valor)
+function escapeHtml(valor: string | number | null | undefined) {
+  if (valor === null || valor === undefined) return ""
 
-    texto = texto
-      .replace(/-2F/gi, "%2F")
-      .replace(/-3A/gi, "%3A")
-      .replace(/-3D/gi, "%3D")
-      .replace(/-26/gi, "%26")
-      .replace(/-3F/gi, "%3F")
-      .replace(/-2B/gi, "%2B")
-      .replace(/-25/gi, "%25")
-      .replace(/-40/gi, "%40")
-
-    return decodeURIComponent(texto)
-  } catch {
-    return decodificarEntidadesBasicas(valor)
-  }
+  return String(valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
 }
 
-function limpiarUrl(url: string) {
-  return decodificarTracking(url)
+/*
+  IMPORTANTE:
+  No decodificar ni modificar links tracking como:
+  - link.vix.com/ls/click
+  - links.mail.crunchyroll.com/ls/click
+  - ablink.alerts.hbomax.com/ls/click
+
+  Si se reemplaza -2F, -3D, etc. dentro del token, el link queda inválido.
+*/
+function limpiarUrlPreservandoTracking(url: string) {
+  return decodificarEntidadesBasicas(url)
     .replace(/[)\].,;]+$/g, "")
     .trim()
 }
@@ -124,15 +124,14 @@ function quitarHtml(valor: string) {
     .trim()
 }
 
-function escapeHtml(valor: string | number | null | undefined) {
-  if (valor === null || valor === undefined) return ""
-
-  return String(valor)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
+function limpiarResumen(valor: string) {
+  return quitarHtml(valor)
+    .replace(/@font-face[\s\S]{0,900}?}/gi, " ")
+    .replace(/font-family:[^;\n]+;?/gi, " ")
+    .replace(/src:\s*local\([^)]+\)[^;\n]*;?/gi, " ")
+    .replace(/\(\s*\)/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
 }
 
 function detectarPlataforma(correoDestino: string, texto: string) {
@@ -161,8 +160,9 @@ function detectarPlataforma(correoDestino: string, texto: string) {
 function esFechaOCodigoFalso(codigo: string) {
   const limpio = codigo.replace(/\D/g, "")
 
-  if (/^20\d{6}$/.test(limpio)) return true // 20260615
+  if (/^20\d{6}$/.test(limpio)) return true
   if (/^19\d{6}$/.test(limpio)) return true
+
   if (/^\d{8}$/.test(limpio)) {
     const yyyy = Number(limpio.slice(0, 4))
     const mm = Number(limpio.slice(4, 6))
@@ -180,9 +180,10 @@ function extraerCodigo(texto: string) {
   const base = (texto || "").replace(/\s+/g, " ").trim()
 
   const patronesDirectos = [
-    /(?:c[oó]digo|code|verification code|security code|one[-\s]?time code|sign[-\s]?in code|login code|passcode|otp).{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /(?:ingresa|introduce|usa|utiliza|enter|use).{0,120}?(\d[\d\s-]{2,14}\d).{0,80}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio)/iu,
-    /(?:hogar|household|home).{0,120}?(\d[\d\s-]{2,14}\d)/iu,
+    /(?:c[oó]digo|code|verification code|security code|one[-\s]?time code|one time code|sign[-\s]?in code|login code|passcode|otp|clave de un solo uso|clave.{0,30}uso).{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /(?:ingresa|introduce|usa|utiliza|enter|use).{0,140}?(\d[\d\s-]{2,14}\d).{0,100}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave)/iu,
+    /(?:hogar|household|home).{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /(\d[\d\s-]{2,14}\d).{0,120}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave|hogar|household|home)/iu,
   ]
 
   for (const patron of patronesDirectos) {
@@ -197,7 +198,6 @@ function extraerCodigo(texto: string) {
     }
   }
 
-  // Fallback controlado: solo si el asunto/cuerpo tiene contexto fuerte de código.
   if (!PATRON_CODIGO_TEXTO.test(base)) return null
 
   const matchLibre = base.match(/\b(\d(?:[\s-]?\d){3,7})\b/u)
@@ -217,11 +217,11 @@ function agregarLinkDetectado(
   urlOriginal: string,
   contextoOriginal: string
 ) {
-  const url = limpiarUrl(urlOriginal)
+  const url = limpiarUrlPreservandoTracking(urlOriginal)
 
   if (!url || !/^https?:\/\//i.test(url)) return
 
-  const contexto = quitarHtml(contextoOriginal || "").slice(0, 1000)
+  const contexto = limpiarResumen(contextoOriginal || "").slice(0, 1200)
   const existente = mapa.get(url)
 
   if (!existente) {
@@ -243,7 +243,6 @@ function extraerUrlRealDesdeParametros(url: string) {
     for (const clave of [
       "url",
       "u",
-      "upn",
       "target",
       "redirect",
       "redirect_uri",
@@ -258,16 +257,16 @@ function extraerUrlRealDesdeParametros(url: string) {
 
       if (!valor) continue
 
-      const decodificado = limpiarUrl(valor)
+      const decodificado = decodificarEntidadesBasicas(valor).trim()
 
       if (/^https?:\/\//i.test(decodificado)) {
-        resultados.push(decodificado)
+        resultados.push(limpiarUrlPreservandoTracking(decodificado))
       }
 
       const matchInterno = decodificado.match(/https?:\/\/[^\s"'<>]+/i)
 
       if (matchInterno?.[0]) {
-        resultados.push(limpiarUrl(matchInterno[0]))
+        resultados.push(limpiarUrlPreservandoTracking(matchInterno[0]))
       }
     }
   } catch {
@@ -279,7 +278,7 @@ function extraerUrlRealDesdeParametros(url: string) {
 
 function extraerLinksDetectados(texto: string, html?: string | null) {
   const links = new Map<string, LinkDetectado>()
-  const fuentes = [texto || "", html || ""].filter(Boolean)
+  const fuentes = [html || "", texto || ""].filter(Boolean)
 
   for (const fuente of fuentes) {
     const limpio = decodificarEntidadesBasicas(fuente)
@@ -290,7 +289,7 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
     let hrefMatch: RegExpExecArray | null
 
     while ((hrefMatch = hrefRegex.exec(limpio)) !== null) {
-      const url = limpiarUrl(hrefMatch[1])
+      const url = limpiarUrlPreservandoTracking(hrefMatch[1])
       const contexto = hrefMatch[0]
 
       agregarLinkDetectado(links, url, contexto)
@@ -299,17 +298,26 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
         agregarLinkDetectado(links, real, contexto)
       }
 
-      if (links.size >= 40) break
+      if (links.size >= 60) break
+    }
+
+    const markdownRegex = /\[(.*?)\]\((https?:\/\/[^)\s]+)\)/gi
+    let markdownMatch: RegExpExecArray | null
+
+    while ((markdownMatch = markdownRegex.exec(limpio)) !== null) {
+      agregarLinkDetectado(links, markdownMatch[2], markdownMatch[0])
+
+      if (links.size >= 60) break
     }
 
     const urlRegex = /https?:\/\/[^\s<>"'\]\)]+/gi
     let urlMatch: RegExpExecArray | null
 
     while ((urlMatch = urlRegex.exec(limpio)) !== null) {
-      const inicio = Math.max(0, urlMatch.index - 280)
-      const fin = Math.min(limpio.length, urlMatch.index + urlMatch[0].length + 280)
+      const inicio = Math.max(0, urlMatch.index - 320)
+      const fin = Math.min(limpio.length, urlMatch.index + urlMatch[0].length + 320)
       const contexto = limpio.slice(inicio, fin)
-      const url = limpiarUrl(urlMatch[0])
+      const url = limpiarUrlPreservandoTracking(urlMatch[0])
 
       agregarLinkDetectado(links, url, contexto)
 
@@ -317,13 +325,13 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
         agregarLinkDetectado(links, real, contexto)
       }
 
-      if (links.size >= 40) break
+      if (links.size >= 60) break
     }
 
-    if (links.size >= 40) break
+    if (links.size >= 60) break
   }
 
-  return Array.from(links.values()).slice(0, 40)
+  return Array.from(links.values()).slice(0, 60)
 }
 
 function esLinkBasura(link: string) {
@@ -351,8 +359,10 @@ function esLinkTracking(link: string) {
   const lower = link.toLowerCase()
 
   return (
-    lower.includes("ablink.message.") ||
     lower.includes("/ls/click") ||
+    lower.includes("ablink.") ||
+    lower.includes("link.vix.com") ||
+    lower.includes("links.mail.crunchyroll.com") ||
     lower.includes("click.email") ||
     lower.includes("click.mail") ||
     lower.includes("trk.") ||
@@ -432,11 +442,11 @@ function puntuarLinkPassword(link: LinkDetectado) {
   let score = 0
 
   if (PATRON_PASSWORD_URL.test(url)) {
-    score += 220
+    score += 260
   }
 
   if (PATRON_PASSWORD_TEXTO.test(contexto)) {
-    score += 110
+    score += 180
   }
 
   if (
@@ -444,28 +454,32 @@ function puntuarLinkPassword(link: LinkDetectado) {
       url
     )
   ) {
-    score += 120
+    score += 180
   }
 
   if (/auth|identity|account|accounts|login|sso/i.test(url)) {
-    score += 30
+    score += 40
   }
 
-  // Si es tracking, solo se acepta cuando el botón/contexto habla de contraseña.
+  /*
+    Tracking se permite SOLO si su botón/contexto habla de contraseña.
+    No se altera el URL, porque si se decodifica el token se rompe.
+  */
   if (esLinkTracking(url)) {
-    score -= 80
+    score -= 40
 
     if (PATRON_PASSWORD_TEXTO.test(contexto)) {
-      score += 120
+      score += 220
     }
   }
 
   if (
     /watch|play\.max\.com|\/pe\/es|suscr[ií]bete|subscribe|browse|movies|series|home|homepage|plans|pricing|help|support/i.test(
       base
-    )
+    ) &&
+    !PATRON_PASSWORD_TEXTO.test(contexto)
   ) {
-    score -= 120
+    score -= 160
   }
 
   if (
@@ -474,129 +488,14 @@ function puntuarLinkPassword(link: LinkDetectado) {
     ) &&
     !PATRON_PASSWORD_TEXTO.test(contexto)
   ) {
-    score -= 90
+    score -= 130
   }
 
   if (esLinkBasura(url)) {
-    score -= 140
+    score -= 160
   }
 
   return score
-}
-
-async function fetchConTimeout(url: string, init: RequestInit, timeoutMs = 3500) {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-
-  try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
-    })
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
-async function obtenerSiguienteRedireccion(url: string) {
-  const headers = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
-    Accept:
-      "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-  }
-
-  for (const method of ["HEAD", "GET"] as const) {
-    try {
-      const response = await fetchConTimeout(
-        url,
-        {
-          method,
-          redirect: "manual",
-          headers,
-        },
-        3500
-      )
-
-      const location = response.headers.get("location")
-
-      if (location) {
-        return new URL(location, url).toString()
-      }
-
-      if (method === "GET") {
-        const contentType = response.headers.get("content-type") || ""
-
-        if (contentType.includes("text/html")) {
-          const html = await response.text()
-          const htmlDecodificado = decodificarTracking(html)
-
-          const matchPassword =
-            htmlDecodificado.match(
-              /https?:\/\/[^\s"'<>]*(?:set-new-password|new-password|passwordResetToken|reset-password|password-reset|resetpassword|password\/reset|reset\/password|password-reset\/complete|resetpass|forgot-password|account-recovery)[^\s"'<>]*/i
-            ) ||
-            htmlDecodificado.match(
-              /https?:\/\/(?:auth\.hbomax\.com|auth\.max\.com|account\.max\.com|identity\.max\.com|sso\.crunchyroll\.com|accounts\.spotify\.com|login\.tidal\.com|www\.paramountplus\.com|www\.deezer\.com|www\.viki\.com|vix\.com|www\.netflix\.com)\/[^\s"'<>]+/i
-            )
-
-          if (matchPassword?.[0]) {
-            return limpiarUrl(matchPassword[0])
-          }
-        }
-      }
-    } catch {
-      // Si falla, se usa el link original si tiene buen contexto.
-    }
-  }
-
-  return null
-}
-
-async function resolverLinkTracking(urlOriginal: string) {
-  let actual = limpiarUrl(urlOriginal)
-
-  if (!/^https?:\/\//i.test(actual)) return actual
-
-  for (let intento = 0; intento < 4; intento += 1) {
-    const siguiente = await obtenerSiguienteRedireccion(actual)
-
-    if (!siguiente) break
-
-    const limpio = limpiarUrl(siguiente)
-
-    if (!limpio || limpio === actual) break
-
-    actual = limpio
-
-    if (!esLinkTracking(actual)) break
-  }
-
-  return actual
-}
-
-async function resolverLinksDetectados(links: LinkDetectado[]) {
-  const mapa = new Map<string, LinkDetectado>()
-
-  for (const link of links) {
-    mapa.set(link.url, link)
-
-    if (!esLinkTracking(link.url)) continue
-
-    const resuelto = await resolverLinkTracking(link.url)
-
-    if (
-      resuelto &&
-      resuelto !== link.url &&
-      /^https?:\/\//i.test(resuelto)
-    ) {
-      mapa.set(resuelto, {
-        url: resuelto,
-        contexto: `${link.contexto} ${resuelto}`,
-      })
-    }
-  }
-
-  return Array.from(mapa.values())
 }
 
 function seleccionarEnlacePassword(links: LinkDetectado[]) {
@@ -611,7 +510,7 @@ function seleccionarEnlacePassword(links: LinkDetectado[]) {
 
   const mejor = ordenados[0]
 
-  if (mejor && mejor.score >= 70) {
+  if (mejor && mejor.score >= 120) {
     return mejor.url
   }
 
@@ -701,8 +600,8 @@ function etiquetaEnlace(tipo: TipoMensaje) {
   return "Abrir enlace"
 }
 
-function crearResumen(cuerpo: string, maxLength = 450) {
-  const limpio = cuerpo
+function crearResumen(cuerpo: string, maxLength = 600) {
+  const limpio = limpiarResumen(cuerpo)
     .replace(/https?:\/\/[^\s<>"'\]\)]+/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]{2,}/g, " ")
@@ -746,23 +645,18 @@ async function construirAlertaTelegram(params: {
     cliente,
   } = params
 
-  const textoCompleto = `${asunto}\n${cuerpoTexto}\n${quitarHtml(cuerpoHtml || "")}`
+  const cuerpoHtmlLimpio = quitarHtml(cuerpoHtml || "")
+  const textoCompleto = `${asunto}\n${cuerpoTexto}\n${cuerpoHtmlLimpio}`
   const codigo = extraerCodigo(textoCompleto)
 
-  let linksDetectados = filtrarLinksDetectadosImportantes(
+  const linksDetectados = filtrarLinksDetectadosImportantes(
     extraerLinksDetectados(cuerpoTexto, cuerpoHtml)
   )
 
   const tipo = detectarTipoMensaje(asunto, textoCompleto, codigo, linksDetectados)
 
-  if (tipo !== "codigo") {
-    linksDetectados = filtrarLinksDetectadosImportantes(
-      await resolverLinksDetectados(linksDetectados)
-    )
-  }
-
   const plataformaTexto = plataforma || cliente?.plataforma || "No detectada"
-  const clienteTexto = cliente?.nombre || "Sin cliente asignado"
+  const clienteTexto = cliente?.nombre || cliente?.correo_asignado || "Sin cliente asignado"
 
   const panelUrl = `https://jonasstream.xyz/soporte-panel/mensajes?correo=${encodeURIComponent(
     correoDestino
@@ -817,7 +711,7 @@ async function construirAlertaTelegram(params: {
   ) {
     partes.push("")
     partes.push("<b>Resumen:</b>")
-    partes.push(escapeHtml(crearResumen(cuerpoTexto, 500)))
+    partes.push(escapeHtml(crearResumen(`${cuerpoTexto}\n${cuerpoHtmlLimpio}`, 600)))
   }
 
   partes.push("")
@@ -1027,8 +921,8 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-plataformas-password-codigo-v9",
+    version: "recibir-mensaje-telegram-preserva-tracking-v10",
     mensaje:
-      "API activa. Detecta códigos, links de contraseña por plataforma, cambios de correo, inicios y alertas.",
+      "API activa. Preserva links tracking exactos, detecta códigos, passwords, cambios de correo e inicios.",
   })
 }
