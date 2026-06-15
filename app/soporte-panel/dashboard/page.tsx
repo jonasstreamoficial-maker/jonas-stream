@@ -42,6 +42,19 @@ type SoporteMensaje = {
   created_at: string | null
 }
 
+type CuentaAdmin = {
+  id: string
+  correo: string | null
+  pin_acceso: string | null
+  producto_nombre: string | null
+  estado: string | null
+  cliente_nombre: string | null
+  cliente_correo: string | null
+  cliente_inicio: string | null
+  cliente_fin: string | null
+  updated_at?: string | null
+}
+
 const ENLACE_CODIGOS = "https://jonasstream.xyz/codigos"
 
 const PLATAFORMAS = [
@@ -302,6 +315,16 @@ const estiloChipPlataforma = (plataforma: string | null | undefined): CSSPropert
   }
 }
 
+const estiloCardPlataforma = (plataforma: string | null | undefined): CSSProperties => {
+  const paleta = obtenerPaletaPlataforma(plataforma)
+
+  return {
+    border: `1px solid ${paleta.borde}`,
+    background: `linear-gradient(90deg, ${paleta.fondo} 0%, rgba(3, 19, 22, 0.88) 24%, rgba(0, 0, 0, 0.22) 100%)`,
+    boxShadow: `0 0 24px ${paleta.brillo}`,
+  }
+}
+
 
 const hoyISO = () => new Date().toISOString().slice(0, 10)
 
@@ -336,6 +359,80 @@ const crearFormInicial = () => ({
   telegram_chat_id: "",
   notas: "",
 })
+
+const normalizarEstadoCuentaAdmin = (estado: string | null | undefined) => {
+  return String(estado || "").trim().toLowerCase()
+}
+
+const cuentaAdminDebeSincronizar = (cuenta: CuentaAdmin) => {
+  const correo = String(cuenta.correo || "").trim().toLowerCase()
+  const estado = normalizarEstadoCuentaAdmin(cuenta.estado)
+
+  if (!correo.endsWith("@jonasstream.xyz")) return false
+
+  return [
+    "asignada",
+    "asignado",
+    "activa",
+    "activo",
+    "vendida",
+    "vendido",
+    "entregada",
+    "entregado",
+    "vencida",
+    "vencido",
+    "bloqueada",
+    "bloqueado",
+    "suspendida",
+    "suspendido",
+    "mantenimiento",
+  ].includes(estado)
+}
+
+const estadoSoporteDesdeCuentaAdmin = (cuenta: CuentaAdmin): EstadoCuenta => {
+  const estado = normalizarEstadoCuentaAdmin(cuenta.estado)
+
+  if (estado.includes("bloque")) return "bloqueado"
+  if (estado.includes("suspend") || estado.includes("mantenimiento")) return "suspendido"
+  if (estado.includes("venc")) return "vencido"
+
+  const fechaFin = cuenta.cliente_fin || null
+
+  if (fechaFin) {
+    const fecha = new Date(`${fechaFin}T00:00:00`)
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+
+    if (!Number.isNaN(fecha.getTime()) && fecha.getTime() < hoy.getTime()) {
+      return "vencido"
+    }
+  }
+
+  return "activo"
+}
+
+const construirPayloadSoporteDesdeCuentaAdmin = (
+  cuenta: CuentaAdmin,
+  usuarioId: string | null | undefined
+) => {
+  const correo = String(cuenta.correo || "").trim().toLowerCase()
+
+  return {
+    nombre: cuenta.cliente_nombre || correo,
+    celular: null,
+    correo_cliente: cuenta.cliente_correo || null,
+    plataforma: cuenta.producto_nombre || detectarPlataformaPorCorreo(correo),
+    correo_asignado: correo,
+    pin_acceso: cuenta.pin_acceso || generarPin(),
+    fecha_inicio: cuenta.cliente_inicio || hoyISO(),
+    fecha_vencimiento: cuenta.cliente_fin || sumarDiasISO(30),
+    estado: estadoSoporteDesdeCuentaAdmin(cuenta),
+    telegram_chat_id: null,
+    notas: "Sincronizado desde Admin → Cuentas.",
+    creado_por: usuarioId || null,
+    updated_at: new Date().toISOString(),
+  }
+}
 
 const detectarPlataformaPorCorreo = (correo: string) => {
   const texto = correo.toLowerCase()
@@ -433,6 +530,7 @@ export default function SoporteDashboardPage() {
   const [correosMasivos, setCorreosMasivos] = useState("")
   const [importandoMasivo, setImportandoMasivo] = useState(false)
   const [resultadoMasivo, setResultadoMasivo] = useState("")
+  const [sincronizandoAdmin, setSincronizandoAdmin] = useState(false)
   const [anchoPantalla, setAnchoPantalla] = useState(1200)
 
   useEffect(() => {
@@ -517,6 +615,80 @@ export default function SoporteDashboardPage() {
     setCuentas((cuentasRes.data || []) as SoporteCliente[])
     setMensajesRecientes((mensajesRes.data || []) as SoporteMensaje[])
     setCargandoCuentas(false)
+  }
+
+  const sincronizarDesdeCuentasAdmin = async () => {
+    setMensaje("")
+    setSincronizandoAdmin(true)
+
+    const { data: cuentasAdmin, error: errorCuentasAdmin } = await supabase
+      .from("cuentas")
+      .select(
+        "id,correo,pin_acceso,producto_nombre,estado,cliente_nombre,cliente_correo,cliente_inicio,cliente_fin,updated_at"
+      )
+      .not("correo", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(2500)
+
+    if (errorCuentasAdmin) {
+      setMensaje("No se pudo leer Admin → Cuentas. Revisa permisos o columnas de la tabla cuentas.")
+      setSincronizandoAdmin(false)
+      return
+    }
+
+    const payloads = ((cuentasAdmin || []) as CuentaAdmin[])
+      .filter(cuentaAdminDebeSincronizar)
+      .map((cuenta) => construirPayloadSoporteDesdeCuentaAdmin(cuenta, usuario?.id))
+
+    if (payloads.length === 0) {
+      setMensaje("No hay cuentas asignadas en Admin para sincronizar con soporte.")
+      setSincronizandoAdmin(false)
+      return
+    }
+
+    const existentes = new Map(
+      cuentas.map((cuenta) => [cuenta.correo_asignado.toLowerCase(), cuenta])
+    )
+
+    let insertados = 0
+    let actualizados = 0
+
+    for (const payload of payloads) {
+      const existente = existentes.get(payload.correo_asignado.toLowerCase())
+
+      if (existente) {
+        const { error } = await supabase
+          .from("soporte_clientes")
+          .update(payload)
+          .eq("id", existente.id)
+
+        if (error) {
+          setMensaje(`Error sincronizando ${payload.correo_asignado}. Revisa columnas de soporte_clientes.`)
+          setSincronizandoAdmin(false)
+          await cargarDatos()
+          return
+        }
+
+        actualizados += 1
+      } else {
+        const { error } = await supabase.from("soporte_clientes").insert([payload])
+
+        if (error) {
+          setMensaje(`Error insertando ${payload.correo_asignado}. Revisa si ya existe duplicado en soporte_clientes.`)
+          setSincronizandoAdmin(false)
+          await cargarDatos()
+          return
+        }
+
+        insertados += 1
+      }
+    }
+
+    setMensaje(
+      `Sincronización completa desde Admin: ${actualizados} actualizado(s) y ${insertados} nuevo(s).`
+    )
+    setSincronizandoAdmin(false)
+    await cargarDatos()
   }
 
   const cerrarSesion = async () => {
@@ -1063,14 +1235,52 @@ Tu entretenimiento, sin complicaciones.`
 
   return (
     <main style={{ ...stylesPage.page, ...(esMovil ? stylesPage.pageMobile : {}) }}>
+      <div style={stylesPage.gridBackground} />
+      <div style={stylesPage.sideTextLeft}>JONAS STREAM</div>
+      <div style={stylesPage.sideTextRight}>SOPORTE</div>
+
       <section style={stylesPage.container}>
-        <header style={{ ...stylesPage.header, ...(esMovil ? stylesPage.headerMobile : {}) }}>
-          <div>
-            <p style={stylesPage.kicker}>JONAS STREAM · SOPORTE PANEL</p>
-            <h1 style={{ ...stylesPage.title, ...(esMovil ? stylesPage.titleMobile : {}) }}>Control de correos y PIN</h1>
+        <div style={{ ...stylesPage.topbar, ...(esMovil ? stylesPage.topbarMobile : {}) }}>
+          <div style={stylesPage.brandBlock}>
+            <div style={stylesPage.brandLogo}>JS</div>
+            <div>
+              <strong style={stylesPage.brandTitle}>JONAS STREAM</strong>
+              <span style={stylesPage.brandSubtitle}>SOPORTE PANEL</span>
+            </div>
+          </div>
+
+          <div style={{ ...stylesPage.topActions, ...(esMovil ? stylesPage.topActionsMobile : {}) }}>
+            <button
+              type="button"
+              onClick={() => window.open(ENLACE_CODIGOS, "_blank", "noopener,noreferrer")}
+              style={stylesPage.navButton}
+            >
+              Abrir /codigos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/soporte-panel/mensajes")}
+              style={stylesPage.navButtonStrong}
+            >
+              Bandeja de mensajes
+            </button>
+
+            <button type="button" onClick={cerrarSesion} style={stylesPage.navButtonDanger}>
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+
+        <header style={{ ...stylesPage.heroHeader, ...(esMovil ? stylesPage.heroHeaderMobile : {}) }}>
+          <div style={stylesPage.heroCopy}>
+            <p style={stylesPage.kicker}>CONTROL CENTRAL · ADMIN → SOPORTE</p>
+            <h1 style={{ ...stylesPage.title, ...(esMovil ? stylesPage.titleMobile : {}) }}>
+              Control de correos y PIN
+            </h1>
             <p style={stylesPage.description}>
-              Administra correos asignados, PIN de acceso y estado de consulta para
-              que tus clientes revisen sus códigos desde /codigos.
+              Administra accesos públicos para /codigos, revisa mensajes recibidos y
+              sincroniza los datos principales desde Admin → Cuentas.
             </p>
           </div>
 
@@ -1079,24 +1289,24 @@ Tu entretenimiento, sin complicaciones.`
             <strong>{usuario?.nombre || "Admin"}</strong>
             <span style={stylesPage.smallText}>{usuario?.correo}</span>
 
-            <button
-              type="button"
-              onClick={() => window.open(ENLACE_CODIGOS, "_blank", "noopener,noreferrer")}
-              style={stylesPage.buttonGhost}
-            >
-              Abrir página de códigos
-            </button>
+            <div style={stylesPage.adminMiniGrid}>
+              <div>
+                <span style={stylesPage.smallText}>Fuente principal</span>
+                <strong>Admin · Cuentas</strong>
+              </div>
+              <div>
+                <span style={stylesPage.smallText}>Vista pública</span>
+                <strong>/codigos</strong>
+              </div>
+            </div>
 
             <button
               type="button"
-              onClick={() => router.push("/soporte-panel/mensajes")}
-              style={stylesPage.buttonGhost}
+              onClick={sincronizarDesdeCuentasAdmin}
+              disabled={sincronizandoAdmin}
+              style={stylesPage.buttonPrimaryFull}
             >
-              Ver bandeja de mensajes
-            </button>
-
-            <button type="button" onClick={cerrarSesion} style={stylesPage.buttonDangerFull}>
-              Cerrar sesión
+              {sincronizandoAdmin ? "Sincronizando..." : "Sincronizar desde Admin"}
             </button>
           </div>
         </header>
@@ -1108,24 +1318,22 @@ Tu entretenimiento, sin complicaciones.`
           <StatCard label="Sin PIN" value={resumen.sinPin} />
         </div>
 
-        <div style={stylesPage.platformLegend}>
-          {PLATAFORMAS.map((plataforma) => (
-            <span key={plataforma} style={estiloChipPlataforma(plataforma)}>
-              {plataforma}
-            </span>
-          ))}
+        <div style={stylesPage.syncNotice}>
+          <strong>Sincronización:</strong> si registras o editas cuentas en Admin → Cuentas,
+          presiona “Sincronizar desde Admin” para reflejar correo, plataforma, PIN, cliente y fechas aquí.
+          El formulario manual queda como respaldo para casos puntuales.
         </div>
 
         <section style={{ ...stylesPage.panel, ...(esMovil ? stylesPage.panelMobile : {}) }}>
           <div style={{ ...stylesPage.panelHeader, ...(esMovil ? stylesPage.panelHeaderMobile : {}) }}>
             <div>
-              <p style={stylesPage.kicker}>GESTIÓN DE ACCESOS</p>
+              <p style={stylesPage.kicker}>RESPALDO MANUAL</p>
               <h2 style={{ margin: "10px 0" }}>
-                {editandoId ? "Editar correo asignado" : "Registrar correo asignado"}
+                {editandoId ? "Editar acceso manual" : "Registrar acceso manual"}
               </h2>
               <p style={stylesPage.muted}>
-                Registra el correo, la plataforma y el PIN que usará el cliente para
-                entrar a la página pública de códigos.
+                Usa este formulario solo si el correo todavía no existe en Admin → Cuentas.
+                Para cuentas vendidas, lo correcto es sincronizar desde Admin.
               </p>
             </div>
 
@@ -1325,10 +1533,10 @@ crunchy001@jonasstream.xyz`}
           <div style={{ ...stylesPage.panelHeader, ...(esMovil ? stylesPage.panelHeaderMobile : {}) }}>
             <div>
               <p style={stylesPage.kicker}>CORREOS REGISTRADOS</p>
-              <h2 style={{ margin: "10px 0" }}>Lista de accesos</h2>
+              <h2 style={{ margin: "10px 0" }}>Lista detallada de accesos</h2>
               <p style={stylesPage.muted}>
-                Desde aquí cambias el PIN, activas o suspendes el acceso público
-                y revisas los mensajes recibidos.
+                Vista tipo inventario: correo, plataforma, cliente, PIN, vencimiento,
+                mensajes y acciones rápidas en una sola fila.
               </p>
             </div>
 
@@ -1376,174 +1584,109 @@ crunchy001@jonasstream.xyz`}
             </select>
           </div>
 
-          {esMovil && (
-            <p style={{ ...stylesPage.muted, marginBottom: "12px" }}>
-              En celular, desliza la tabla hacia los lados para ver todas las columnas.
-            </p>
-          )}
-
           {cargandoCuentas ? (
             <p style={stylesPage.muted}>Cargando correos...</p>
           ) : cuentasFiltradas.length === 0 ? (
             <p style={stylesPage.muted}>No hay correos registrados.</p>
           ) : (
-            <div style={{ ...stylesPage.tableWrap, ...(esMovil ? stylesPage.tableWrapMobile : {}) }}>
-              <table style={{ ...stylesPage.table, ...(esMovil ? stylesPage.tableMobile : {}) }}>
-                <thead>
-                  <tr>
-                    <th style={stylesPage.th}>Correo</th>
-                    <th style={stylesPage.th}>Plataforma</th>
-                    <th style={stylesPage.th}>PIN</th>
-                    <th style={stylesPage.th}>Vence</th>
-                    <th style={stylesPage.th}>Estado</th>
-                    <th style={stylesPage.th}>Mensajes</th>
-                    <th style={stylesPage.th}>Acciones</th>
-                  </tr>
-                </thead>
+            <div style={stylesPage.accessList}>
+              {cuentasFiltradas.map((cuenta) => {
+                const dias = diasRestantes(cuenta.fecha_vencimiento)
+                const resumenCorreo = resumenMensajes.get(
+                  cuenta.correo_asignado.toLowerCase()
+                )
 
-                <tbody>
-                  {cuentasFiltradas.map((cuenta) => {
-                    const dias = diasRestantes(cuenta.fecha_vencimiento)
-                    const resumenCorreo = resumenMensajes.get(
-                      cuenta.correo_asignado.toLowerCase()
-                    )
+                return (
+                  <article
+                    key={cuenta.id}
+                    style={{ ...stylesPage.accessCard, ...estiloCardPlataforma(cuenta.plataforma) }}
+                  >
+                    <div style={stylesPage.accessMain}>
+                      <div style={stylesPage.accessTitleBlock}>
+                        <span style={estiloChipPlataforma(cuenta.plataforma)}>
+                          {cuenta.plataforma}
+                        </span>
+                        <h3 style={stylesPage.accessCorreo}>{cuenta.correo_asignado}</h3>
+                        <p style={stylesPage.accessSubtext}>{cuenta.nombre || "Sin etiqueta"}</p>
+                      </div>
 
-                    return (
-                      <tr key={cuenta.id}>
-                        <td style={stylesPage.td}>
-                          <strong>{cuenta.correo_asignado}</strong>
-                          <span style={stylesPage.smallText}>
-                            {cuenta.nombre || "Sin etiqueta"}
-                          </span>
-                          {cuenta.celular && (
-                            <span style={stylesPage.smallText}>WhatsApp: {cuenta.celular}</span>
-                          )}
-                        </td>
+                      <div style={stylesPage.accessMetaGrid}>
+                        <div style={stylesPage.accessMetaItem}>
+                          <span>PIN</span>
+                          <strong style={stylesPage.pinText}>{cuenta.pin_acceso || "SIN PIN"}</strong>
+                        </div>
 
-                        <td style={stylesPage.td}>
-                          <span style={estiloChipPlataforma(cuenta.plataforma)}>
-                            {cuenta.plataforma}
-                          </span>
-                          {cuenta.correo_cliente && (
-                            <span style={stylesPage.smallText}>
-                              Cliente: {cuenta.correo_cliente}
-                            </span>
-                          )}
-                        </td>
+                        <div style={stylesPage.accessMetaItem}>
+                          <span>Cliente</span>
+                          <strong>{cuenta.correo_cliente || "Sin cliente"}</strong>
+                          {cuenta.celular && <small>WhatsApp: {cuenta.celular}</small>}
+                        </div>
 
-                        <td style={stylesPage.td}>
-                          <strong style={stylesPage.pinText}>
-                            {cuenta.pin_acceso || "SIN PIN"}
-                          </strong>
-                        </td>
-
-                        <td style={stylesPage.td}>
+                        <div style={stylesPage.accessMetaItem}>
+                          <span>Vencimiento</span>
                           <strong>{cuenta.fecha_vencimiento}</strong>
-                          <span style={stylesPage.smallText}>
+                          <small>
                             {dias < 0
                               ? `Vencido hace ${Math.abs(dias)} día(s)`
                               : `Faltan ${dias} día(s)`}
-                          </span>
-                        </td>
+                          </small>
+                        </div>
 
-                        <td style={stylesPage.td}>
-                          <EstadoBadge estado={cuenta.estado} dias={dias} />
-                        </td>
-
-                        <td style={stylesPage.td}>
+                        <div style={stylesPage.accessMetaItem}>
+                          <span>Mensajes</span>
                           <strong>{resumenCorreo?.total || 0}</strong>
-                          <span style={stylesPage.smallText}>
-                            {resumenCorreo?.ultimoAsunto || "Sin mensajes recientes"}
-                          </span>
-                          {resumenCorreo?.ultimaFecha && (
-                            <span style={stylesPage.smallText}>
-                              {new Date(resumenCorreo.ultimaFecha).toLocaleString("es-PE")}
-                            </span>
-                          )}
-                        </td>
+                          <small>{resumenCorreo?.ultimoAsunto || "Sin mensajes recientes"}</small>
+                        </div>
 
-                        <td style={stylesPage.td}>
-                          <div style={stylesPage.actions}>
-                            <button
-                              type="button"
-                              onClick={() => copiarAcceso(cuenta)}
-                              style={stylesPage.buttonMini}
-                            >
-                              Copiar acceso
-                            </button>
+                        <div style={stylesPage.accessMetaItem}>
+                          <span>Estado</span>
+                          <EstadoBadge estado={cuenta.estado} dias={dias} />
+                        </div>
+                      </div>
+                    </div>
 
-                            <button
-                              type="button"
-                              onClick={() => editarPinRapido(cuenta)}
-                              style={stylesPage.buttonMiniGhost}
-                            >
-                              Editar PIN
-                            </button>
+                    <div style={stylesPage.accessActions}>
+                      <button type="button" onClick={() => copiarAcceso(cuenta)} style={stylesPage.buttonMini}>
+                        Copiar acceso
+                      </button>
 
-                            <button
-                              type="button"
-                              onClick={() => generarNuevoPin(cuenta)}
-                              style={stylesPage.buttonMiniGhost}
-                            >
-                              Nuevo PIN
-                            </button>
+                      <button type="button" onClick={() => abrirMensajes(cuenta)} style={stylesPage.buttonMiniGhost}>
+                        Ver mensajes
+                      </button>
 
-                            <button
-                              type="button"
-                              onClick={() => abrirMensajes(cuenta)}
-                              style={stylesPage.buttonMiniGhost}
-                            >
-                              Ver mensajes
-                            </button>
+                      <button type="button" onClick={() => editarPinRapido(cuenta)} style={stylesPage.buttonMiniGhost}>
+                        Editar PIN
+                      </button>
 
-                            <button
-                              type="button"
-                              onClick={() => renovarCuenta(cuenta)}
-                              style={stylesPage.buttonMiniGhost}
-                            >
-                              +30 días
-                            </button>
+                      <button type="button" onClick={() => generarNuevoPin(cuenta)} style={stylesPage.buttonMiniGhost}>
+                        Nuevo PIN
+                      </button>
 
-                            <button
-                              type="button"
-                              onClick={() => editarCuenta(cuenta)}
-                              style={stylesPage.buttonMiniGhost}
-                            >
-                              Editar
-                            </button>
+                      <button type="button" onClick={() => renovarCuenta(cuenta)} style={stylesPage.buttonMiniGhost}>
+                        +30 días
+                      </button>
 
-                            {cuenta.estado === "activo" ? (
-                              <button
-                                type="button"
-                                onClick={() => cambiarEstado(cuenta, "suspendido")}
-                                style={stylesPage.buttonWarning}
-                              >
-                                Suspender
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => cambiarEstado(cuenta, "activo")}
-                                style={stylesPage.buttonMiniGhost}
-                              >
-                                Activar
-                              </button>
-                            )}
+                      <button type="button" onClick={() => editarCuenta(cuenta)} style={stylesPage.buttonMiniGhost}>
+                        Editar
+                      </button>
 
-                            <button
-                              type="button"
-                              onClick={() => eliminarCuenta(cuenta)}
-                              style={stylesPage.buttonDanger}
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                      {cuenta.estado === "activo" ? (
+                        <button type="button" onClick={() => cambiarEstado(cuenta, "suspendido")} style={stylesPage.buttonWarning}>
+                          Suspender
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => cambiarEstado(cuenta, "activo")} style={stylesPage.buttonMiniGhost}>
+                          Activar
+                        </button>
+                      )}
+
+                      <button type="button" onClick={() => eliminarCuenta(cuenta)} style={stylesPage.buttonDanger}>
+                        Eliminar
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           )}
         </section>
@@ -1594,76 +1737,54 @@ function EstadoBadge({ estado, dias }: { estado: EstadoCuenta; dias: number }) {
 const stylesPage: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
+    position: "relative",
+    overflowX: "hidden",
     background:
-      "radial-gradient(circle at top left, rgba(1, 231, 239, 0.18), transparent 35%), radial-gradient(circle at bottom right, rgba(0, 251, 255, 0.14), transparent 35%), linear-gradient(135deg, #000000, #031316, #071B1E)",
+      "radial-gradient(circle at 12% 12%, rgba(1, 231, 239, 0.18), transparent 35%), radial-gradient(circle at 88% 82%, rgba(0, 251, 255, 0.14), transparent 35%), linear-gradient(135deg, #000000 0%, #031316 48%, #071B1E 100%)",
     color: "#ECFFFF",
-    padding: "40px",
+    padding: "28px",
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
   },
-  pageMobile: {
-    padding: "16px",
+  pageMobile: { padding: "14px" },
+  gridBackground: {
+    position: "fixed",
+    inset: 0,
+    backgroundImage:
+      "linear-gradient(rgba(1, 231, 239, 0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(1, 231, 239, 0.055) 1px, transparent 1px)",
+    backgroundSize: "44px 44px",
+    WebkitMaskImage: "linear-gradient(to bottom, transparent, black 16%, black 84%, transparent)",
+    maskImage: "linear-gradient(to bottom, transparent, black 16%, black 84%, transparent)",
+    pointerEvents: "none",
+    zIndex: 0,
   },
-  headerMobile: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    alignItems: "stretch",
-    gap: "18px",
-    marginBottom: "22px",
+  sideTextLeft: {
+    position: "fixed",
+    zIndex: 0,
+    top: "50%",
+    left: "7%",
+    transform: "translateY(-50%) rotate(180deg)",
+    writingMode: "vertical-rl",
+    color: "rgba(1, 231, 239, 0.075)",
+    fontSize: "clamp(58px, 8vw, 112px)",
+    fontWeight: 1000,
+    letterSpacing: "0.08em",
+    pointerEvents: "none",
+    userSelect: "none",
   },
-  titleMobile: {
-    fontSize: "34px",
-    lineHeight: 1.06,
-  },
-  adminCardMobile: {
-    width: "100%",
-    minWidth: "0",
-  },
-  statsGridTablet: {
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  },
-  statsGridMobile: {
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: "12px",
-    marginTop: "22px",
-  },
-  panelMobile: {
-    padding: "18px",
-    borderRadius: "22px",
-    marginTop: "20px",
-  },
-  panelHeaderMobile: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    alignItems: "stretch",
-    gap: "14px",
-  },
-  formGridTablet: {
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  },
-  formGridMobile: {
-    gridTemplateColumns: "1fr",
-  },
-  filtersMobile: {
-    gridTemplateColumns: "1fr",
-  },
-  importSummaryMobile: {
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: "10px",
-  },
-  textareaImportMobile: {
-    minHeight: "150px",
-    fontSize: "13px",
-  },
-  headerActionsMobile: {
-    justifyContent: "stretch",
-  },
-  tableWrapMobile: {
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    borderRadius: "18px",
-  },
-  tableMobile: {
-    minWidth: "1060px",
+  sideTextRight: {
+    position: "fixed",
+    zIndex: 0,
+    top: "50%",
+    right: "5%",
+    transform: "translateY(-50%)",
+    writingMode: "vertical-rl",
+    color: "rgba(1, 231, 239, 0.075)",
+    fontSize: "clamp(58px, 8vw, 112px)",
+    fontWeight: 1000,
+    letterSpacing: "0.08em",
+    pointerEvents: "none",
+    userSelect: "none",
   },
   centerPage: {
     minHeight: "100vh",
@@ -1684,75 +1805,117 @@ const stylesPage: Record<string, CSSProperties> = {
     boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)",
     textAlign: "center",
   },
-  container: {
-    maxWidth: "1380px",
-    margin: "0 auto",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "20px",
-    alignItems: "center",
-    marginBottom: "34px",
-  },
-  kicker: {
-    color: "#01E7EF",
-    letterSpacing: "0.16em",
-    fontWeight: 900,
-    fontSize: "13px",
-    margin: 0,
-    textTransform: "uppercase",
-  },
-  title: {
-    fontSize: "52px",
-    margin: "12px 0",
-    lineHeight: 1,
-    color: "#ECFFFF",
-    textShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
-  },
-  description: {
-    color: "#9BC8CB",
-    maxWidth: "760px",
-    lineHeight: 1.7,
-    margin: 0,
-  },
-  muted: {
-    color: "#9BC8CB",
-    lineHeight: 1.7,
-    margin: 0,
-  },
-  mutedSmall: {
-    color: "#9BC8CB",
-    margin: "0 0 6px",
-    fontSize: "13px",
-  },
-  smallText: {
-    display: "block",
-    color: "#9BC8CB",
-    fontSize: "12px",
-    marginTop: "4px",
-    overflowWrap: "anywhere",
-  },
-  adminCard: {
+  container: { position: "relative", zIndex: 2, maxWidth: "1320px", margin: "0 auto" },
+  topbar: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
     background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "20px",
-    padding: "16px",
-    minWidth: "260px",
+    borderRadius: "24px",
+    padding: "16px 18px",
     boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
-  },
-  headerActions: {
     display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "16px",
+    marginBottom: "22px",
+    backdropFilter: "blur(18px)",
   },
-  statsGrid: {
+  topbarMobile: { display: "grid", gridTemplateColumns: "1fr" },
+  brandBlock: { display: "flex", alignItems: "center", gap: "14px" },
+  brandLogo: {
+    width: "54px",
+    height: "54px",
+    borderRadius: "18px",
     display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: "18px",
-    marginTop: "36px",
+    placeItems: "center",
+    background: "linear-gradient(135deg, #01E7EF, #00FBFF, #018B90)",
+    color: "#000000",
+    fontWeight: 1000,
+    boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)",
   },
+  brandTitle: { display: "block", color: "#ECFFFF", fontSize: "24px", lineHeight: 1, letterSpacing: "0.08em" },
+  brandSubtitle: { display: "block", color: "#9BC8CB", fontSize: "12px", fontWeight: 900, letterSpacing: "0.24em", marginTop: "5px" },
+  topActions: { display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" },
+  topActionsMobile: { display: "grid", gridTemplateColumns: "1fr" },
+  navButton: {
+    border: "1px solid rgba(1, 231, 239, 0.18)",
+    background: "rgba(1, 231, 239, 0.08)",
+    color: "#ECFFFF",
+    borderRadius: "15px",
+    padding: "12px 16px",
+    fontWeight: 950,
+    cursor: "pointer",
+  },
+  navButtonStrong: {
+    border: "1px solid rgba(1, 231, 239, 0.18)",
+    background: "rgba(1, 139, 144, 0.44)",
+    color: "#ECFFFF",
+    borderRadius: "15px",
+    padding: "12px 16px",
+    fontWeight: 950,
+    cursor: "pointer",
+  },
+  navButtonDanger: {
+    border: "1px solid rgba(255, 67, 67, 0.45)",
+    background: "rgba(255, 67, 67, 0.15)",
+    color: "#ff8a8a",
+    borderRadius: "15px",
+    padding: "12px 16px",
+    fontWeight: 950,
+    cursor: "pointer",
+  },
+  heroHeader: {
+    border: "1px solid rgba(1, 231, 239, 0.18)",
+    background: "rgba(3, 19, 22, 0.78)",
+    borderRadius: "28px",
+    padding: "30px",
+    boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1.3fr) minmax(320px, 0.7fr)",
+    gap: "24px",
+    alignItems: "center",
+    marginBottom: "22px",
+    backdropFilter: "blur(18px)",
+  },
+  heroHeaderMobile: { gridTemplateColumns: "1fr", padding: "22px" },
+  heroCopy: { minWidth: 0 },
+  kicker: { color: "#01E7EF", letterSpacing: "0.16em", fontWeight: 950, fontSize: "12px", margin: 0, textTransform: "uppercase" },
+  title: {
+    fontSize: "clamp(42px, 5vw, 64px)",
+    margin: "12px 0",
+    lineHeight: 0.98,
+    color: "#ECFFFF",
+    letterSpacing: "-0.045em",
+    textShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+  },
+  titleMobile: { fontSize: "36px", lineHeight: 1.05 },
+  description: { color: "#9BC8CB", maxWidth: "760px", lineHeight: 1.7, margin: 0 },
+  muted: { color: "#9BC8CB", lineHeight: 1.7, margin: 0 },
+  mutedSmall: { color: "#9BC8CB", margin: "0 0 6px", fontSize: "13px" },
+  smallText: { display: "block", color: "#9BC8CB", fontSize: "12px", marginTop: "4px", overflowWrap: "anywhere" },
+  adminCard: {
+    border: "1px solid rgba(1, 231, 239, 0.18)",
+    background: "rgba(0, 0, 0, 0.28)",
+    borderRadius: "22px",
+    padding: "18px",
+    boxShadow: "inset 0 0 30px rgba(1, 231, 239, 0.05)",
+  },
+  adminCardMobile: { width: "100%", minWidth: "0" },
+  adminMiniGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "14px" },
+  buttonPrimaryFull: {
+    width: "100%",
+    marginTop: "14px",
+    border: "none",
+    background: "linear-gradient(135deg, #01E7EF, #00FBFF, #018B90)",
+    color: "#000000",
+    borderRadius: "15px",
+    padding: "13px 16px",
+    fontWeight: 1000,
+    cursor: "pointer",
+    boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)",
+  },
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "18px", marginTop: "24px" },
+  statsGridTablet: { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" },
+  statsGridMobile: { gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "18px" },
   statCard: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
     background: "rgba(3, 19, 22, 0.78)",
@@ -1760,203 +1923,42 @@ const stylesPage: Record<string, CSSProperties> = {
     padding: "24px",
     boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
   },
-  statValue: {
-    display: "block",
-    color: "#01E7EF",
-    fontSize: "38px",
-    marginTop: "12px",
-    textShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
-  },
-  platformLegend: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "10px",
-    marginTop: "18px",
-  },
-  panel: {
-    marginTop: "30px",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "24px",
-    padding: "24px",
-    boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
-  },
-  panelHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "20px",
-    alignItems: "center",
-    marginBottom: "22px",
-  },
-  notice: {
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(1, 231, 239, 0.08)",
-    color: "#ECFFFF",
-    borderRadius: "16px",
-    padding: "14px",
-    marginBottom: "18px",
-  },
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: "14px",
-  },
-  filters: {
-    display: "grid",
-    gridTemplateColumns: "1fr 240px",
-    gap: "14px",
-    marginBottom: "20px",
-  },
-  input: {
-    width: "100%",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    outline: "none",
-    borderRadius: "15px",
-    padding: "14px 15px",
-    background: "rgba(0, 0, 0, 0.34)",
-    color: "#ECFFFF",
-    fontSize: "14px",
-  },
-  textareaImport: {
-    width: "100%",
-    minHeight: "180px",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    outline: "none",
-    borderRadius: "15px",
-    padding: "16px",
-    background: "rgba(0, 0, 0, 0.34)",
-    color: "#ECFFFF",
-    fontSize: "14px",
-    lineHeight: 1.6,
-    resize: "vertical",
-    marginBottom: "16px",
-  },
-  importSummary: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: "14px",
-    marginBottom: "16px",
-  },
-  formActions: {
-    gridColumn: "1 / -1",
-    display: "flex",
-    gap: "12px",
-    flexWrap: "wrap",
-  },
-  buttonPrimary: {
-    border: "none",
-    background: "linear-gradient(135deg, #01E7EF, #00FBFF, #018B90)",
-    color: "#000000",
-    borderRadius: "15px",
-    padding: "14px 18px",
-    fontWeight: 950,
-    cursor: "pointer",
-    boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)",
-  },
-  buttonSecondary: {
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(1, 231, 239, 0.08)",
-    color: "#01E7EF",
-    borderRadius: "15px",
-    padding: "14px 18px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-  buttonGhost: {
-    width: "100%",
-    marginTop: "12px",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(1, 231, 239, 0.08)",
-    color: "#01E7EF",
-    borderRadius: "14px",
-    padding: "12px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-  buttonDangerFull: {
-    width: "100%",
-    marginTop: "12px",
-    border: "1px solid rgba(255, 67, 67, 0.45)",
-    background: "rgba(255, 67, 67, 0.15)",
-    color: "#ff8a8a",
-    borderRadius: "14px",
-    padding: "12px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-  tableWrap: {
-    overflowX: "auto",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    borderRadius: "18px",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    minWidth: "1180px",
-  },
-  th: {
-    color: "#01E7EF",
-    textAlign: "left",
-    padding: "14px",
-    borderBottom: "1px solid rgba(1, 231, 239, 0.18)",
-    fontSize: "13px",
-    textTransform: "uppercase",
-  },
-  td: {
-    padding: "14px",
-    borderBottom: "1px solid rgba(1, 231, 239, 0.1)",
-    color: "#ECFFFF",
-    verticalAlign: "top",
-  },
-  pinText: {
-    color: "#00FBFF",
-    letterSpacing: "0.12em",
-    fontSize: "16px",
-  },
-  actions: {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-    maxWidth: "360px",
-  },
-  buttonMini: {
-    border: "none",
-    background: "#00FBFF",
-    color: "#000000",
-    borderRadius: "999px",
-    padding: "8px 11px",
-    fontSize: "12px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-  buttonMiniGhost: {
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(1, 231, 239, 0.08)",
-    color: "#01E7EF",
-    borderRadius: "999px",
-    padding: "8px 11px",
-    fontSize: "12px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-  buttonWarning: {
-    border: "1px solid rgba(255, 204, 102, 0.45)",
-    background: "rgba(255, 204, 102, 0.14)",
-    color: "#ffcc66",
-    borderRadius: "999px",
-    padding: "8px 11px",
-    fontSize: "12px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-  buttonDanger: {
-    border: "1px solid rgba(255, 67, 67, 0.45)",
-    background: "rgba(255, 67, 67, 0.15)",
-    color: "#ff8a8a",
-    borderRadius: "999px",
-    padding: "8px 11px",
-    fontSize: "12px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
+  statValue: { display: "block", color: "#01E7EF", fontSize: "38px", marginTop: "12px", textShadow: "0 0 25px rgba(1, 231, 239, 0.18)" },
+  syncNotice: { marginTop: "18px", border: "1px solid rgba(1, 231, 239, 0.18)", background: "rgba(1, 231, 239, 0.08)", color: "#9BC8CB", borderRadius: "18px", padding: "14px 16px", lineHeight: 1.6 },
+  panel: { marginTop: "28px", border: "1px solid rgba(1, 231, 239, 0.18)", background: "rgba(3, 19, 22, 0.78)", borderRadius: "24px", padding: "24px", boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)", backdropFilter: "blur(16px)" },
+  panelMobile: { padding: "18px", borderRadius: "22px", marginTop: "20px" },
+  panelHeader: { display: "flex", justifyContent: "space-between", gap: "20px", alignItems: "center", marginBottom: "22px" },
+  panelHeaderMobile: { display: "grid", gridTemplateColumns: "1fr", alignItems: "stretch", gap: "14px" },
+  notice: { border: "1px solid rgba(1, 231, 239, 0.18)", background: "rgba(1, 231, 239, 0.08)", color: "#ECFFFF", borderRadius: "16px", padding: "14px", marginBottom: "18px" },
+  formGrid: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" },
+  formGridTablet: { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" },
+  formGridMobile: { gridTemplateColumns: "1fr" },
+  filters: { display: "grid", gridTemplateColumns: "1fr 240px", gap: "14px", marginBottom: "20px" },
+  filtersMobile: { gridTemplateColumns: "1fr" },
+  input: { width: "100%", border: "1px solid rgba(1, 231, 239, 0.18)", outline: "none", borderRadius: "15px", padding: "14px 15px", background: "rgba(0, 0, 0, 0.34)", color: "#ECFFFF", fontSize: "14px" },
+  textareaImport: { width: "100%", minHeight: "180px", border: "1px solid rgba(1, 231, 239, 0.18)", outline: "none", borderRadius: "15px", padding: "16px", background: "rgba(0, 0, 0, 0.34)", color: "#ECFFFF", fontSize: "14px", lineHeight: 1.6, resize: "vertical", marginBottom: "16px" },
+  textareaImportMobile: { minHeight: "150px", fontSize: "13px" },
+  importSummary: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px", marginBottom: "16px" },
+  importSummaryMobile: { gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" },
+  formActions: { gridColumn: "1 / -1", display: "flex", gap: "12px", flexWrap: "wrap" },
+  headerActions: { display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" },
+  headerActionsMobile: { justifyContent: "stretch" },
+  buttonPrimary: { border: "none", background: "linear-gradient(135deg, #01E7EF, #00FBFF, #018B90)", color: "#000000", borderRadius: "15px", padding: "14px 18px", fontWeight: 950, cursor: "pointer", boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)" },
+  buttonSecondary: { border: "1px solid rgba(1, 231, 239, 0.18)", background: "rgba(1, 231, 239, 0.08)", color: "#01E7EF", borderRadius: "15px", padding: "14px 18px", fontWeight: 900, cursor: "pointer" },
+  buttonGhost: { width: "100%", marginTop: "12px", border: "1px solid rgba(1, 231, 239, 0.18)", background: "rgba(1, 231, 239, 0.08)", color: "#01E7EF", borderRadius: "14px", padding: "12px", fontWeight: 900, cursor: "pointer" },
+  buttonDangerFull: { width: "100%", marginTop: "12px", border: "1px solid rgba(255, 67, 67, 0.45)", background: "rgba(255, 67, 67, 0.15)", color: "#ff8a8a", borderRadius: "14px", padding: "12px", fontWeight: 900, cursor: "pointer" },
+  accessList: { display: "grid", gap: "14px" },
+  accessCard: { borderRadius: "22px", padding: "16px", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "16px", alignItems: "center" },
+  accessMain: { minWidth: 0, display: "grid", gap: "14px" },
+  accessTitleBlock: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" },
+  accessCorreo: { margin: 0, color: "#ECFFFF", fontSize: "18px", overflowWrap: "anywhere" },
+  accessSubtext: { width: "100%", margin: 0, color: "#9BC8CB", fontSize: "12px" },
+  accessMetaGrid: { display: "grid", gridTemplateColumns: "repeat(5, minmax(130px, 1fr))", gap: "10px" },
+  accessMetaItem: { border: "1px solid rgba(1, 231, 239, 0.12)", background: "rgba(0, 0, 0, 0.24)", borderRadius: "16px", padding: "11px", display: "grid", gap: "4px", minWidth: 0, color: "#ECFFFF" },
+  accessActions: { display: "flex", justifyContent: "flex-end", gap: "8px", flexWrap: "wrap", maxWidth: "360px" },
+  pinText: { color: "#00FBFF", letterSpacing: "0.12em", fontSize: "16px" },
+  buttonMini: { border: "none", background: "#00FBFF", color: "#000000", borderRadius: "999px", padding: "8px 11px", fontSize: "12px", fontWeight: 900, cursor: "pointer" },
+  buttonMiniGhost: { border: "1px solid rgba(1, 231, 239, 0.18)", background: "rgba(1, 231, 239, 0.08)", color: "#01E7EF", borderRadius: "999px", padding: "8px 11px", fontSize: "12px", fontWeight: 900, cursor: "pointer" },
+  buttonWarning: { border: "1px solid rgba(255, 204, 102, 0.45)", background: "rgba(255, 204, 102, 0.14)", color: "#ffcc66", borderRadius: "999px", padding: "8px 11px", fontSize: "12px", fontWeight: 900, cursor: "pointer" },
+  buttonDanger: { border: "1px solid rgba(255, 67, 67, 0.45)", background: "rgba(255, 67, 67, 0.15)", color: "#ff8a8a", borderRadius: "999px", padding: "8px 11px", fontSize: "12px", fontWeight: 900, cursor: "pointer" },
 }
