@@ -351,6 +351,7 @@ export default function QuieroSocioEditorPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isRestoringPublished, setIsRestoringPublished] = useState(false);
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
 
   useEffect(() => {
@@ -488,6 +489,36 @@ export default function QuieroSocioEditorPage() {
     toast.success("Estado de fábrica cargado. Revisa y presiona Publicar para aplicarlo.");
   };
 
+  const restorePublishedDraft = async () => {
+    try {
+      setIsRestoringPublished(true);
+
+      const response = await fetch("/api/editor-web/quiero-ser-socio", { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error("No se pudo cargar el contenido publicado.");
+      }
+
+      const data = (await response.json()) as {
+        publishedContent?: unknown;
+      };
+
+      if (isEmptyObject(data.publishedContent)) {
+        throw new Error("Todavía no hay contenido publicado para restaurar.");
+      }
+
+      setDraft(mergeDraft(data.publishedContent));
+      setActiveGroup("Marca");
+      setPreviewMode("desktop");
+      toast.success("Publicado cargado en el editor. Presiona Guardar borrador o Publicar para aplicarlo.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "No se pudo restaurar el publicado.");
+    } finally {
+      setIsRestoringPublished(false);
+    }
+  };
+
   const sectionTabs = (extraClassName = "") => (
     <div className={`${styles.groupTabs} ${extraClassName}`.trim()} aria-label="Secciones editables">
       {groups.map((group) => (
@@ -528,24 +559,24 @@ export default function QuieroSocioEditorPage() {
                 type="button"
                 className={`${styles.secondaryButton} ${styles.factoryButton}`}
                 onClick={resetFactoryDraft}
-                disabled={isSaving || isPublishing || isLoading}
+                disabled={isSaving || isPublishing || isRestoringPublished || isLoading}
               >
                 Restablecer fábrica
               </button>
-              <button type="button" className={styles.secondaryButton} onClick={saveDraft} disabled={isSaving || isLoading}>
+              <button type="button" className={styles.secondaryButton} onClick={saveDraft} disabled={isSaving || isRestoringPublished || isLoading}>
                 {isSaving ? "Guardando..." : "Guardar borrador"}
               </button>
-              <button type="button" className={styles.primaryButton} onClick={publishDraft} disabled={isPublishing || isLoading}>
+              <button type="button" className={styles.primaryButton} onClick={publishDraft} disabled={isPublishing || isRestoringPublished || isLoading}>
                 {isPublishing ? "Publicando..." : "Publicar"}
               </button>
             </div>
           </section>
 
-          {sectionTabs(styles.mobileGroupTabs)}
         </div>
 
         <section className={styles.workspace}>
           <aside className={styles.editorPanel}>
+            {sectionTabs(styles.mobileGroupTabs)}
             {sectionTabs(styles.desktopGroupTabs)}
 
             <div className={styles.formCard}>
@@ -721,13 +752,16 @@ export default function QuieroSocioEditorPage() {
             </div>
 
             <div className={styles.saveBar}>
-              <button type="button" className={`${styles.secondaryButton} ${styles.factoryButton}`} onClick={resetFactoryDraft} disabled={isSaving || isPublishing || isLoading}>
+              <button type="button" className={`${styles.secondaryButton} ${styles.factoryButton}`} onClick={resetFactoryDraft} disabled={isSaving || isPublishing || isRestoringPublished || isLoading}>
                 Restablecer fábrica
               </button>
-              <button type="button" className={styles.secondaryButton} onClick={saveDraft} disabled={isSaving || isLoading}>
+              <button type="button" className={styles.secondaryButton} onClick={restorePublishedDraft} disabled={isSaving || isPublishing || isRestoringPublished || isLoading}>
+                {isRestoringPublished ? "Restaurando..." : "Restaurar publicado"}
+              </button>
+              <button type="button" className={styles.secondaryButton} onClick={saveDraft} disabled={isSaving || isRestoringPublished || isLoading}>
                 {isSaving ? "Guardando..." : "Guardar borrador"}
               </button>
-              <button type="button" className={styles.primaryButton} onClick={publishDraft} disabled={isPublishing || isLoading}>
+              <button type="button" className={styles.primaryButton} onClick={publishDraft} disabled={isPublishing || isRestoringPublished || isLoading}>
                 {isPublishing ? "Publicando..." : "Publicar"}
               </button>
             </div>
