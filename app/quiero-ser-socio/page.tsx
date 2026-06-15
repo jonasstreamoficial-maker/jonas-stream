@@ -536,6 +536,42 @@ export default function QuieroSerSocioPage() {
           </div>
         </section>
 
+        <section className={styles.affiliateSection}>
+          <div className={styles.affiliateBox}>
+            <div className={styles.affiliateHeader}>
+              <span>AFILIACIÓN ADICIONAL</span>
+              <h3>Además de vender, también podrás afiliar</h3>
+              <p>
+                Recomiendas la comunidad a un amigo o familiar y tú decides cuánto cobrarle por
+                inscripción. Puede ser <strong>S/10, S/20 o S/30</strong>.
+              </p>
+            </div>
+
+            <div className={styles.affiliateGrid}>
+              <div className={styles.affiliateStep}>
+                <strong>01</strong>
+                <p>Nosotros solo cobramos <b>S/5</b> por activar al nuevo socio.</p>
+              </div>
+
+              <div className={styles.affiliateStep}>
+                <strong>02</strong>
+                <p>El nuevo socio recibe los mismos beneficios principales que tú.</p>
+              </div>
+
+              <div className={styles.affiliateStep}>
+                <strong>03</strong>
+                <p>Ganas vendiendo plataformas y también recomendando nuevos socios.</p>
+              </div>
+            </div>
+
+            <div className={styles.affiliateBenefits}>
+              {affiliateBenefits.map((benefit) => (
+                <span key={benefit}>✅ {benefit}</span>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className={styles.pricingSection}>
           <div className={styles.pricingCard}>
             <div className={styles.sectionHeaderCenter}>
@@ -564,42 +600,6 @@ export default function QuieroSerSocioPage() {
               </div>
             </div>
 
-            <div className={styles.affiliateBox}>
-              <div className={styles.affiliateHeader}>
-                <span>AFILIACIÓN ADICIONAL</span>
-                <h3>Además de vender, también podrás afiliar</h3>
-                <p>
-                  Recomiendas la comunidad a un amigo o familiar y tú decides cuánto cobrarle por
-                  inscripción. Puede ser <strong>S/10, S/20 o S/30</strong>.
-                </p>
-              </div>
-
-              <div className={styles.affiliateGrid}>
-                <div className={styles.affiliateStep}>
-                  <strong>01</strong>
-                  <p>Nosotros solo cobramos <b>S/5</b> por activar al nuevo socio.</p>
-                </div>
-
-                <div className={styles.affiliateStep}>
-                  <strong>02</strong>
-                  <p>El nuevo socio recibe los mismos beneficios principales que tú.</p>
-                </div>
-
-                <div className={styles.affiliateStep}>
-                  <strong>03</strong>
-                  <p>Ganas vendiendo plataformas y también recomendando nuevos socios.</p>
-                </div>
-              </div>
-
-              <div className={styles.affiliateBenefits}>
-                {affiliateBenefits.map((benefit) => (
-                  <span key={benefit}>✅ {benefit}</span>
-                ))}
-              </div>
-
-              <p className={styles.affiliateFinal}>Hoy puedes empezar a ganar vendiendo y recomendando.</p>
-            </div>
-
             <div className={styles.pricingActions}>
               <Link href="/ver-precios" className={styles.heroBtnSecondary}>
                 VER PRECIOS EXCLUSIVOS
@@ -616,6 +616,7 @@ export default function QuieroSerSocioPage() {
             </div>
           </div>
         </section>
+
       </main>
 
       <footer className={styles.footerWrap}>
