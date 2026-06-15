@@ -41,10 +41,13 @@ const PATRON_PASSWORD_URL =
   /passwordresettoken|set-new-password|new-password|reset-password|password-reset|resetpassword|password\/reset|reset\/password|password-reset\/complete|resetpass|reset-password\?token|forgot-password|forgotten-password|account-recovery|loginhelp|\/password\?|\/password\/|newpassword/i
 
 const PATRON_PASSWORD_TEXTO =
-  /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password|set new password|establecer contraseña|nueva contraseña|reset your password|password reset|trouble signing in/i
+  /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password|set new password|establecer contraseña|nueva contraseña|reset your password|password reset|trouble signing in|problemas para iniciar/i
 
 const PATRON_CODIGO_TEXTO =
   /c[oó]digo|code|verification|verificaci[oó]n|security code|one[-\s]?time|one time|passcode|otp|inicio de sesi[oó]n|sign[-\s]?in|login|acceso|hogar|household|clave de un solo uso|clave.*uso|un solo uso/i
+
+const PATRON_CAMBIO_CORREO =
+  /(?:se\s+)?(?:ha\s+)?(?:cambi[oó]|actualiz[oó]|modific[oó]).{0,90}(?:correo|email|direcci[oó]n)|(?:correo|email|direcci[oó]n).{0,90}(?:cambi[oó]|actualiz[oó]|modific[oó])|email address.{0,60}(?:changed|updated)|(?:your|tu).{0,30}(?:email|correo).{0,80}(?:changed|updated|cambi[oó]|actualiz[oó])|cambio de correo|cambiar correo/i
 
 function limpiarTextoSeguro(valor: unknown, maxLength = 10000) {
   if (valor === null || valor === undefined) return null
@@ -101,8 +104,8 @@ function escapeHtml(valor: string | number | null | undefined) {
 }
 
 /*
-  No se decodifican tokens de links tracking.
-  Si se modifican partes como -2F, -3D, -2B, el link puede terminar en Wrong Link.
+  No se decodifican tokens largos de links tracking.
+  Si se cambian partes como -2F, -3D, -2B o saltos del token, el link puede quedar inválido.
 */
 function limpiarUrlPreservandoTracking(url: string) {
   return decodificarEntidadesBasicas(url)
@@ -121,7 +124,7 @@ function quitarHtml(valor: string) {
 
 function limpiarResumen(valor: string) {
   return quitarHtml(valor)
-    .replace(/@font-face[\s\S]{0,1200}?}/gi, " ")
+    .replace(/@font-face[\s\S]{0,1400}?}/gi, " ")
     .replace(/font-family:[^;\n]+;?/gi, " ")
     .replace(/font-style:[^;\n]+;?/gi, " ")
     .replace(/font-weight:[^;\n]+;?/gi, " ")
@@ -132,10 +135,8 @@ function limpiarResumen(valor: string) {
 }
 
 /*
-  Reconstruye URLs que llegan partidas por saltos de línea.
-  Ejemplo real:
-  https://auth.hbomax.com/set-new-password?
-  passwordResetToken=ABC==
+  Une URLs directas partidas en dos líneas.
+  No intenta rearmar a ciegas todos los tracking porque puede romper tokens.
 */
 function normalizarFuenteParaLinks(valor: string) {
   let texto = decodificarEntidadesBasicas(valor).replace(/=\n/g, "")
@@ -144,10 +145,6 @@ function normalizarFuenteParaLinks(valor: string) {
     texto = texto
       .replace(
         /(https?:\/\/[^\s<>"']*(?:set-new-password|new-password|reset-password|password-reset|resetpassword|password\/reset|reset\/password|password-reset\/complete|resetpass|reset-password\?token|forgot-password|account-recovery|\/password\?)[^\s<>"']*)\n([A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+)/gi,
-        "$1$2"
-      )
-      .replace(
-        /(https?:\/\/(?:link\.vix\.com|links\.mail\.crunchyroll\.com|ablink\.[^\s/"']+|[^\/\s"']+\/ls\/click)[^\s<>"']*)\n([A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+)/gi,
         "$1$2"
       )
       .replace(
@@ -162,22 +159,22 @@ function normalizarFuenteParaLinks(valor: string) {
 function detectarPlataforma(correoDestino: string, texto: string) {
   const base = `${correoDestino} ${texto}`.toLowerCase()
 
-  if (base.includes("netflix")) return "Netflix"
-  if (base.includes("disney")) return "Disney+"
-  if (base.includes("prime") || base.includes("amazon")) return "Prime Video"
-  if (base.includes("crunchy") || base.includes("crunchyroll")) return "Crunchyroll"
-  if (base.includes("youtube")) return "YouTube"
-  if (base.includes("spotify")) return "Spotify"
-  if (base.includes("max") || base.includes("hbo")) return "Max"
-  if (base.includes("vix")) return "Vix"
-  if (base.includes("chatgpt") || base.includes("openai")) return "ChatGPT"
-  if (base.includes("apple")) return "Apple TV"
-  if (base.includes("paramount")) return "Paramount+"
-  if (base.includes("canva")) return "Canva"
-  if (base.includes("deezer")) return "Deezer"
-  if (base.includes("tidal")) return "Tidal"
-  if (base.includes("viki")) return "Rakuten Viki"
-  if (base.includes("universal")) return "Universal"
+  if (/netflix|netflixp|nflx/.test(base)) return "Netflix"
+  if (/disney|disneyplus|mail2\.disneyplus|disney\+/.test(base)) return "Disney+"
+  if (/prime|amazon|primevideo/.test(base)) return "Prime Video"
+  if (/crunchy|crunchyroll|links\.mail\.crunchyroll/.test(base)) return "Crunchyroll"
+  if (/youtube|google.*youtube/.test(base)) return "YouTube"
+  if (/spotify|accounts\.spotify/.test(base)) return "Spotify"
+  if (/\bmax\b|hbomax|hbo|maxest|auth\.hbomax|message\.hbomax|alerts\.hbomax/.test(base)) return "Max"
+  if (/\bvix\b|vixprec|link\.vix|vix\.com/.test(base)) return "Vix"
+  if (/deezer|deepr|deezer\.com/.test(base)) return "Deezer"
+  if (/tidal|login\.tidal/.test(base)) return "Tidal"
+  if (/rakuten|viki|vikipax|viki\.com/.test(base)) return "Rakuten Viki"
+  if (/paramount|paramountplus/.test(base)) return "Paramount+"
+  if (/apple|appleid|iforgot\.apple/.test(base)) return "Apple TV"
+  if (/canva|canva\.com/.test(base)) return "Canva"
+  if (/chatgpt|openai/.test(base)) return "ChatGPT"
+  if (/universal/.test(base)) return "Universal"
 
   return null
 }
@@ -205,10 +202,10 @@ function extraerCodigo(texto: string) {
   const base = (texto || "").replace(/\s+/g, " ").trim()
 
   const patronesDirectos = [
-    /(?:c[oó]digo|code|verification code|security code|one[-\s]?time code|one time code|sign[-\s]?in code|login code|passcode|otp|clave de un solo uso|clave.{0,30}uso).{0,160}?(\d[\d\s-]{2,14}\d)/iu,
-    /(?:ingresa|introduce|usa|utiliza|enter|use).{0,160}?(\d[\d\s-]{2,14}\d).{0,120}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave)/iu,
-    /(?:hogar|household|home).{0,160}?(\d[\d\s-]{2,14}\d)/iu,
-    /(\d[\d\s-]{2,14}\d).{0,140}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave|hogar|household|home)/iu,
+    /(?:c[oó]digo|code|verification code|security code|one[-\s]?time code|one time code|sign[-\s]?in code|login code|passcode|otp|clave de un solo uso|clave.{0,30}uso).{0,180}?(\d[\d\s-]{2,14}\d)/iu,
+    /(?:ingresa|introduce|usa|utiliza|enter|use).{0,180}?(\d[\d\s-]{2,14}\d).{0,140}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave)/iu,
+    /(?:hogar|household|home).{0,180}?(\d[\d\s-]{2,14}\d)/iu,
+    /(\d[\d\s-]{2,14}\d).{0,160}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave|hogar|household|home)/iu,
   ]
 
   for (const patron of patronesDirectos) {
@@ -425,13 +422,12 @@ function detectarTipoMensaje(
   if (tienePasswordEnMensaje(base, links)) return "password"
   if (codigo) return "codigo"
 
-  if (
-    /cambio.{0,80}correo|correo.{0,80}cambi|email.{0,80}changed|changed.{0,80}email|email.{0,80}updated|direcci[oó]n.{0,80}correo|new email address|correo electr[oó]nico.{0,80}actualiz/i.test(
-      base
-    )
-  ) {
-    return "cambio_correo"
+  // Si es correo de clave/código, aunque el parser no encuentre el número, no lo marques como cambio de correo.
+  if (PATRON_CODIGO_TEXTO.test(base) && /clave de un solo uso|one[-\s]?time|otp|c[oó]digo|code/i.test(base)) {
+    return "codigo"
   }
+
+  if (PATRON_CAMBIO_CORREO.test(base)) return "cambio_correo"
 
   if (/hogar|household|home verification|home update|actualizar hogar/i.test(base)) {
     return "hogar"
@@ -472,15 +468,15 @@ function puntuarLinkPassword(link: LinkDetectado) {
 
   let score = 0
 
-  if (PATRON_PASSWORD_URL.test(url)) score += 300
-  if (PATRON_PASSWORD_TEXTO.test(contexto)) score += 220
+  if (PATRON_PASSWORD_URL.test(url)) score += 320
+  if (PATRON_PASSWORD_TEXTO.test(contexto)) score += 240
 
   if (
-    /auth\.hbomax\.com|auth\.max\.com|account\.max\.com|identity\.max\.com|netflix\.com\/password|sso\.crunchyroll\.com.*new-password|deezer\.com\/password\/reset|accounts\.spotify\.com.*password-reset|paramountplus\.com.*resetpassword|login\.tidal\.com\/resetpass|viki\.com\/reset-password|vix\.com.*reset\/password|auth\.disney|appleid\.apple\.com|iforgot\.apple\.com|canva\..*password/i.test(
+    /auth\.hbomax\.com.*set-new-password|auth\.max\.com.*set-new-password|account\.max\.com|identity\.max\.com|netflix\.com\/password|sso\.crunchyroll\.com.*new-password|deezer\.com\/password\/reset|accounts\.spotify\.com.*password-reset|paramountplus\.com.*resetpassword|login\.tidal\.com\/resetpass|viki\.com\/reset-password|vix\.com.*reset\/password|iforgot\.apple\.com|appleid\.apple\.com|canva\..*password/i.test(
       url
     )
   ) {
-    score += 220
+    score += 240
   }
 
   if (/auth|identity|account|accounts|login|sso/i.test(url)) score += 40
@@ -489,7 +485,7 @@ function puntuarLinkPassword(link: LinkDetectado) {
     score -= 20
 
     if (PATRON_PASSWORD_TEXTO.test(contexto)) {
-      score += 260
+      score += 280
     }
   }
 
@@ -571,7 +567,6 @@ function seleccionarEnlacePrincipal(params: {
     return seleccionarEnlacePassword(links)
   }
 
-  // Para inicios de sesión o cambios de correo con enlace, mostrar la acción.
   if (tipo === "nuevo_inicio" || tipo === "hogar" || tipo === "cambio_correo") {
     return seleccionarPrimerLinkUtil(links)
   }
@@ -714,6 +709,11 @@ async function construirAlertaTelegram(params: {
   if (tipo === "codigo" && codigo) {
     partes.push("")
     partes.push(`<b>Código:</b> <code>${escapeHtml(codigo)}</code>`)
+  }
+
+  if (tipo === "codigo" && !codigo) {
+    partes.push("")
+    partes.push("No se detectó un código numérico legible. Revisa el mensaje completo en el panel.")
   }
 
   if (tipo !== "codigo" && enlacePrincipal) {
@@ -865,11 +865,17 @@ export async function POST(request: Request) {
       `${remitente || ""} ${asunto} ${cuerpoTexto} ${quitarHtml(cuerpoHtml || "")}`
     )
 
-    const plataformaFinal =
-      limpiarTextoSeguro(body.plataforma, 100) ||
-      cliente?.plataforma ||
-      plataformaDetectada ||
-      null
+    /*
+      Prioridad corregida:
+      1. plataforma detectada por remitente/asunto/correo/link
+      2. plataforma del cliente
+      3. plataforma enviada en body
+
+      Antes body.plataforma iba primero y por eso Viki podía salir como Max
+      si el extractor enviaba una plataforma equivocada.
+    */
+    const plataformaBody = limpiarTextoSeguro(body.plataforma, 100)
+    const plataformaFinal = plataformaDetectada || cliente?.plataforma || plataformaBody || null
 
     const nuevoMensaje = {
       cliente_id: cliente?.id || null,
@@ -951,8 +957,8 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-links-sin-romper-v11",
+    version: "recibir-mensaje-telegram-deteccion-plataformas-v12",
     mensaje:
-      "API activa. Reconstruye URLs partidas, preserva tracking, prioriza links directos de contraseña y evita códigos falsos en correos de reset.",
+      "API activa. Prioriza plataforma detectada, mejora Viki/Disney, evita falsos cambio-correo y mantiene links directos/tracking.",
   })
 }
