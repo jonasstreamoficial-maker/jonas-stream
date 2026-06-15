@@ -17,7 +17,7 @@
   --shadow-strong: 0 0 40px rgba(0, 251, 255, 0.22);
   --wrap: min(1320px, calc(100% - 32px));
   --section-gap: 18px;
-  --topbar-height: 112px;
+  --topbar-height: 104px;
 
   min-height: 100vh;
   position: relative;
@@ -73,24 +73,24 @@
 .sideBrand {
   position: fixed;
   top: 50%;
-  left: max(20px, calc((100vw - 1320px) / 2 - 112px));
-  transform: translateY(-50%) rotate(-90deg);
+  left: clamp(98px, 10.2vw, 184px);
+  transform: translate(-50%, -50%) rotate(-90deg);
   z-index: 1;
   pointer-events: none;
   user-select: none;
   font-family: "Orbitron", sans-serif;
-  font-size: clamp(2.2rem, 2.6vw, 3rem);
+  font-size: clamp(2.05rem, 2.45vw, 2.85rem);
   font-weight: 900;
   letter-spacing: 5px;
-  color: rgba(1, 231, 239, 0.08);
+  color: rgba(1, 231, 239, 0.075);
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .sideBrandRight {
   left: auto;
-  right: max(20px, calc((100vw - 1320px) / 2 - 112px));
-  transform: translateY(-50%) rotate(90deg);
+  right: clamp(98px, 10.2vw, 184px);
+  transform: translate(50%, -50%) rotate(90deg);
 }
 
 /* Topbar */
@@ -219,7 +219,8 @@
 
 /* Promoción */
 
-.promoOverlay {
+.promoOverlay,
+.legalOverlay {
   position: fixed;
   inset: 0;
   z-index: 90;
@@ -229,27 +230,28 @@
   padding: 18px;
 }
 
-.promoBackdrop {
+.promoBackdrop,
+.legalBackdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .promoModal {
   position: relative;
   z-index: 2;
-  width: min(760px, 100%);
+  width: min(620px, 100%);
   max-height: calc(100dvh - 36px);
-  padding: 30px 26px 24px;
+  padding: 22px 22px 20px;
   background:
-    linear-gradient(180deg, rgba(3, 19, 22, 0.96), rgba(7, 27, 30, 0.96));
+    linear-gradient(180deg, rgba(3, 19, 22, 0.98), rgba(7, 27, 30, 0.98));
   border: 1px solid var(--glass-border);
-  border-radius: 30px;
+  border-radius: 28px;
   box-shadow:
-    0 30px 70px rgba(0, 0, 0, 0.42),
-    0 0 35px rgba(1, 231, 239, 0.16),
+    0 30px 70px rgba(0, 0, 0, 0.5),
+    0 0 38px rgba(1, 231, 239, 0.18),
     inset 0 0 0 1px rgba(236, 255, 255, 0.04);
   overflow-x: hidden;
   overflow-y: auto;
@@ -259,7 +261,8 @@
   animation: modalIn 0.38s ease both;
 }
 
-.promoModal::-webkit-scrollbar {
+.promoModal::-webkit-scrollbar,
+.legalBody::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;
@@ -279,8 +282,8 @@
   position: sticky;
   top: 0;
   margin-left: auto;
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -288,14 +291,15 @@
   border: 1px solid rgba(236, 255, 255, 0.08);
   background: rgba(11, 23, 26, 0.92);
   color: var(--white);
-  font-size: 1.6rem;
+  font-size: 1.55rem;
   line-height: 1;
   cursor: pointer;
   transition: 0.25s ease;
   z-index: 5;
 }
 
-.closeButton:hover {
+.closeButton:hover,
+.legalClose:hover {
   transform: translateY(-2px);
   border-color: rgba(1, 231, 239, 0.22);
   box-shadow: 0 0 18px rgba(1, 231, 239, 0.12);
@@ -323,7 +327,7 @@
 }
 
 .promoBadge {
-  margin-bottom: 16px;
+  margin: -22px 0 12px;
 }
 
 .promoTitle {
@@ -331,11 +335,11 @@
   z-index: 2;
   text-align: center;
   font-family: "Orbitron", sans-serif;
-  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-size: clamp(1.55rem, 3.2vw, 2.35rem);
   line-height: 1.04;
   letter-spacing: 2px;
   text-transform: uppercase;
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   color: var(--white);
   text-shadow:
     0 0 12px rgba(236, 255, 255, 0.12),
@@ -346,9 +350,9 @@
 .pricingMain {
   position: relative;
   z-index: 2;
-  border-radius: 26px;
-  padding: 20px 18px;
-  margin-bottom: 18px;
+  border-radius: 24px;
+  padding: 17px 16px;
+  margin-bottom: 16px;
   background: linear-gradient(180deg, rgba(7, 27, 30, 0.84), rgba(3, 19, 22, 0.98));
   border: 1px solid rgba(1, 231, 239, 0.12);
   box-shadow:
@@ -360,7 +364,7 @@
 .promoPriceMain,
 .priceNow {
   font-family: "Orbitron", sans-serif;
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: clamp(2rem, 5vw, 3.2rem);
   font-weight: 900;
   letter-spacing: 2px;
   color: var(--cyan-strong);
@@ -394,26 +398,26 @@
 .countdownWrap {
   position: relative;
   z-index: 2;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .countdownLabel {
   display: block;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   color: var(--muted);
-  font-size: 0.94rem;
+  font-size: 0.92rem;
 }
 
 .countdown {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .countBox {
-  padding: 14px 10px;
-  border-radius: 22px;
+  padding: 12px 8px;
+  border-radius: 18px;
   background: linear-gradient(180deg, rgba(7, 27, 30, 0.88), rgba(3, 19, 22, 0.98));
   border: 1px solid rgba(236, 255, 255, 0.06);
   text-align: center;
@@ -425,15 +429,15 @@
 .countBox strong {
   display: block;
   font-family: "Orbitron", sans-serif;
-  font-size: 1.65rem;
+  font-size: 1.35rem;
   color: var(--white);
 }
 
 .countBox span {
   display: block;
   margin-top: 4px;
-  font-size: 0.72rem;
-  letter-spacing: 2px;
+  font-size: 0.64rem;
+  letter-spacing: 1.8px;
   color: var(--cyan);
   font-weight: 800;
 }
@@ -442,16 +446,16 @@
   position: relative;
   z-index: 2;
   display: grid;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .promoBenefit {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px;
-  border-radius: 18px;
+  padding: 12px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(236, 255, 255, 0.05);
 }
@@ -459,8 +463,8 @@
 .promoBenefit p {
   margin: 0;
   color: var(--white);
-  line-height: 1.65;
-  font-size: 0.96rem;
+  line-height: 1.55;
+  font-size: 0.92rem;
 }
 
 .dot {
@@ -480,7 +484,7 @@
   z-index: 2;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .primaryAction,
@@ -488,7 +492,7 @@
 .heroBtnPrimary,
 .heroBtnSecondary,
 .netflixLink {
-  min-height: 58px;
+  min-height: 56px;
   border-radius: 18px;
   display: inline-flex;
   align-items: center;
@@ -500,6 +504,7 @@
   border: 1px solid rgba(236, 255, 255, 0.08);
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, letter-spacing 0.25s ease;
   cursor: pointer;
+  font-family: inherit;
 }
 
 .primaryAction,
@@ -529,10 +534,132 @@
 .rateNote {
   position: relative;
   z-index: 2;
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   text-align: center;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
+}
+
+/* Modal legal estilo portada */
+
+.legalOverlay {
+  z-index: 95;
+}
+
+.legalModal {
+  position: relative;
+  z-index: 2;
+  width: min(980px, calc(100% - 28px));
+  max-height: calc(100dvh - 46px);
+  border-radius: 30px;
+  border: 1px solid rgba(1, 231, 239, 0.28);
+  background: rgba(3, 19, 22, 0.96);
+  box-shadow:
+    0 36px 90px rgba(0, 0, 0, 0.54),
+    0 0 42px rgba(1, 231, 239, 0.16);
+  overflow: hidden;
+  animation: modalIn 0.35s ease both;
+}
+
+.legalHeader {
+  min-height: 98px;
+  padding: 22px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid rgba(1, 231, 239, 0.16);
+  background:
+    linear-gradient(180deg, rgba(7, 27, 30, 0.98), rgba(3, 19, 22, 0.96));
+}
+
+.legalHeader span {
+  display: block;
+  margin-bottom: 8px;
+  font-family: "Orbitron", sans-serif;
+  color: var(--cyan);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 2.8px;
+}
+
+.legalHeader h2 {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  color: var(--white);
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.1;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.legalClose {
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(236, 255, 255, 0.12);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--white);
+  font-size: 1.65rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.legalBody {
+  max-height: calc(100dvh - 146px);
+  overflow-y: auto;
+  padding: 26px 30px 30px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.legalDate {
+  display: inline-flex;
+  margin-bottom: 18px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(1, 231, 239, 0.16);
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.legalIntro,
+.legalSection p {
+  margin: 0;
+  color: var(--white);
+  line-height: 1.75;
+  font-size: 1rem;
+}
+
+.legalIntro {
+  padding-bottom: 22px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid rgba(236, 255, 255, 0.08);
+}
+
+.legalSection {
+  margin-bottom: 22px;
+}
+
+.legalSection h3 {
+  margin: 0 0 10px;
+  color: var(--cyan-strong);
+  font-size: 1rem;
+}
+
+.legalNotice {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(1, 231, 239, 0.22);
+  color: var(--white);
+  background: rgba(1, 231, 239, 0.055);
+  font-weight: 800;
 }
 
 /* Bloques principales */
@@ -1025,14 +1152,19 @@
   font-size: 0.86rem;
 }
 
-.footerLinks a {
+.footerLinks button {
+  border: 0;
+  background: transparent;
   color: var(--cyan);
   text-decoration: none;
+  font: inherit;
   font-weight: 800;
+  cursor: pointer;
   transition: 0.25s ease;
+  padding: 0;
 }
 
-.footerLinks a:hover {
+.footerLinks button:hover {
   color: #ffffff;
   text-shadow: 0 0 12px rgba(1, 231, 239, 0.22);
 }
@@ -1117,7 +1249,7 @@
   }
 }
 
-/* Mobile cuidado: header en 2 filas como estaba planificado */
+/* Mobile cuidado: header en 2 filas */
 @media (max-width: 760px) {
   .page {
     --wrap: min(100% - 18px, 1320px);
@@ -1279,6 +1411,10 @@
     padding: 16px 14px;
   }
 
+  .promoBadge {
+    margin-top: -16px;
+  }
+
   .promoTitle {
     font-size: 1.3rem;
     line-height: 1.08;
@@ -1304,6 +1440,30 @@
     line-height: 1.55;
   }
 
+  .legalOverlay {
+    padding: 10px;
+  }
+
+  .legalModal {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+    border-radius: 22px;
+  }
+
+  .legalHeader {
+    min-height: 82px;
+    padding: 16px 18px;
+  }
+
+  .legalHeader h2 {
+    font-size: 1.25rem;
+  }
+
+  .legalBody {
+    max-height: calc(100dvh - 112px);
+    padding: 18px;
+  }
+
   .footerLegal {
     padding: 18px 14px;
     border-radius: 18px;
@@ -1316,7 +1476,8 @@
     --topbar-height: 188px;
   }
 
-  .closeButton {
+  .closeButton,
+  .legalClose {
     width: 40px;
     height: 40px;
     font-size: 1.4rem;

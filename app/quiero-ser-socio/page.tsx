@@ -9,6 +9,21 @@ const PRICE_PEN = 10;
 const OLD_PRICE_PEN = 80;
 const USD_RATE = 3.75;
 
+type LegalModal = "terms" | "privacy" | null;
+
+type LegalSection = {
+  title: string;
+  body: string;
+  notice?: string;
+};
+
+type LegalCopyItem = {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  sections: LegalSection[];
+};
+
 const promoBenefits = [
   "Ingresas al grupo privado de socios revendedores.",
   "Recibes orientación para entender la dinámica del negocio.",
@@ -62,6 +77,66 @@ const benefits = [
   },
 ];
 
+const legalCopy: Record<Exclude<LegalModal, null>, LegalCopyItem> = {
+  terms: {
+    eyebrow: "JONAS STREAM",
+    title: "TÉRMINOS Y CONDICIONES",
+    intro:
+      "Bienvenido a Jonas Stream. Al adquirir, contratar o utilizar nuestros servicios, usted acepta los presentes Términos y Condiciones. Si no está de acuerdo, no debe utilizar nuestros servicios.",
+    sections: [
+      {
+        title: "1. Naturaleza del servicio",
+        body: "Jonas Stream ofrece servicios de gestión, activación y soporte de accesos a plataformas digitales de entretenimiento. No representamos oficialmente a las marcas de streaming mencionadas ni tenemos relación directa con ellas.",
+      },
+      {
+        title: "2. Condiciones de uso",
+        body: "El cliente acepta usar los accesos únicamente para uso personal, no compartir cuentas con terceros no autorizados, no modificar correos, contraseñas o perfiles entregados, no alterar configuraciones de seguridad y no realizar usos abusivos del servicio.",
+        notice: "El incumplimiento puede generar suspensión inmediata sin reembolso.",
+      },
+      {
+        title: "3. Entrega del servicio",
+        body: "Las activaciones se realizan dentro del horario de atención informado por nuestros canales oficiales. Los tiempos pueden variar según demanda y verificación de pago.",
+      },
+      {
+        title: "4. Pagos",
+        body: "Todos los servicios son de pago anticipado. La activación se realiza únicamente después de la confirmación del pago.",
+      },
+      {
+        title: "5. Soporte",
+        body: "El soporte se brinda por los canales oficiales de Jonas Stream. La atención puede depender del tipo de servicio contratado y del estado del acceso.",
+      },
+    ],
+  },
+  privacy: {
+    eyebrow: "JONAS STREAM",
+    title: "POLÍTICA DE PRIVACIDAD",
+    intro:
+      "En Jonas Stream respetamos la privacidad de nuestros clientes y protegemos sus datos personales. Esta política explica qué información podemos recopilar y cómo se utiliza.",
+    sections: [
+      {
+        title: "1. Información que recopilamos",
+        body: "Podemos recopilar nombre, número de WhatsApp, usuario de redes sociales, información de contacto y datos necesarios para activar o brindar soporte sobre los servicios contratados.",
+      },
+      {
+        title: "2. Uso de la información",
+        body: "Usamos la información únicamente para activación de servicios, soporte técnico, comunicación con el cliente, validación de pagos y atención de consultas.",
+      },
+      {
+        title: "3. Protección de datos",
+        body: "Aplicamos medidas razonables de seguridad para proteger la información del cliente y evitar accesos no autorizados.",
+      },
+      {
+        title: "4. No venta de datos",
+        body: "No vendemos, alquilamos ni compartimos datos personales con terceros para fines comerciales externos.",
+      },
+      {
+        title: "5. Contacto",
+        body: "El cliente puede comunicarse con Jonas Stream por los canales oficiales para solicitar información sobre el uso de sus datos.",
+      },
+    ],
+  },
+};
+
 function formatMoney(value: number) {
   return value.toFixed(2);
 }
@@ -79,6 +154,7 @@ function getSecondsUntilEndOfDay() {
 
 export default function QuieroSerSocioPage() {
   const [showPromo, setShowPromo] = useState(true);
+  const [legalModal, setLegalModal] = useState<LegalModal>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
 
   useEffect(() => {
@@ -94,20 +170,18 @@ export default function QuieroSerSocioPage() {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     const previousTouchAction = document.body.style.touchAction;
+    const hasOverlay = showPromo || Boolean(legalModal);
 
-    if (showPromo) {
+    if (hasOverlay) {
       document.body.style.overflow = "hidden";
       document.body.style.touchAction = "none";
-    } else {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.touchAction = previousTouchAction;
     }
 
     return () => {
       document.body.style.overflow = previousOverflow;
       document.body.style.touchAction = previousTouchAction;
     };
-  }, [showPromo]);
+  }, [showPromo, legalModal]);
 
   const days = Math.floor(secondsLeft / 86400);
   const hours = Math.floor((secondsLeft % 86400) / 3600);
@@ -124,6 +198,8 @@ export default function QuieroSerSocioPage() {
     "Hola, quiero ACTIVAR MI ACCESO como socio en Jonas Stream y aprovechar la promoción de hoy.";
   const heroMessage =
     "Hola, quiero ser socio revendedor de Jonas Stream. Deseo más información para empezar.";
+
+  const activeLegal = legalModal ? legalCopy[legalModal] : null;
 
   return (
     <div className={styles.page}>
@@ -214,10 +290,45 @@ export default function QuieroSerSocioPage() {
               </button>
             </div>
 
-            <p className={styles.rateNote}>
-              Tipo de cambio manual actual: 1 USD = S/ {USD_RATE}
-            </p>
+            <p className={styles.rateNote}>Tipo de cambio manual actual: 1 USD = S/ {USD_RATE}</p>
           </div>
+        </div>
+      )}
+
+      {activeLegal && (
+        <div className={styles.legalOverlay}>
+          <div className={styles.legalBackdrop} onClick={() => setLegalModal(null)} />
+
+          <section className={styles.legalModal} role="dialog" aria-modal="true">
+            <header className={styles.legalHeader}>
+              <div>
+                <span>{activeLegal.eyebrow}</span>
+                <h2>{activeLegal.title}</h2>
+              </div>
+
+              <button
+                type="button"
+                className={styles.legalClose}
+                onClick={() => setLegalModal(null)}
+                aria-label="Cerrar ventana legal"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className={styles.legalBody}>
+              <span className={styles.legalDate}>Última actualización: 2026</span>
+              <p className={styles.legalIntro}>{activeLegal.intro}</p>
+
+              {activeLegal.sections.map((section) => (
+                <article key={section.title} className={styles.legalSection}>
+                  <h3>{section.title}</h3>
+                  <p>{section.body}</p>
+                  {section.notice && <div className={styles.legalNotice}>{section.notice}</div>}
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
       )}
 
@@ -259,9 +370,9 @@ export default function QuieroSerSocioPage() {
           </h1>
 
           <p className={styles.heroText}>
-            ¿Te gustaría generar ingresos vendiendo las plataformas más buscadas del mercado?
-            Soy <strong> JONAS</strong>, administrador y proveedor autorizado. Te acompañaré paso
-            a paso para que empieces sin complicaciones y veas resultados rápido.
+            ¿Te gustaría generar ingresos vendiendo las plataformas más buscadas del mercado? Soy
+            <strong> JONAS</strong>, administrador y proveedor autorizado. Te acompañaré paso a paso
+            para que empieces sin complicaciones y veas resultados rápido.
           </p>
 
           <div className={styles.heroActions}>
@@ -424,9 +535,7 @@ export default function QuieroSerSocioPage() {
               </div>
               <div className={styles.pricingItem}>✅ Comunidad privada de socios</div>
               <div className={styles.pricingItem}>✅ Publicidad editable en Canva PRO</div>
-              <div className={styles.pricingItem}>
-                ✅ Oportunidad de generar ingresos desde casa
-              </div>
+              <div className={styles.pricingItem}>✅ Oportunidad de generar ingresos desde casa</div>
             </div>
 
             <div className={styles.pricingActions}>
@@ -451,9 +560,13 @@ export default function QuieroSerSocioPage() {
         <div className={styles.footerLegal}>
           <p>© 2026 Jonas Stream. Todos los derechos reservados.</p>
           <div className={styles.footerLinks}>
-            <Link href="/terminos-y-condiciones">Términos y Condiciones</Link>
+            <button type="button" onClick={() => setLegalModal("terms")}>
+              Términos y Condiciones
+            </button>
             <span className={styles.footerSeparator}>•</span>
-            <Link href="/politicas-de-privacidad">Política de Privacidad</Link>
+            <button type="button" onClick={() => setLegalModal("privacy")}>
+              Política de Privacidad
+            </button>
           </div>
         </div>
       </footer>
