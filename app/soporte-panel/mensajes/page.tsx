@@ -234,42 +234,62 @@ function filtrarLinksDetectadosImportantes(links: LinkDetectado[]) {
   return utiles.length ? utiles : links
 }
 
+function esNumeroPareceFecha(codigo: string) {
+  if (/^20\d{6}$/.test(codigo)) return true
+  if (/^\d{8}$/.test(codigo)) {
+    const yyyy = Number(codigo.slice(0, 4))
+    const mm = Number(codigo.slice(4, 6))
+    const dd = Number(codigo.slice(6, 8))
+
+    if (yyyy >= 2020 && yyyy <= 2099 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function codigoValido(valor: string) {
+  const codigo = valor.replace(/\D/g, "")
+
+  if (codigo.length < 4 || codigo.length > 8) return null
+  if (esNumeroPareceFecha(codigo)) return null
+
+  return codigo
+}
+
 function extraerCodigo(texto: string, asunto?: string | null) {
   const base = `${asunto || ""}\n${texto || ""}`.replace(/\s+/g, " ").trim()
 
   const patrones = [
     /c[oó]digo detectado:\s*(\d[\d\s-]{2,14}\d)/iu,
-    /c[oó]digo.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /ingresa.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /verification code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /security code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /one[-\s]?time code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /sign[-\s]?in code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /\b(\d(?:[\s-]?\d){3,7})\b/u,
+    /c[oó]digo.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /ingresa.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /verification code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /security code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /one[-\s]?time code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /sign[-\s]?in code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /login code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /access code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /c[oó]digo de acceso.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
   ]
-
-  const tieneContextoCodigo =
-    /c[oó]digo|code|verificaci[oó]n|verification|inicio de sesi[oó]n|login|acceso|hogar|home|household|device/i.test(
-      base
-    )
 
   for (const patron of patrones) {
     const match = base.match(patron)
 
     if (match?.[1]) {
-      const codigo = match[1].replace(/\D/g, "")
-
-      if (codigo.length >= 4 && codigo.length <= 8) {
-        if (patron === patrones[patrones.length - 1] && !tieneContextoCodigo) {
-          return null
-        }
-
-        return codigo
-      }
+      const codigo = codigoValido(match[1])
+      if (codigo) return codigo
     }
   }
 
   return null
+}
+
+function contextoIndicaPassword(valor: string) {
+  return /contraseña|password|restablec|restablecer|recuper|reset|forgot|change password|cambiar contraseña|set new password|nueva contraseña|password reset/i.test(
+    valor
+  )
 }
 
 function detectarTipoMensaje(
@@ -453,6 +473,43 @@ function extraerLinkPrincipal(
         url: mejor.url,
         texto: obtenerTextoBotonPrincipal(
           mejor.url,
+          tipo,
+          textoCompleto,
+          asunto,
+          plataforma
+        ),
+      }
+    }
+
+    // Respaldo: si el correo/botón dice contraseña pero el link es tracking,
+    // igual lo mostramos porque normalmente ahí está escondido el reset.
+    const trackingPassword = ordenados.find((link) => {
+      const contexto = `${asunto || ""} ${link.contexto}`
+      return (
+        esLinkTracking(link.url) &&
+        contextoIndicaPassword(contexto) &&
+        !esLinkBasura(link.url)
+      )
+    })
+
+    if (trackingPassword) {
+      return {
+        url: trackingPassword.url,
+        texto: obtenerTextoBotonPrincipal(
+          trackingPassword.url,
+          tipo,
+          textoCompleto,
+          asunto,
+          plataforma
+        ),
+      }
+    }
+
+    if (contextoIndicaPassword(textoCompleto) && links.length === 1 && !esLinkBasura(links[0].url)) {
+      return {
+        url: links[0].url,
+        texto: obtenerTextoBotonPrincipal(
+          links[0].url,
           tipo,
           textoCompleto,
           asunto,

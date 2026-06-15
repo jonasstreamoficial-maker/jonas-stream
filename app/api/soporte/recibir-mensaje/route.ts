@@ -124,50 +124,65 @@ function detectarPlataforma(correoDestino: string, texto: string) {
   return null
 }
 
+function esNumeroPareceFecha(codigo: string) {
+  // Evita falsos códigos como 20260615 sacados de fechas.
+  if (/^20\d{6}$/.test(codigo)) return true
+  if (/^\d{8}$/.test(codigo)) {
+    const yyyy = Number(codigo.slice(0, 4))
+    const mm = Number(codigo.slice(4, 6))
+    const dd = Number(codigo.slice(6, 8))
+
+    if (yyyy >= 2020 && yyyy <= 2099 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function codigoValido(valor: string) {
+  const codigo = valor.replace(/\D/g, "")
+
+  if (codigo.length < 4 || codigo.length > 8) return null
+  if (esNumeroPareceFecha(codigo)) return null
+
+  return codigo
+}
+
 function extraerCodigo(texto: string) {
   const base = texto || ""
 
+  // Solo acepta números cuando están cerca de palabras de código.
+  // Esto evita tomar fechas como 20260615 en avisos de inicio de sesión.
   const patronesDirectos = [
     /c[oó]digo detectado:\s*(\d[\d\s-]{2,14}\d)/iu,
-    /c[oó]digo.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /ingresa.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /verification code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /security code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /one[-\s]?time code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /sign[-\s]?in code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /login code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
+    /c[oó]digo.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /ingresa.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /verification code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /security code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /one[-\s]?time code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /sign[-\s]?in code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /login code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /access code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /c[oó]digo de acceso.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
   ]
 
   for (const patron of patronesDirectos) {
     const match = base.match(patron)
 
     if (match?.[1]) {
-      const codigo = match[1].replace(/\D/g, "")
-
-      if (codigo.length >= 4 && codigo.length <= 8) {
-        return codigo
-      }
-    }
-  }
-
-  const tieneContextoCodigo =
-    /c[oó]digo|code|verificaci[oó]n|verification|inicio de sesi[oó]n|login|acceso|hogar|home|household/i.test(
-      base
-    )
-
-  if (!tieneContextoCodigo) return null
-
-  const matchLibre = base.match(/\b(\d(?:[\s-]?\d){3,7})\b/u)
-
-  if (matchLibre?.[1]) {
-    const codigo = matchLibre[1].replace(/\D/g, "")
-
-    if (codigo.length >= 4 && codigo.length <= 8) {
-      return codigo
+      const codigo = codigoValido(match[1])
+      if (codigo) return codigo
     }
   }
 
   return null
+}
+
+function contextoIndicaPassword(valor: string) {
+  return /contraseña|password|restablec|restablecer|recuper|reset|forgot|change password|cambiar contraseña|set new password|nueva contraseña|password reset/i.test(
+    valor
+  )
 }
 
 function agregarLinkDetectado(
@@ -595,10 +610,32 @@ function seleccionarEnlacePrincipal(params: {
 
     const mejor = ordenados[0]
 
-    // Solo se manda link si hay evidencia real de contraseña.
-    // Esto evita mandar links de inicio/suscripción como contraseña.
+    // 1) Link real de contraseña: auth, reset, passwordResetToken, etc.
     if (mejor && mejor.score >= 60) {
       return mejor.url
+    }
+
+    // 2) Respaldo práctico:
+    // Algunas plataformas mandan el enlace real detrás de tracking
+    // y Vercel no siempre puede resolverlo. Si el asunto/cuerpo y
+    // el contexto del botón dicen contraseña, mandamos ese tracking.
+    const trackingPassword = ordenados.find((link) => {
+      const contexto = `${asunto} ${link.contexto}`
+      return (
+        esLinkTracking(link.url) &&
+        contextoIndicaPassword(contexto) &&
+        !esLinkBasura(link.url)
+      )
+    })
+
+    if (trackingPassword) {
+      return trackingPassword.url
+    }
+
+    // 3) Último respaldo: si todo el correo es de contraseña y solo
+    // existe un link importante, se envía ese link en vez de ocultarlo.
+    if (contextoIndicaPassword(base) && links.length === 1 && !esLinkBasura(links[0].url)) {
+      return links[0].url
     }
 
     return null
@@ -970,8 +1007,8 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-resuelve-tracking-password-v7",
+    version: "recibir-mensaje-password-fallback-tracking-v8",
     mensaje:
-      "API activa. Si es código, envía solo código. Si es contraseña, resuelve tracking y envía solo link seguro.",
+      "API activa. Si es código, envía solo código. Si es contraseña, prioriza link real y usa tracking solo si el contexto es de contraseña.",
   })
 }
