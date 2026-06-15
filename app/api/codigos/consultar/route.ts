@@ -4,39 +4,12 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-function normalizarCorreo(valor: unknown) {
-  return String(valor || "").trim().toLowerCase()
-}
-
-function normalizarPin(valor: unknown) {
-  return String(valor || "").trim().toUpperCase()
-}
-
-function estadoCuentaBloquea(estado: string) {
-  const limpio = estado.toLowerCase().trim()
-  return limpio === "bloqueada" || limpio === "bloqueado" || limpio === "mantenimiento"
-}
-
-function mensajeEstado(estado: string) {
-  const limpio = estado.toLowerCase().trim()
-
-  if (limpio === "bloqueada" || limpio === "bloqueado") {
-    return "Esta cuenta está bloqueada. Contacta con soporte."
-  }
-
-  if (limpio === "mantenimiento") {
-    return "Esta cuenta está en mantenimiento. Contacta con soporte."
-  }
-
-  return "Esta cuenta no está disponible. Contacta con soporte."
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null)
 
-    const correo = normalizarCorreo(body?.correo)
-    const pin = normalizarPin(body?.pin)
+    const correo = String(body?.correo || "").trim().toLowerCase()
+    const pin = String(body?.pin || "").trim()
 
     if (!correo || !pin) {
       return NextResponse.json(
@@ -47,8 +20,7 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseAdmin()
 
-    // Fuente principal: Admin → Cuentas.
-    // Esta tabla define el PIN, las fechas, la clave, el perfil y el estado real.
+    // 1. Nuevo sistema: tabla cuentas
     const { data: cuenta, error: errorCuenta } = await supabase
       .from("cuentas")
       .select("*")
@@ -63,11 +35,14 @@ export async function POST(request: Request) {
 
     if (cuenta) {
       const estadoCuenta = String(cuenta.estado || "").toLowerCase()
-      const correoCuenta = normalizarCorreo(cuenta.correo)
+      const correoCuenta = String(cuenta.correo || "").toLowerCase()
 
-      if (estadoCuentaBloquea(estadoCuenta)) {
+      if (estadoCuenta === "bloqueada") {
         return NextResponse.json(
-          { ok: false, error: mensajeEstado(estadoCuenta) },
+          {
+            ok: false,
+            error: "Esta cuenta está bloqueada. Contacta con soporte.",
+          },
           { status: 403 }
         )
       }
@@ -90,7 +65,6 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         ok: true,
-        origen: "cuentas",
         cliente: {
           id: cuenta.id,
           nombre: cuenta.cliente_nombre || cuenta.producto_nombre || "Cliente",
@@ -99,6 +73,7 @@ export async function POST(request: Request) {
           estado: cuenta.estado,
           fecha_inicio: cuenta.cliente_inicio || null,
           fecha_vencimiento: cuenta.cliente_fin || null,
+
           clave: cuenta.clave,
           perfil: cuenta.perfil,
           pin_perfil: cuenta.pin_perfil,
@@ -127,11 +102,11 @@ export async function POST(request: Request) {
           observacion_admin: cuenta.observacion_admin,
         },
         mensajes: mensajes || [],
+        origen: "cuentas",
       })
     }
 
-    // Compatibilidad temporal: soporte_clientes.
-    // Se mantiene para no romper correos/PIN antiguos mientras migras todo a Admin → Cuentas.
+    // 2. Sistema anterior: soporte_clientes
     const { data: cliente, error: errorCliente } = await supabase
       .from("soporte_clientes")
       .select("*")
@@ -141,7 +116,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (errorCliente) {
-      console.error("Error validando cliente legacy:", errorCliente)
+      console.error("Error validando cliente:", errorCliente)
 
       return NextResponse.json(
         { ok: false, error: "No se pudo validar el acceso." },
@@ -160,12 +135,15 @@ export async function POST(request: Request) {
 
     if (estado !== "activo") {
       return NextResponse.json(
-        { ok: false, error: "Esta cuenta no está activa. Contacta con soporte." },
+        {
+          ok: false,
+          error: "Esta cuenta no está activa. Contacta con soporte.",
+        },
         { status: 403 }
       )
     }
 
-    const correoAsignado = normalizarCorreo(cliente.correo_asignado)
+    const correoAsignado = String(cliente.correo_asignado || "").toLowerCase()
 
     const { data: mensajes, error: errorMensajes } = await supabase
       .from("soporte_mensajes")
@@ -175,7 +153,7 @@ export async function POST(request: Request) {
       .limit(15)
 
     if (errorMensajes) {
-      console.error("Error cargando mensajes legacy:", errorMensajes)
+      console.error("Error cargando mensajes:", errorMensajes)
 
       return NextResponse.json(
         { ok: false, error: "No se pudieron cargar los mensajes." },
@@ -185,7 +163,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      origen: "soporte_clientes",
       cliente: {
         id: cliente.id,
         nombre: cliente.nombre,
@@ -194,10 +171,13 @@ export async function POST(request: Request) {
         estado: cliente.estado,
         fecha_inicio: cliente.fecha_inicio || null,
         fecha_vencimiento:
-          cliente.fecha_vencimiento || cliente.vencimiento || cliente.fecha_fin || null,
-        pin_acceso: cliente.pin_acceso || null,
+          cliente.fecha_vencimiento ||
+          cliente.vencimiento ||
+          cliente.fecha_fin ||
+          null,
       },
       mensajes: mensajes || [],
+      origen: "soporte_clientes",
     })
   } catch (error) {
     console.error("Error en consulta de códigos:", error)
