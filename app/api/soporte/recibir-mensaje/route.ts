@@ -21,11 +21,6 @@ type ClienteSoporte = {
   estado: string | null
 }
 
-type LinkDetectado = {
-  url: string
-  contexto: string
-}
-
 function limpiarTextoSeguro(valor: unknown, maxLength = 10000) {
   if (valor === null || valor === undefined) return null
 
@@ -59,50 +54,6 @@ function normalizarFecha(valor: unknown) {
   return fecha.toISOString()
 }
 
-function decodificarEntidadesBasicas(valor: string) {
-  return valor
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#039;/gi, "'")
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-}
-
-function decodificarTracking(valor: string) {
-  try {
-    let texto = decodificarEntidadesBasicas(valor)
-
-    texto = texto
-      .replace(/-2F/gi, "%2F")
-      .replace(/-3A/gi, "%3A")
-      .replace(/-3D/gi, "%3D")
-      .replace(/-26/gi, "%26")
-      .replace(/-3F/gi, "%3F")
-      .replace(/-2B/gi, "%2B")
-      .replace(/-25/gi, "%25")
-
-    return decodeURIComponent(texto)
-  } catch {
-    return decodificarEntidadesBasicas(valor)
-  }
-}
-
-function limpiarUrl(url: string) {
-  return decodificarTracking(url)
-    .replace(/[)\].,;]+$/g, "")
-    .trim()
-}
-
-function quitarHtml(valor: string) {
-  return decodificarEntidadesBasicas(valor)
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
 function detectarPlataforma(correoDestino: string, texto: string) {
   const base = `${correoDestino} ${texto}`.toLowerCase()
 
@@ -131,8 +82,6 @@ function extraerCodigo(texto: string) {
     /ingresa.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
     /verification code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
     /security code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /one[-\s]?time code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
-    /sign[-\s]?in code.{0,120}?(\d[\d\s-]{2,14}\d)/iu,
   ]
 
   for (const patron of patronesDirectos) {
@@ -148,7 +97,7 @@ function extraerCodigo(texto: string) {
   }
 
   const tieneContextoCodigo =
-    /c[oó]digo|code|verificaci[oó]n|verification|inicio de sesi[oó]n|login|acceso|hogar|home|household/i.test(
+    /c[oó]digo|code|verificaci[oó]n|verification|inicio de sesi[oó]n|login|acceso/i.test(
       base
     )
 
@@ -167,117 +116,28 @@ function extraerCodigo(texto: string) {
   return null
 }
 
-function agregarLinkDetectado(
-  mapa: Map<string, LinkDetectado>,
-  urlOriginal: string,
-  contextoOriginal: string
-) {
-  const url = limpiarUrl(urlOriginal)
+function extraerLinks(texto: string) {
+  const links = new Set<string>()
+  const regex = /https?:\/\/[^\s<>"'\]\)]+/gi
+  const matches = texto.match(regex) || []
 
-  if (!url || !/^https?:\/\//i.test(url)) return
+  for (const match of matches) {
+    const url = match.replace(/[)\].,;]+$/g, "").trim()
 
-  const contexto = quitarHtml(contextoOriginal || "").slice(0, 800)
-  const existente = mapa.get(url)
-
-  if (!existente) {
-    mapa.set(url, { url, contexto })
-    return
-  }
-
-  if (contexto.length > existente.contexto.length) {
-    mapa.set(url, { url, contexto })
-  }
-}
-
-function extraerUrlRealDesdeParametros(url: string) {
-  const resultados: string[] = []
-
-  try {
-    const objeto = new URL(url)
-
-    for (const clave of [
-      "url",
-      "u",
-      "target",
-      "redirect",
-      "redirect_uri",
-      "continue",
-      "continueUrl",
-      "next",
-      "link",
-      "deep_link",
-    ]) {
-      const valor = objeto.searchParams.get(clave)
-
-      if (!valor) continue
-
-      const decodificado = limpiarUrl(valor)
-
-      if (/^https?:\/\//i.test(decodificado)) {
-        resultados.push(decodificado)
-      }
-    }
-  } catch {
-    return resultados
-  }
-
-  return resultados
-}
-
-function extraerLinksDetectados(texto: string, html?: string | null) {
-  const links = new Map<string, LinkDetectado>()
-  const fuentes = [texto || "", html || ""].filter(Boolean)
-
-  for (const fuente of fuentes) {
-    const limpio = decodificarEntidadesBasicas(fuente)
-
-    const hrefRegex =
-      /<a\b[^>]*?href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
-
-    let hrefMatch: RegExpExecArray | null
-
-    while ((hrefMatch = hrefRegex.exec(limpio)) !== null) {
-      agregarLinkDetectado(links, hrefMatch[1], hrefMatch[0])
-
-      const reales = extraerUrlRealDesdeParametros(limpiarUrl(hrefMatch[1]))
-
-      for (const real of reales) {
-        agregarLinkDetectado(links, real, hrefMatch[0])
-      }
-
-      if (links.size >= 25) break
+    if (url && url.startsWith("http")) {
+      links.add(url)
     }
 
-    const urlRegex = /https?:\/\/[^\s<>"'\]\)]+/gi
-    let urlMatch: RegExpExecArray | null
-
-    while ((urlMatch = urlRegex.exec(limpio)) !== null) {
-      const inicio = Math.max(0, urlMatch.index - 220)
-      const fin = Math.min(limpio.length, urlMatch.index + urlMatch[0].length + 220)
-      const contexto = limpio.slice(inicio, fin)
-      const url = limpiarUrl(urlMatch[0])
-
-      agregarLinkDetectado(links, url, contexto)
-
-      const reales = extraerUrlRealDesdeParametros(url)
-
-      for (const real of reales) {
-        agregarLinkDetectado(links, real, contexto)
-      }
-
-      if (links.size >= 25) break
-    }
-
-    if (links.size >= 25) break
+    if (links.size >= 10) break
   }
 
-  return Array.from(links.values()).slice(0, 25)
+  return Array.from(links)
 }
 
-function esLinkBasura(link: string) {
-  const lower = link.toLowerCase()
+function filtrarLinksImportantes(links: string[]) {
+  if (!links.length) return []
 
-  return [
+  const basura = [
     "privacy",
     "privacidad",
     "terms",
@@ -290,30 +150,12 @@ function esLinkBasura(link: string) {
     "notificaciones",
     "contactus",
     "centro",
-    "preferences",
-    "email-preferences",
-  ].some((palabra) => lower.includes(palabra))
-}
+  ]
 
-function esLinkTracking(link: string) {
-  const lower = link.toLowerCase()
-
-  return (
-    lower.includes("ablink.message.") ||
-    lower.includes("/ls/click") ||
-    lower.includes("click.email") ||
-    lower.includes("click.mail") ||
-    lower.includes("trk.") ||
-    lower.includes("tracking") ||
-    lower.includes("mandrillapp.com/track") ||
-    lower.includes("sendgrid.net")
-  )
-}
-
-function filtrarLinksDetectadosImportantes(links: LinkDetectado[]) {
-  if (!links.length) return []
-
-  const utiles = links.filter((link) => !esLinkBasura(link.url))
+  const utiles = links.filter((link) => {
+    const lower = link.toLowerCase()
+    return !basura.some((palabra) => lower.includes(palabra))
+  })
 
   return utiles.length ? utiles : links
 }
@@ -329,20 +171,23 @@ function escapeHtml(valor: string | null | undefined) {
     .replace(/'/g, "&#039;")
 }
 
+function esMaxOHbo(plataforma: string | null) {
+  const p = (plataforma || "").toLowerCase()
+  return p.includes("max") || p.includes("hbo")
+}
+
 function detectarTipoMensaje(
   asunto: string,
   cuerpo: string,
   codigo: string | null,
-  links: LinkDetectado[]
+  links: string[]
 ) {
   const base = `${asunto}\n${cuerpo}`.toLowerCase()
 
-  // Regla principal:
-  // Si hay código numérico, se responde código y NO se manda link.
   if (codigo) return "codigo"
 
   if (
-    /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password|set new password|establecer contraseña|nueva contraseña/.test(
+    /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password/.test(
       base
     )
   ) {
@@ -359,7 +204,7 @@ function detectarTipoMensaje(
   }
 
   if (
-    /dispositivo|device|seguridad|security|accedid|nuevo inicio|new sign|login alert|actividad inusual|suspicious|hogar|household|home/.test(
+    /dispositivo|device|seguridad|security|accedid|nuevo inicio|new sign|login alert|actividad inusual|suspicious/.test(
       base
     )
   ) {
@@ -371,110 +216,85 @@ function detectarTipoMensaje(
   return "normal"
 }
 
-function puntuarLinkPassword(link: LinkDetectado) {
-  const url = link.url.toLowerCase()
-  const contexto = link.contexto.toLowerCase()
-  const base = `${url} ${contexto}`
-
-  let score = 0
-
-  // Señales fuertes: estas sí son de contraseña.
-  if (/passwordresettoken|set-new-password|reset-password|password-reset|change-password|forgot-password|account-recovery|loginhelp|recover|recovery/.test(url)) {
-    score += 140
-  }
-
-  if (/contraseña|password|restablec|restablecer|recuper|reset|forgot|change password|cambiar contraseña|set new password|nueva contraseña/.test(contexto)) {
-    score += 90
-  }
-
-  if (/auth\.hbomax\.com|auth\.max\.com|account\.max\.com|identity\.max\.com/.test(url)) {
-    score += 70
-  }
-
-  if (/auth|identity|account|accounts/.test(url)) {
-    score += 30
-  }
-
-  // Señales de link incorrecto para contraseña.
-  if (/watch|play\.max\.com|\/pe\/es|suscr[ií]bete|subscribe|browse|movies|series|home|homepage/.test(base)) {
-    score -= 90
-  }
-
-  if (/iniciar sesi[oó]n|sign in|login|entrar|abrir max|ver pel[ií]culas|watch now/.test(contexto) && !/contraseña|password|reset|restablec|recuper/.test(contexto)) {
-    score -= 70
-  }
-
-  // Tracking genérico: solo se acepta si tiene señales MUY claras de password.
-  if (esLinkTracking(url)) {
-    score -= 100
-  }
-
-  if (esLinkBasura(url)) {
-    score -= 120
-  }
-
-  return score
-}
-
 function seleccionarEnlacePrincipal(params: {
-  links: LinkDetectado[]
+  links: string[]
   tipo: string
+  plataforma: string | null
   asunto: string
   cuerpo: string
 }) {
-  const { links, tipo, asunto, cuerpo } = params
+  const { links, tipo, plataforma, asunto, cuerpo } = params
 
   if (!links.length) return null
 
+  const plataformaLower = (plataforma || "").toLowerCase()
   const base = `${asunto} ${cuerpo}`.toLowerCase()
 
-  if (tipo === "codigo") {
-    return null
-  }
-
-  if (tipo === "password") {
-    const ordenados = [...links]
-      .map((link) => ({
-        ...link,
-        score: puntuarLinkPassword(link),
-      }))
-      .sort((a, b) => b.score - a.score)
-
-    const mejor = ordenados[0]
-
-    // Solo se manda link si hay evidencia real de contraseña.
-    // Esto evita mandar links de inicio/suscripción como contraseña.
-    if (mejor && mejor.score >= 60) {
-      return mejor.url
-    }
-
-    return null
-  }
-
-  if (tipo === "enlace") {
-    const noTracking = links.filter((link) => !esLinkTracking(link.url))
-
+  // Netflix: prioriza enlaces reales de activación/verificación.
+  if (plataformaLower.includes("netflix")) {
     return (
-      noTracking.find((link) =>
-        /verify|verification|activate|activation|confirm|register|signup|sign-up|val|code|token|auth|account/i.test(
-          link.url
+      links.find((link) =>
+        /netflix\.com\/(val|epr)|nftoken|code=|token=/i.test(link)
+      ) || links[0]
+    )
+  }
+
+  // Max / HBO: confirmado, el enlace correcto es el primero.
+  if (tipo === "password" && esMaxOHbo(plataforma)) {
+    return links[0]
+  }
+
+  // Vix: normalmente el primer enlace es el botón principal.
+  if (plataformaLower.includes("vix")) {
+    return links[0]
+  }
+
+  // Para contraseña, prioriza enlaces con palabras de recuperación.
+  if (tipo === "password") {
+    return (
+      links.find((link) =>
+        /reset|password|recover|recovery|change|forgot|pass|pwd/i.test(link)
+      ) || links[0]
+    )
+  }
+
+  // Para activar, confirmar, registrar o verificar.
+  if (tipo === "enlace") {
+    return (
+      links.find((link) =>
+        /verify|verification|activate|activation|confirm|register|signup|sign-up|val|code|token/i.test(
+          link
         )
-      )?.url ||
-      noTracking[0]?.url ||
-      null
+      ) || links[0]
     )
   }
 
   if (/reset|password|contraseña|recuper|restablec/.test(base)) {
-    return seleccionarEnlacePrincipal({
-      links,
-      tipo: "password",
-      asunto,
-      cuerpo,
-    })
+    return links[0]
   }
 
-  return null
+  return links[0]
+}
+
+function seleccionarEnlacesTelegram(params: {
+  links: string[]
+  tipo: string
+  plataforma: string | null
+  asunto: string
+  cuerpo: string
+}) {
+  const { links, tipo, plataforma } = params
+
+  if (!links.length) return []
+
+  // Max / HBO: confirmado, solo enviar el primer enlace.
+  if (tipo === "password" && esMaxOHbo(plataforma)) {
+    return [links[0]]
+  }
+
+  const principal = seleccionarEnlacePrincipal(params)
+
+  return principal ? [principal] : []
 }
 
 function etiquetaEnlace(tipo: string) {
@@ -513,7 +333,6 @@ function construirAlertaTelegram(params: {
   remitente: string | null
   asunto: string
   cuerpoTexto: string
-  cuerpoHtml?: string | null
   fechaMensaje: string
   cliente: ClienteSoporte | null
 }) {
@@ -523,17 +342,13 @@ function construirAlertaTelegram(params: {
     remitente,
     asunto,
     cuerpoTexto,
-    cuerpoHtml,
     fechaMensaje,
     cliente,
   } = params
 
-  const textoCompleto = `${asunto}\n${cuerpoTexto}\n${quitarHtml(cuerpoHtml || "")}`
-  const linksDetectados = filtrarLinksDetectadosImportantes(
-    extraerLinksDetectados(cuerpoTexto, cuerpoHtml)
-  )
-  const codigo = extraerCodigo(textoCompleto)
-  const tipo = detectarTipoMensaje(asunto, textoCompleto, codigo, linksDetectados)
+  const codigo = extraerCodigo(`${asunto}\n${cuerpoTexto}`)
+  const links = filtrarLinksImportantes(extraerLinks(cuerpoTexto))
+  const tipo = detectarTipoMensaje(asunto, cuerpoTexto, codigo, links)
 
   const plataformaTexto = plataforma || cliente?.plataforma || "No detectada"
   const clienteTexto = cliente?.nombre || "Sin cliente asignado"
@@ -542,11 +357,12 @@ function construirAlertaTelegram(params: {
     correoDestino
   )}`
 
-  const enlacePrincipal = seleccionarEnlacePrincipal({
-    links: linksDetectados,
+  const enlacesTelegram = seleccionarEnlacesTelegram({
+    links,
     tipo,
+    plataforma: plataformaTexto,
     asunto,
-    cuerpo: textoCompleto,
+    cuerpo: cuerpoTexto,
   })
 
   let titulo = "📩 Nuevo mensaje recibido"
@@ -567,26 +383,17 @@ function construirAlertaTelegram(params: {
     `<b>Fecha:</b> ${escapeHtml(formatearFechaPeru(fechaMensaje))}`,
   ].filter(Boolean)
 
-  // Código: solo se manda el código, no link.
   if (tipo === "codigo" && codigo) {
     partes.push("")
     partes.push(`<b>Código:</b> <code>${escapeHtml(codigo)}</code>`)
   }
 
-  // Contraseña o activación: solo se manda link si el link fue validado.
-  if ((tipo === "password" || tipo === "enlace") && enlacePrincipal) {
+  if ((tipo === "password" || tipo === "enlace") && enlacesTelegram.length > 0) {
     partes.push("")
     partes.push(
-      `<b>Acción:</b> <a href="${escapeHtml(enlacePrincipal)}">${escapeHtml(
+      `<b>Acción:</b> <a href="${escapeHtml(enlacesTelegram[0])}">${escapeHtml(
         etiquetaEnlace(tipo)
       )}</a>`
-    )
-  }
-
-  if (tipo === "password" && !enlacePrincipal) {
-    partes.push("")
-    partes.push(
-      "No se detectó un enlace seguro de contraseña. Revisa el mensaje completo en el panel."
     )
   }
 
@@ -720,7 +527,7 @@ export async function POST(request: Request) {
 
     const plataformaDetectada = detectarPlataforma(
       correoDestino,
-      `${remitente || ""} ${asunto} ${cuerpoTexto} ${quitarHtml(cuerpoHtml || "")}`
+      `${remitente || ""} ${asunto} ${cuerpoTexto}`
     )
 
     const plataformaFinal =
@@ -778,7 +585,6 @@ export async function POST(request: Request) {
       remitente,
       asunto,
       cuerpoTexto,
-      cuerpoHtml,
       fechaMensaje,
       cliente: cliente as ClienteSoporte | null,
     })
@@ -809,8 +615,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-links-seguros-codigo-sin-link-2026-06-14-v6",
-    mensaje:
-      "API de soporte activa. Si es código, envía solo código. Si es contraseña, solo envía link seguro de contraseña.",
+    version: "recibir-mensaje-telegram-max-primer-link-2026-06-06-v4",
+    mensaje: "API de soporte activa con alertas Telegram y primer enlace Max/HBO.",
   })
 }
