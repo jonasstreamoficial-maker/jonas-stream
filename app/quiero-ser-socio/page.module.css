@@ -3351,27 +3351,153 @@
     animation: none !important;
   }
 }
+
 /* ==========================================================
-   FIX FINAL V8 - SOLO BOTÓN HERO "VER PRECIOS"
-   Objetivo: que el botón VER PRECIOS del bloque principal
-   tenga el mismo estilo cyan/glow del botón final VER PRECIOS VIP.
-   No modifica VER PRECIOS VIP ni ACTIVAR MI ACCESO.
+   FIX FINAL V9 - BOTONES HERO Y TEXTO TOPBAR
+   Objetivo:
+   1) Mantener "QUIERO SER SOCIO" del hero con el brillo premium cyan.
+   2) Hacer "VER PRECIOS" del hero igual al estilo normal/hover de "VER PRECIOS VIP".
+   3) Mostrar en el menú superior "VER PRECIOS VIP" sin tocar la estructura.
+   Pegar al final del CSS.
    ========================================================== */
 
+/* 1) HERO: QUIERO SER SOCIO vuelve al brillo fuerte de antes */
+.heroActions .heroBtnPrimary {
+  position: relative !important;
+  z-index: 1 !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  color: #ecffff !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.28), transparent 64%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.42), rgba(1, 139, 144, 0.22)) !important;
+  border-color: rgba(1, 231, 239, 0.58) !important;
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.18),
+    0 0 22px rgba(1, 231, 239, 0.34),
+    0 0 52px rgba(0, 251, 255, 0.18),
+    inset 0 0 24px rgba(0, 251, 255, 0.08) !important;
+  text-shadow:
+    0 0 8px rgba(236, 255, 255, 0.34),
+    0 0 18px rgba(0, 251, 255, 0.22) !important;
+  animation: heroSocioPulseV9 2.45s ease-in-out infinite !important;
+}
+
+.heroActions .heroBtnPrimary::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  border-radius: inherit !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(0, 251, 255, 0.5),
+      transparent 42%,
+      rgba(0, 251, 255, 0.42)
+    ) !important;
+  z-index: -1 !important;
+  opacity: 0.58 !important;
+  filter: blur(0.35px) !important;
+  pointer-events: none !important;
+  transition: opacity 0.28s ease !important;
+}
+
+.heroActions .heroBtnPrimary::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -80% -35% !important;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 36%,
+      rgba(255, 255, 255, 0.22) 50%,
+      transparent 64%
+    ) !important;
+  transform: translateX(-72%) !important;
+  animation: heroSocioSweepV9 3.55s ease-in-out infinite !important;
+  pointer-events: none !important;
+}
+
+.heroActions .heroBtnPrimary:hover,
+.heroActions .heroBtnPrimary:focus-visible {
+  transform: translateY(-4px) scale(1.03) !important;
+  letter-spacing: 1px !important;
+  border-color: rgba(0, 251, 255, 0.86) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.38), transparent 64%),
+    linear-gradient(135deg, rgba(1, 231, 239, 0.5), rgba(1, 139, 144, 0.26)) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.32),
+    0 0 32px rgba(0, 251, 255, 0.46),
+    0 0 78px rgba(0, 251, 255, 0.25),
+    inset 0 0 30px rgba(0, 251, 255, 0.12) !important;
+}
+
+.heroActions .heroBtnPrimary:hover::after,
+.heroActions .heroBtnPrimary:focus-visible::after {
+  opacity: 0.82 !important;
+}
+
+.heroActions .heroBtnPrimary:active {
+  transform: translateY(1px) scale(0.98) !important;
+}
+
+@keyframes heroSocioPulseV9 {
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow:
+      0 0 0 1px rgba(1, 231, 239, 0.18),
+      0 0 22px rgba(1, 231, 239, 0.3),
+      0 0 52px rgba(0, 251, 255, 0.14),
+      inset 0 0 24px rgba(0, 251, 255, 0.08);
+  }
+
+  50% {
+    filter: brightness(1.22);
+    box-shadow:
+      0 0 0 1px rgba(0, 251, 255, 0.34),
+      0 0 36px rgba(0, 251, 255, 0.48),
+      0 0 84px rgba(0, 251, 255, 0.24),
+      inset 0 0 30px rgba(0, 251, 255, 0.12);
+  }
+}
+
+@keyframes heroSocioSweepV9 {
+  0%,
+  42% {
+    transform: translateX(-72%);
+    opacity: 0;
+  }
+
+  54% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(72%);
+    opacity: 0;
+  }
+}
+
+/* 2) HERO: VER PRECIOS igual al estilo base de VER PRECIOS VIP */
 .heroActions .heroBtnSecondary {
   position: relative !important;
   overflow: hidden !important;
   isolation: isolate !important;
   color: var(--white) !important;
-  border-color: rgba(1, 231, 239, 0.34) !important;
   background:
-    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.18), transparent 66%),
-    linear-gradient(135deg, rgba(1, 231, 239, 0.24), rgba(1, 139, 144, 0.16)) !important;
+    radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.08), transparent 62%),
+    rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(1, 231, 239, 0.22) !important;
   box-shadow:
-    0 0 0 1px rgba(1, 231, 239, 0.1),
-    0 0 18px rgba(1, 231, 239, 0.16),
-    inset 0 0 18px rgba(1, 231, 239, 0.045) !important;
-  animation: heroPricesPulseV8 2.8s ease-in-out infinite !important;
+    0 0 0 1px rgba(1, 231, 239, 0.06),
+    0 0 14px rgba(1, 231, 239, 0.08),
+    inset 0 0 16px rgba(1, 231, 239, 0.025) !important;
+  text-shadow:
+    0 0 8px rgba(236, 255, 255, 0.22),
+    0 0 14px rgba(1, 231, 239, 0.12) !important;
+  animation: none !important;
 }
 
 .heroActions .heroBtnSecondary::before {
@@ -3379,12 +3505,13 @@
   position: absolute !important;
   inset: 1px !important;
   border-radius: 17px !important;
-  border: 1px solid rgba(0, 251, 255, 0.14) !important;
+  border: 1px solid rgba(0, 251, 255, 0.12) !important;
   background:
-    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.1), transparent 62%),
-    linear-gradient(135deg, rgba(0, 251, 255, 0.08), transparent 58%) !important;
-  opacity: 0.75 !important;
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.06), transparent 62%),
+    linear-gradient(135deg, rgba(0, 251, 255, 0.04), transparent 58%) !important;
+  opacity: 0.72 !important;
   pointer-events: none !important;
+  transition: 0.25s ease !important;
 }
 
 .heroActions .heroBtnSecondary::after {
@@ -3395,31 +3522,31 @@
     linear-gradient(
       115deg,
       transparent 36%,
-      rgba(255, 255, 255, 0.16) 50%,
+      rgba(255, 255, 255, 0.14) 50%,
       transparent 64%
     ) !important;
   transform: translateX(-72%) !important;
   opacity: 0 !important;
-  animation: heroPricesSweepV8 3.8s ease-in-out infinite !important;
   pointer-events: none !important;
+  transition: transform 0.72s ease, opacity 0.18s ease !important;
 }
 
 .heroActions .heroBtnSecondary:hover,
 .heroActions .heroBtnSecondary:focus-visible {
   transform: translateY(-5px) scale(1.018) !important;
   color: #ffffff !important;
-  border-color: rgba(0, 251, 255, 0.76) !important;
+  border-color: rgba(0, 251, 255, 0.75) !important;
   background:
-    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.26), transparent 66%),
-    linear-gradient(135deg, rgba(1, 231, 239, 0.34), rgba(1, 139, 144, 0.2)) !important;
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.18), transparent 62%),
+    rgba(255, 255, 255, 0.045) !important;
   box-shadow:
     0 0 0 1px rgba(0, 251, 255, 0.16),
-    0 0 28px rgba(0, 251, 255, 0.3),
-    0 0 58px rgba(1, 231, 239, 0.18),
+    0 0 26px rgba(0, 251, 255, 0.28),
+    0 0 58px rgba(1, 231, 239, 0.16),
     0 18px 32px rgba(0, 0, 0, 0.24),
     inset 0 0 24px rgba(0, 251, 255, 0.08) !important;
-  filter: brightness(1.08);
-  letter-spacing: 0.7px;
+  filter: brightness(1.08) !important;
+  letter-spacing: 0.7px !important;
 }
 
 .heroActions .heroBtnSecondary:hover::before,
@@ -3435,74 +3562,62 @@
 .heroActions .heroBtnSecondary:hover::after,
 .heroActions .heroBtnSecondary:focus-visible::after {
   opacity: 1 !important;
+  transform: translateX(72%) !important;
 }
 
 .heroActions .heroBtnSecondary:active {
   transform: translateY(1px) scale(0.98) !important;
-  box-shadow:
-    0 0 0 1px rgba(0, 251, 255, 0.14),
-    0 0 18px rgba(0, 251, 255, 0.22),
-    inset 0 0 16px rgba(0, 251, 255, 0.06) !important;
 }
 
-@keyframes heroPricesPulseV8 {
-  0%,
-  100% {
-    filter: brightness(1);
-    box-shadow:
-      0 0 0 1px rgba(1, 231, 239, 0.1),
-      0 0 18px rgba(1, 231, 239, 0.16),
-      inset 0 0 18px rgba(1, 231, 239, 0.045);
-  }
-
-  50% {
-    filter: brightness(1.14);
-    box-shadow:
-      0 0 0 1px rgba(0, 251, 255, 0.18),
-      0 0 28px rgba(0, 251, 255, 0.28),
-      0 0 56px rgba(1, 231, 239, 0.14),
-      inset 0 0 24px rgba(0, 251, 255, 0.08);
-  }
+/* 3) MENÚ SUPERIOR: mostrar "VER PRECIOS VIP" en el segundo botón */
+.topActions a:nth-child(2) {
+  position: relative !important;
+  font-size: 0 !important;
 }
 
-@keyframes heroPricesSweepV8 {
-  0%,
-  42% {
-    transform: translateX(-72%);
-    opacity: 0;
-  }
-
-  52% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateX(72%);
-    opacity: 0;
-  }
+.topActions a:nth-child(2)::before {
+  content: "VER PRECIOS VIP" !important;
+  font-size: 0.86rem !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  color: var(--white) !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
 }
 
 @media (max-width: 760px) {
+  .heroActions .heroBtnPrimary,
   .heroActions .heroBtnSecondary {
-    animation: heroPricesPulseV8 3.2s ease-in-out infinite !important;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
+  .heroActions .heroBtnPrimary {
+    animation: heroSocioPulseV9 3.1s ease-in-out infinite !important;
+  }
+
+  .heroActions .heroBtnPrimary:hover,
+  .heroActions .heroBtnPrimary:focus-visible,
   .heroActions .heroBtnSecondary:hover,
   .heroActions .heroBtnSecondary:focus-visible {
     transform: none !important;
   }
+
+  .topActions a:nth-child(2)::before {
+    font-size: 0.7rem !important;
+  }
 }
 
 @media (hover: none) {
-  .heroActions .heroBtnSecondary:hover,
-  .heroActions .heroBtnSecondary:focus-visible {
+  .heroActions .heroBtnPrimary:hover,
+  .heroActions .heroBtnSecondary:hover {
     transform: none !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroActions .heroBtnSecondary,
-  .heroActions .heroBtnSecondary::after {
+  .heroActions .heroBtnPrimary,
+  .heroActions .heroBtnPrimary::before {
     animation: none !important;
   }
 }
