@@ -21,6 +21,11 @@ type ClienteSoporte = {
   estado: string | null
 }
 
+type LinkDetectado = {
+  url: string
+  contexto: string
+}
+
 function limpiarTextoSeguro(valor: unknown, maxLength = 10000) {
   if (valor === null || valor === undefined) return null
 
@@ -52,6 +57,31 @@ function normalizarFecha(valor: unknown) {
   }
 
   return fecha.toISOString()
+}
+
+function decodificarEntidadesBasicas(valor: string) {
+  return valor
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;/gi, "'")
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+}
+
+function limpiarUrl(url: string) {
+  return decodificarEntidadesBasicas(url)
+    .replace(/[)\].,;]+$/g, "")
+    .trim()
+}
+
+function quitarHtml(valor: string) {
+  return decodificarEntidadesBasicas(valor)
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 function detectarPlataforma(correoDestino: string, texto: string) {
@@ -116,28 +146,72 @@ function extraerCodigo(texto: string) {
   return null
 }
 
-function extraerLinks(texto: string) {
-  const links = new Set<string>()
-  const regex = /https?:\/\/[^\s<>"'\]\)]+/gi
-  const matches = texto.match(regex) || []
+function agregarLinkDetectado(
+  mapa: Map<string, LinkDetectado>,
+  urlOriginal: string,
+  contextoOriginal: string
+) {
+  const url = limpiarUrl(urlOriginal)
 
-  for (const match of matches) {
-    const url = match.replace(/[)\].,;]+$/g, "").trim()
+  if (!url || !/^https?:\/\//i.test(url)) return
 
-    if (url && url.startsWith("http")) {
-      links.add(url)
-    }
+  const contexto = quitarHtml(contextoOriginal || "").slice(0, 700)
+  const existente = mapa.get(url)
 
-    if (links.size >= 10) break
+  if (!existente) {
+    mapa.set(url, { url, contexto })
+    return
   }
 
-  return Array.from(links)
+  if (contexto.length > existente.contexto.length) {
+    mapa.set(url, { url, contexto })
+  }
 }
 
-function filtrarLinksImportantes(links: string[]) {
-  if (!links.length) return []
+function extraerLinksDetectados(texto: string, html?: string | null) {
+  const links = new Map<string, LinkDetectado>()
+  const fuentes = [texto || "", html || ""].filter(Boolean)
 
-  const basura = [
+  for (const fuente of fuentes) {
+    const limpio = decodificarEntidadesBasicas(fuente)
+
+    const hrefRegex =
+      /<a\b[^>]*?href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
+
+    let hrefMatch: RegExpExecArray | null
+
+    while ((hrefMatch = hrefRegex.exec(limpio)) !== null) {
+      agregarLinkDetectado(links, hrefMatch[1], hrefMatch[0])
+      if (links.size >= 15) break
+    }
+
+    const urlRegex = /https?:\/\/[^\s<>"'\]\)]+/gi
+    let urlMatch: RegExpExecArray | null
+
+    while ((urlMatch = urlRegex.exec(limpio)) !== null) {
+      const inicio = Math.max(0, urlMatch.index - 180)
+      const fin = Math.min(limpio.length, urlMatch.index + urlMatch[0].length + 180)
+      const contexto = limpio.slice(inicio, fin)
+
+      agregarLinkDetectado(links, urlMatch[0], contexto)
+
+      if (links.size >= 15) break
+    }
+
+    if (links.size >= 15) break
+  }
+
+  return Array.from(links.values()).slice(0, 15)
+}
+
+function extraerLinks(texto: string, html?: string | null) {
+  return extraerLinksDetectados(texto, html).map((link) => link.url)
+}
+
+function esLinkBasura(link: string) {
+  const lower = link.toLowerCase()
+
+  return [
     "privacy",
     "privacidad",
     "terms",
@@ -150,12 +224,23 @@ function filtrarLinksImportantes(links: string[]) {
     "notificaciones",
     "contactus",
     "centro",
-  ]
+    "preferences",
+    "email-preferences",
+  ].some((palabra) => lower.includes(palabra))
+}
 
-  const utiles = links.filter((link) => {
-    const lower = link.toLowerCase()
-    return !basura.some((palabra) => lower.includes(palabra))
-  })
+function filtrarLinksImportantes(links: string[]) {
+  if (!links.length) return []
+
+  const utiles = links.filter((link) => !esLinkBasura(link))
+
+  return utiles.length ? utiles : links
+}
+
+function filtrarLinksDetectadosImportantes(links: LinkDetectado[]) {
+  if (!links.length) return []
+
+  const utiles = links.filter((link) => !esLinkBasura(link.url))
 
   return utiles.length ? utiles : links
 }
@@ -216,19 +301,64 @@ function detectarTipoMensaje(
   return "normal"
 }
 
+function puntuarLinkPassword(link: LinkDetectado, plataforma: string | null) {
+  const url = link.url.toLowerCase()
+  const contexto = link.contexto.toLowerCase()
+  const base = `${url} ${contexto}`
+
+  let score = 0
+
+  if (/contraseña|password|restablec|restablecer|recuper|reset|forgot|change password|cambiar contraseña/.test(contexto)) {
+    score += 90
+  }
+
+  if (/reset|password|recover|recovery|forgot|change-password|change_password|pwd|loginhelp|account-recovery/.test(url)) {
+    score += 80
+  }
+
+  if (/auth|identity|account|accounts|signin|login/.test(url)) {
+    score += 25
+  }
+
+  if (esMaxOHbo(plataforma)) {
+    if (/auth\.max\.com|auth\.hbomax\.com|account\.max\.com|identity\.max\.com|wbd|warner|hbo/.test(url)) {
+      score += 35
+    }
+
+    if (/watch|play\.max\.com|\/sign-in|signin|login|iniciar sesi[oó]n|entrar a max|abrir max/.test(base)) {
+      score -= 55
+    }
+  }
+
+  if (/iniciar sesi[oó]n|sign in|login|entrar|abrir max|watch|play/.test(contexto) && !/contraseña|password|reset|restablec|recuper/.test(contexto)) {
+    score -= 50
+  }
+
+  if (esLinkBasura(url)) {
+    score -= 100
+  }
+
+  return score
+}
+
 function seleccionarEnlacePrincipal(params: {
   links: string[]
+  linksDetectados?: LinkDetectado[]
   tipo: string
   plataforma: string | null
   asunto: string
   cuerpo: string
 }) {
-  const { links, tipo, plataforma, asunto, cuerpo } = params
+  const { links, linksDetectados, tipo, plataforma, asunto, cuerpo } = params
 
   if (!links.length) return null
 
   const plataformaLower = (plataforma || "").toLowerCase()
   const base = `${asunto} ${cuerpo}`.toLowerCase()
+  const detectados =
+    linksDetectados && linksDetectados.length
+      ? linksDetectados
+      : links.map((url) => ({ url, contexto: base }))
 
   // Netflix: prioriza enlaces reales de activación/verificación.
   if (plataformaLower.includes("netflix")) {
@@ -239,23 +369,29 @@ function seleccionarEnlacePrincipal(params: {
     )
   }
 
-  // Max / HBO: confirmado, el enlace correcto es el primero.
-  if (tipo === "password" && esMaxOHbo(plataforma)) {
-    return links[0]
+  // Para contraseña, no asumir que el primer enlace es el correcto.
+  // Esto evita enviar enlaces normales de ingreso cuando se pidió restablecer contraseña.
+  if (tipo === "password") {
+    const ordenados = [...detectados]
+      .map((link) => ({
+        ...link,
+        score: puntuarLinkPassword(link, plataforma),
+      }))
+      .sort((a, b) => b.score - a.score)
+
+    const mejor = ordenados[0]
+
+    if (mejor && mejor.score > 0) {
+      return mejor.url
+    }
+
+    // Si no hay evidencia clara de contraseña, no se manda un enlace falso.
+    return null
   }
 
   // Vix: normalmente el primer enlace es el botón principal.
   if (plataformaLower.includes("vix")) {
     return links[0]
-  }
-
-  // Para contraseña, prioriza enlaces con palabras de recuperación.
-  if (tipo === "password") {
-    return (
-      links.find((link) =>
-        /reset|password|recover|recovery|change|forgot|pass|pwd/i.test(link)
-      ) || links[0]
-    )
   }
 
   // Para activar, confirmar, registrar o verificar.
@@ -270,7 +406,14 @@ function seleccionarEnlacePrincipal(params: {
   }
 
   if (/reset|password|contraseña|recuper|restablec/.test(base)) {
-    return links[0]
+    return seleccionarEnlacePrincipal({
+      links,
+      linksDetectados: detectados,
+      tipo: "password",
+      plataforma,
+      asunto,
+      cuerpo,
+    })
   }
 
   return links[0]
@@ -278,19 +421,13 @@ function seleccionarEnlacePrincipal(params: {
 
 function seleccionarEnlacesTelegram(params: {
   links: string[]
+  linksDetectados?: LinkDetectado[]
   tipo: string
   plataforma: string | null
   asunto: string
   cuerpo: string
 }) {
-  const { links, tipo, plataforma } = params
-
-  if (!links.length) return []
-
-  // Max / HBO: confirmado, solo enviar el primer enlace.
-  if (tipo === "password" && esMaxOHbo(plataforma)) {
-    return [links[0]]
-  }
+  if (!params.links.length) return []
 
   const principal = seleccionarEnlacePrincipal(params)
 
@@ -333,6 +470,7 @@ function construirAlertaTelegram(params: {
   remitente: string | null
   asunto: string
   cuerpoTexto: string
+  cuerpoHtml?: string | null
   fechaMensaje: string
   cliente: ClienteSoporte | null
 }) {
@@ -342,13 +480,18 @@ function construirAlertaTelegram(params: {
     remitente,
     asunto,
     cuerpoTexto,
+    cuerpoHtml,
     fechaMensaje,
     cliente,
   } = params
 
-  const codigo = extraerCodigo(`${asunto}\n${cuerpoTexto}`)
-  const links = filtrarLinksImportantes(extraerLinks(cuerpoTexto))
-  const tipo = detectarTipoMensaje(asunto, cuerpoTexto, codigo, links)
+  const textoCompleto = `${asunto}\n${cuerpoTexto}\n${quitarHtml(cuerpoHtml || "")}`
+  const codigo = extraerCodigo(textoCompleto)
+  const linksDetectados = filtrarLinksDetectadosImportantes(
+    extraerLinksDetectados(cuerpoTexto, cuerpoHtml)
+  )
+  const links = linksDetectados.map((link) => link.url)
+  const tipo = detectarTipoMensaje(asunto, textoCompleto, codigo, links)
 
   const plataformaTexto = plataforma || cliente?.plataforma || "No detectada"
   const clienteTexto = cliente?.nombre || "Sin cliente asignado"
@@ -359,10 +502,11 @@ function construirAlertaTelegram(params: {
 
   const enlacesTelegram = seleccionarEnlacesTelegram({
     links,
+    linksDetectados,
     tipo,
     plataforma: plataformaTexto,
     asunto,
-    cuerpo: cuerpoTexto,
+    cuerpo: textoCompleto,
   })
 
   let titulo = "📩 Nuevo mensaje recibido"
@@ -394,6 +538,13 @@ function construirAlertaTelegram(params: {
       `<b>Acción:</b> <a href="${escapeHtml(enlacesTelegram[0])}">${escapeHtml(
         etiquetaEnlace(tipo)
       )}</a>`
+    )
+  }
+
+  if (tipo === "password" && enlacesTelegram.length === 0) {
+    partes.push("")
+    partes.push(
+      "No se detectó un enlace seguro de contraseña. Revisa el mensaje completo en el panel."
     )
   }
 
@@ -527,7 +678,7 @@ export async function POST(request: Request) {
 
     const plataformaDetectada = detectarPlataforma(
       correoDestino,
-      `${remitente || ""} ${asunto} ${cuerpoTexto}`
+      `${remitente || ""} ${asunto} ${cuerpoTexto} ${quitarHtml(cuerpoHtml || "")}`
     )
 
     const plataformaFinal =
@@ -585,6 +736,7 @@ export async function POST(request: Request) {
       remitente,
       asunto,
       cuerpoTexto,
+      cuerpoHtml,
       fechaMensaje,
       cliente: cliente as ClienteSoporte | null,
     })
@@ -615,7 +767,8 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-max-primer-link-2026-06-06-v4",
-    mensaje: "API de soporte activa con alertas Telegram y primer enlace Max/HBO.",
+    version: "recibir-mensaje-telegram-links-password-seguros-2026-06-14-v5",
+    mensaje:
+      "API de soporte activa. Telegram ya no asume que el primer enlace de Max/HBO es contraseña.",
   })
 }
