@@ -2376,3 +2376,29 @@
     --pc-sticky-top: 186px !important;
   }
 }
+
+/* =====================================================
+   V13 FINAL PC - Sin rectángulo detrás de la cabecera
+   Solo computadora/tablet. No modifica móvil.
+   ===================================================== */
+@media (min-width: 721px) {
+  .mobileStickyHeader {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .mobileStickyHeader::before,
+  .mobileStickyHeader::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .mobileStickyHeader .editorTopbar,
+  .editorTopbar {
+    background:
+      linear-gradient(135deg, rgba(3, 19, 22, 0.92), rgba(3, 19, 22, 0.78)),
+      radial-gradient(circle at 78% 20%, rgba(1, 231, 239, 0.09), transparent 34%) !important;
+  }
+}
