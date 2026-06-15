@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import styles from "../editor-web.module.css";
+import styles from "./portada-editor.module.css";
 
 type SocialIcon =
   | "facebook"
@@ -860,7 +860,7 @@ function isEmptyObject(value: unknown) {
 
 function mergeHomeDraft(value: unknown): HomeDraft {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return initialDraft;
+    return getFactoryDraft();
   }
 
   const incoming = value as Partial<HomeDraft>;
@@ -870,7 +870,7 @@ function mergeHomeDraft(value: unknown): HomeDraft {
     ...incoming,
     socials: Array.isArray(incoming.socials)
       ? incoming.socials.map((social, index) => normalizeSocialLink(social, index))
-      : initialDraft.socials,
+      : getFactoryDraft().socials,
   };
 }
 

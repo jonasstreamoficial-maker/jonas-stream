@@ -64,7 +64,7 @@ export default function EditorWebPage() {
       </section>
 
       <section className={styles.editorNotice}>
-        <strong>Orden de trabajo:</strong> primero activaremos la portada con vista previa. Luego conectaremos Supabase para guardar borrador y publicar cambios.
+        <strong>Orden de trabajo:</strong> primero activaremos la portada con vista previa. Luego conectaremos las demás páginas públicas.
       </section>
 
       <section className={styles.pageGrid} aria-label="Páginas editables">
