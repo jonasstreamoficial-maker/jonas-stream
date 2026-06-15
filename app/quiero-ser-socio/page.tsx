@@ -446,6 +446,17 @@ export default function QuieroSerSocioPage() {
           </div>
         </section>
       </main>
+
+      <footer className={styles.footerWrap}>
+        <div className={styles.footerLegal}>
+          <p>© 2026 Jonas Stream. Todos los derechos reservados.</p>
+          <div className={styles.footerLinks}>
+            <Link href="/terminos-y-condiciones">Términos y Condiciones</Link>
+            <span className={styles.footerSeparator}>•</span>
+            <Link href="/politicas-de-privacidad">Política de Privacidad</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
