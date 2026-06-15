@@ -309,7 +309,7 @@ export default function QuieroSerSocioPage() {
               </button>
             </div>
 
-            <p className={styles.rateNote}>Tipo de cambio manual actual: 1 USD = S/ {USD_RATE}</p>
+            <p className={styles.rateNote}>1 USD = S/ {USD_RATE}</p>
           </div>
         </div>
       )}
@@ -583,7 +583,7 @@ export default function QuieroSerSocioPage() {
               <div className={styles.priceNow}>S/ {formatMoney(PRICE_PEN)}</div>
               <div className={styles.priceUsd}>USD {formatMoney(usdValue)}</div>
               <div className={styles.priceBefore}>Antes: S/ {formatMoney(OLD_PRICE_PEN)}</div>
-              <div className={styles.rateInline}>Tipo de cambio manual: 1 USD = S/ {USD_RATE}</div>
+              <div className={styles.rateInline}>1 USD = S/ {USD_RATE}</div>
             </div>
 
             <div className={styles.pricingListTwoColumns}>
