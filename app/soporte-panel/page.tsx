@@ -162,13 +162,7 @@ export default function SoportePanelPage() {
 
               <label>
                 Contraseña
-                <div
-                  style={{
-                    position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
+                <div className={styles.passwordRow}>
                   <input
                     type={mostrarPassword ? "text" : "password"}
                     placeholder="••••••••••••"
@@ -176,47 +170,22 @@ export default function SoportePanelPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={cargando}
-                    style={{ paddingRight: "92px" }}
                   />
 
                   <button
                     type="button"
+                    className={styles.passwordToggle}
                     onClick={() => setMostrarPassword((actual) => !actual)}
-                    style={{
-                      position: "absolute",
-                      right: "10px",
-                      border: "1px solid rgba(1, 231, 239, 0.24)",
-                      background: "rgba(1, 231, 239, 0.08)",
-                      color: "#01E7EF",
-                      borderRadius: "11px",
-                      padding: "8px 10px",
-                      fontSize: "11px",
-                      fontWeight: 900,
-                      cursor: "pointer",
-                    }}
+                    disabled={cargando}
                   >
                     {mostrarPassword ? "Ocultar" : "Ver"}
                   </button>
                 </div>
               </label>
 
-              {mensaje && (
-                <div
-                  style={{
-                    border: "1px solid rgba(255, 67, 67, 0.36)",
-                    background: "rgba(255, 67, 67, 0.12)",
-                    color: "#ECFFFF",
-                    borderRadius: "14px",
-                    padding: "12px",
-                    fontSize: "12px",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {mensaje}
-                </div>
-              )}
+              {mensaje && <div className={styles.errorBox}>{mensaje}</div>}
 
-              <button type="submit" disabled={cargando}>
+              <button type="submit" className={styles.primaryButton} disabled={cargando}>
                 {cargando ? "Validando acceso..." : "Ingresar al soporte panel"}
               </button>
             </form>
@@ -226,22 +195,21 @@ export default function SoportePanelPage() {
               pueden entrar al panel interno.
             </div>
 
-            <div style={{ display: "grid", gap: "10px", marginTop: "16px" }}>
+            <div className={styles.quickActions}>
               <button
                 type="button"
+                className={styles.publicButton}
                 onClick={() => router.push("/codigos")}
-                style={{
-                  width: "100%",
-                  border: "1px solid rgba(1, 231, 239, 0.25)",
-                  background: "rgba(1, 231, 239, 0.08)",
-                  color: "#01E7EF",
-                  borderRadius: "14px",
-                  padding: "12px",
-                  fontWeight: 900,
-                  cursor: "pointer",
-                }}
               >
-                Abrir página pública de códigos
+                Página pública
+              </button>
+
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => router.push("/")}
+              >
+                Inicio
               </button>
             </div>
           </div>
