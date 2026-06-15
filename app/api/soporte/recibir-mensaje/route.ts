@@ -41,7 +41,7 @@ const PATRON_PASSWORD_URL =
   /passwordresettoken|set-new-password|new-password|reset-password|password-reset|resetpassword|password\/reset|reset\/password|password-reset\/complete|resetpass|reset-password\?token|forgot-password|forgotten-password|account-recovery|loginhelp|\/password\?|\/password\/|newpassword/i
 
 const PATRON_PASSWORD_TEXTO =
-  /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password|set new password|establecer contraseña|nueva contraseña|reset your password|password reset/i
+  /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password|set new password|establecer contraseña|nueva contraseña|reset your password|password reset|trouble signing in/i
 
 const PATRON_CODIGO_TEXTO =
   /c[oó]digo|code|verification|verificaci[oó]n|security code|one[-\s]?time|one time|passcode|otp|inicio de sesi[oó]n|sign[-\s]?in|login|acceso|hogar|household|clave de un solo uso|clave.*uso|un solo uso/i
@@ -101,13 +101,8 @@ function escapeHtml(valor: string | number | null | undefined) {
 }
 
 /*
-  IMPORTANTE:
-  No decodificar ni modificar links tracking como:
-  - link.vix.com/ls/click
-  - links.mail.crunchyroll.com/ls/click
-  - ablink.alerts.hbomax.com/ls/click
-
-  Si se reemplaza -2F, -3D, etc. dentro del token, el link queda inválido.
+  No se decodifican tokens de links tracking.
+  Si se modifican partes como -2F, -3D, -2B, el link puede terminar en Wrong Link.
 */
 function limpiarUrlPreservandoTracking(url: string) {
   return decodificarEntidadesBasicas(url)
@@ -126,12 +121,42 @@ function quitarHtml(valor: string) {
 
 function limpiarResumen(valor: string) {
   return quitarHtml(valor)
-    .replace(/@font-face[\s\S]{0,900}?}/gi, " ")
+    .replace(/@font-face[\s\S]{0,1200}?}/gi, " ")
     .replace(/font-family:[^;\n]+;?/gi, " ")
+    .replace(/font-style:[^;\n]+;?/gi, " ")
+    .replace(/font-weight:[^;\n]+;?/gi, " ")
     .replace(/src:\s*local\([^)]+\)[^;\n]*;?/gi, " ")
     .replace(/\(\s*\)/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim()
+}
+
+/*
+  Reconstruye URLs que llegan partidas por saltos de línea.
+  Ejemplo real:
+  https://auth.hbomax.com/set-new-password?
+  passwordResetToken=ABC==
+*/
+function normalizarFuenteParaLinks(valor: string) {
+  let texto = decodificarEntidadesBasicas(valor).replace(/=\n/g, "")
+
+  for (let i = 0; i < 8; i += 1) {
+    texto = texto
+      .replace(
+        /(https?:\/\/[^\s<>"']*(?:set-new-password|new-password|reset-password|password-reset|resetpassword|password\/reset|reset\/password|password-reset\/complete|resetpass|reset-password\?token|forgot-password|account-recovery|\/password\?)[^\s<>"']*)\n([A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+)/gi,
+        "$1$2"
+      )
+      .replace(
+        /(https?:\/\/(?:link\.vix\.com|links\.mail\.crunchyroll\.com|ablink\.[^\s/"']+|[^\/\s"']+\/ls\/click)[^\s<>"']*)\n([A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+)/gi,
+        "$1$2"
+      )
+      .replace(
+        /(https?:\/\/[^\s<>"']*[?&][A-Za-z0-9_.%-]+=+[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]*)\n([A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+)/gi,
+        "$1$2"
+      )
+  }
+
+  return texto
 }
 
 function detectarPlataforma(correoDestino: string, texto: string) {
@@ -180,10 +205,10 @@ function extraerCodigo(texto: string) {
   const base = (texto || "").replace(/\s+/g, " ").trim()
 
   const patronesDirectos = [
-    /(?:c[oó]digo|code|verification code|security code|one[-\s]?time code|one time code|sign[-\s]?in code|login code|passcode|otp|clave de un solo uso|clave.{0,30}uso).{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /(?:ingresa|introduce|usa|utiliza|enter|use).{0,140}?(\d[\d\s-]{2,14}\d).{0,100}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave)/iu,
-    /(?:hogar|household|home).{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /(\d[\d\s-]{2,14}\d).{0,120}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave|hogar|household|home)/iu,
+    /(?:c[oó]digo|code|verification code|security code|one[-\s]?time code|one time code|sign[-\s]?in code|login code|passcode|otp|clave de un solo uso|clave.{0,30}uso).{0,160}?(\d[\d\s-]{2,14}\d)/iu,
+    /(?:ingresa|introduce|usa|utiliza|enter|use).{0,160}?(\d[\d\s-]{2,14}\d).{0,120}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave)/iu,
+    /(?:hogar|household|home).{0,160}?(\d[\d\s-]{2,14}\d)/iu,
+    /(\d[\d\s-]{2,14}\d).{0,140}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave|hogar|household|home)/iu,
   ]
 
   for (const patron of patronesDirectos) {
@@ -221,7 +246,7 @@ function agregarLinkDetectado(
 
   if (!url || !/^https?:\/\//i.test(url)) return
 
-  const contexto = limpiarResumen(contextoOriginal || "").slice(0, 1200)
+  const contexto = limpiarResumen(contextoOriginal || "").slice(0, 1400)
   const existente = mapa.get(url)
 
   if (!existente) {
@@ -281,7 +306,7 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
   const fuentes = [html || "", texto || ""].filter(Boolean)
 
   for (const fuente of fuentes) {
-    const limpio = decodificarEntidadesBasicas(fuente)
+    const limpio = normalizarFuenteParaLinks(fuente)
 
     const hrefRegex =
       /<a\b[^>]*?href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
@@ -298,7 +323,7 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
         agregarLinkDetectado(links, real, contexto)
       }
 
-      if (links.size >= 60) break
+      if (links.size >= 80) break
     }
 
     const markdownRegex = /\[(.*?)\]\((https?:\/\/[^)\s]+)\)/gi
@@ -307,15 +332,15 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
     while ((markdownMatch = markdownRegex.exec(limpio)) !== null) {
       agregarLinkDetectado(links, markdownMatch[2], markdownMatch[0])
 
-      if (links.size >= 60) break
+      if (links.size >= 80) break
     }
 
     const urlRegex = /https?:\/\/[^\s<>"'\]\)]+/gi
     let urlMatch: RegExpExecArray | null
 
     while ((urlMatch = urlRegex.exec(limpio)) !== null) {
-      const inicio = Math.max(0, urlMatch.index - 320)
-      const fin = Math.min(limpio.length, urlMatch.index + urlMatch[0].length + 320)
+      const inicio = Math.max(0, urlMatch.index - 360)
+      const fin = Math.min(limpio.length, urlMatch.index + urlMatch[0].length + 360)
       const contexto = limpio.slice(inicio, fin)
       const url = limpiarUrlPreservandoTracking(urlMatch[0])
 
@@ -325,13 +350,13 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
         agregarLinkDetectado(links, real, contexto)
       }
 
-      if (links.size >= 60) break
+      if (links.size >= 80) break
     }
 
-    if (links.size >= 60) break
+    if (links.size >= 80) break
   }
 
-  return Array.from(links.values()).slice(0, 60)
+  return Array.from(links.values()).slice(0, 80)
 }
 
 function esLinkBasura(link: string) {
@@ -380,6 +405,15 @@ function filtrarLinksDetectadosImportantes(links: LinkDetectado[]) {
   return utiles.length ? utiles : links
 }
 
+function tienePasswordEnMensaje(texto: string, links: LinkDetectado[]) {
+  if (PATRON_PASSWORD_TEXTO.test(texto)) return true
+
+  return links.some(
+    (link) =>
+      PATRON_PASSWORD_URL.test(link.url) || PATRON_PASSWORD_TEXTO.test(link.contexto)
+  )
+}
+
 function detectarTipoMensaje(
   asunto: string,
   cuerpo: string,
@@ -388,11 +422,8 @@ function detectarTipoMensaje(
 ): TipoMensaje {
   const base = `${asunto}\n${cuerpo}`.toLowerCase()
 
+  if (tienePasswordEnMensaje(base, links)) return "password"
   if (codigo) return "codigo"
-
-  if (PATRON_PASSWORD_TEXTO.test(base)) {
-    return "password"
-  }
 
   if (
     /cambio.{0,80}correo|correo.{0,80}cambi|email.{0,80}changed|changed.{0,80}email|email.{0,80}updated|direcci[oó]n.{0,80}correo|new email address|correo electr[oó]nico.{0,80}actualiz/i.test(
@@ -407,7 +438,7 @@ function detectarTipoMensaje(
   }
 
   if (
-    /nuevo inicio|inicio de sesi[oó]n|new sign|sign-in|login alert|nuevo dispositivo|new device|accedid|acceso nuevo/i.test(
+    /nuevo inicio|inicio de sesi[oó]n|new sign|sign-in|login alert|nuevo dispositivo|new device|accedid|acceso nuevo|inicia sesi[oó]n/i.test(
       base
     )
   ) {
@@ -441,35 +472,24 @@ function puntuarLinkPassword(link: LinkDetectado) {
 
   let score = 0
 
-  if (PATRON_PASSWORD_URL.test(url)) {
-    score += 260
-  }
-
-  if (PATRON_PASSWORD_TEXTO.test(contexto)) {
-    score += 180
-  }
+  if (PATRON_PASSWORD_URL.test(url)) score += 300
+  if (PATRON_PASSWORD_TEXTO.test(contexto)) score += 220
 
   if (
     /auth\.hbomax\.com|auth\.max\.com|account\.max\.com|identity\.max\.com|netflix\.com\/password|sso\.crunchyroll\.com.*new-password|deezer\.com\/password\/reset|accounts\.spotify\.com.*password-reset|paramountplus\.com.*resetpassword|login\.tidal\.com\/resetpass|viki\.com\/reset-password|vix\.com.*reset\/password|auth\.disney|appleid\.apple\.com|iforgot\.apple\.com|canva\..*password/i.test(
       url
     )
   ) {
-    score += 180
+    score += 220
   }
 
-  if (/auth|identity|account|accounts|login|sso/i.test(url)) {
-    score += 40
-  }
+  if (/auth|identity|account|accounts|login|sso/i.test(url)) score += 40
 
-  /*
-    Tracking se permite SOLO si su botón/contexto habla de contraseña.
-    No se altera el URL, porque si se decodifica el token se rompe.
-  */
   if (esLinkTracking(url)) {
-    score -= 40
+    score -= 20
 
     if (PATRON_PASSWORD_TEXTO.test(contexto)) {
-      score += 220
+      score += 260
     }
   }
 
@@ -479,7 +499,7 @@ function puntuarLinkPassword(link: LinkDetectado) {
     ) &&
     !PATRON_PASSWORD_TEXTO.test(contexto)
   ) {
-    score -= 160
+    score -= 180
   }
 
   if (
@@ -488,12 +508,10 @@ function puntuarLinkPassword(link: LinkDetectado) {
     ) &&
     !PATRON_PASSWORD_TEXTO.test(contexto)
   ) {
-    score -= 130
+    score -= 150
   }
 
-  if (esLinkBasura(url)) {
-    score -= 160
-  }
+  if (esLinkBasura(url)) score -= 180
 
   return score
 }
@@ -517,6 +535,11 @@ function seleccionarEnlacePassword(links: LinkDetectado[]) {
   return null
 }
 
+function seleccionarPrimerLinkUtil(links: LinkDetectado[]) {
+  const noBasura = links.filter((link) => !esLinkBasura(link.url))
+  return noBasura[0]?.url || links[0]?.url || null
+}
+
 function seleccionarEnlacePrincipal(params: {
   links: LinkDetectado[]
   tipo: TipoMensaje
@@ -529,9 +552,7 @@ function seleccionarEnlacePrincipal(params: {
   if (!links.length) return null
   if (tipo === "codigo") return null
 
-  if (tipo === "password") {
-    return seleccionarEnlacePassword(links)
-  }
+  if (tipo === "password") return seleccionarEnlacePassword(links)
 
   if (tipo === "enlace") {
     const noTracking = links.filter((link) => !esLinkTracking(link.url))
@@ -542,13 +563,17 @@ function seleccionarEnlacePrincipal(params: {
           link.url
         )
       )?.url ||
-      noTracking[0]?.url ||
-      null
+      seleccionarPrimerLinkUtil(links)
     )
   }
 
   if (PATRON_PASSWORD_TEXTO.test(base)) {
     return seleccionarEnlacePassword(links)
+  }
+
+  // Para inicios de sesión o cambios de correo con enlace, mostrar la acción.
+  if (tipo === "nuevo_inicio" || tipo === "hogar" || tipo === "cambio_correo") {
+    return seleccionarPrimerLinkUtil(links)
   }
 
   return null
@@ -573,12 +598,13 @@ function detalleEvento(tipo: TipoMensaje, asunto: string, cuerpo: string) {
     if (/inicio de sesi[oó]n|sign[-\s]?in|login|acceso/i.test(base)) {
       return "Código de inicio de sesión"
     }
+    if (/clave de un solo uso|one[-\s]?time|otp/i.test(base)) return "Clave de un solo uso"
     if (/verificaci[oó]n|verification/i.test(base)) return "Código de verificación"
     return "Código de acceso"
   }
 
   if (tipo === "password") {
-    if (/restablec|recuper|reset|forgot/i.test(base)) {
+    if (/restablec|recuper|reset|forgot|trouble signing/i.test(base)) {
       return "Solicitud para restablecer contraseña"
     }
 
@@ -596,6 +622,9 @@ function detalleEvento(tipo: TipoMensaje, asunto: string, cuerpo: string) {
 
 function etiquetaEnlace(tipo: TipoMensaje) {
   if (tipo === "password") return "Restablecer contraseña"
+  if (tipo === "nuevo_inicio") return "Abrir inicio de sesión"
+  if (tipo === "cambio_correo") return "Abrir acción de correo"
+  if (tipo === "hogar") return "Abrir acción de hogar"
   if (tipo === "enlace") return "Abrir enlace principal"
   return "Abrir enlace"
 }
@@ -647,12 +676,13 @@ async function construirAlertaTelegram(params: {
 
   const cuerpoHtmlLimpio = quitarHtml(cuerpoHtml || "")
   const textoCompleto = `${asunto}\n${cuerpoTexto}\n${cuerpoHtmlLimpio}`
-  const codigo = extraerCodigo(textoCompleto)
 
   const linksDetectados = filtrarLinksDetectadosImportantes(
     extraerLinksDetectados(cuerpoTexto, cuerpoHtml)
   )
 
+  const esPassword = tienePasswordEnMensaje(textoCompleto, linksDetectados)
+  const codigo = esPassword ? null : extraerCodigo(textoCompleto)
   const tipo = detectarTipoMensaje(asunto, textoCompleto, codigo, linksDetectados)
 
   const plataformaTexto = plataforma || cliente?.plataforma || "No detectada"
@@ -686,7 +716,7 @@ async function construirAlertaTelegram(params: {
     partes.push(`<b>Código:</b> <code>${escapeHtml(codigo)}</code>`)
   }
 
-  if ((tipo === "password" || tipo === "enlace") && enlacePrincipal) {
+  if (tipo !== "codigo" && enlacePrincipal) {
     partes.push("")
     partes.push(
       `<b>Acción:</b> <a href="${escapeHtml(enlacePrincipal)}">${escapeHtml(
@@ -921,8 +951,8 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: "recibir-mensaje-telegram-preserva-tracking-v10",
+    version: "recibir-mensaje-telegram-links-sin-romper-v11",
     mensaje:
-      "API activa. Preserva links tracking exactos, detecta códigos, passwords, cambios de correo e inicios.",
+      "API activa. Reconstruye URLs partidas, preserva tracking, prioriza links directos de contraseña y evita códigos falsos en correos de reset.",
   })
 }
