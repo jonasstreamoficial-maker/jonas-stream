@@ -40,6 +40,172 @@ type LinkDetectado = {
   contexto: string
 }
 
+const PATRON_PASSWORD_URL =
+  /passwordresettoken|set-new-password|new-password|reset-password|password-reset|resetpassword|password\/reset|reset\/password|password-reset\/complete|resetpass|reset-password\?token|forgot-password|forgotten-password|account-recovery|loginhelp|\/password\?|\/password\/|newpassword|change-password|recover|recovery/i
+
+const PATRON_PASSWORD_TEXTO =
+  /contraseña|password|restablec|restablecer|recuper|reset|forgot|change password|cambiar contraseña|set new password|establecer contraseña|nueva contraseña|password reset|trouble signing in|problemas para iniciar/i
+
+const PATRON_CODIGO_TEXTO =
+  /c[oó]digo|code|verification|verificaci[oó]n|security code|one[-\s]?time|one time|passcode|otp|inicio de sesi[oó]n|sign[-\s]?in|login|acceso|hogar|household|clave de un solo uso|clave.*uso|un solo uso/i
+
+const PLATAFORMAS = [
+  "Netflix",
+  "Prime Video",
+  "Disney+",
+  "Crunchyroll",
+  "Vix",
+  "Max",
+  "Spotify",
+  "YouTube Premium",
+  "Apple TV",
+  "Deezer",
+  "Tidal",
+  "Rakuten Viki",
+  "Paramount+",
+  "Canva",
+  "Otro",
+]
+
+const PALETA_PLATAFORMAS: Record<
+  string,
+  { fondo: string; borde: string; texto: string; brillo: string }
+> = {
+  netflix: {
+    fondo: "rgba(229, 9, 20, 0.14)",
+    borde: "rgba(229, 9, 20, 0.46)",
+    texto: "#ff6b72",
+    brillo: "rgba(229, 9, 20, 0.24)",
+  },
+  "prime video": {
+    fondo: "rgba(0, 168, 225, 0.14)",
+    borde: "rgba(0, 168, 225, 0.46)",
+    texto: "#6ad7ff",
+    brillo: "rgba(0, 168, 225, 0.24)",
+  },
+  "disney+": {
+    fondo: "rgba(17, 60, 207, 0.18)",
+    borde: "rgba(86, 128, 255, 0.52)",
+    texto: "#9cb8ff",
+    brillo: "rgba(86, 128, 255, 0.24)",
+  },
+  crunchyroll: {
+    fondo: "rgba(244, 117, 33, 0.16)",
+    borde: "rgba(244, 117, 33, 0.52)",
+    texto: "#ffb06b",
+    brillo: "rgba(244, 117, 33, 0.25)",
+  },
+  vix: {
+    fondo: "rgba(255, 130, 0, 0.16)",
+    borde: "rgba(255, 130, 0, 0.50)",
+    texto: "#ffbe6b",
+    brillo: "rgba(255, 130, 0, 0.24)",
+  },
+  max: {
+    fondo: "rgba(97, 72, 255, 0.18)",
+    borde: "rgba(120, 99, 255, 0.54)",
+    texto: "#b9adff",
+    brillo: "rgba(120, 99, 255, 0.24)",
+  },
+  spotify: {
+    fondo: "rgba(30, 215, 96, 0.14)",
+    borde: "rgba(30, 215, 96, 0.45)",
+    texto: "#7cffad",
+    brillo: "rgba(30, 215, 96, 0.23)",
+  },
+  "youtube premium": {
+    fondo: "rgba(255, 0, 0, 0.14)",
+    borde: "rgba(255, 0, 0, 0.45)",
+    texto: "#ff7474",
+    brillo: "rgba(255, 0, 0, 0.22)",
+  },
+  "apple tv": {
+    fondo: "rgba(245, 245, 247, 0.12)",
+    borde: "rgba(245, 245, 247, 0.38)",
+    texto: "#f5f5f7",
+    brillo: "rgba(245, 245, 247, 0.18)",
+  },
+  deezer: {
+    fondo: "rgba(164, 82, 255, 0.16)",
+    borde: "rgba(255, 95, 180, 0.48)",
+    texto: "#ff9ad0",
+    brillo: "rgba(164, 82, 255, 0.24)",
+  },
+  tidal: {
+    fondo: "rgba(255, 255, 255, 0.11)",
+    borde: "rgba(255, 255, 255, 0.36)",
+    texto: "#ffffff",
+    brillo: "rgba(255, 255, 255, 0.16)",
+  },
+  "rakuten viki": {
+    fondo: "rgba(0, 180, 255, 0.15)",
+    borde: "rgba(0, 180, 255, 0.48)",
+    texto: "#76dcff",
+    brillo: "rgba(0, 180, 255, 0.22)",
+  },
+  "paramount+": {
+    fondo: "rgba(0, 93, 255, 0.15)",
+    borde: "rgba(0, 130, 255, 0.48)",
+    texto: "#80caff",
+    brillo: "rgba(0, 93, 255, 0.22)",
+  },
+  canva: {
+    fondo: "rgba(0, 199, 190, 0.15)",
+    borde: "rgba(151, 71, 255, 0.48)",
+    texto: "#9ff6ff",
+    brillo: "rgba(151, 71, 255, 0.22)",
+  },
+  otro: {
+    fondo: "rgba(155, 200, 203, 0.12)",
+    borde: "rgba(155, 200, 203, 0.30)",
+    texto: "#BFECEF",
+    brillo: "rgba(155, 200, 203, 0.16)",
+  },
+}
+
+const normalizarPlataforma = (valor: string | null | undefined) => {
+  const texto = String(valor || "otro").trim().toLowerCase()
+
+  if (texto.includes("netflix")) return "netflix"
+  if (texto.includes("prime") || texto.includes("amazon")) return "prime video"
+  if (texto.includes("disney")) return "disney+"
+  if (texto.includes("crunchy")) return "crunchyroll"
+  if (texto.includes("vix")) return "vix"
+  if (texto.includes("max") || texto.includes("hbo")) return "max"
+  if (texto.includes("spotify")) return "spotify"
+  if (texto.includes("youtube")) return "youtube premium"
+  if (texto.includes("apple")) return "apple tv"
+  if (texto.includes("deezer")) return "deezer"
+  if (texto.includes("tidal")) return "tidal"
+  if (texto.includes("viki") || texto.includes("rakuten")) return "rakuten viki"
+  if (texto.includes("paramount")) return "paramount+"
+  if (texto.includes("canva")) return "canva"
+
+  return "otro"
+}
+
+const estiloChipPlataforma = (plataforma: string | null | undefined): CSSProperties => {
+  const paleta =
+    PALETA_PLATAFORMAS[normalizarPlataforma(plataforma)] || PALETA_PLATAFORMAS.otro
+
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    width: "fit-content",
+    border: `1px solid ${paleta.borde}`,
+    background: paleta.fondo,
+    color: paleta.texto,
+    borderRadius: "999px",
+    padding: "7px 11px",
+    fontSize: "11px",
+    fontWeight: 950,
+    boxShadow: `0 0 18px ${paleta.brillo}`,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+  }
+}
+
+
 function decodificarEntidadesBasicas(valor: string) {
   return valor
     .replace(/&amp;/gi, "&")
@@ -50,29 +216,28 @@ function decodificarEntidadesBasicas(valor: string) {
     .replace(/&gt;/gi, ">")
 }
 
-function decodificarTracking(valor: string) {
-  try {
-    let texto = decodificarEntidadesBasicas(valor)
-
-    texto = texto
-      .replace(/-2F/gi, "%2F")
-      .replace(/-3A/gi, "%3A")
-      .replace(/-3D/gi, "%3D")
-      .replace(/-26/gi, "%26")
-      .replace(/-3F/gi, "%3F")
-      .replace(/-2B/gi, "%2B")
-      .replace(/-25/gi, "%25")
-
-    return decodeURIComponent(texto)
-  } catch {
-    return decodificarEntidadesBasicas(valor)
-  }
-}
-
 function limpiarUrl(url: string) {
-  return decodificarTracking(url)
+  return decodificarEntidadesBasicas(url)
     .replace(/[)\].,;]+$/g, "")
     .trim()
+}
+
+function normalizarFuenteParaLinks(valor: string) {
+  let texto = decodificarEntidadesBasicas(valor).replace(/=\n/g, "")
+
+  for (let i = 0; i < 8; i += 1) {
+    texto = texto
+      .replace(
+        /(https?:\/\/[^\s<>"']*(?:set-new-password|new-password|reset-password|password-reset|resetpassword|password\/reset|reset\/password|password-reset\/complete|resetpass|reset-password\?token|forgot-password|account-recovery|\/password\?)[^\s<>"']*)\n([A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+)/gi,
+        "$1$2"
+      )
+      .replace(
+        /(https?:\/\/[^\s<>"']*[?&][A-Za-z0-9_.%-]+=+[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]*)\n([A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+)/gi,
+        "$1$2"
+      )
+  }
+
+  return texto
 }
 
 function quitarHtml(valor: string) {
@@ -143,10 +308,10 @@ function extraerUrlRealDesdeParametros(url: string) {
 
 function extraerLinksDetectados(texto: string, html?: string | null) {
   const links = new Map<string, LinkDetectado>()
-  const fuentes = [texto || "", html || ""].filter(Boolean)
+  const fuentes = [html || "", texto || ""].filter(Boolean)
 
   for (const fuente of fuentes) {
-    const limpio = decodificarEntidadesBasicas(fuente)
+    const limpio = normalizarFuenteParaLinks(fuente)
 
     const hrefRegex =
       /<a\b[^>]*?href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
@@ -162,15 +327,24 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
         agregarLinkDetectado(links, real, contexto)
       }
 
-      if (links.size >= 30) break
+      if (links.size >= 80) break
+    }
+
+    const markdownRegex = /\[(.*?)\]\((https?:\/\/[^)\s]+)\)/gi
+    let markdownMatch: RegExpExecArray | null
+
+    while ((markdownMatch = markdownRegex.exec(limpio)) !== null) {
+      agregarLinkDetectado(links, markdownMatch[2], markdownMatch[0])
+
+      if (links.size >= 80) break
     }
 
     const urlRegex = /https?:\/\/[^\s<>"'\]\)]+/gi
     let urlMatch: RegExpExecArray | null
 
     while ((urlMatch = urlRegex.exec(limpio)) !== null) {
-      const inicio = Math.max(0, urlMatch.index - 240)
-      const fin = Math.min(limpio.length, urlMatch.index + urlMatch[0].length + 240)
+      const inicio = Math.max(0, urlMatch.index - 360)
+      const fin = Math.min(limpio.length, urlMatch.index + urlMatch[0].length + 360)
       const contexto = limpio.slice(inicio, fin)
       const url = limpiarUrl(urlMatch[0])
 
@@ -180,13 +354,13 @@ function extraerLinksDetectados(texto: string, html?: string | null) {
         agregarLinkDetectado(links, real, contexto)
       }
 
-      if (links.size >= 30) break
+      if (links.size >= 80) break
     }
 
-    if (links.size >= 30) break
+    if (links.size >= 80) break
   }
 
-  return Array.from(links.values()).slice(0, 30)
+  return Array.from(links.values()).slice(0, 80)
 }
 
 function esLinkBasura(url: string) {
@@ -215,8 +389,10 @@ function esLinkTracking(url: string) {
   const lower = url.toLowerCase()
 
   return (
-    lower.includes("ablink.message.") ||
     lower.includes("/ls/click") ||
+    lower.includes("ablink.") ||
+    lower.includes("link.vix.com") ||
+    lower.includes("links.mail.crunchyroll.com") ||
     lower.includes("click.email") ||
     lower.includes("click.mail") ||
     lower.includes("trk.") ||
@@ -263,15 +439,10 @@ function extraerCodigo(texto: string, asunto?: string | null) {
 
   const patrones = [
     /c[oó]digo detectado:\s*(\d[\d\s-]{2,14}\d)/iu,
-    /c[oó]digo.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /ingresa.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /verification code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /security code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /one[-\s]?time code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /sign[-\s]?in code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /login code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /access code.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
-    /c[oó]digo de acceso.{0,140}?(\d[\d\s-]{2,14}\d)/iu,
+    /(?:c[oó]digo|code|verification code|security code|one[-\s]?time code|one time code|sign[-\s]?in code|login code|passcode|otp|clave de un solo uso|clave.{0,30}uso).{0,180}?(\d[\d\s-]{2,14}\d)/iu,
+    /(?:ingresa|introduce|usa|utiliza|enter|use).{0,180}?(\d[\d\s-]{2,14}\d).{0,140}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave)/iu,
+    /(?:hogar|household|home).{0,180}?(\d[\d\s-]{2,14}\d)/iu,
+    /(\d[\d\s-]{2,14}\d).{0,160}?(?:c[oó]digo|code|verification|verificaci[oó]n|login|inicio|clave|hogar|household|home)/iu,
   ]
 
   for (const patron of patrones) {
@@ -283,13 +454,17 @@ function extraerCodigo(texto: string, asunto?: string | null) {
     }
   }
 
-  return null
+  if (!PATRON_CODIGO_TEXTO.test(base)) return null
+
+  const matchLibre = base.match(/\b(\d(?:[\s-]?\d){3,7})\b/u)
+
+  if (!matchLibre?.[1]) return null
+
+  return codigoValido(matchLibre[1])
 }
 
 function contextoIndicaPassword(valor: string) {
-  return /contraseña|password|restablec|restablecer|recuper|reset|forgot|change password|cambiar contraseña|set new password|nueva contraseña|password reset/i.test(
-    valor
-  )
+  return PATRON_PASSWORD_TEXTO.test(valor) || PATRON_PASSWORD_URL.test(valor)
 }
 
 function detectarTipoMensaje(
@@ -300,31 +475,58 @@ function detectarTipoMensaje(
 ) {
   const base = `${asunto}\n${cuerpo}`.toLowerCase()
 
+  const esPassword =
+    PATRON_PASSWORD_TEXTO.test(base) ||
+    links.some(
+      (link) =>
+        PATRON_PASSWORD_URL.test(link.url) || PATRON_PASSWORD_TEXTO.test(link.contexto)
+    )
+
+  if (esPassword) return "password"
   if (codigo) return "codigo"
 
   if (
-    /contraseña|password|restablec|recuper|reset|cambiar contraseña|change password|forgot password|set new password|establecer contraseña|nueva contraseña/.test(
-      base
-    )
+    PATRON_CODIGO_TEXTO.test(base) &&
+    /clave de un solo uso|one[-\s]?time|otp|c[oó]digo|code/i.test(base)
   ) {
-    return "password"
+    return "codigo"
   }
 
   if (
-    links.length > 0 &&
-    /crear cuenta|crea tu cuenta|activar|activación|activate|verify|verificar|confirmar|registro|sign up|signup|enlace|link/.test(
+    /cambio.{0,80}correo|correo.{0,80}cambi|email.{0,80}changed|changed.{0,80}email|email.{0,80}updated|direcci[oó]n.{0,80}correo|new email address|correo electr[oó]nico.{0,80}actualiz/i.test(
       base
     )
   ) {
-    return "enlace"
+    return "cambio_correo"
+  }
+
+  if (/hogar|household|home verification|home update|actualizar hogar/i.test(base)) {
+    return "hogar"
   }
 
   if (
-    /dispositivo|device|seguridad|security|accedid|nuevo inicio|new sign|login alert|actividad inusual|suspicious|hogar|household|home/.test(
+    /nuevo inicio|inicio de sesi[oó]n|new sign|sign-in|login alert|nuevo dispositivo|new device|accedid|acceso nuevo|inicia sesi[oó]n/i.test(
       base
     )
   ) {
     return "seguridad"
+  }
+
+  if (
+    /dispositivo|device|seguridad|security|actividad inusual|suspicious|alerta/i.test(
+      base
+    )
+  ) {
+    return "seguridad"
+  }
+
+  if (
+    links.length > 0 &&
+    /crear cuenta|crea tu cuenta|activar|activación|activate|verify|verificar|confirmar|registro|sign up|signup|enlace|link/i.test(
+      base
+    )
+  ) {
+    return "enlace"
   }
 
   if (links.length > 0) return "enlace"
@@ -339,54 +541,46 @@ function puntuarLinkPassword(link: LinkDetectado) {
 
   let score = 0
 
+  if (PATRON_PASSWORD_URL.test(url)) score += 320
+  if (PATRON_PASSWORD_TEXTO.test(contexto)) score += 240
+
   if (
-    /passwordresettoken|set-new-password|reset-password|password-reset|change-password|forgot-password|account-recovery|loginhelp|recover|recovery/.test(
+    /auth\.hbomax\.com.*set-new-password|auth\.max\.com.*set-new-password|account\.max\.com|identity\.max\.com|netflix\.com\/password|sso\.crunchyroll\.com.*new-password|deezer\.com\/password\/reset|accounts\.spotify\.com.*password-reset|paramountplus\.com.*resetpassword|login\.tidal\.com\/resetpass|viki\.com\/reset-password|vix\.com.*reset\/password|iforgot\.apple\.com|appleid\.apple\.com|canva\..*password/i.test(
       url
     )
   ) {
-    score += 150
+    score += 240
   }
 
-  if (
-    /contraseña|password|restablec|restablecer|recuper|reset|forgot|change password|cambiar contraseña|set new password|nueva contraseña/.test(
-      contexto
-    )
-  ) {
-    score += 90
-  }
-
-  if (/auth\.hbomax\.com|auth\.max\.com|account\.max\.com|identity\.max\.com/.test(url)) {
-    score += 80
-  }
-
-  if (/auth|identity|account|accounts/.test(url)) {
-    score += 30
-  }
-
-  if (
-    /watch|play\.max\.com|\/pe\/es|suscr[ií]bete|subscribe|browse|movies|series|home|homepage/.test(
-      base
-    )
-  ) {
-    score -= 95
-  }
-
-  if (
-    /iniciar sesi[oó]n|sign in|login|entrar|abrir max|ver pel[ií]culas|watch now/.test(
-      contexto
-    ) &&
-    !/contraseña|password|reset|restablec|recuper/.test(contexto)
-  ) {
-    score -= 75
-  }
+  if (/auth|identity|account|accounts|login|sso/i.test(url)) score += 40
 
   if (esLinkTracking(url)) {
-    score -= 110
+    score -= 20
+
+    if (PATRON_PASSWORD_TEXTO.test(contexto)) {
+      score += 280
+    }
   }
 
-  if (esLinkBasura(url)) {
-    score -= 130
+  if (
+    /watch|play\.max\.com|\/pe\/es|suscr[ií]bete|subscribe|browse|movies|series|home|homepage|plans|pricing|help|support/i.test(
+      base
+    ) &&
+    !PATRON_PASSWORD_TEXTO.test(contexto)
+  ) {
+    score -= 180
   }
+
+  if (
+    /iniciar sesi[oó]n|sign in|login|entrar|abrir max|ver pel[ií]culas|watch now/i.test(
+      contexto
+    ) &&
+    !PATRON_PASSWORD_TEXTO.test(contexto)
+  ) {
+    score -= 150
+  }
+
+  if (esLinkBasura(url)) score -= 180
 
   return score
 }
@@ -553,10 +747,13 @@ function extraerLinkPrincipal(
 function limpiarCuerpoParaVista(texto: string) {
   if (!texto) return ""
 
-  return texto
+  return quitarHtml(texto)
+    .replace(/@font-face[\s\S]{0,1400}?}/gi, " ")
+    .replace(/font-family:[^;\n]+;?/gi, " ")
     .replace(/\[(https?:\/\/[^\]]+)\]/gi, "")
     .replace(/https?:\/\/[^\s<>"']+/gi, "")
     .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
     .trim()
 }
 
@@ -883,6 +1080,14 @@ export default function SoporteMensajesPage() {
           <StatCard label="Correos con mensajes" value={resumen.correos} />
         </div>
 
+        <div style={styles.platformLegend}>
+          {PLATAFORMAS.slice(0, 13).map((plataforma) => (
+            <span key={plataforma} style={estiloChipPlataforma(plataforma)}>
+              {plataforma}
+            </span>
+          ))}
+        </div>
+
         <section style={styles.panel}>
           <div style={styles.panelHeader}>
             <div>
@@ -972,6 +1177,12 @@ export default function SoporteMensajesPage() {
                         </span>
                       </div>
 
+                      <div style={styles.platformRow}>
+                        <span style={estiloChipPlataforma(mensaje.plataforma || cliente?.plataforma)}>
+                          {mensaje.plataforma || cliente?.plataforma || "No definida"}
+                        </span>
+                      </div>
+
                       <p style={styles.messageText}>
                         {cliente?.nombre || "Cliente no vinculado"} ·{" "}
                         {mensaje.correo_destino}
@@ -1031,6 +1242,7 @@ function MensajePreview({
 }) {
   const cuerpo =
     mensaje.cuerpo_texto ||
+    quitarHtml(mensaje.cuerpo_html || "") ||
     "Este mensaje no tiene cuerpo en texto. Aquí aparecerá el contenido del correo."
 
   const textoCompleto = `${mensaje.asunto || ""}\n${cuerpo}\n${quitarHtml(
@@ -1080,9 +1292,8 @@ function MensajePreview({
 
       <div style={styles.infoGrid}>
         <InfoItem label="Cliente" value={cliente?.nombre || "No vinculado"} />
-        <InfoItem
-          label="Plataforma"
-          value={mensaje.plataforma || cliente?.plataforma || "No definida"}
+        <PlatformInfoItem
+          plataforma={mensaje.plataforma || cliente?.plataforma || "No definida"}
         />
         <InfoItem label="Correo destino" value={mensaje.correo_destino} />
         <InfoItem label="Remitente" value={mensaje.remitente || "No disponible"} />
@@ -1140,6 +1351,15 @@ function MensajePreview({
   )
 }
 
+function PlatformInfoItem({ plataforma }: { plataforma: string }) {
+  return (
+    <div style={styles.infoItem}>
+      <span style={styles.label}>Plataforma</span>
+      <span style={estiloChipPlataforma(plataforma)}>{plataforma}</span>
+    </div>
+  )
+}
+
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div style={styles.infoItem}>
@@ -1164,7 +1384,7 @@ const styles: Record<string, CSSProperties> = {
     position: "relative",
     overflowX: "hidden",
     background:
-      "linear-gradient(135deg, #000000 0%, #031316 48%, #071B1E 100%)",
+      "radial-gradient(circle at 12% -8%, rgba(1, 231, 239, 0.22), transparent 34%), radial-gradient(circle at 88% 10%, rgba(107, 72, 255, 0.18), transparent 28%), radial-gradient(circle at 72% 118%, rgba(0, 251, 255, 0.14), transparent 34%), linear-gradient(135deg, #000000 0%, #031316 48%, #071B1E 100%)",
     color: "#ECFFFF",
     padding: "clamp(14px, 3vw, 40px)",
     fontFamily:
@@ -1206,7 +1426,7 @@ const styles: Record<string, CSSProperties> = {
   },
   loadingBox: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.82)",
+    background: "linear-gradient(180deg, rgba(3, 19, 22, 0.90), rgba(0, 0, 0, 0.68))",
     borderRadius: "24px",
     padding: "28px",
     boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)",
@@ -1300,7 +1520,7 @@ const styles: Record<string, CSSProperties> = {
   },
   adminCard: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.82)",
+    background: "linear-gradient(180deg, rgba(3, 19, 22, 0.90), rgba(0, 0, 0, 0.68))",
     borderRadius: "22px",
     padding: "16px",
     minWidth: "min(100%, 280px)",
@@ -1333,7 +1553,7 @@ const styles: Record<string, CSSProperties> = {
   },
   statCard: {
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.82)",
+    background: "linear-gradient(180deg, rgba(3, 19, 22, 0.90), rgba(0, 0, 0, 0.68))",
     borderRadius: "22px",
     padding: "20px",
     boxShadow: "0 0 25px rgba(1, 231, 239, 0.14)",
@@ -1344,10 +1564,16 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "clamp(30px, 4vw, 42px)",
     marginTop: "10px",
   },
+  platformLegend: {
+    marginTop: "18px",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "10px",
+  },
   panel: {
     marginTop: "24px",
     border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.82)",
+    background: "linear-gradient(180deg, rgba(3, 19, 22, 0.90), rgba(0, 0, 0, 0.68))",
     borderRadius: "26px",
     padding: "clamp(16px, 3vw, 24px)",
     boxShadow: "0 0 30px rgba(1, 231, 239, 0.16)",
@@ -1425,6 +1651,10 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: "space-between",
     gap: "12px",
     alignItems: "start",
+  },
+  platformRow: {
+    display: "flex",
+    marginTop: "12px",
   },
   messageText: {
     color: "#9BC8CB",
