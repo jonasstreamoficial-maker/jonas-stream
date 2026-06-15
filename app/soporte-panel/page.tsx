@@ -64,156 +64,185 @@ export default function SoportePanelPage() {
   return (
     <main className={styles.page}>
       <div className={styles.gridBackground}></div>
+      <div className={styles.sideTextLeft}>JONAS STREAM</div>
+      <div className={styles.sideTextRight}>SOPORTE</div>
       <div className={styles.glowOne}></div>
       <div className={styles.glowTwo}></div>
 
-      <section className={styles.wrapper}>
-        <div className={styles.leftSection}>
-          <div className={styles.badge}>
-            <span></span>
-            Sistema interno JONAS STREAM
+      <section className={styles.shell}>
+        <header className={styles.topbar}>
+          <div className={styles.brand}>
+            <span>JONAS STREAM</span>
+            <small>SOPORTE INTERNO</small>
           </div>
 
-          <h1>
-            Soporte <br />
-            <strong>Panel</strong>
-          </h1>
+          <nav className={styles.navActions}>
+            <button type="button" onClick={() => router.push("/")}>
+              INICIO
+            </button>
+            <button type="button" onClick={() => router.push("/codigos")}>
+              CÓDIGOS
+            </button>
+          </nav>
+        </header>
 
-          <p className={styles.description}>
-            Controla correos asignados, PIN de acceso, mensajes recibidos,
-            reenviadores y consultas de códigos desde una sola plataforma.
-          </p>
-
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <p>Consulta pública</p>
-              <h3>/codigos</h3>
-              <span>Acceso por correo + PIN</span>
-            </div>
-
-            <div className={styles.statCard}>
-              <p>Buzón central</p>
-              <h3>Activo</h3>
-              <span>Recepción automática</span>
-            </div>
-
-            <div className={styles.statCard}>
-              <p>Panel privado</p>
-              <h3>Admin</h3>
-              <span>Correos, PIN y mensajes</span>
-            </div>
-          </div>
-
-          <div className={styles.quickPreview}>
-            <div className={styles.previewHeader}>
+        <section className={styles.heroPanel}>
+          <div className={styles.leftSection}>
+            <div className={styles.badge}>
               <span></span>
-              Flujo del sistema
+              Sistema interno JONAS STREAM
             </div>
 
-            <div className={styles.previewItem}>
-              <div>
-                <p>Cliente solicita código</p>
-                <small>El correo llega al buzón central</small>
+            <h1>
+              SOPORTE <br />
+              <strong>PANEL</strong>
+            </h1>
+
+            <p className={styles.description}>
+              Gestiona correos asignados, PIN públicos, mensajes recibidos y
+              consultas de códigos desde un panel privado para administradores.
+            </p>
+
+            <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <p>Consulta pública</p>
+                <h3>/codigos</h3>
+                <span>Correo asignado + PIN</span>
               </div>
-              <span className={styles.active}>Recibido</span>
+
+              <div className={styles.statCard}>
+                <p>Buzón central</p>
+                <h3>Activo</h3>
+                <span>Recepción automática</span>
+              </div>
+
+              <div className={styles.statCard}>
+                <p>Panel privado</p>
+                <h3>Admin</h3>
+                <span>Correos, PIN y mensajes</span>
+              </div>
             </div>
 
-            <div className={styles.previewItem}>
-              <div>
-                <p>El panel procesa el mensaje</p>
-                <small>Se muestra en dashboard y bandeja</small>
+            <div className={styles.quickPreview}>
+              <div className={styles.previewHeader}>
+                <span></span>
+                Flujo del sistema
               </div>
-              <span className={styles.paused}>Panel</span>
-            </div>
 
-            <div className={styles.previewItem}>
-              <div>
-                <p>Cliente consulta en /codigos</p>
-                <small>Solo ve mensajes de su correo asignado</small>
+              <div className={styles.previewItem}>
+                <div>
+                  <p>Correo recibido</p>
+                  <small>El mensaje entra por el buzón central.</small>
+                </div>
+                <span className={styles.active}>Recibido</span>
               </div>
-              <span className={styles.active}>Seguro</span>
+
+              <div className={styles.previewItem}>
+                <div>
+                  <p>Panel procesa</p>
+                  <small>Se guarda en bandeja y se notifica al administrador.</small>
+                </div>
+                <span className={styles.paused}>Panel</span>
+              </div>
+
+              <div className={styles.previewItem}>
+                <div>
+                  <p>Cliente consulta</p>
+                  <small>Solo ve mensajes de su correo asignado.</small>
+                </div>
+                <span className={styles.active}>Seguro</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className={styles.rightSection}>
-          <div className={styles.loginCard}>
-            <div className={styles.cardHeader}>
-              <div className={styles.logoBox}>JS</div>
+          <div className={styles.rightSection}>
+            <div className={styles.loginCard}>
+              <div className={styles.cardHeader}>
+                <div className={styles.logoBox}>JS</div>
 
-              <div>
-                <h2>Acceso administrativo</h2>
-                <p>Ingresa con una cuenta autorizada para gestionar soporte.</p>
+                <div>
+                  <p className={styles.cardKicker}>ACCESO ADMIN</p>
+                  <h2>Iniciar sesión</h2>
+                  <span>Cuenta autorizada para gestionar soporte.</span>
+                </div>
               </div>
-            </div>
 
-            <form className={styles.form} onSubmit={ingresarSoporte}>
-              <label>
-                Usuario
-                <input
-                  type="email"
-                  placeholder="admin@jonasstream.xyz"
-                  autoComplete="username"
-                  value={correo}
-                  onChange={(e) => setCorreo(e.target.value)}
-                  disabled={cargando}
-                />
-              </label>
-
-              <label>
-                Contraseña
-                <div className={styles.passwordRow}>
+              <form className={styles.form} onSubmit={ingresarSoporte}>
+                <label>
+                  Usuario
                   <input
-                    type={mostrarPassword ? "text" : "password"}
-                    placeholder="••••••••••••"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    type="email"
+                    placeholder="admin@jonasstream.xyz"
+                    autoComplete="username"
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
                     disabled={cargando}
                   />
+                </label>
 
-                  <button
-                    type="button"
-                    className={styles.passwordToggle}
-                    onClick={() => setMostrarPassword((actual) => !actual)}
-                    disabled={cargando}
-                  >
-                    {mostrarPassword ? "Ocultar" : "Ver"}
-                  </button>
-                </div>
-              </label>
+                <label>
+                  Contraseña
+                  <div className={styles.passwordRow}>
+                    <input
+                      type={mostrarPassword ? "text" : "password"}
+                      placeholder="••••••••••••"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={cargando}
+                    />
 
-              {mensaje && <div className={styles.errorBox}>{mensaje}</div>}
+                    <button
+                      type="button"
+                      className={styles.passwordToggle}
+                      onClick={() => setMostrarPassword((actual) => !actual)}
+                      disabled={cargando}
+                    >
+                      {mostrarPassword ? "Ocultar" : "Ver"}
+                    </button>
+                  </div>
+                </label>
 
-              <button type="submit" className={styles.primaryButton} disabled={cargando}>
-                {cargando ? "Validando acceso..." : "Ingresar al soporte panel"}
-              </button>
-            </form>
+                {mensaje && <div className={styles.errorBox}>{mensaje}</div>}
 
-            <div className={styles.securityNotice}>
-              <strong>Seguridad activa:</strong> solo administradores aprobados
-              pueden entrar al panel interno.
-            </div>
+                <button
+                  type="submit"
+                  className={styles.primaryButton}
+                  disabled={cargando}
+                >
+                  {cargando ? "VALIDANDO ACCESO..." : "ENTRAR AL PANEL"}
+                </button>
+              </form>
 
-            <div className={styles.quickActions}>
-              <button
-                type="button"
-                className={styles.publicButton}
-                onClick={() => router.push("/codigos")}
-              >
-                Página pública
-              </button>
+              <div className={styles.securityNotice}>
+                <strong>Seguridad activa:</strong> solo administradores aprobados
+                pueden ingresar al panel interno.
+              </div>
 
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => router.push("/")}
-              >
-                Inicio
-              </button>
+              <div className={styles.quickActions}>
+                <button
+                  type="button"
+                  className={styles.publicButton}
+                  onClick={() => router.push("/codigos")}
+                >
+                  PÁGINA PÚBLICA
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => router.push("/")}
+                >
+                  INICIO
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
+
+        <footer className={styles.footer}>
+          © 2026 Jonas Stream. Panel interno de soporte.
+        </footer>
       </section>
     </main>
   )
