@@ -30,13 +30,13 @@ const editablePages = [
     href: "#",
     status: "Próximo",
   },
-  {
-    title: "Quiero ser socio",
-    description:
-      "Preparado para editar beneficios, requisitos, textos y llamadas a la acción.",
-    href: "#",
-    status: "Próximo",
-  },
+{
+  title: "Quiero ser socio",
+  description:
+    "Edita promoción, hero, plataformas, rentabilidad, beneficios, afiliación, precios y textos legales.",
+  href: "/admin/editor-web/quiero-ser-socio",
+  status: "Activo",
+},
   {
     title: "Legales",
     description:
