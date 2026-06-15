@@ -212,7 +212,7 @@ export default function QuieroSerSocioPage() {
 
   const promoMessage =
     "Hola, quiero aprovechar la PROMOCIÓN EXCLUSIVA HOY de S/10.00 para ingresar como socio revendedor de Jonas Stream.";
-  const contactMessage = "1️⃣ Quiero *Vender Plataformas de Streaming.*";
+  const contactMessage = "Hola, quiero ser socio revendedor de Jonas Stream. Deseo más información para empezar.";
   const activateMessage =
     "Hola, quiero ACTIVAR MI ACCESO como socio en Jonas Stream y aprovechar la promoción de hoy.";
   const heroMessage =
@@ -371,9 +371,9 @@ export default function QuieroSerSocioPage() {
               href={buildWhatsAppLink(contactMessage)}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.topLink}
+              className={`${styles.topLink} ${styles.topLinkSocio}`}
             >
-              CONTÁCTANOS
+              QUIERO SER SOCIO
             </a>
           </div>
         </div>

@@ -2314,3 +2314,310 @@
     transform: none !important;
   }
 }
+/* ==========================================================
+   FIX FINAL V3 - CTA SOCIO / PLATAFORMAS VIVAS / HOVER CARDS
+   Pegar al final. Mantiene el responsive/celular.
+   ========================================================== */
+
+/* Botón superior: antes CONTÁCTANOS, ahora QUIERO SER SOCIO */
+.topLinkSocio {
+  color: #ffffff !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 255, 136, 0.24), transparent 62%),
+    linear-gradient(135deg, rgba(29, 185, 84, 0.28), rgba(0, 255, 136, 0.12)) !important;
+  border-color: rgba(0, 255, 136, 0.48) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.1),
+    0 0 18px rgba(0, 255, 136, 0.18),
+    inset 0 0 18px rgba(0, 255, 136, 0.035) !important;
+}
+
+.topLinkSocio:hover {
+  border-color: rgba(0, 255, 136, 0.82) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 255, 136, 0.34), transparent 62%),
+    linear-gradient(135deg, rgba(29, 185, 84, 0.42), rgba(0, 255, 136, 0.18)) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.18),
+    0 0 28px rgba(0, 255, 136, 0.34),
+    0 0 54px rgba(0, 255, 136, 0.16),
+    inset 0 0 22px rgba(0, 255, 136, 0.08) !important;
+}
+
+/* Plataformas: cuadro interior relleno con su color y activación automática */
+.platformCard {
+  --app-color: #00fbff;
+  --app-rgb: 0, 251, 255;
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  border-color: rgba(var(--app-rgb), 0.42) !important;
+  color: #ffffff !important;
+  text-shadow:
+    0 0 8px rgba(236, 255, 255, 0.42),
+    0 0 18px rgba(var(--app-rgb), 0.18) !important;
+  animation: platformAutoPulse 20s ease-in-out infinite;
+}
+
+.platformCard::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 10px !important;
+  z-index: -1 !important;
+  border-radius: 15px !important;
+  border: 1px solid rgba(var(--app-rgb), 0.34) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.08), transparent 50%),
+    linear-gradient(135deg, rgba(var(--app-rgb), 0.28), rgba(var(--app-rgb), 0.08)) !important;
+  box-shadow:
+    inset 0 0 18px rgba(var(--app-rgb), 0.08),
+    0 0 12px rgba(var(--app-rgb), 0.12) !important;
+  opacity: 0.82 !important;
+  pointer-events: none !important;
+  transition: 0.3s ease !important;
+}
+
+.platformCard::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -65% -35% !important;
+  z-index: -1 !important;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 34%,
+      rgba(var(--app-rgb), 0.2) 46%,
+      rgba(236, 255, 255, 0.12) 50%,
+      rgba(var(--app-rgb), 0.18) 54%,
+      transparent 66%
+    ) !important;
+  transform: translateX(-76%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.platformCard:hover,
+.platformCard:focus-visible {
+  transform: translateY(-6px) scale(1.018) !important;
+  border-color: rgba(var(--app-rgb), 0.95) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(var(--app-rgb), 0.28), transparent 58%),
+    radial-gradient(circle at 0% 100%, rgba(var(--app-rgb), 0.14), transparent 40%),
+    linear-gradient(180deg, rgba(7, 27, 30, 0.96), rgba(3, 19, 22, 0.99)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.04),
+    inset 0 0 30px rgba(var(--app-rgb), 0.08),
+    0 0 0 1px rgba(var(--app-rgb), 0.2),
+    0 0 26px rgba(var(--app-rgb), 0.48),
+    0 0 56px rgba(var(--app-rgb), 0.22),
+    0 22px 40px rgba(0, 0, 0, 0.32) !important;
+}
+
+.platformCard:hover::before,
+.platformCard:focus-visible::before {
+  inset: 8px !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.14), transparent 48%),
+    linear-gradient(135deg, rgba(var(--app-rgb), 0.42), rgba(var(--app-rgb), 0.14)) !important;
+  border-color: rgba(var(--app-rgb), 0.72) !important;
+  box-shadow:
+    inset 0 0 24px rgba(var(--app-rgb), 0.16),
+    0 0 22px rgba(var(--app-rgb), 0.28) !important;
+}
+
+.platformCard:hover::after,
+.platformCard:focus-visible::after {
+  opacity: 1 !important;
+  transform: translateX(76%) !important;
+  transition: transform 0.72s ease, opacity 0.18s ease !important;
+}
+
+/* Delay escalonado para que se prendan uno por uno */
+.netflix { --app-rgb: 229, 9, 20; animation-delay: 0s; }
+.disney { --app-rgb: 0, 178, 187; animation-delay: 2s; }
+.prime { --app-rgb: 0, 122, 255; animation-delay: 4s; }
+.max { --app-rgb: 0, 39, 239; animation-delay: 6s; }
+.paramount { --app-rgb: 0, 104, 255; animation-delay: 8s; }
+.crunchy { --app-rgb: 255, 88, 0; animation-delay: 10s; }
+.vix { --app-rgb: 255, 88, 0; animation-delay: 12s; }
+.iptv { --app-rgb: 84, 64, 235; animation-delay: 14s; }
+.viki { --app-rgb: 0, 157, 255; animation-delay: 16s; }
+.more { --app-rgb: 0, 251, 255; animation-delay: 18s; }
+
+@keyframes platformAutoPulse {
+  0%,
+  7%,
+  100% {
+    border-color: rgba(var(--app-rgb), 0.42);
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 255, 255, 0.018),
+      0 0 0 1px rgba(var(--app-rgb), 0.06),
+      0 0 16px rgba(var(--app-rgb), 0.11),
+      0 14px 28px rgba(0, 0, 0, 0.18);
+    filter: none;
+  }
+
+  10%,
+  18% {
+    border-color: rgba(var(--app-rgb), 0.95);
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 255, 255, 0.04),
+      inset 0 0 26px rgba(var(--app-rgb), 0.07),
+      0 0 0 1px rgba(var(--app-rgb), 0.18),
+      0 0 26px rgba(var(--app-rgb), 0.46),
+      0 0 56px rgba(var(--app-rgb), 0.22),
+      0 22px 40px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.14);
+  }
+
+  21% {
+    border-color: rgba(var(--app-rgb), 0.42);
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 255, 255, 0.018),
+      0 0 0 1px rgba(var(--app-rgb), 0.06),
+      0 0 16px rgba(var(--app-rgb), 0.11),
+      0 14px 28px rgba(0, 0, 0, 0.18);
+    filter: none;
+  }
+}
+
+/* Rentabilidad: efecto levantar en el cuadro grande y pasos 1-4 */
+.exampleProfitBox,
+.stepItem {
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    filter 0.28s ease !important;
+}
+
+.exampleProfitBox:hover {
+  transform: translateY(-7px) scale(1.012) !important;
+  border-color: rgba(0, 251, 255, 0.82) !important;
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.04),
+    inset 0 0 38px rgba(0, 251, 255, 0.1),
+    0 0 0 1px rgba(0, 251, 255, 0.18),
+    0 0 34px rgba(0, 251, 255, 0.32),
+    0 0 72px rgba(1, 231, 239, 0.2),
+    0 28px 52px rgba(0, 0, 0, 0.34) !important;
+}
+
+.stepItem:hover {
+  transform: translateY(-5px) scale(1.01) !important;
+  border-color: rgba(0, 251, 255, 0.34) !important;
+  background:
+    radial-gradient(circle at left, rgba(0, 251, 255, 0.09), transparent 34%),
+    rgba(255, 255, 255, 0.035) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.025),
+    0 0 22px rgba(0, 251, 255, 0.14),
+    0 18px 30px rgba(0, 0, 0, 0.22) !important;
+}
+
+.stepItem:hover span {
+  background: rgba(0, 251, 255, 0.16) !important;
+  box-shadow: 0 0 18px rgba(0, 251, 255, 0.2);
+}
+
+/* Cómo ser socio: precio, puntos y botones con efecto levantar */
+.pricingMain,
+.pricingItem,
+.pricingActions a {
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    filter 0.28s ease !important;
+}
+
+.pricingMain:hover {
+  transform: translateY(-6px) scale(1.006) !important;
+  border-color: rgba(0, 251, 255, 0.82) !important;
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.04),
+    inset 0 0 38px rgba(0, 251, 255, 0.1),
+    0 0 0 1px rgba(0, 251, 255, 0.18),
+    0 0 34px rgba(0, 251, 255, 0.32),
+    0 0 72px rgba(1, 231, 239, 0.2),
+    0 28px 52px rgba(0, 0, 0, 0.34) !important;
+}
+
+.pricingItem:hover {
+  transform: translateY(-4px) scale(1.008) !important;
+  border-color: rgba(0, 255, 136, 0.28) !important;
+  background:
+    radial-gradient(circle at left, rgba(0, 255, 136, 0.08), transparent 34%),
+    rgba(255, 255, 255, 0.035) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.024),
+    0 0 20px rgba(0, 255, 136, 0.12),
+    0 16px 28px rgba(0, 0, 0, 0.2) !important;
+}
+
+.pricingActions a:hover {
+  transform: translateY(-5px) scale(1.018) !important;
+  filter: brightness(1.08);
+}
+
+.pricingActions .heroBtnPrimary:hover {
+  border-color: rgba(0, 251, 255, 0.7) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.18),
+    0 0 30px rgba(0, 251, 255, 0.34),
+    0 0 64px rgba(1, 231, 239, 0.18) !important;
+}
+
+.pricingActions .heroBtnSecondary:hover {
+  border-color: rgba(236, 255, 255, 0.22) !important;
+  box-shadow:
+    0 0 0 1px rgba(236, 255, 255, 0.06),
+    0 0 24px rgba(236, 255, 255, 0.12),
+    0 18px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Modal promo: también levanta el cuadro de precio */
+.promoPriceBox {
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    filter 0.28s ease !important;
+}
+
+.promoPriceBox:hover {
+  transform: translateY(-5px) scale(1.008) !important;
+  border-color: rgba(0, 251, 255, 0.82) !important;
+  filter: brightness(1.08);
+}
+
+/* Celular: conservar estructura, solo bajar intensidad de animación */
+@media (max-width: 760px) {
+  .topLinkSocio {
+    min-height: 46px;
+  }
+
+  .platformCard {
+    animation: platformAutoPulse 22s ease-in-out infinite;
+  }
+
+  .platformCard::before {
+    inset: 8px !important;
+  }
+
+  .exampleProfitBox:hover,
+  .stepItem:hover,
+  .pricingMain:hover,
+  .pricingItem:hover,
+  .pricingActions a:hover {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platformCard {
+    animation: none !important;
+  }
+}
