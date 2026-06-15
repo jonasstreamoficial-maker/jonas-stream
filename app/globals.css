@@ -63,6 +63,7 @@ body::before {
   opacity: 0.08;
   pointer-events: none;
   z-index: 0;
+  -webkit-mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
   mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
 }
 
@@ -744,6 +745,7 @@ img {
   z-index: 1;
 }
 
+.card h2,
 .card h3 {
   color: var(--primary);
   font-size: 1.12rem;
@@ -1215,7 +1217,8 @@ footer {
     padding: 22px 16px;
   }
 
-  .card h3 {
+  .card h2,
+.card h3 {
     font-size: 1rem;
   }
 
@@ -1395,7 +1398,8 @@ html::-webkit-scrollbar-thumb:hover {
 .benefits-panel,
 .stats-panel,
 .social-panel,
-.footer {
+.footer,
+.footer-panel {
   animation: sectionReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -1411,7 +1415,8 @@ html::-webkit-scrollbar-thumb:hover {
   animation-delay: 0.32s;
 }
 
-.footer {
+.footer,
+.footer-panel {
   animation-delay: 0.42s;
 }
 
@@ -1453,6 +1458,7 @@ html::-webkit-scrollbar-thumb:hover {
 }
 
 /* +2K clientes más poderoso */
+.card h2,
 .card h3 {
   text-shadow:
     0 0 12px rgba(1, 231, 239, 0.25),
@@ -1463,7 +1469,8 @@ html::-webkit-scrollbar-thumb:hover {
 .btn:focus-visible,
 .top-link:focus-visible,
 .brand-logo:focus-visible,
-.social-link:focus-visible {
+.social-link:focus-visible,
+.footer-link-button:focus-visible {
   outline: 2px solid rgba(0, 251, 255, 0.75);
   outline-offset: 4px;
 }
