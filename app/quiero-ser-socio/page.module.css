@@ -2061,6 +2061,9 @@
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -2780,5 +2783,323 @@
   .affiliateBenefits span:hover,
   .affiliateBox:hover {
     transform: none !important;
+  }
+}
+
+/* ==========================================================
+   FIX FINAL V5 - AJUSTES PEDIDOS
+   Separación superior/inferior, botón socio parpadeante,
+   afiliación cyan, precio parpadeante, hover en puntos y warning mask.
+   ========================================================== */
+
+/* 1) Separación superior más compacta entre menú y primer bloque */
+.page {
+  --topbar-height: 96px !important;
+  --section-gap: 14px !important;
+  padding-bottom: 6px !important;
+}
+
+.mainContent {
+  padding-top: var(--topbar-height) !important;
+}
+
+.hero,
+.section,
+.benefitsSection,
+.affiliateSection,
+.pricingSection {
+  margin-bottom: var(--section-gap) !important;
+}
+
+/* 2) Footer más pegado al final, como portada */
+.footerWrap {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.footerLegal {
+  padding: 14px 20px !important;
+  border-radius: 20px !important;
+}
+
+.footerLinks {
+  margin-top: 8px !important;
+}
+
+/* 3) Botón superior QUIERO SER SOCIO: verde WhatsApp brillante/parpadeante */
+.topLinkSocio {
+  position: relative !important;
+  overflow: hidden !important;
+  color: #ffffff !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 255, 136, 0.3), transparent 62%),
+    linear-gradient(135deg, rgba(29, 185, 84, 0.34), rgba(0, 255, 136, 0.16)) !important;
+  border-color: rgba(0, 255, 136, 0.62) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.14),
+    0 0 18px rgba(0, 255, 136, 0.28),
+    0 0 42px rgba(0, 255, 136, 0.12),
+    inset 0 0 20px rgba(0, 255, 136, 0.06) !important;
+  animation: socioTopPulseV5 2.4s ease-in-out infinite !important;
+}
+
+.topLinkSocio::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -80% -35% !important;
+  background: linear-gradient(115deg, transparent 36%, rgba(255, 255, 255, 0.18) 50%, transparent 64%) !important;
+  transform: translateX(-70%) !important;
+  animation: socioTopSweepV5 3.6s ease-in-out infinite !important;
+  pointer-events: none !important;
+}
+
+.topLinkSocio:hover {
+  transform: translateY(-3px) scale(1.018) !important;
+  border-color: rgba(0, 255, 136, 0.95) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.24),
+    0 0 30px rgba(0, 255, 136, 0.44),
+    0 0 72px rgba(0, 255, 136, 0.22),
+    inset 0 0 26px rgba(0, 255, 136, 0.1) !important;
+}
+
+@keyframes socioTopPulseV5 {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow:
+      0 0 0 1px rgba(0, 255, 136, 0.14),
+      0 0 18px rgba(0, 255, 136, 0.24),
+      0 0 42px rgba(0, 255, 136, 0.1),
+      inset 0 0 20px rgba(0, 255, 136, 0.06);
+  }
+  50% {
+    filter: brightness(1.18);
+    box-shadow:
+      0 0 0 1px rgba(0, 255, 136, 0.3),
+      0 0 30px rgba(0, 255, 136, 0.46),
+      0 0 70px rgba(0, 255, 136, 0.22),
+      inset 0 0 28px rgba(0, 255, 136, 0.1);
+  }
+}
+
+@keyframes socioTopSweepV5 {
+  0%, 45% { transform: translateX(-70%); opacity: 0; }
+  55% { opacity: 1; }
+  100% { transform: translateX(70%); opacity: 0; }
+}
+
+/* 4) Afiliación: quitar verde fuerte y volverlo Jonas/cyan */
+.affiliateBox {
+  border-color: rgba(1, 231, 239, 0.28) !important;
+  background:
+    radial-gradient(circle at top left, rgba(1, 231, 239, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(7, 27, 30, 0.9), rgba(3, 19, 22, 0.99)) !important;
+  box-shadow:
+    0 0 0 1px rgba(1, 231, 239, 0.08),
+    0 0 30px rgba(1, 231, 239, 0.13),
+    0 24px 48px rgba(0, 0, 0, 0.24) !important;
+}
+
+.affiliateBox:hover {
+  border-color: rgba(0, 251, 255, 0.48) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.14),
+    0 0 34px rgba(0, 251, 255, 0.2),
+    0 26px 52px rgba(0, 0, 0, 0.28) !important;
+}
+
+.affiliateHeader span {
+  color: var(--cyan) !important;
+  background: rgba(1, 231, 239, 0.1) !important;
+  border-color: rgba(1, 231, 239, 0.24) !important;
+}
+
+/* 5) Afiliación: 01, 02, 03 y chips se levantan */
+.affiliateStep,
+.affiliateBenefits span {
+  position: relative !important;
+  overflow: hidden !important;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background 0.28s ease,
+    filter 0.28s ease !important;
+}
+
+.affiliateStep:hover {
+  transform: translateY(-6px) scale(1.012) !important;
+  border-color: rgba(0, 251, 255, 0.46) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(0, 251, 255, 0.1), transparent 42%),
+    rgba(255, 255, 255, 0.035) !important;
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.03),
+    0 0 0 1px rgba(0, 251, 255, 0.1),
+    0 0 24px rgba(0, 251, 255, 0.18),
+    0 20px 34px rgba(0, 0, 0, 0.28) !important;
+}
+
+.affiliateBenefits span:hover {
+  transform: translateY(-5px) scale(1.014) !important;
+  border-color: rgba(0, 251, 255, 0.42) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 251, 255, 0.1), transparent 58%),
+    rgba(1, 231, 239, 0.07) !important;
+  filter: brightness(1.1);
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.03),
+    0 0 0 1px rgba(0, 251, 255, 0.1),
+    0 0 22px rgba(0, 251, 255, 0.16),
+    0 18px 30px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* 6) Precio S/10: parpadeo y hover seleccionable */
+.promoPriceBox,
+.pricingMain {
+  cursor: pointer !important;
+  animation: pricePulseV5 2.8s ease-in-out infinite !important;
+}
+
+.promoPriceBox:hover,
+.pricingMain:hover {
+  transform: translateY(-6px) scale(1.008) !important;
+  border-color: rgba(0, 251, 255, 0.92) !important;
+  filter: brightness(1.1);
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.04),
+    inset 0 0 40px rgba(0, 251, 255, 0.12),
+    0 0 0 1px rgba(0, 251, 255, 0.2),
+    0 0 38px rgba(0, 251, 255, 0.36),
+    0 0 82px rgba(1, 231, 239, 0.22),
+    0 28px 52px rgba(0, 0, 0, 0.34) !important;
+}
+
+@keyframes pricePulseV5 {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 255, 255, 0.035),
+      inset 0 0 34px rgba(0, 251, 255, 0.06),
+      0 0 0 1px rgba(0, 251, 255, 0.14),
+      0 0 24px rgba(0, 251, 255, 0.2),
+      0 0 58px rgba(1, 231, 239, 0.14),
+      0 22px 48px rgba(0, 0, 0, 0.32);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 255, 255, 0.045),
+      inset 0 0 42px rgba(0, 251, 255, 0.11),
+      0 0 0 1px rgba(0, 251, 255, 0.22),
+      0 0 34px rgba(0, 251, 255, 0.34),
+      0 0 84px rgba(1, 231, 239, 0.22),
+      0 26px 54px rgba(0, 0, 0, 0.34);
+  }
+}
+
+/* 7) Modal promo: 4 puntos flotantes al pasar mouse */
+.promoBenefit {
+  position: relative !important;
+  overflow: hidden !important;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background 0.28s ease,
+    filter 0.28s ease !important;
+}
+
+.promoBenefit:hover {
+  transform: translateY(-5px) scale(1.012) !important;
+  border-color: rgba(0, 251, 255, 0.34) !important;
+  background:
+    radial-gradient(circle at left, rgba(0, 251, 255, 0.1), transparent 40%),
+    rgba(255, 255, 255, 0.038) !important;
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.025),
+    0 0 22px rgba(0, 251, 255, 0.16),
+    0 18px 30px rgba(0, 0, 0, 0.24) !important;
+}
+
+/* 8) Botón inferior VER PRECIOS VIP y ACTIVAR MI ACCESO con brillo Jonas */
+.pricingActions .heroBtnSecondary {
+  border-color: rgba(1, 231, 239, 0.22) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(1, 231, 239, 0.08), transparent 62%),
+    rgba(255, 255, 255, 0.035) !important;
+}
+
+.pricingActions .heroBtnSecondary:hover {
+  border-color: rgba(0, 251, 255, 0.75) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.16),
+    0 0 26px rgba(0, 251, 255, 0.28),
+    0 0 58px rgba(1, 231, 239, 0.16),
+    0 18px 32px rgba(0, 0, 0, 0.24) !important;
+}
+
+.pricingActions .heroBtnPrimary:hover {
+  border-color: rgba(0, 251, 255, 0.78) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 251, 255, 0.18),
+    0 0 30px rgba(0, 251, 255, 0.34),
+    0 0 64px rgba(1, 231, 239, 0.2),
+    0 18px 32px rgba(0, 0, 0, 0.24) !important;
+}
+
+/* 9) Puntos de cómo ser socio también flotantes */
+.pricingItem {
+  cursor: pointer !important;
+}
+
+.pricingItem:hover {
+  transform: translateY(-4px) scale(1.008) !important;
+  border-color: rgba(0, 251, 255, 0.32) !important;
+  background:
+    radial-gradient(circle at left, rgba(0, 251, 255, 0.085), transparent 36%),
+    rgba(255, 255, 255, 0.035) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 255, 0.024),
+    0 0 22px rgba(0, 251, 255, 0.13),
+    0 16px 28px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 10) Ajustes mobile: mantener diseño, bajar movimientos */
+@media (max-width: 760px) {
+  .page {
+    --topbar-height: 190px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .footerLegal {
+    padding: 14px 12px !important;
+  }
+
+  .topLinkSocio {
+    animation: socioTopPulseV5 2.8s ease-in-out infinite !important;
+  }
+
+  .promoPriceBox,
+  .pricingMain {
+    animation: pricePulseV5 3.4s ease-in-out infinite !important;
+  }
+
+  .promoBenefit:hover,
+  .affiliateStep:hover,
+  .affiliateBenefits span:hover,
+  .pricingItem:hover,
+  .promoPriceBox:hover,
+  .pricingMain:hover {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topLinkSocio,
+  .promoPriceBox,
+  .pricingMain {
+    animation: none !important;
   }
 }

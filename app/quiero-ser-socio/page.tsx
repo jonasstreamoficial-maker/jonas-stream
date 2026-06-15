@@ -602,7 +602,7 @@ export default function QuieroSerSocioPage() {
 
             <div className={styles.pricingActions}>
               <Link href="/ver-precios" className={styles.heroBtnSecondary}>
-                VER PRECIOS EXCLUSIVOS
+                VER PRECIOS VIP
               </Link>
 
               <a
