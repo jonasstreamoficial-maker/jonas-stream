@@ -2119,3 +2119,260 @@
     right: 58px !important;
   }
 }
+
+/* =====================================================
+   V10 FINAL PC - LATERALES EN GUTTERS + GAP UNIFORME
+   Solo computadora/tablet. No toca móvil.
+   ===================================================== */
+@media (min-width: 721px) {
+  .editorShell {
+    --pc-gap: 14px !important;
+    --pc-sticky-top: 174px !important;
+    width: min(1500px, calc(100% - 28px)) !important;
+    padding-top: 22px !important;
+    padding-bottom: 44px !important;
+    overflow: visible !important;
+  }
+
+  .mobileStickyHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1200 !important;
+    margin: 0 !important;
+    padding: 0 0 var(--pc-gap) !important;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.99) 0%,
+        rgba(3, 19, 22, 0.99) calc(100% - var(--pc-gap)),
+        rgba(3, 19, 22, 0.9) 100%
+      ) !important;
+    backdrop-filter: blur(14px) !important;
+  }
+
+  .mobileStickyHeader::before,
+  .mobileStickyHeader::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .mobileStickyHeader .editorTopbar,
+  .editorTopbar {
+    position: relative !important;
+    top: auto !important;
+    margin: 0 !important;
+  }
+
+  .workspace {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    gap: var(--pc-gap) !important;
+    align-items: start !important;
+  }
+
+  .editorPanel,
+  .previewPanel {
+    position: sticky !important;
+    top: var(--pc-sticky-top) !important;
+    max-height: calc(100vh - var(--pc-sticky-top) - var(--pc-gap)) !important;
+    z-index: 80 !important;
+  }
+
+  .previewFrameOuter {
+    max-height: calc(100vh - var(--pc-sticky-top) - 106px) !important;
+  }
+
+  .editorTopbar {
+    z-index: 90 !important;
+  }
+
+  /* Laterales generales del editor: fuera de los paneles, como la portada pública. */
+  .editorSideBrand {
+    display: block !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: clamp(110px, 9vw, 188px) !important;
+    right: auto !important;
+    z-index: 25 !important;
+    transform: translate(-50%, -50%) rotate(-90deg) !important;
+    transform-origin: center center !important;
+    color: rgba(1, 231, 239, 0.18) !important;
+    opacity: 1 !important;
+    font-family: "Orbitron", sans-serif !important;
+    font-size: clamp(2.15rem, 3.35vw, 3.25rem) !important;
+    font-weight: 900 !important;
+    letter-spacing: 8px !important;
+    line-height: 1 !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    text-shadow: 0 0 22px rgba(0, 251, 255, 0.08) !important;
+    pointer-events: none !important;
+    user-select: none !important;
+  }
+
+  .editorSideBrandRight {
+    left: auto !important;
+    right: clamp(110px, 9vw, 188px) !important;
+    transform: translate(50%, -50%) rotate(90deg) !important;
+    transform-origin: center center !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1180px) {
+  .editorShell {
+    --pc-sticky-top: 166px !important;
+  }
+
+  .editorSideBrand {
+    left: 70px !important;
+    font-size: clamp(1.65rem, 3vw, 2.45rem) !important;
+    letter-spacing: 6px !important;
+    color: rgba(1, 231, 239, 0.12) !important;
+  }
+
+  .editorSideBrandRight {
+    right: 70px !important;
+  }
+}
+
+/* =====================================================
+   V11 FINAL PC - Laterales como portada pública
+   Solo computadora/tablet. No modifica móvil.
+   ===================================================== */
+@media (min-width: 721px) {
+  .editorShell {
+    overflow: visible !important;
+  }
+
+  .editorSideBrand {
+    display: block !important;
+    position: fixed !important;
+    top: 52% !important;
+    left: clamp(88px, 7vw, 132px) !important;
+    right: auto !important;
+    z-index: 18 !important;
+    transform: translate(-50%, -50%) rotate(-90deg) !important;
+    transform-origin: center center !important;
+    color: rgba(1, 231, 239, 0.13) !important;
+    opacity: 1 !important;
+    font-family: "Orbitron", sans-serif !important;
+    font-size: clamp(2rem, 3.05vw, 3.15rem) !important;
+    font-weight: 900 !important;
+    letter-spacing: 8px !important;
+    line-height: 1 !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    text-shadow: 0 0 22px rgba(0, 251, 255, 0.08) !important;
+    pointer-events: none !important;
+    user-select: none !important;
+  }
+
+  .editorSideBrandRight {
+    left: auto !important;
+    right: clamp(88px, 7vw, 132px) !important;
+    transform: translate(50%, -50%) rotate(90deg) !important;
+    transform-origin: center center !important;
+  }
+
+  .editorTopbar,
+  .editorPanel,
+  .previewPanel {
+    position: relative;
+    z-index: 80 !important;
+  }
+
+  .mobileStickyHeader {
+    z-index: 1200 !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1180px) {
+  .editorSideBrand {
+    left: 54px !important;
+    font-size: clamp(1.55rem, 2.7vw, 2.3rem) !important;
+    letter-spacing: 6px !important;
+    color: rgba(1, 231, 239, 0.10) !important;
+  }
+
+  .editorSideBrandRight {
+    right: 54px !important;
+  }
+}
+
+/* =====================================================
+   V12 FINAL PC - Filo superior visible en topbar sticky
+   Solo computadora/tablet. No modifica móvil.
+   ===================================================== */
+@media (min-width: 721px) {
+  .editorShell {
+    --pc-gap: 18px !important;
+    --pc-sticky-top: 196px !important;
+  }
+
+  .mobileStickyHeader {
+    position: sticky !important;
+    top: 12px !important;
+    z-index: 1200 !important;
+    padding-bottom: var(--pc-gap) !important;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.94) 0%,
+        rgba(3, 19, 22, 0.96) calc(100% - var(--pc-gap)),
+        rgba(3, 19, 22, 0.82) 100%
+      ) !important;
+    backdrop-filter: blur(16px) !important;
+  }
+
+  .mobileStickyHeader .editorTopbar,
+  .editorTopbar {
+    position: relative !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(1, 231, 239, 0.2) !important;
+    box-shadow:
+      0 24px 70px rgba(0, 0, 0, 0.36),
+      0 0 30px rgba(1, 231, 239, 0.08),
+      inset 0 1px 0 rgba(236, 255, 255, 0.055) !important;
+  }
+
+  .mobileStickyHeader .editorTopbar::after,
+  .editorTopbar::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 26px !important;
+    right: 26px !important;
+    height: 1px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(1, 231, 239, 0.34),
+      rgba(0, 251, 255, 0.18),
+      transparent
+    ) !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+  }
+
+  .workspace {
+    margin-top: 0 !important;
+    gap: var(--pc-gap) !important;
+  }
+
+  .editorPanel,
+  .previewPanel {
+    top: var(--pc-sticky-top) !important;
+    max-height: calc(100vh - var(--pc-sticky-top) - var(--pc-gap)) !important;
+  }
+
+  .previewFrameOuter {
+    max-height: calc(100vh - var(--pc-sticky-top) - 104px) !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1180px) {
+  .editorShell {
+    --pc-sticky-top: 186px !important;
+  }
+}
