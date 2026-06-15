@@ -399,7 +399,7 @@ export default function QuieroSerSocioPage() {
               href={buildWhatsAppLink(heroMessage)}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.heroBtnPrimary}
+              className={`${styles.heroBtnPrimary} ${styles.btn} ${styles.btn1}`}
             >
               QUIERO SER SOCIO
             </a>
