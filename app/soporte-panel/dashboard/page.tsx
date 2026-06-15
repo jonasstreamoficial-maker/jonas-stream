@@ -44,6 +44,185 @@ type SoporteMensaje = {
 
 const ENLACE_CODIGOS = "https://jonasstream.xyz/codigos"
 
+const PLATAFORMAS = [
+  "Netflix",
+  "Prime Video",
+  "Disney+",
+  "Crunchyroll",
+  "Vix",
+  "Max",
+  "Spotify",
+  "YouTube Premium",
+  "Apple TV",
+  "Deezer",
+  "Tidal",
+  "Rakuten Viki",
+  "Paramount+",
+  "Canva",
+  "IPTV / App TV",
+  "App Música",
+  "Otro",
+]
+
+const PALETA_PLATAFORMAS: Record<
+  string,
+  { fondo: string; borde: string; texto: string; brillo: string }
+> = {
+  netflix: {
+    fondo: "rgba(229, 9, 20, 0.14)",
+    borde: "rgba(229, 9, 20, 0.46)",
+    texto: "#ff6b72",
+    brillo: "rgba(229, 9, 20, 0.24)",
+  },
+  "prime video": {
+    fondo: "rgba(0, 168, 225, 0.14)",
+    borde: "rgba(0, 168, 225, 0.46)",
+    texto: "#6ad7ff",
+    brillo: "rgba(0, 168, 225, 0.24)",
+  },
+  "disney+": {
+    fondo: "rgba(17, 60, 207, 0.18)",
+    borde: "rgba(86, 128, 255, 0.52)",
+    texto: "#9cb8ff",
+    brillo: "rgba(86, 128, 255, 0.24)",
+  },
+  crunchyroll: {
+    fondo: "rgba(244, 117, 33, 0.16)",
+    borde: "rgba(244, 117, 33, 0.52)",
+    texto: "#ffb06b",
+    brillo: "rgba(244, 117, 33, 0.25)",
+  },
+  vix: {
+    fondo: "rgba(255, 130, 0, 0.16)",
+    borde: "rgba(255, 130, 0, 0.50)",
+    texto: "#ffbe6b",
+    brillo: "rgba(255, 130, 0, 0.24)",
+  },
+  max: {
+    fondo: "rgba(97, 72, 255, 0.18)",
+    borde: "rgba(120, 99, 255, 0.54)",
+    texto: "#b9adff",
+    brillo: "rgba(120, 99, 255, 0.24)",
+  },
+  spotify: {
+    fondo: "rgba(30, 215, 96, 0.14)",
+    borde: "rgba(30, 215, 96, 0.45)",
+    texto: "#7cffad",
+    brillo: "rgba(30, 215, 96, 0.23)",
+  },
+  "youtube premium": {
+    fondo: "rgba(255, 0, 0, 0.14)",
+    borde: "rgba(255, 0, 0, 0.45)",
+    texto: "#ff7474",
+    brillo: "rgba(255, 0, 0, 0.22)",
+  },
+  "apple tv": {
+    fondo: "rgba(245, 245, 247, 0.12)",
+    borde: "rgba(245, 245, 247, 0.38)",
+    texto: "#f5f5f7",
+    brillo: "rgba(245, 245, 247, 0.18)",
+  },
+  deezer: {
+    fondo: "rgba(164, 82, 255, 0.16)",
+    borde: "rgba(255, 95, 180, 0.48)",
+    texto: "#ff9ad0",
+    brillo: "rgba(164, 82, 255, 0.24)",
+  },
+  tidal: {
+    fondo: "rgba(255, 255, 255, 0.11)",
+    borde: "rgba(255, 255, 255, 0.36)",
+    texto: "#ffffff",
+    brillo: "rgba(255, 255, 255, 0.16)",
+  },
+  "rakuten viki": {
+    fondo: "rgba(0, 180, 255, 0.15)",
+    borde: "rgba(0, 180, 255, 0.48)",
+    texto: "#76dcff",
+    brillo: "rgba(0, 180, 255, 0.22)",
+  },
+  "paramount+": {
+    fondo: "rgba(0, 93, 255, 0.15)",
+    borde: "rgba(0, 130, 255, 0.48)",
+    texto: "#80caff",
+    brillo: "rgba(0, 93, 255, 0.22)",
+  },
+  canva: {
+    fondo: "rgba(0, 199, 190, 0.15)",
+    borde: "rgba(151, 71, 255, 0.48)",
+    texto: "#9ff6ff",
+    brillo: "rgba(151, 71, 255, 0.22)",
+  },
+  "iptv / app tv": {
+    fondo: "rgba(1, 231, 239, 0.12)",
+    borde: "rgba(1, 231, 239, 0.40)",
+    texto: "#01E7EF",
+    brillo: "rgba(1, 231, 239, 0.22)",
+  },
+  "app música": {
+    fondo: "rgba(255, 76, 160, 0.14)",
+    borde: "rgba(255, 76, 160, 0.44)",
+    texto: "#ff93c8",
+    brillo: "rgba(255, 76, 160, 0.22)",
+  },
+  otro: {
+    fondo: "rgba(155, 200, 203, 0.12)",
+    borde: "rgba(155, 200, 203, 0.30)",
+    texto: "#BFECEF",
+    brillo: "rgba(155, 200, 203, 0.16)",
+  },
+}
+
+const normalizarPlataforma = (valor: string | null | undefined) => {
+  const texto = String(valor || "otro").trim().toLowerCase()
+
+  if (texto.includes("netflix")) return "netflix"
+  if (texto.includes("prime") || texto.includes("amazon")) return "prime video"
+  if (texto.includes("disney")) return "disney+"
+  if (texto.includes("crunchy")) return "crunchyroll"
+  if (texto.includes("vix")) return "vix"
+  if (texto.includes("max") || texto.includes("hbo")) return "max"
+  if (texto.includes("spotify")) return "spotify"
+  if (texto.includes("youtube")) return "youtube premium"
+  if (texto.includes("apple")) return "apple tv"
+  if (texto.includes("deezer")) return "deezer"
+  if (texto.includes("tidal")) return "tidal"
+  if (texto.includes("viki") || texto.includes("rakuten")) return "rakuten viki"
+  if (texto.includes("paramount")) return "paramount+"
+  if (texto.includes("canva")) return "canva"
+  if (texto.includes("iptv") || texto.includes("app tv")) return "iptv / app tv"
+  if (texto.includes("música") || texto.includes("musica") || texto.includes("appmus")) {
+    return "app música"
+  }
+
+  return "otro"
+}
+
+const obtenerPaletaPlataforma = (plataforma: string | null | undefined) => {
+  const clave = normalizarPlataforma(plataforma)
+  return PALETA_PLATAFORMAS[clave] || PALETA_PLATAFORMAS.otro
+}
+
+const estiloChipPlataforma = (plataforma: string | null | undefined): CSSProperties => {
+  const paleta = obtenerPaletaPlataforma(plataforma)
+
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    width: "fit-content",
+    border: `1px solid ${paleta.borde}`,
+    background: paleta.fondo,
+    color: paleta.texto,
+    borderRadius: "999px",
+    padding: "7px 11px",
+    fontSize: "12px",
+    fontWeight: 950,
+    boxShadow: `0 0 18px ${paleta.brillo}`,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+  }
+}
+
+
 const hoyISO = () => new Date().toISOString().slice(0, 10)
 
 const sumarDiasISO = (dias: number, base = new Date()) => {
@@ -89,6 +268,12 @@ const detectarPlataformaPorCorreo = (correo: string) => {
   if (texto.includes("max") || texto.includes("hbo")) return "Max"
   if (texto.includes("spotify")) return "Spotify"
   if (texto.includes("youtube")) return "YouTube Premium"
+  if (texto.includes("apple") || texto.includes("appletv")) return "Apple TV"
+  if (texto.includes("deezer")) return "Deezer"
+  if (texto.includes("tidal")) return "Tidal"
+  if (texto.includes("viki")) return "Rakuten Viki"
+  if (texto.includes("paramount")) return "Paramount+"
+  if (texto.includes("canva")) return "Canva"
   if (texto.includes("apptv") || texto.includes("iptv")) return "IPTV / App TV"
   if (texto.includes("appmus")) return "App Música"
 
@@ -832,6 +1017,14 @@ Tu entretenimiento, sin complicaciones.`
           <StatCard label="Sin PIN" value={resumen.sinPin} />
         </div>
 
+        <div style={stylesPage.platformLegend}>
+          {PLATAFORMAS.slice(0, 13).map((plataforma) => (
+            <span key={plataforma} style={estiloChipPlataforma(plataforma)}>
+              {plataforma}
+            </span>
+          ))}
+        </div>
+
         <section style={{ ...stylesPage.panel, ...(esMovil ? stylesPage.panelMobile : {}) }}>
           <div style={{ ...stylesPage.panelHeader, ...(esMovil ? stylesPage.panelHeaderMobile : {}) }}>
             <div>
@@ -865,17 +1058,11 @@ Tu entretenimiento, sin complicaciones.`
               value={form.plataforma}
               onChange={(e) => setForm({ ...form, plataforma: e.target.value })}
             >
-              <option value="Netflix">Netflix</option>
-              <option value="Prime Video">Prime Video</option>
-              <option value="Disney+">Disney+</option>
-              <option value="Crunchyroll">Crunchyroll</option>
-              <option value="Vix">Vix</option>
-              <option value="Max">Max</option>
-              <option value="Spotify">Spotify</option>
-              <option value="YouTube Premium">YouTube Premium</option>
-              <option value="IPTV / App TV">IPTV / App TV</option>
-              <option value="App Música">App Música</option>
-              <option value="Otro">Otro</option>
+              {PLATAFORMAS.map((plataforma) => (
+                <option key={plataforma} value={plataforma}>
+                  {plataforma}
+                </option>
+              ))}
             </select>
 
             <input
@@ -1143,7 +1330,9 @@ crunchy001@jonasstream.xyz`}
                         </td>
 
                         <td style={stylesPage.td}>
-                          <strong>{cuenta.plataforma}</strong>
+                          <span style={estiloChipPlataforma(cuenta.plataforma)}>
+                            {cuenta.plataforma}
+                          </span>
                           {cuenta.correo_cliente && (
                             <span style={stylesPage.smallText}>
                               Cliente: {cuenta.correo_cliente}
@@ -1314,13 +1503,15 @@ function EstadoBadge({ estado, dias }: { estado: EstadoCuenta; dias: number }) {
 const stylesPage: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
+    position: "relative",
+    overflowX: "hidden",
     background:
-      "radial-gradient(circle at top left, rgba(1, 231, 239, 0.18), transparent 35%), radial-gradient(circle at bottom right, rgba(0, 251, 255, 0.14), transparent 35%), linear-gradient(135deg, #000000, #031316, #071B1E)",
+      "radial-gradient(circle at 12% -8%, rgba(1, 231, 239, 0.22), transparent 34%), radial-gradient(circle at 88% 10%, rgba(107, 72, 255, 0.18), transparent 28%), radial-gradient(circle at 72% 118%, rgba(0, 251, 255, 0.14), transparent 34%), linear-gradient(135deg, #000000 0%, #031316 48%, #071B1E 100%)",
     color: "#ECFFFF",
     padding: "40px",
-    fontFamily: "Arial, sans-serif",
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
   },
-
   pageMobile: {
     padding: "16px",
   },
@@ -1379,7 +1570,7 @@ const stylesPage: Record<string, CSSProperties> = {
     justifyContent: "stretch",
   },
   tableWrapMobile: {
-    border: "1px solid rgba(1, 231, 239, 0.12)",
+    border: "1px solid rgba(1, 231, 239, 0.16)",
     borderRadius: "18px",
   },
   tableMobile: {
@@ -1388,53 +1579,61 @@ const stylesPage: Record<string, CSSProperties> = {
   centerPage: {
     minHeight: "100vh",
     background:
-      "radial-gradient(circle at top left, rgba(1, 231, 239, 0.18), transparent 35%), linear-gradient(135deg, #000000, #031316, #071B1E)",
+      "radial-gradient(circle at top left, rgba(1, 231, 239, 0.24), transparent 35%), linear-gradient(135deg, #000000, #031316, #071B1E)",
     color: "#ECFFFF",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontFamily: "Arial, sans-serif",
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
   },
   loadingBox: {
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "22px",
-    padding: "28px",
-    boxShadow: "0 0 40px rgba(0, 251, 255, 0.22)",
+    border: "1px solid rgba(1, 231, 239, 0.22)",
+    background:
+      "linear-gradient(180deg, rgba(3, 19, 22, 0.92), rgba(0, 0, 0, 0.78))",
+    borderRadius: "28px",
+    padding: "30px",
+    boxShadow: "0 0 46px rgba(0, 251, 255, 0.22)",
     textAlign: "center",
   },
   container: {
-    maxWidth: "1380px",
+    maxWidth: "1420px",
     margin: "0 auto",
+    position: "relative",
+    zIndex: 1,
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
-    gap: "20px",
-    alignItems: "center",
+    gap: "22px",
+    alignItems: "stretch",
     marginBottom: "34px",
   },
   kicker: {
     color: "#01E7EF",
-    letterSpacing: "0.16em",
-    fontWeight: 900,
-    fontSize: "13px",
+    letterSpacing: "0.18em",
+    fontWeight: 950,
+    fontSize: "12px",
     margin: 0,
+    textTransform: "uppercase",
   },
   title: {
-    fontSize: "52px",
+    fontSize: "clamp(42px, 5vw, 64px)",
     margin: "12px 0",
-    lineHeight: 1,
+    lineHeight: 0.96,
+    letterSpacing: "-0.05em",
+    textShadow: "0 0 28px rgba(1, 231, 239, 0.18)",
   },
   description: {
     color: "#9BC8CB",
-    maxWidth: "760px",
-    lineHeight: 1.7,
+    maxWidth: "780px",
+    lineHeight: 1.72,
     margin: 0,
+    fontSize: "15px",
   },
   muted: {
     color: "#9BC8CB",
-    lineHeight: 1.7,
+    lineHeight: 1.72,
     margin: 0,
   },
   mutedSmall: {
@@ -1446,15 +1645,18 @@ const stylesPage: Record<string, CSSProperties> = {
     display: "block",
     color: "#9BC8CB",
     fontSize: "12px",
-    marginTop: "4px",
+    marginTop: "5px",
+    overflowWrap: "anywhere",
   },
   adminCard: {
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "20px",
-    padding: "16px",
-    minWidth: "260px",
-    boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+    border: "1px solid rgba(1, 231, 239, 0.20)",
+    background:
+      "linear-gradient(180deg, rgba(3, 19, 22, 0.92), rgba(0, 0, 0, 0.64))",
+    borderRadius: "24px",
+    padding: "18px",
+    minWidth: "280px",
+    boxShadow: "0 0 34px rgba(1, 231, 239, 0.16)",
+    backdropFilter: "blur(16px)",
   },
   headerActions: {
     display: "flex",
@@ -1466,28 +1668,41 @@ const stylesPage: Record<string, CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
     gap: "18px",
-    marginTop: "36px",
+    marginTop: "34px",
   },
   statCard: {
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "22px",
+    border: "1px solid rgba(1, 231, 239, 0.20)",
+    background:
+      "linear-gradient(180deg, rgba(3, 19, 22, 0.88), rgba(0, 0, 0, 0.58))",
+    borderRadius: "24px",
     padding: "24px",
-    boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+    boxShadow: "0 0 30px rgba(1, 231, 239, 0.14)",
+    position: "relative",
+    overflow: "hidden",
   },
   statValue: {
     display: "block",
     color: "#01E7EF",
-    fontSize: "38px",
+    fontSize: "42px",
     marginTop: "12px",
+    letterSpacing: "-0.04em",
+    textShadow: "0 0 22px rgba(0, 251, 255, 0.28)",
+  },
+  platformLegend: {
+    marginTop: "18px",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "10px",
   },
   panel: {
     marginTop: "30px",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
-    background: "rgba(3, 19, 22, 0.78)",
-    borderRadius: "24px",
-    padding: "24px",
-    boxShadow: "0 0 25px rgba(1, 231, 239, 0.18)",
+    border: "1px solid rgba(1, 231, 239, 0.20)",
+    background:
+      "linear-gradient(180deg, rgba(3, 19, 22, 0.90), rgba(0, 0, 0, 0.68))",
+    borderRadius: "28px",
+    padding: "26px",
+    boxShadow: "0 0 34px rgba(1, 231, 239, 0.14)",
+    backdropFilter: "blur(16px)",
   },
   panelHeader: {
     display: "flex",
@@ -1497,12 +1712,14 @@ const stylesPage: Record<string, CSSProperties> = {
     marginBottom: "22px",
   },
   notice: {
-    border: "1px solid rgba(1, 231, 239, 0.25)",
-    background: "rgba(1, 231, 239, 0.08)",
+    border: "1px solid rgba(1, 231, 239, 0.28)",
+    background:
+      "linear-gradient(135deg, rgba(1, 231, 239, 0.12), rgba(0, 251, 255, 0.05))",
     color: "#ECFFFF",
-    borderRadius: "16px",
+    borderRadius: "18px",
     padding: "14px",
     marginBottom: "18px",
+    boxShadow: "inset 0 0 18px rgba(1, 231, 239, 0.08)",
   },
   formGrid: {
     display: "grid",
@@ -1517,27 +1734,29 @@ const stylesPage: Record<string, CSSProperties> = {
   },
   input: {
     width: "100%",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
+    border: "1px solid rgba(1, 231, 239, 0.22)",
     outline: "none",
-    borderRadius: "15px",
+    borderRadius: "16px",
     padding: "14px 15px",
-    background: "rgba(0, 0, 0, 0.34)",
+    background: "rgba(0, 0, 0, 0.42)",
     color: "#ECFFFF",
     fontSize: "14px",
+    boxShadow: "inset 0 0 18px rgba(1, 231, 239, 0.04)",
   },
   textareaImport: {
     width: "100%",
     minHeight: "180px",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
+    border: "1px solid rgba(1, 231, 239, 0.22)",
     outline: "none",
-    borderRadius: "15px",
+    borderRadius: "18px",
     padding: "16px",
-    background: "rgba(0, 0, 0, 0.34)",
+    background: "rgba(0, 0, 0, 0.42)",
     color: "#ECFFFF",
     fontSize: "14px",
     lineHeight: 1.6,
     resize: "vertical",
     marginBottom: "16px",
+    boxShadow: "inset 0 0 18px rgba(1, 231, 239, 0.04)",
   },
   importSummary: {
     display: "grid",
@@ -1555,16 +1774,17 @@ const stylesPage: Record<string, CSSProperties> = {
     border: "none",
     background: "linear-gradient(135deg, #01E7EF, #00FBFF)",
     color: "#000000",
-    borderRadius: "15px",
+    borderRadius: "16px",
     padding: "14px 18px",
     fontWeight: 950,
     cursor: "pointer",
+    boxShadow: "0 0 24px rgba(0, 251, 255, 0.24)",
   },
   buttonSecondary: {
-    border: "1px solid rgba(1, 231, 239, 0.25)",
+    border: "1px solid rgba(1, 231, 239, 0.30)",
     background: "rgba(1, 231, 239, 0.08)",
     color: "#01E7EF",
-    borderRadius: "15px",
+    borderRadius: "16px",
     padding: "14px 18px",
     fontWeight: 900,
     cursor: "pointer",
@@ -1572,10 +1792,10 @@ const stylesPage: Record<string, CSSProperties> = {
   buttonGhost: {
     width: "100%",
     marginTop: "12px",
-    border: "1px solid rgba(1, 231, 239, 0.18)",
+    border: "1px solid rgba(1, 231, 239, 0.24)",
     background: "rgba(1, 231, 239, 0.08)",
     color: "#01E7EF",
-    borderRadius: "14px",
+    borderRadius: "15px",
     padding: "12px",
     fontWeight: 900,
     cursor: "pointer",
@@ -1586,13 +1806,16 @@ const stylesPage: Record<string, CSSProperties> = {
     border: "1px solid rgba(255, 67, 67, 0.45)",
     background: "rgba(255, 67, 67, 0.15)",
     color: "#ff8a8a",
-    borderRadius: "14px",
+    borderRadius: "15px",
     padding: "12px",
     fontWeight: 900,
     cursor: "pointer",
   },
   tableWrap: {
     overflowX: "auto",
+    border: "1px solid rgba(1, 231, 239, 0.12)",
+    borderRadius: "22px",
+    background: "rgba(0, 0, 0, 0.24)",
   },
   table: {
     width: "100%",
@@ -1602,27 +1825,30 @@ const stylesPage: Record<string, CSSProperties> = {
   th: {
     color: "#01E7EF",
     textAlign: "left",
-    padding: "14px",
+    padding: "15px",
     borderBottom: "1px solid rgba(1, 231, 239, 0.18)",
-    fontSize: "13px",
+    fontSize: "12px",
     textTransform: "uppercase",
+    letterSpacing: "0.10em",
+    background: "rgba(1, 231, 239, 0.05)",
   },
   td: {
-    padding: "14px",
-    borderBottom: "1px solid rgba(1, 231, 239, 0.1)",
+    padding: "15px",
+    borderBottom: "1px solid rgba(1, 231, 239, 0.09)",
     color: "#ECFFFF",
     verticalAlign: "top",
   },
   pinText: {
     color: "#00FBFF",
-    letterSpacing: "0.12em",
-    fontSize: "16px",
+    letterSpacing: "0.14em",
+    fontSize: "17px",
+    textShadow: "0 0 16px rgba(0, 251, 255, 0.28)",
   },
   actions: {
     display: "flex",
     gap: "8px",
     flexWrap: "wrap",
-    maxWidth: "360px",
+    maxWidth: "380px",
   },
   buttonMini: {
     border: "none",
@@ -1633,9 +1859,10 @@ const stylesPage: Record<string, CSSProperties> = {
     fontSize: "12px",
     fontWeight: 900,
     cursor: "pointer",
+    boxShadow: "0 0 16px rgba(0, 251, 255, 0.22)",
   },
   buttonMiniGhost: {
-    border: "1px solid rgba(1, 231, 239, 0.25)",
+    border: "1px solid rgba(1, 231, 239, 0.28)",
     background: "rgba(1, 231, 239, 0.08)",
     color: "#01E7EF",
     borderRadius: "999px",
