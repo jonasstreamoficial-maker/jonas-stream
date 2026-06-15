@@ -1487,3 +1487,198 @@
     font-size: 0.68rem;
   }
 }
+
+/* =====================================================
+   V3 JONAS - Correcciones solicitadas
+   - Laterales igual a la portada pública
+   - Separación visible en móvil: cabecera / pestañas / formulario
+   - Acciones inferiores en 2 x 2 más limpias
+   ===================================================== */
+
+.editorSideBrand {
+  position: fixed !important;
+  top: 50% !important;
+  left: -58px !important;
+  z-index: 1 !important;
+  transform: translateY(-50%) rotate(-90deg) !important;
+  color: rgba(1, 231, 239, 0.085) !important;
+  font-family: "Orbitron", sans-serif !important;
+  font-size: 2.8rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 5px !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  text-shadow: none !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+}
+
+.editorSideBrandRight {
+  left: auto !important;
+  right: -58px !important;
+  transform: translateY(-50%) rotate(90deg) !important;
+}
+
+.editorShell::before,
+.editorShell::after {
+  width: 260px !important;
+  opacity: 0.72 !important;
+}
+
+.editorShell::before {
+  left: 0 !important;
+  background: linear-gradient(90deg, rgba(1, 231, 239, 0.045), transparent 78%) !important;
+}
+
+.editorShell::after {
+  right: 0 !important;
+  background: linear-gradient(270deg, rgba(1, 231, 239, 0.045), transparent 78%) !important;
+}
+
+.mobileStickyHeader {
+  margin-bottom: 22px !important;
+  padding-bottom: 18px !important;
+}
+
+.mobileStickyHeader .editorTopbar {
+  margin-bottom: 16px !important;
+}
+
+.mobileGroupTabs {
+  margin-top: 0 !important;
+}
+
+.workspace {
+  margin-top: 0 !important;
+}
+
+.saveBarWithFactory {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+}
+
+.saveBarWithFactory .primaryButton,
+.saveBarWithFactory .secondaryButton,
+.saveBarWithFactory .factoryButton {
+  width: 100% !important;
+  min-height: 52px !important;
+  padding: 11px 12px !important;
+  border-radius: 16px !important;
+  line-height: 1.12 !important;
+  white-space: normal !important;
+}
+
+@media (max-width: 1280px) {
+  .editorSideBrand {
+    left: -64px !important;
+    font-size: 2.45rem !important;
+    letter-spacing: 4px !important;
+    color: rgba(1, 231, 239, 0.075) !important;
+  }
+
+  .editorSideBrandRight {
+    right: -64px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .editorSideBrand {
+    display: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .editorShell {
+    padding-top: 10px !important;
+    padding-bottom: calc(34px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .editorShell::before,
+  .editorShell::after,
+  .editorSideBrand {
+    display: none !important;
+  }
+
+  .mobileStickyHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 700 !important;
+    margin-bottom: 24px !important;
+    padding-bottom: 16px !important;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.99) 0%, rgba(3, 19, 22, 0.99) 78%, rgba(3, 19, 22, 0) 100%) !important;
+  }
+
+  .mobileStickyHeader .editorTopbar {
+    margin-bottom: 18px !important;
+    padding: 12px 12px 13px !important;
+    border-radius: 18px !important;
+  }
+
+  .mobileGroupTabs {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 10px !important;
+    border-radius: 18px !important;
+    background: rgba(3, 19, 22, 0.96) !important;
+    box-shadow:
+      0 12px 26px rgba(0, 0, 0, 0.34),
+      0 0 20px rgba(0, 251, 255, 0.07) !important;
+  }
+
+  .workspace {
+    margin-top: 0 !important;
+  }
+
+  .editorPanel {
+    padding: 10px !important;
+    border-radius: 20px !important;
+  }
+
+  .formCard {
+    margin-top: 0 !important;
+    padding: 16px 14px !important;
+    border-radius: 20px !important;
+  }
+
+  .saveBarWithFactory {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    border-radius: 18px !important;
+    background: rgba(3, 19, 22, 0.78) !important;
+    border: 1px solid rgba(1, 231, 239, 0.12) !important;
+  }
+
+  .saveBarWithFactory .primaryButton,
+  .saveBarWithFactory .secondaryButton,
+  .saveBarWithFactory .factoryButton {
+    min-height: 46px !important;
+    padding: 9px 7px !important;
+    border-radius: 14px !important;
+    font-size: 0.72rem !important;
+    line-height: 1.12 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileStickyHeader {
+    margin-bottom: 22px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .mobileStickyHeader .editorTopbar {
+    margin-bottom: 16px !important;
+  }
+
+  .saveBarWithFactory .primaryButton,
+  .saveBarWithFactory .secondaryButton,
+  .saveBarWithFactory .factoryButton {
+    font-size: 0.68rem !important;
+    min-height: 44px !important;
+  }
+}
