@@ -2491,3 +2491,53 @@
     letter-spacing: 2px !important;
   }
 }
+
+/* =====================================================
+   V15 FINAL PC - Panel izquierdo con la misma altura que vista previa
+   Solo computadora/tablet. No modifica móvil.
+   ===================================================== */
+@media (min-width: 721px) {
+  .editorShell {
+    --pc-panel-height: calc(100vh - var(--pc-sticky-top, 196px) - var(--pc-gap, 18px)) !important;
+  }
+
+  .workspace {
+    align-items: stretch !important;
+  }
+
+  .editorPanel,
+  .previewPanel {
+    height: var(--pc-panel-height) !important;
+    min-height: var(--pc-panel-height) !important;
+    max-height: var(--pc-panel-height) !important;
+  }
+
+  .editorPanel {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .formCard {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+  }
+
+  .saveBar,
+  .saveBarWithFactory {
+    flex: 0 0 auto !important;
+    margin-top: 14px !important;
+  }
+
+  .previewPanel {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .previewFrameOuter {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+}
