@@ -2402,3 +2402,92 @@
       radial-gradient(circle at 78% 20%, rgba(1, 231, 239, 0.09), transparent 34%) !important;
   }
 }
+
+/* =====================================================
+   V14 FINAL - Topbar tipo portada pública + acciones PC
+   Solo agrega el nuevo encabezado y conserva móvil compacto.
+   ===================================================== */
+.editorBrandBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.editorBrandBlock h1 {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.55rem, 3vw, 2.65rem);
+  line-height: 1.04;
+  letter-spacing: 1.5px;
+  color: var(--text, #ecffff);
+  text-transform: uppercase;
+  text-shadow: 0 0 16px rgba(236, 255, 255, 0.08);
+}
+
+.editorBrandSubtitle {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 3.2px;
+  line-height: 1.25;
+  color: var(--muted, #9bc8cb);
+  text-transform: uppercase;
+}
+
+@media (min-width: 721px) {
+  .editorTopbar {
+    min-height: 96px !important;
+    padding: 22px 24px !important;
+  }
+
+  .topbarActions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+    max-width: 760px !important;
+  }
+
+  .topbarActions .primaryButton,
+  .topbarActions .secondaryButton {
+    min-height: 46px !important;
+    padding: 11px 16px !important;
+    border-radius: 16px !important;
+    white-space: nowrap !important;
+    line-height: 1.05 !important;
+  }
+
+  .topbarActions .factoryButton {
+    min-height: 46px !important;
+    grid-column: auto !important;
+  }
+
+  .desktopOnlyAction {
+    display: inline-flex !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .desktopOnlyAction {
+    display: none !important;
+  }
+
+  .editorBrandBlock {
+    gap: 4px !important;
+  }
+
+  .editorBrandBlock h1 {
+    font-size: clamp(1.25rem, 7.2vw, 1.7rem) !important;
+    line-height: 1.04 !important;
+    letter-spacing: 1px !important;
+  }
+
+  .editorBrandSubtitle {
+    font-size: 0.58rem !important;
+    letter-spacing: 2px !important;
+  }
+}

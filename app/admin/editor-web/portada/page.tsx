@@ -518,20 +518,33 @@ export default function PortadaEditorPage() {
 
         <div className={styles.mobileStickyHeader}>
         <section className={styles.editorTopbar}>
-          <div>
-            <p className={styles.kicker}>EDITOR WEB / PORTADA</p>
+          <div className={styles.editorBrandBlock}>
             <h1>Editar portada</h1>
-            <p>
-              Cambia textos, colores, enlaces y redes a la izquierda. A la derecha verás la vista previa antes de guardar o publicar.
-            </p>
+            <p className={styles.editorBrandSubtitle}>Editor web / portada</p>
           </div>
 
           <div className={styles.topbarActions}>
             <Link href="/admin/editor-web" className={styles.secondaryButton}>
               Volver
             </Link>
+            <button
+              type="button"
+              className={`${styles.secondaryButton} ${styles.factoryButton} ${styles.desktopOnlyAction}`}
+              onClick={resetFactoryDraft}
+              disabled={isSaving || isPublishing || isLoading}
+            >
+              Restablecer fábrica
+            </button>
             <button type="button" className={styles.primaryButton} onClick={saveDraft} disabled={isSaving || isLoading}>
               {isSaving ? "Guardando..." : "Guardar borrador"}
+            </button>
+            <button
+              type="button"
+              className={`${styles.primaryButton} ${styles.desktopOnlyAction}`}
+              onClick={publishDraft}
+              disabled={isPublishing || isLoading}
+            >
+              {isPublishing ? "Publicando..." : "Publicar"}
             </button>
           </div>
         </section>
