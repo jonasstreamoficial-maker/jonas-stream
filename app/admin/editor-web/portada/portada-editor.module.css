@@ -1752,3 +1752,259 @@
     margin-bottom: var(--editor-section-gap) !important;
   }
 }
+
+/* =====================================================
+   V5 - Corrección lateral derecha del editor
+   Objetivo: mostrar ambos textos JONAS STREAM como en la portada pública.
+   ===================================================== */
+
+@media (min-width: 901px) {
+  .editorSideBrand {
+    display: block !important;
+    left: clamp(54px, 6.8vw, 116px) !important;
+    color: rgba(1, 231, 239, 0.13) !important;
+    opacity: 1 !important;
+    text-shadow:
+      0 0 18px rgba(0, 251, 255, 0.08),
+      0 0 34px rgba(0, 251, 255, 0.05) !important;
+  }
+
+  .editorSideBrandRight {
+    display: block !important;
+    left: auto !important;
+    right: clamp(54px, 6.8vw, 116px) !important;
+    color: rgba(1, 231, 239, 0.13) !important;
+    opacity: 1 !important;
+    transform: translateY(-50%) rotate(90deg) !important;
+  }
+}
+
+@media (max-width: 1500px) and (min-width: 901px) {
+  .editorSideBrand {
+    display: block !important;
+    left: clamp(22px, 3.8vw, 58px) !important;
+    font-size: clamp(2.15rem, 3.2vw, 2.8rem) !important;
+    letter-spacing: 4px !important;
+  }
+
+  .editorSideBrandRight {
+    display: block !important;
+    right: clamp(22px, 3.8vw, 58px) !important;
+    font-size: clamp(2.15rem, 3.2vw, 2.8rem) !important;
+    letter-spacing: 4px !important;
+  }
+}
+
+@media (max-width: 1180px) and (min-width: 901px) {
+  .editorSideBrand {
+    opacity: 0.55 !important;
+  }
+}
+
+/* =====================================================
+   V6 - Ajuste desktop: separación uniforme y estable
+   Nota: no modifica celular; solo aplica desde 721px.
+   ===================================================== */
+
+@media (min-width: 721px) {
+  .editorShell {
+    --editor-desktop-gap: 18px;
+    padding-top: 22px !important;
+  }
+
+  .mobileStickyHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 120 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: var(--editor-desktop-gap) !important;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.99) 0%,
+        rgba(3, 19, 22, 0.985) calc(100% - var(--editor-desktop-gap)),
+        rgba(3, 19, 22, 0.94) 100%
+      ) !important;
+  }
+
+  .mobileStickyHeader::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--editor-desktop-gap);
+    pointer-events: none;
+    background: rgba(3, 19, 22, 0.94);
+    border-bottom: 1px solid rgba(1, 231, 239, 0.08);
+  }
+
+  .mobileStickyHeader .editorTopbar {
+    margin-bottom: 0 !important;
+  }
+
+  .workspace {
+    margin-top: 0 !important;
+  }
+
+  .editorPanel,
+  .previewPanel {
+    top: calc(150px + var(--editor-desktop-gap)) !important;
+    max-height: calc(100vh - 186px) !important;
+  }
+}
+
+/* =====================================================
+   V7 - DESKTOP: separación uniforme tipo portada pública
+   No modifica celular. Replicar lógica:
+   topbar-wrap padding 14px 0 10px + workspace 8px = 18px.
+   ===================================================== */
+
+@media (min-width: 721px) {
+  .editorShell {
+    --editor-desktop-gap: 18px !important;
+    --editor-sticky-offset: 148px !important;
+    padding-top: 0 !important;
+  }
+
+  .mobileStickyHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 180 !important;
+    margin: 0 !important;
+    padding: 14px 0 10px !important;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.98) 0%,
+      rgba(3, 19, 22, 0.96) 72%,
+      rgba(3, 19, 22, 0.72) 100%
+    ) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  .mobileStickyHeader::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .mobileStickyHeader .editorTopbar {
+    margin: 0 !important;
+  }
+
+  .workspace {
+    margin-top: 8px !important;
+    gap: var(--editor-desktop-gap) !important;
+  }
+
+  .editorPanel,
+  .previewPanel {
+    top: var(--editor-sticky-offset) !important;
+    max-height: calc(100vh - var(--editor-sticky-offset) - 18px) !important;
+  }
+
+  .previewFrameOuter {
+    max-height: calc(100vh - var(--editor-sticky-offset) - 108px) !important;
+  }
+}
+
+/* =====================================================
+   V8 FINAL DESKTOP - separación uniforme + laterales
+   Aplica solo PC/tablet. No modifica celular.
+   ===================================================== */
+@media (min-width: 721px) {
+  .editorShell {
+    --editor-desktop-gap: 18px !important;
+    --editor-sticky-panel-top: 154px !important;
+    width: min(1500px, calc(100% - 28px)) !important;
+    padding-top: 22px !important;
+    padding-bottom: 44px !important;
+    overflow: visible !important;
+  }
+
+  /* El contenedor superior deja UNA sola separación debajo del topbar. */
+  .mobileStickyHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 700 !important;
+    margin: 0 !important;
+    padding: 0 0 var(--editor-desktop-gap) !important;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.98) 0%,
+        rgba(3, 19, 22, 0.98) calc(100% - var(--editor-desktop-gap)),
+        rgba(3, 19, 22, 0.98) 100%
+      ) !important;
+    backdrop-filter: none !important;
+  }
+
+  .mobileStickyHeader::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .mobileStickyHeader .editorTopbar,
+  .editorTopbar {
+    margin: 0 !important;
+    position: relative !important;
+  }
+
+  /* Quita el doble espacio que venía de reglas anteriores. */
+  .workspace {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    gap: var(--editor-desktop-gap) !important;
+    align-items: start !important;
+  }
+
+  /* Cuando haces scroll, los paneles se quedan debajo del topbar
+     con la misma separación visual. */
+  .editorPanel,
+  .previewPanel {
+    position: sticky !important;
+    top: var(--editor-sticky-panel-top) !important;
+    max-height: calc(100vh - var(--editor-sticky-panel-top) - var(--editor-desktop-gap)) !important;
+  }
+
+  .previewFrameOuter {
+    max-height: calc(100vh - var(--editor-sticky-panel-top) - 106px) !important;
+  }
+
+  /* Laterales tipo portada pública. */
+  .editorSideBrand {
+    display: block !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: clamp(18px, 4.2vw, 72px) !important;
+    right: auto !important;
+    z-index: 1 !important;
+    transform: translateY(-50%) rotate(-90deg) !important;
+    color: rgba(1, 231, 239, 0.14) !important;
+    text-shadow: 0 0 24px rgba(0, 251, 255, 0.08) !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+  }
+
+  .editorSideBrandRight {
+    left: auto !important;
+    right: clamp(18px, 4.2vw, 72px) !important;
+    transform: translateY(-50%) rotate(90deg) !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1180px) {
+  .editorShell {
+    --editor-sticky-panel-top: 150px !important;
+  }
+
+  .editorSideBrand {
+    left: 10px !important;
+    font-size: clamp(1.9rem, 3vw, 2.45rem) !important;
+    letter-spacing: 6px !important;
+    color: rgba(1, 231, 239, 0.1) !important;
+  }
+
+  .editorSideBrandRight {
+    right: 10px !important;
+  }
+}
